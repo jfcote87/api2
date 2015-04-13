@@ -4,18 +4,16 @@
 //
 // Usage example:
 //
-//   import "google.golang.org/api/genomics/v1beta2"
+//   import "github.com/jfcote87/api2/genomics/v1beta2"
 //   ...
 //   genomicsService, err := genomics.New(oauthHttpClient)
 package genomics
 
 import (
-	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/jfcote87/api2/googleapi"
 	"golang.org/x/net/context"
-	"google.golang.org/api/googleapi"
 	"io"
 	"net/http"
 	"net/url"
@@ -25,10 +23,8 @@ import (
 
 // Always reference these packages, just in case the auto-generated code
 // below doesn't.
-var _ = bytes.NewBuffer
 var _ = strconv.Itoa
 var _ = fmt.Sprintf
-var _ = json.NewDecoder
 var _ = io.Copy
 var _ = url.Parse
 var _ = googleapi.Version
@@ -39,7 +35,8 @@ var _ = context.Background
 const apiId = "genomics:v1beta2"
 const apiName = "genomics"
 const apiVersion = "v1beta2"
-const basePath = "https://www.googleapis.com/genomics/v1beta2/"
+
+var baseURL *url.URL = &url.URL{Scheme: "https", Host: "www.googleapis.com", Path: "/genomics/v1beta2/"}
 
 // OAuth2 scopes used by this API.
 const (
@@ -60,7 +57,7 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
+	s := &Service{client: client}
 	s.AnnotationSets = NewAnnotationSetsService(s)
 	s.Annotations = NewAnnotationsService(s)
 	s.Callsets = NewCallsetsService(s)
@@ -77,9 +74,7 @@ func New(client *http.Client) (*Service, error) {
 }
 
 type Service struct {
-	client    *http.Client
-	BasePath  string // API endpoint base URL
-	UserAgent string // optional additional User-Agent fragment
+	client *http.Client
 
 	AnnotationSets *AnnotationSetsService
 
@@ -104,13 +99,6 @@ type Service struct {
 	Variants *VariantsService
 
 	Variantsets *VariantsetsService
-}
-
-func (s *Service) userAgent() string {
-	if s.UserAgent == "" {
-		return googleapi.UserAgent
-	}
-	return googleapi.UserAgent + " " + s.UserAgent
 }
 
 func NewAnnotationSetsService(s *Service) *AnnotationSetsService {
@@ -938,7 +926,7 @@ type Read struct {
 	AlignedSequence string `json:"alignedSequence,omitempty"`
 
 	// Alignment: The linear alignment for this alignment record. This field
-	// will be null if the read is unmapped.
+	// will be unset if the read is unmapped.
 	Alignment *LinearAlignment `json:"alignment,omitempty"`
 
 	// DuplicateFragment: The fragment is a PCR or optical duplicate (SAM
@@ -963,9 +951,10 @@ type Read struct {
 	// Info: A map of additional read alignment information.
 	Info map[string][]string `json:"info,omitempty"`
 
-	// NextMatePosition: The mapping of the primary alignment of the
+	// NextMatePosition: The position of the primary alignment of the
 	// (readNumber+1)%numberReads read in the fragment. It replaces mate
-	// position and mate strand in SAM.
+	// position and mate strand in SAM. This field will be unset if that
+	// read is unmapped or if the fragment only has a single read.
 	NextMatePosition *Position `json:"nextMatePosition,omitempty"`
 
 	// NumberReads: The number of reads in the fragment (extension to SAM
@@ -1270,7 +1259,8 @@ type SearchCallSetsRequest struct {
 	// this string.
 	Name string `json:"name,omitempty"`
 
-	// PageSize: The maximum number of call sets to return.
+	// PageSize: The maximum number of call sets to return. If unspecified,
+	// defaults to 1000.
 	PageSize int64 `json:"pageSize,omitempty"`
 
 	// PageToken: The continuation token, which is used to page through
@@ -1517,16 +1507,17 @@ type SearchVariantsRequest struct {
 	// will never be returned.
 	CallSetIds []string `json:"callSetIds,omitempty"`
 
-	// End: Required. The end of the window (0-based, exclusive) for which
-	// overlapping variants should be returned.
+	// End: The end of the window, 0-based exclusive. If unspecified or 0,
+	// defaults to the length of the reference.
 	End int64 `json:"end,omitempty,string"`
 
 	// MaxCalls: The maximum number of calls to return. However, at least
 	// one variant will always be returned, even if it has more calls than
-	// this limit.
+	// this limit. If unspecified, defaults to 5000.
 	MaxCalls int64 `json:"maxCalls,omitempty"`
 
-	// PageSize: The maximum number of variants to return.
+	// PageSize: The maximum number of variants to return. If unspecified,
+	// defaults to 5000.
 	PageSize int64 `json:"pageSize,omitempty"`
 
 	// PageToken: The continuation token, which is used to page through
@@ -1538,8 +1529,9 @@ type SearchVariantsRequest struct {
 	// sequence.
 	ReferenceName string `json:"referenceName,omitempty"`
 
-	// Start: Required. The beginning of the window (0-based, inclusive) for
-	// which overlapping variants should be returned.
+	// Start: The beginning of the window (0-based, inclusive) for which
+	// overlapping variants should be returned. If unspecified, defaults to
+	// 0.
 	Start int64 `json:"start,omitempty,string"`
 
 	// VariantName: Only return variants which have exactly this name.
@@ -1760,14 +1752,27 @@ type VariantSet struct {
 type AnnotationSetsCreateCall struct {
 	s             *Service
 	annotationset *AnnotationSet
-	opt_          map[string]interface{}
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Create: Creates a new annotation set. Caller must have WRITE
 // permission for the associated dataset.
+
 func (r *AnnotationSetsService) Create(annotationset *AnnotationSet) *AnnotationSetsCreateCall {
-	c := &AnnotationSetsCreateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.annotationset = annotationset
+	return &AnnotationSetsCreateCall{
+		s:             r.s,
+		annotationset: annotationset,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "annotationSets",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *AnnotationSetsCreateCall) Context(ctx context.Context) *AnnotationSetsCreateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1775,41 +1780,22 @@ func (r *AnnotationSetsService) Create(annotationset *AnnotationSet) *Annotation
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AnnotationSetsCreateCall) Fields(s ...googleapi.Field) *AnnotationSetsCreateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AnnotationSetsCreateCall) Do() (*AnnotationSet, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.annotationset)
-	if err != nil {
-		return nil, err
+	var returnValue *AnnotationSet
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.annotationset,
+		Result:  &returnValue,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "annotationSets")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *AnnotationSet
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Creates a new annotation set. Caller must have WRITE permission for the associated dataset.",
 	//   "httpMethod": "POST",
@@ -1833,48 +1819,41 @@ func (c *AnnotationSetsCreateCall) Do() (*AnnotationSet, error) {
 type AnnotationSetsDeleteCall struct {
 	s               *Service
 	annotationSetId string
-	opt_            map[string]interface{}
+	caller_         googleapi.Caller
+	params_         url.Values
+	pathTemplate_   string
+	context_        context.Context
 }
 
 // Delete: Deletes an annotation set. Caller must have WRITE permission
 // for the associated annotation set.
-func (r *AnnotationSetsService) Delete(annotationSetId string) *AnnotationSetsDeleteCall {
-	c := &AnnotationSetsDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.annotationSetId = annotationSetId
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *AnnotationSetsDeleteCall) Fields(s ...googleapi.Field) *AnnotationSetsDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *AnnotationSetsService) Delete(annotationSetId string) *AnnotationSetsDeleteCall {
+	return &AnnotationSetsDeleteCall{
+		s:               r.s,
+		annotationSetId: annotationSetId,
+		caller_:         googleapi.JSONCall{},
+		params_:         make(map[string][]string),
+		pathTemplate_:   "annotationSets/{annotationSetId}",
+		context_:        googleapi.NoContext,
+	}
+}
+func (c *AnnotationSetsDeleteCall) Context(ctx context.Context) *AnnotationSetsDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *AnnotationSetsDeleteCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "annotationSets/{annotationSetId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"annotationSetId": c.annotationSetId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Deletes an annotation set. Caller must have WRITE permission for the associated annotation set.",
 	//   "httpMethod": "DELETE",
@@ -1903,14 +1882,27 @@ func (c *AnnotationSetsDeleteCall) Do() error {
 type AnnotationSetsGetCall struct {
 	s               *Service
 	annotationSetId string
-	opt_            map[string]interface{}
+	caller_         googleapi.Caller
+	params_         url.Values
+	pathTemplate_   string
+	context_        context.Context
 }
 
 // Get: Gets an annotation set. Caller must have READ permission for the
 // associated dataset.
+
 func (r *AnnotationSetsService) Get(annotationSetId string) *AnnotationSetsGetCall {
-	c := &AnnotationSetsGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.annotationSetId = annotationSetId
+	return &AnnotationSetsGetCall{
+		s:               r.s,
+		annotationSetId: annotationSetId,
+		caller_:         googleapi.JSONCall{},
+		params_:         make(map[string][]string),
+		pathTemplate_:   "annotationSets/{annotationSetId}",
+		context_:        googleapi.NoContext,
+	}
+}
+func (c *AnnotationSetsGetCall) Context(ctx context.Context) *AnnotationSetsGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1918,37 +1910,23 @@ func (r *AnnotationSetsService) Get(annotationSetId string) *AnnotationSetsGetCa
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AnnotationSetsGetCall) Fields(s ...googleapi.Field) *AnnotationSetsGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AnnotationSetsGetCall) Do() (*AnnotationSet, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "annotationSets/{annotationSetId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *AnnotationSet
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"annotationSetId": c.annotationSetId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *AnnotationSet
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Gets an annotation set. Caller must have READ permission for the associated dataset.",
 	//   "httpMethod": "GET",
@@ -1982,17 +1960,30 @@ type AnnotationSetsPatchCall struct {
 	s               *Service
 	annotationSetId string
 	annotationset   *AnnotationSet
-	opt_            map[string]interface{}
+	caller_         googleapi.Caller
+	params_         url.Values
+	pathTemplate_   string
+	context_        context.Context
 }
 
 // Patch: Updates an annotation set. The update must respect all
 // mutability restrictions and other invariants described on the
 // annotation set resource. Caller must have WRITE permission for the
 // associated dataset. This method supports patch semantics.
+
 func (r *AnnotationSetsService) Patch(annotationSetId string, annotationset *AnnotationSet) *AnnotationSetsPatchCall {
-	c := &AnnotationSetsPatchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.annotationSetId = annotationSetId
-	c.annotationset = annotationset
+	return &AnnotationSetsPatchCall{
+		s:               r.s,
+		annotationSetId: annotationSetId,
+		annotationset:   annotationset,
+		caller_:         googleapi.JSONCall{},
+		params_:         make(map[string][]string),
+		pathTemplate_:   "annotationSets/{annotationSetId}",
+		context_:        googleapi.NoContext,
+	}
+}
+func (c *AnnotationSetsPatchCall) Context(ctx context.Context) *AnnotationSetsPatchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2000,43 +1991,24 @@ func (r *AnnotationSetsService) Patch(annotationSetId string, annotationset *Ann
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AnnotationSetsPatchCall) Fields(s ...googleapi.Field) *AnnotationSetsPatchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AnnotationSetsPatchCall) Do() (*AnnotationSet, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.annotationset)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "annotationSets/{annotationSetId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PATCH", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *AnnotationSet
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"annotationSetId": c.annotationSetId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PATCH",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.annotationset,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *AnnotationSet
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates an annotation set. The update must respect all mutability restrictions and other invariants described on the annotation set resource. Caller must have WRITE permission for the associated dataset. This method supports patch semantics.",
 	//   "httpMethod": "PATCH",
@@ -2071,15 +2043,28 @@ func (c *AnnotationSetsPatchCall) Do() (*AnnotationSet, error) {
 type AnnotationSetsSearchCall struct {
 	s                           *Service
 	searchannotationsetsrequest *SearchAnnotationSetsRequest
-	opt_                        map[string]interface{}
+	caller_                     googleapi.Caller
+	params_                     url.Values
+	pathTemplate_               string
+	context_                    context.Context
 }
 
 // Search: Searches for annotation sets that match the given criteria.
 // Results are returned in a deterministic order. Caller must have READ
 // permission for the queried datasets.
+
 func (r *AnnotationSetsService) Search(searchannotationsetsrequest *SearchAnnotationSetsRequest) *AnnotationSetsSearchCall {
-	c := &AnnotationSetsSearchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.searchannotationsetsrequest = searchannotationsetsrequest
+	return &AnnotationSetsSearchCall{
+		s: r.s,
+		searchannotationsetsrequest: searchannotationsetsrequest,
+		caller_:                     googleapi.JSONCall{},
+		params_:                     make(map[string][]string),
+		pathTemplate_:               "annotationSets/search",
+		context_:                    googleapi.NoContext,
+	}
+}
+func (c *AnnotationSetsSearchCall) Context(ctx context.Context) *AnnotationSetsSearchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2087,41 +2072,22 @@ func (r *AnnotationSetsService) Search(searchannotationsetsrequest *SearchAnnota
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AnnotationSetsSearchCall) Fields(s ...googleapi.Field) *AnnotationSetsSearchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AnnotationSetsSearchCall) Do() (*SearchAnnotationSetsResponse, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.searchannotationsetsrequest)
-	if err != nil {
-		return nil, err
+	var returnValue *SearchAnnotationSetsResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.searchannotationsetsrequest,
+		Result:  &returnValue,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "annotationSets/search")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *SearchAnnotationSetsResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Searches for annotation sets that match the given criteria. Results are returned in a deterministic order. Caller must have READ permission for the queried datasets.",
 	//   "httpMethod": "POST",
@@ -2147,17 +2113,30 @@ type AnnotationSetsUpdateCall struct {
 	s               *Service
 	annotationSetId string
 	annotationset   *AnnotationSet
-	opt_            map[string]interface{}
+	caller_         googleapi.Caller
+	params_         url.Values
+	pathTemplate_   string
+	context_        context.Context
 }
 
 // Update: Updates an annotation set. The update must respect all
 // mutability restrictions and other invariants described on the
 // annotation set resource. Caller must have WRITE permission for the
 // associated dataset.
+
 func (r *AnnotationSetsService) Update(annotationSetId string, annotationset *AnnotationSet) *AnnotationSetsUpdateCall {
-	c := &AnnotationSetsUpdateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.annotationSetId = annotationSetId
-	c.annotationset = annotationset
+	return &AnnotationSetsUpdateCall{
+		s:               r.s,
+		annotationSetId: annotationSetId,
+		annotationset:   annotationset,
+		caller_:         googleapi.JSONCall{},
+		params_:         make(map[string][]string),
+		pathTemplate_:   "annotationSets/{annotationSetId}",
+		context_:        googleapi.NoContext,
+	}
+}
+func (c *AnnotationSetsUpdateCall) Context(ctx context.Context) *AnnotationSetsUpdateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2165,43 +2144,24 @@ func (r *AnnotationSetsService) Update(annotationSetId string, annotationset *An
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AnnotationSetsUpdateCall) Fields(s ...googleapi.Field) *AnnotationSetsUpdateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AnnotationSetsUpdateCall) Do() (*AnnotationSet, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.annotationset)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "annotationSets/{annotationSetId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *AnnotationSet
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"annotationSetId": c.annotationSetId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.annotationset,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *AnnotationSet
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates an annotation set. The update must respect all mutability restrictions and other invariants described on the annotation set resource. Caller must have WRITE permission for the associated dataset.",
 	//   "httpMethod": "PUT",
@@ -2236,7 +2196,10 @@ func (c *AnnotationSetsUpdateCall) Do() (*AnnotationSet, error) {
 type AnnotationsBatchCreateCall struct {
 	s                             *Service
 	batchcreateannotationsrequest *BatchCreateAnnotationsRequest
-	opt_                          map[string]interface{}
+	caller_                       googleapi.Caller
+	params_                       url.Values
+	pathTemplate_                 string
+	context_                      context.Context
 }
 
 // BatchCreate: Creates one or more new annotations atomically. All
@@ -2251,9 +2214,19 @@ type AnnotationsBatchCreateCall struct {
 // issues, when possible an error will be isolated to the corresponding
 // batch entry in the response; the remaining well formed annotations
 // will be created normally.
+
 func (r *AnnotationsService) BatchCreate(batchcreateannotationsrequest *BatchCreateAnnotationsRequest) *AnnotationsBatchCreateCall {
-	c := &AnnotationsBatchCreateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.batchcreateannotationsrequest = batchcreateannotationsrequest
+	return &AnnotationsBatchCreateCall{
+		s: r.s,
+		batchcreateannotationsrequest: batchcreateannotationsrequest,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "annotations:batchCreate",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *AnnotationsBatchCreateCall) Context(ctx context.Context) *AnnotationsBatchCreateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2261,41 +2234,22 @@ func (r *AnnotationsService) BatchCreate(batchcreateannotationsrequest *BatchCre
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AnnotationsBatchCreateCall) Fields(s ...googleapi.Field) *AnnotationsBatchCreateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AnnotationsBatchCreateCall) Do() (*BatchAnnotationsResponse, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.batchcreateannotationsrequest)
-	if err != nil {
-		return nil, err
+	var returnValue *BatchAnnotationsResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.batchcreateannotationsrequest,
+		Result:  &returnValue,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "annotations:batchCreate")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *BatchAnnotationsResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Creates one or more new annotations atomically. All annotations must belong to the same annotation set. Caller must have WRITE permission for this annotation set. For optimal performance, batch positionally adjacent annotations together.\n\n\nIf the request has a systemic issue, such as an attempt to write to an inaccessible annotation set, the entire RPC will fail accordingly. For lesser data issues, when possible an error will be isolated to the corresponding batch entry in the response; the remaining well formed annotations will be created normally.",
 	//   "httpMethod": "POST",
@@ -2317,16 +2271,29 @@ func (c *AnnotationsBatchCreateCall) Do() (*BatchAnnotationsResponse, error) {
 // method id "genomics.annotations.create":
 
 type AnnotationsCreateCall struct {
-	s          *Service
-	annotation *Annotation
-	opt_       map[string]interface{}
+	s             *Service
+	annotation    *Annotation
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Create: Creates a new annotation. Caller must have WRITE permission
 // for the associated annotation set.
+
 func (r *AnnotationsService) Create(annotation *Annotation) *AnnotationsCreateCall {
-	c := &AnnotationsCreateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.annotation = annotation
+	return &AnnotationsCreateCall{
+		s:             r.s,
+		annotation:    annotation,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "annotations",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *AnnotationsCreateCall) Context(ctx context.Context) *AnnotationsCreateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2334,41 +2301,22 @@ func (r *AnnotationsService) Create(annotation *Annotation) *AnnotationsCreateCa
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AnnotationsCreateCall) Fields(s ...googleapi.Field) *AnnotationsCreateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AnnotationsCreateCall) Do() (*Annotation, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.annotation)
-	if err != nil {
-		return nil, err
+	var returnValue *Annotation
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.annotation,
+		Result:  &returnValue,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "annotations")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Annotation
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Creates a new annotation. Caller must have WRITE permission for the associated annotation set.",
 	//   "httpMethod": "POST",
@@ -2390,50 +2338,43 @@ func (c *AnnotationsCreateCall) Do() (*Annotation, error) {
 // method id "genomics.annotations.delete":
 
 type AnnotationsDeleteCall struct {
-	s            *Service
-	annotationId string
-	opt_         map[string]interface{}
+	s             *Service
+	annotationId  string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Delete: Deletes an annotation. Caller must have WRITE permission for
 // the associated annotation set.
-func (r *AnnotationsService) Delete(annotationId string) *AnnotationsDeleteCall {
-	c := &AnnotationsDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.annotationId = annotationId
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *AnnotationsDeleteCall) Fields(s ...googleapi.Field) *AnnotationsDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *AnnotationsService) Delete(annotationId string) *AnnotationsDeleteCall {
+	return &AnnotationsDeleteCall{
+		s:             r.s,
+		annotationId:  annotationId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "annotations/{annotationId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *AnnotationsDeleteCall) Context(ctx context.Context) *AnnotationsDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *AnnotationsDeleteCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "annotations/{annotationId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"annotationId": c.annotationId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Deletes an annotation. Caller must have WRITE permission for the associated annotation set.",
 	//   "httpMethod": "DELETE",
@@ -2460,16 +2401,29 @@ func (c *AnnotationsDeleteCall) Do() error {
 // method id "genomics.annotations.get":
 
 type AnnotationsGetCall struct {
-	s            *Service
-	annotationId string
-	opt_         map[string]interface{}
+	s             *Service
+	annotationId  string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Gets an annotation. Caller must have READ permission for the
 // associated annotation set.
+
 func (r *AnnotationsService) Get(annotationId string) *AnnotationsGetCall {
-	c := &AnnotationsGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.annotationId = annotationId
+	return &AnnotationsGetCall{
+		s:             r.s,
+		annotationId:  annotationId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "annotations/{annotationId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *AnnotationsGetCall) Context(ctx context.Context) *AnnotationsGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2477,37 +2431,23 @@ func (r *AnnotationsService) Get(annotationId string) *AnnotationsGetCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AnnotationsGetCall) Fields(s ...googleapi.Field) *AnnotationsGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AnnotationsGetCall) Do() (*Annotation, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "annotations/{annotationId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Annotation
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"annotationId": c.annotationId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Annotation
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Gets an annotation. Caller must have READ permission for the associated annotation set.",
 	//   "httpMethod": "GET",
@@ -2538,20 +2478,33 @@ func (c *AnnotationsGetCall) Do() (*Annotation, error) {
 // method id "genomics.annotations.patch":
 
 type AnnotationsPatchCall struct {
-	s            *Service
-	annotationId string
-	annotation   *Annotation
-	opt_         map[string]interface{}
+	s             *Service
+	annotationId  string
+	annotation    *Annotation
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Patch: Updates an annotation. The update must respect all mutability
 // restrictions and other invariants described on the annotation
 // resource. Caller must have WRITE permission for the associated
 // dataset. This method supports patch semantics.
+
 func (r *AnnotationsService) Patch(annotationId string, annotation *Annotation) *AnnotationsPatchCall {
-	c := &AnnotationsPatchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.annotationId = annotationId
-	c.annotation = annotation
+	return &AnnotationsPatchCall{
+		s:             r.s,
+		annotationId:  annotationId,
+		annotation:    annotation,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "annotations/{annotationId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *AnnotationsPatchCall) Context(ctx context.Context) *AnnotationsPatchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2559,43 +2512,24 @@ func (r *AnnotationsService) Patch(annotationId string, annotation *Annotation) 
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AnnotationsPatchCall) Fields(s ...googleapi.Field) *AnnotationsPatchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AnnotationsPatchCall) Do() (*Annotation, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.annotation)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "annotations/{annotationId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PATCH", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Annotation
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"annotationId": c.annotationId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PATCH",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.annotation,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Annotation
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates an annotation. The update must respect all mutability restrictions and other invariants described on the annotation resource. Caller must have WRITE permission for the associated dataset. This method supports patch semantics.",
 	//   "httpMethod": "PATCH",
@@ -2630,16 +2564,29 @@ func (c *AnnotationsPatchCall) Do() (*Annotation, error) {
 type AnnotationsSearchCall struct {
 	s                        *Service
 	searchannotationsrequest *SearchAnnotationsRequest
-	opt_                     map[string]interface{}
+	caller_                  googleapi.Caller
+	params_                  url.Values
+	pathTemplate_            string
+	context_                 context.Context
 }
 
 // Search: Searches for annotations that match the given criteria.
 // Results are returned ordered by start position. Annotations that have
 // matching start positions are ordered deterministically. Caller must
 // have READ permission for the queried annotation sets.
+
 func (r *AnnotationsService) Search(searchannotationsrequest *SearchAnnotationsRequest) *AnnotationsSearchCall {
-	c := &AnnotationsSearchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.searchannotationsrequest = searchannotationsrequest
+	return &AnnotationsSearchCall{
+		s: r.s,
+		searchannotationsrequest: searchannotationsrequest,
+		caller_:                  googleapi.JSONCall{},
+		params_:                  make(map[string][]string),
+		pathTemplate_:            "annotations/search",
+		context_:                 googleapi.NoContext,
+	}
+}
+func (c *AnnotationsSearchCall) Context(ctx context.Context) *AnnotationsSearchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2647,41 +2594,22 @@ func (r *AnnotationsService) Search(searchannotationsrequest *SearchAnnotationsR
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AnnotationsSearchCall) Fields(s ...googleapi.Field) *AnnotationsSearchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AnnotationsSearchCall) Do() (*SearchAnnotationsResponse, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.searchannotationsrequest)
-	if err != nil {
-		return nil, err
+	var returnValue *SearchAnnotationsResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.searchannotationsrequest,
+		Result:  &returnValue,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "annotations/search")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *SearchAnnotationsResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Searches for annotations that match the given criteria. Results are returned ordered by start position. Annotations that have matching start positions are ordered deterministically. Caller must have READ permission for the queried annotation sets.",
 	//   "httpMethod": "POST",
@@ -2704,20 +2632,33 @@ func (c *AnnotationsSearchCall) Do() (*SearchAnnotationsResponse, error) {
 // method id "genomics.annotations.update":
 
 type AnnotationsUpdateCall struct {
-	s            *Service
-	annotationId string
-	annotation   *Annotation
-	opt_         map[string]interface{}
+	s             *Service
+	annotationId  string
+	annotation    *Annotation
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Update: Updates an annotation. The update must respect all mutability
 // restrictions and other invariants described on the annotation
 // resource. Caller must have WRITE permission for the associated
 // dataset.
+
 func (r *AnnotationsService) Update(annotationId string, annotation *Annotation) *AnnotationsUpdateCall {
-	c := &AnnotationsUpdateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.annotationId = annotationId
-	c.annotation = annotation
+	return &AnnotationsUpdateCall{
+		s:             r.s,
+		annotationId:  annotationId,
+		annotation:    annotation,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "annotations/{annotationId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *AnnotationsUpdateCall) Context(ctx context.Context) *AnnotationsUpdateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2725,43 +2666,24 @@ func (r *AnnotationsService) Update(annotationId string, annotation *Annotation)
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AnnotationsUpdateCall) Fields(s ...googleapi.Field) *AnnotationsUpdateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AnnotationsUpdateCall) Do() (*Annotation, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.annotation)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "annotations/{annotationId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Annotation
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"annotationId": c.annotationId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.annotation,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Annotation
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates an annotation. The update must respect all mutability restrictions and other invariants described on the annotation resource. Caller must have WRITE permission for the associated dataset.",
 	//   "httpMethod": "PUT",
@@ -2794,15 +2716,28 @@ func (c *AnnotationsUpdateCall) Do() (*Annotation, error) {
 // method id "genomics.callsets.create":
 
 type CallsetsCreateCall struct {
-	s       *Service
-	callset *CallSet
-	opt_    map[string]interface{}
+	s             *Service
+	callset       *CallSet
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Create: Creates a new call set.
+
 func (r *CallsetsService) Create(callset *CallSet) *CallsetsCreateCall {
-	c := &CallsetsCreateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.callset = callset
+	return &CallsetsCreateCall{
+		s:             r.s,
+		callset:       callset,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "callsets",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *CallsetsCreateCall) Context(ctx context.Context) *CallsetsCreateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2810,41 +2745,22 @@ func (r *CallsetsService) Create(callset *CallSet) *CallsetsCreateCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *CallsetsCreateCall) Fields(s ...googleapi.Field) *CallsetsCreateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *CallsetsCreateCall) Do() (*CallSet, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.callset)
-	if err != nil {
-		return nil, err
+	var returnValue *CallSet
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.callset,
+		Result:  &returnValue,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "callsets")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *CallSet
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Creates a new call set.",
 	//   "httpMethod": "POST",
@@ -2866,49 +2782,42 @@ func (c *CallsetsCreateCall) Do() (*CallSet, error) {
 // method id "genomics.callsets.delete":
 
 type CallsetsDeleteCall struct {
-	s         *Service
-	callSetId string
-	opt_      map[string]interface{}
+	s             *Service
+	callSetId     string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Delete: Deletes a call set.
-func (r *CallsetsService) Delete(callSetId string) *CallsetsDeleteCall {
-	c := &CallsetsDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.callSetId = callSetId
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *CallsetsDeleteCall) Fields(s ...googleapi.Field) *CallsetsDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *CallsetsService) Delete(callSetId string) *CallsetsDeleteCall {
+	return &CallsetsDeleteCall{
+		s:             r.s,
+		callSetId:     callSetId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "callsets/{callSetId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *CallsetsDeleteCall) Context(ctx context.Context) *CallsetsDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *CallsetsDeleteCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "callsets/{callSetId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"callSetId": c.callSetId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Deletes a call set.",
 	//   "httpMethod": "DELETE",
@@ -2935,15 +2844,28 @@ func (c *CallsetsDeleteCall) Do() error {
 // method id "genomics.callsets.get":
 
 type CallsetsGetCall struct {
-	s         *Service
-	callSetId string
-	opt_      map[string]interface{}
+	s             *Service
+	callSetId     string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Gets a call set by ID.
+
 func (r *CallsetsService) Get(callSetId string) *CallsetsGetCall {
-	c := &CallsetsGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.callSetId = callSetId
+	return &CallsetsGetCall{
+		s:             r.s,
+		callSetId:     callSetId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "callsets/{callSetId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *CallsetsGetCall) Context(ctx context.Context) *CallsetsGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2951,37 +2873,23 @@ func (r *CallsetsService) Get(callSetId string) *CallsetsGetCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *CallsetsGetCall) Fields(s ...googleapi.Field) *CallsetsGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *CallsetsGetCall) Do() (*CallSet, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "callsets/{callSetId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *CallSet
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"callSetId": c.callSetId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *CallSet
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Gets a call set by ID.",
 	//   "httpMethod": "GET",
@@ -3012,17 +2920,30 @@ func (c *CallsetsGetCall) Do() (*CallSet, error) {
 // method id "genomics.callsets.patch":
 
 type CallsetsPatchCall struct {
-	s         *Service
-	callSetId string
-	callset   *CallSet
-	opt_      map[string]interface{}
+	s             *Service
+	callSetId     string
+	callset       *CallSet
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Patch: Updates a call set. This method supports patch semantics.
+
 func (r *CallsetsService) Patch(callSetId string, callset *CallSet) *CallsetsPatchCall {
-	c := &CallsetsPatchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.callSetId = callSetId
-	c.callset = callset
+	return &CallsetsPatchCall{
+		s:             r.s,
+		callSetId:     callSetId,
+		callset:       callset,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "callsets/{callSetId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *CallsetsPatchCall) Context(ctx context.Context) *CallsetsPatchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -3030,43 +2951,24 @@ func (r *CallsetsService) Patch(callSetId string, callset *CallSet) *CallsetsPat
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *CallsetsPatchCall) Fields(s ...googleapi.Field) *CallsetsPatchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *CallsetsPatchCall) Do() (*CallSet, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.callset)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "callsets/{callSetId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PATCH", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *CallSet
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"callSetId": c.callSetId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PATCH",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.callset,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *CallSet
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates a call set. This method supports patch semantics.",
 	//   "httpMethod": "PATCH",
@@ -3101,16 +3003,29 @@ func (c *CallsetsPatchCall) Do() (*CallSet, error) {
 type CallsetsSearchCall struct {
 	s                     *Service
 	searchcallsetsrequest *SearchCallSetsRequest
-	opt_                  map[string]interface{}
+	caller_               googleapi.Caller
+	params_               url.Values
+	pathTemplate_         string
+	context_              context.Context
 }
 
 // Search: Gets a list of call sets matching the criteria.
 //
 // Implements
 // GlobalAllianceApi.searchCallSets.
+
 func (r *CallsetsService) Search(searchcallsetsrequest *SearchCallSetsRequest) *CallsetsSearchCall {
-	c := &CallsetsSearchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.searchcallsetsrequest = searchcallsetsrequest
+	return &CallsetsSearchCall{
+		s: r.s,
+		searchcallsetsrequest: searchcallsetsrequest,
+		caller_:               googleapi.JSONCall{},
+		params_:               make(map[string][]string),
+		pathTemplate_:         "callsets/search",
+		context_:              googleapi.NoContext,
+	}
+}
+func (c *CallsetsSearchCall) Context(ctx context.Context) *CallsetsSearchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -3118,41 +3033,22 @@ func (r *CallsetsService) Search(searchcallsetsrequest *SearchCallSetsRequest) *
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *CallsetsSearchCall) Fields(s ...googleapi.Field) *CallsetsSearchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *CallsetsSearchCall) Do() (*SearchCallSetsResponse, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.searchcallsetsrequest)
-	if err != nil {
-		return nil, err
+	var returnValue *SearchCallSetsResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.searchcallsetsrequest,
+		Result:  &returnValue,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "callsets/search")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *SearchCallSetsResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Gets a list of call sets matching the criteria.\n\nImplements GlobalAllianceApi.searchCallSets.",
 	//   "httpMethod": "POST",
@@ -3175,17 +3071,30 @@ func (c *CallsetsSearchCall) Do() (*SearchCallSetsResponse, error) {
 // method id "genomics.callsets.update":
 
 type CallsetsUpdateCall struct {
-	s         *Service
-	callSetId string
-	callset   *CallSet
-	opt_      map[string]interface{}
+	s             *Service
+	callSetId     string
+	callset       *CallSet
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Update: Updates a call set.
+
 func (r *CallsetsService) Update(callSetId string, callset *CallSet) *CallsetsUpdateCall {
-	c := &CallsetsUpdateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.callSetId = callSetId
-	c.callset = callset
+	return &CallsetsUpdateCall{
+		s:             r.s,
+		callSetId:     callSetId,
+		callset:       callset,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "callsets/{callSetId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *CallsetsUpdateCall) Context(ctx context.Context) *CallsetsUpdateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -3193,43 +3102,24 @@ func (r *CallsetsService) Update(callSetId string, callset *CallSet) *CallsetsUp
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *CallsetsUpdateCall) Fields(s ...googleapi.Field) *CallsetsUpdateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *CallsetsUpdateCall) Do() (*CallSet, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.callset)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "callsets/{callSetId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *CallSet
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"callSetId": c.callSetId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.callset,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *CallSet
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates a call set.",
 	//   "httpMethod": "PUT",
@@ -3262,15 +3152,28 @@ func (c *CallsetsUpdateCall) Do() (*CallSet, error) {
 // method id "genomics.datasets.create":
 
 type DatasetsCreateCall struct {
-	s       *Service
-	dataset *Dataset
-	opt_    map[string]interface{}
+	s             *Service
+	dataset       *Dataset
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Create: Creates a new dataset.
+
 func (r *DatasetsService) Create(dataset *Dataset) *DatasetsCreateCall {
-	c := &DatasetsCreateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.dataset = dataset
+	return &DatasetsCreateCall{
+		s:             r.s,
+		dataset:       dataset,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "datasets",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *DatasetsCreateCall) Context(ctx context.Context) *DatasetsCreateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -3278,41 +3181,22 @@ func (r *DatasetsService) Create(dataset *Dataset) *DatasetsCreateCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *DatasetsCreateCall) Fields(s ...googleapi.Field) *DatasetsCreateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *DatasetsCreateCall) Do() (*Dataset, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.dataset)
-	if err != nil {
-		return nil, err
+	var returnValue *Dataset
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.dataset,
+		Result:  &returnValue,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "datasets")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Dataset
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Creates a new dataset.",
 	//   "httpMethod": "POST",
@@ -3334,49 +3218,42 @@ func (c *DatasetsCreateCall) Do() (*Dataset, error) {
 // method id "genomics.datasets.delete":
 
 type DatasetsDeleteCall struct {
-	s         *Service
-	datasetId string
-	opt_      map[string]interface{}
+	s             *Service
+	datasetId     string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Delete: Deletes a dataset.
-func (r *DatasetsService) Delete(datasetId string) *DatasetsDeleteCall {
-	c := &DatasetsDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.datasetId = datasetId
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *DatasetsDeleteCall) Fields(s ...googleapi.Field) *DatasetsDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *DatasetsService) Delete(datasetId string) *DatasetsDeleteCall {
+	return &DatasetsDeleteCall{
+		s:             r.s,
+		datasetId:     datasetId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "datasets/{datasetId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *DatasetsDeleteCall) Context(ctx context.Context) *DatasetsDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *DatasetsDeleteCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "datasets/{datasetId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"datasetId": c.datasetId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Deletes a dataset.",
 	//   "httpMethod": "DELETE",
@@ -3403,15 +3280,28 @@ func (c *DatasetsDeleteCall) Do() error {
 // method id "genomics.datasets.get":
 
 type DatasetsGetCall struct {
-	s         *Service
-	datasetId string
-	opt_      map[string]interface{}
+	s             *Service
+	datasetId     string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Gets a dataset by ID.
+
 func (r *DatasetsService) Get(datasetId string) *DatasetsGetCall {
-	c := &DatasetsGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.datasetId = datasetId
+	return &DatasetsGetCall{
+		s:             r.s,
+		datasetId:     datasetId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "datasets/{datasetId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *DatasetsGetCall) Context(ctx context.Context) *DatasetsGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -3419,37 +3309,23 @@ func (r *DatasetsService) Get(datasetId string) *DatasetsGetCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *DatasetsGetCall) Fields(s ...googleapi.Field) *DatasetsGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *DatasetsGetCall) Do() (*Dataset, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "datasets/{datasetId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Dataset
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"datasetId": c.datasetId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Dataset
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Gets a dataset by ID.",
 	//   "httpMethod": "GET",
@@ -3480,20 +3356,29 @@ func (c *DatasetsGetCall) Do() (*Dataset, error) {
 // method id "genomics.datasets.list":
 
 type DatasetsListCall struct {
-	s    *Service
-	opt_ map[string]interface{}
+	s             *Service
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Lists datasets within a project.
+
 func (r *DatasetsService) List() *DatasetsListCall {
-	c := &DatasetsListCall{s: r.s, opt_: make(map[string]interface{})}
-	return c
+	return &DatasetsListCall{
+		s:             r.s,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "datasets",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // PageSize sets the optional parameter "pageSize": The maximum number
 // of results returned by this request. If unspecified, defaults to 50.
 func (c *DatasetsListCall) PageSize(pageSize int64) *DatasetsListCall {
-	c.opt_["pageSize"] = pageSize
+	c.params_.Set("pageSize", fmt.Sprintf("%v", pageSize))
 	return c
 }
 
@@ -3502,14 +3387,18 @@ func (c *DatasetsListCall) PageSize(pageSize int64) *DatasetsListCall {
 // next page of results, set this parameter to the value of
 // nextPageToken from the previous response.
 func (c *DatasetsListCall) PageToken(pageToken string) *DatasetsListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
 	return c
 }
 
 // ProjectNumber sets the optional parameter "projectNumber": The
 // project to list datasets for.
 func (c *DatasetsListCall) ProjectNumber(projectNumber int64) *DatasetsListCall {
-	c.opt_["projectNumber"] = projectNumber
+	c.params_.Set("projectNumber", fmt.Sprintf("%v", projectNumber))
+	return c
+}
+func (c *DatasetsListCall) Context(ctx context.Context) *DatasetsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -3517,44 +3406,21 @@ func (c *DatasetsListCall) ProjectNumber(projectNumber int64) *DatasetsListCall 
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *DatasetsListCall) Fields(s ...googleapi.Field) *DatasetsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *DatasetsListCall) Do() (*ListDatasetsResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["pageSize"]; ok {
-		params.Set("pageSize", fmt.Sprintf("%v", v))
+	var returnValue *ListDatasetsResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["projectNumber"]; ok {
-		params.Set("projectNumber", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "datasets")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ListDatasetsResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Lists datasets within a project.",
 	//   "httpMethod": "GET",
@@ -3593,17 +3459,30 @@ func (c *DatasetsListCall) Do() (*ListDatasetsResponse, error) {
 // method id "genomics.datasets.patch":
 
 type DatasetsPatchCall struct {
-	s         *Service
-	datasetId string
-	dataset   *Dataset
-	opt_      map[string]interface{}
+	s             *Service
+	datasetId     string
+	dataset       *Dataset
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Patch: Updates a dataset. This method supports patch semantics.
+
 func (r *DatasetsService) Patch(datasetId string, dataset *Dataset) *DatasetsPatchCall {
-	c := &DatasetsPatchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.datasetId = datasetId
-	c.dataset = dataset
+	return &DatasetsPatchCall{
+		s:             r.s,
+		datasetId:     datasetId,
+		dataset:       dataset,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "datasets/{datasetId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *DatasetsPatchCall) Context(ctx context.Context) *DatasetsPatchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -3611,43 +3490,24 @@ func (r *DatasetsService) Patch(datasetId string, dataset *Dataset) *DatasetsPat
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *DatasetsPatchCall) Fields(s ...googleapi.Field) *DatasetsPatchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *DatasetsPatchCall) Do() (*Dataset, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.dataset)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "datasets/{datasetId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PATCH", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Dataset
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"datasetId": c.datasetId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PATCH",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.dataset,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Dataset
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates a dataset. This method supports patch semantics.",
 	//   "httpMethod": "PATCH",
@@ -3680,17 +3540,30 @@ func (c *DatasetsPatchCall) Do() (*Dataset, error) {
 // method id "genomics.datasets.undelete":
 
 type DatasetsUndeleteCall struct {
-	s         *Service
-	datasetId string
-	opt_      map[string]interface{}
+	s             *Service
+	datasetId     string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Undelete: Undeletes a dataset by restoring a dataset which was
 // deleted via this API. This operation is only possible for a week
 // after the deletion occurred.
+
 func (r *DatasetsService) Undelete(datasetId string) *DatasetsUndeleteCall {
-	c := &DatasetsUndeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.datasetId = datasetId
+	return &DatasetsUndeleteCall{
+		s:             r.s,
+		datasetId:     datasetId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "datasets/{datasetId}/undelete",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *DatasetsUndeleteCall) Context(ctx context.Context) *DatasetsUndeleteCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -3698,37 +3571,23 @@ func (r *DatasetsService) Undelete(datasetId string) *DatasetsUndeleteCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *DatasetsUndeleteCall) Fields(s ...googleapi.Field) *DatasetsUndeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *DatasetsUndeleteCall) Do() (*Dataset, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "datasets/{datasetId}/undelete")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Dataset
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"datasetId": c.datasetId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "POST",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Dataset
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Undeletes a dataset by restoring a dataset which was deleted via this API. This operation is only possible for a week after the deletion occurred.",
 	//   "httpMethod": "POST",
@@ -3758,17 +3617,30 @@ func (c *DatasetsUndeleteCall) Do() (*Dataset, error) {
 // method id "genomics.datasets.update":
 
 type DatasetsUpdateCall struct {
-	s         *Service
-	datasetId string
-	dataset   *Dataset
-	opt_      map[string]interface{}
+	s             *Service
+	datasetId     string
+	dataset       *Dataset
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Update: Updates a dataset.
+
 func (r *DatasetsService) Update(datasetId string, dataset *Dataset) *DatasetsUpdateCall {
-	c := &DatasetsUpdateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.datasetId = datasetId
-	c.dataset = dataset
+	return &DatasetsUpdateCall{
+		s:             r.s,
+		datasetId:     datasetId,
+		dataset:       dataset,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "datasets/{datasetId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *DatasetsUpdateCall) Context(ctx context.Context) *DatasetsUpdateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -3776,43 +3648,24 @@ func (r *DatasetsService) Update(datasetId string, dataset *Dataset) *DatasetsUp
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *DatasetsUpdateCall) Fields(s ...googleapi.Field) *DatasetsUpdateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *DatasetsUpdateCall) Do() (*Dataset, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.dataset)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "datasets/{datasetId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Dataset
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"datasetId": c.datasetId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.dataset,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Dataset
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates a dataset.",
 	//   "httpMethod": "PUT",
@@ -3847,14 +3700,27 @@ func (c *DatasetsUpdateCall) Do() (*Dataset, error) {
 type ExperimentalJobsCreateCall struct {
 	s                            *Service
 	experimentalcreatejobrequest *ExperimentalCreateJobRequest
-	opt_                         map[string]interface{}
+	caller_                      googleapi.Caller
+	params_                      url.Values
+	pathTemplate_                string
+	context_                     context.Context
 }
 
 // Create: Creates and asynchronously runs an ad-hoc job. This is an
 // experimental call and may be removed or changed at any time.
+
 func (r *ExperimentalJobsService) Create(experimentalcreatejobrequest *ExperimentalCreateJobRequest) *ExperimentalJobsCreateCall {
-	c := &ExperimentalJobsCreateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.experimentalcreatejobrequest = experimentalcreatejobrequest
+	return &ExperimentalJobsCreateCall{
+		s: r.s,
+		experimentalcreatejobrequest: experimentalcreatejobrequest,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "experimental/jobs/create",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *ExperimentalJobsCreateCall) Context(ctx context.Context) *ExperimentalJobsCreateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -3862,41 +3728,22 @@ func (r *ExperimentalJobsService) Create(experimentalcreatejobrequest *Experimen
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ExperimentalJobsCreateCall) Fields(s ...googleapi.Field) *ExperimentalJobsCreateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ExperimentalJobsCreateCall) Do() (*ExperimentalCreateJobResponse, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.experimentalcreatejobrequest)
-	if err != nil {
-		return nil, err
+	var returnValue *ExperimentalCreateJobResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.experimentalcreatejobrequest,
+		Result:  &returnValue,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "experimental/jobs/create")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ExperimentalCreateJobResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Creates and asynchronously runs an ad-hoc job. This is an experimental call and may be removed or changed at any time.",
 	//   "httpMethod": "POST",
@@ -3919,50 +3766,43 @@ func (c *ExperimentalJobsCreateCall) Do() (*ExperimentalCreateJobResponse, error
 // method id "genomics.jobs.cancel":
 
 type JobsCancelCall struct {
-	s     *Service
-	jobId string
-	opt_  map[string]interface{}
+	s             *Service
+	jobId         string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Cancel: Cancels a job by ID. Note that it is possible for partial
 // results to be generated and stored for cancelled jobs.
-func (r *JobsService) Cancel(jobId string) *JobsCancelCall {
-	c := &JobsCancelCall{s: r.s, opt_: make(map[string]interface{})}
-	c.jobId = jobId
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *JobsCancelCall) Fields(s ...googleapi.Field) *JobsCancelCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *JobsService) Cancel(jobId string) *JobsCancelCall {
+	return &JobsCancelCall{
+		s:             r.s,
+		jobId:         jobId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "jobs/{jobId}/cancel",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *JobsCancelCall) Context(ctx context.Context) *JobsCancelCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *JobsCancelCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "jobs/{jobId}/cancel")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"jobId": c.jobId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "POST",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Cancels a job by ID. Note that it is possible for partial results to be generated and stored for cancelled jobs.",
 	//   "httpMethod": "POST",
@@ -3989,15 +3829,28 @@ func (c *JobsCancelCall) Do() error {
 // method id "genomics.jobs.get":
 
 type JobsGetCall struct {
-	s     *Service
-	jobId string
-	opt_  map[string]interface{}
+	s             *Service
+	jobId         string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Gets a job by ID.
+
 func (r *JobsService) Get(jobId string) *JobsGetCall {
-	c := &JobsGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.jobId = jobId
+	return &JobsGetCall{
+		s:             r.s,
+		jobId:         jobId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "jobs/{jobId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *JobsGetCall) Context(ctx context.Context) *JobsGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -4005,37 +3858,23 @@ func (r *JobsService) Get(jobId string) *JobsGetCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *JobsGetCall) Fields(s ...googleapi.Field) *JobsGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *JobsGetCall) Do() (*Job, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "jobs/{jobId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Job
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"jobId": c.jobId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Job
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Gets a job by ID.",
 	//   "httpMethod": "GET",
@@ -4068,13 +3907,26 @@ func (c *JobsGetCall) Do() (*Job, error) {
 type JobsSearchCall struct {
 	s                 *Service
 	searchjobsrequest *SearchJobsRequest
-	opt_              map[string]interface{}
+	caller_           googleapi.Caller
+	params_           url.Values
+	pathTemplate_     string
+	context_          context.Context
 }
 
 // Search: Gets a list of jobs matching the criteria.
+
 func (r *JobsService) Search(searchjobsrequest *SearchJobsRequest) *JobsSearchCall {
-	c := &JobsSearchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.searchjobsrequest = searchjobsrequest
+	return &JobsSearchCall{
+		s:                 r.s,
+		searchjobsrequest: searchjobsrequest,
+		caller_:           googleapi.JSONCall{},
+		params_:           make(map[string][]string),
+		pathTemplate_:     "jobs/search",
+		context_:          googleapi.NoContext,
+	}
+}
+func (c *JobsSearchCall) Context(ctx context.Context) *JobsSearchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -4082,41 +3934,22 @@ func (r *JobsService) Search(searchjobsrequest *SearchJobsRequest) *JobsSearchCa
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *JobsSearchCall) Fields(s ...googleapi.Field) *JobsSearchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *JobsSearchCall) Do() (*SearchJobsResponse, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.searchjobsrequest)
-	if err != nil {
-		return nil, err
+	var returnValue *SearchJobsResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.searchjobsrequest,
+		Result:  &returnValue,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "jobs/search")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *SearchJobsResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Gets a list of jobs matching the criteria.",
 	//   "httpMethod": "POST",
@@ -4141,15 +3974,28 @@ func (c *JobsSearchCall) Do() (*SearchJobsResponse, error) {
 type ReadgroupsetsAlignCall struct {
 	s                         *Service
 	alignreadgroupsetsrequest *AlignReadGroupSetsRequest
-	opt_                      map[string]interface{}
+	caller_                   googleapi.Caller
+	params_                   url.Values
+	pathTemplate_             string
+	context_                  context.Context
 }
 
 // Align: Aligns read data from existing read group sets or files from
 // Google Cloud Storage. See the  alignment and variant calling
 // documentation for more details.
+
 func (r *ReadgroupsetsService) Align(alignreadgroupsetsrequest *AlignReadGroupSetsRequest) *ReadgroupsetsAlignCall {
-	c := &ReadgroupsetsAlignCall{s: r.s, opt_: make(map[string]interface{})}
-	c.alignreadgroupsetsrequest = alignreadgroupsetsrequest
+	return &ReadgroupsetsAlignCall{
+		s: r.s,
+		alignreadgroupsetsrequest: alignreadgroupsetsrequest,
+		caller_:                   googleapi.JSONCall{},
+		params_:                   make(map[string][]string),
+		pathTemplate_:             "readgroupsets/align",
+		context_:                  googleapi.NoContext,
+	}
+}
+func (c *ReadgroupsetsAlignCall) Context(ctx context.Context) *ReadgroupsetsAlignCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -4157,41 +4003,22 @@ func (r *ReadgroupsetsService) Align(alignreadgroupsetsrequest *AlignReadGroupSe
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ReadgroupsetsAlignCall) Fields(s ...googleapi.Field) *ReadgroupsetsAlignCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ReadgroupsetsAlignCall) Do() (*AlignReadGroupSetsResponse, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.alignreadgroupsetsrequest)
-	if err != nil {
-		return nil, err
+	var returnValue *AlignReadGroupSetsResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.alignreadgroupsetsrequest,
+		Result:  &returnValue,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "readgroupsets/align")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *AlignReadGroupSetsResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Aligns read data from existing read group sets or files from Google Cloud Storage. See the  alignment and variant calling documentation for more details.",
 	//   "httpMethod": "POST",
@@ -4216,15 +4043,28 @@ func (c *ReadgroupsetsAlignCall) Do() (*AlignReadGroupSetsResponse, error) {
 type ReadgroupsetsCallCall struct {
 	s                        *Service
 	callreadgroupsetsrequest *CallReadGroupSetsRequest
-	opt_                     map[string]interface{}
+	caller_                  googleapi.Caller
+	params_                  url.Values
+	pathTemplate_            string
+	context_                 context.Context
 }
 
 // Call: Calls variants on read data from existing read group sets or
 // files from Google Cloud Storage. See the  alignment and variant
 // calling documentation for more details.
+
 func (r *ReadgroupsetsService) Call(callreadgroupsetsrequest *CallReadGroupSetsRequest) *ReadgroupsetsCallCall {
-	c := &ReadgroupsetsCallCall{s: r.s, opt_: make(map[string]interface{})}
-	c.callreadgroupsetsrequest = callreadgroupsetsrequest
+	return &ReadgroupsetsCallCall{
+		s: r.s,
+		callreadgroupsetsrequest: callreadgroupsetsrequest,
+		caller_:                  googleapi.JSONCall{},
+		params_:                  make(map[string][]string),
+		pathTemplate_:            "readgroupsets/call",
+		context_:                 googleapi.NoContext,
+	}
+}
+func (c *ReadgroupsetsCallCall) Context(ctx context.Context) *ReadgroupsetsCallCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -4232,41 +4072,22 @@ func (r *ReadgroupsetsService) Call(callreadgroupsetsrequest *CallReadGroupSetsR
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ReadgroupsetsCallCall) Fields(s ...googleapi.Field) *ReadgroupsetsCallCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ReadgroupsetsCallCall) Do() (*CallReadGroupSetsResponse, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.callreadgroupsetsrequest)
-	if err != nil {
-		return nil, err
+	var returnValue *CallReadGroupSetsResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.callreadgroupsetsrequest,
+		Result:  &returnValue,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "readgroupsets/call")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *CallReadGroupSetsResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Calls variants on read data from existing read group sets or files from Google Cloud Storage. See the  alignment and variant calling documentation for more details.",
 	//   "httpMethod": "POST",
@@ -4291,47 +4112,40 @@ func (c *ReadgroupsetsCallCall) Do() (*CallReadGroupSetsResponse, error) {
 type ReadgroupsetsDeleteCall struct {
 	s              *Service
 	readGroupSetId string
-	opt_           map[string]interface{}
+	caller_        googleapi.Caller
+	params_        url.Values
+	pathTemplate_  string
+	context_       context.Context
 }
 
 // Delete: Deletes a read group set.
-func (r *ReadgroupsetsService) Delete(readGroupSetId string) *ReadgroupsetsDeleteCall {
-	c := &ReadgroupsetsDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.readGroupSetId = readGroupSetId
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *ReadgroupsetsDeleteCall) Fields(s ...googleapi.Field) *ReadgroupsetsDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *ReadgroupsetsService) Delete(readGroupSetId string) *ReadgroupsetsDeleteCall {
+	return &ReadgroupsetsDeleteCall{
+		s:              r.s,
+		readGroupSetId: readGroupSetId,
+		caller_:        googleapi.JSONCall{},
+		params_:        make(map[string][]string),
+		pathTemplate_:  "readgroupsets/{readGroupSetId}",
+		context_:       googleapi.NoContext,
+	}
+}
+func (c *ReadgroupsetsDeleteCall) Context(ctx context.Context) *ReadgroupsetsDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *ReadgroupsetsDeleteCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "readgroupsets/{readGroupSetId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"readGroupSetId": c.readGroupSetId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Deletes a read group set.",
 	//   "httpMethod": "DELETE",
@@ -4360,7 +4174,10 @@ func (c *ReadgroupsetsDeleteCall) Do() error {
 type ReadgroupsetsExportCall struct {
 	s                          *Service
 	exportreadgroupsetsrequest *ExportReadGroupSetsRequest
-	opt_                       map[string]interface{}
+	caller_                    googleapi.Caller
+	params_                    url.Values
+	pathTemplate_              string
+	context_                   context.Context
 }
 
 // Export: Exports read group sets to a BAM file in Google Cloud
@@ -4371,9 +4188,19 @@ type ReadgroupsetsExportCall struct {
 // In particular, comments in the input file header will not be
 // preserved, some custom tags will be converted to strings, and
 // original reference sequence order is not necessarily preserved.
+
 func (r *ReadgroupsetsService) Export(exportreadgroupsetsrequest *ExportReadGroupSetsRequest) *ReadgroupsetsExportCall {
-	c := &ReadgroupsetsExportCall{s: r.s, opt_: make(map[string]interface{})}
-	c.exportreadgroupsetsrequest = exportreadgroupsetsrequest
+	return &ReadgroupsetsExportCall{
+		s: r.s,
+		exportreadgroupsetsrequest: exportreadgroupsetsrequest,
+		caller_:                    googleapi.JSONCall{},
+		params_:                    make(map[string][]string),
+		pathTemplate_:              "readgroupsets/export",
+		context_:                   googleapi.NoContext,
+	}
+}
+func (c *ReadgroupsetsExportCall) Context(ctx context.Context) *ReadgroupsetsExportCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -4381,41 +4208,22 @@ func (r *ReadgroupsetsService) Export(exportreadgroupsetsrequest *ExportReadGrou
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ReadgroupsetsExportCall) Fields(s ...googleapi.Field) *ReadgroupsetsExportCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ReadgroupsetsExportCall) Do() (*ExportReadGroupSetsResponse, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.exportreadgroupsetsrequest)
-	if err != nil {
-		return nil, err
+	var returnValue *ExportReadGroupSetsResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.exportreadgroupsetsrequest,
+		Result:  &returnValue,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "readgroupsets/export")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ExportReadGroupSetsResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Exports read group sets to a BAM file in Google Cloud Storage.\n\nNote that currently there may be some differences between exported BAM files and the original BAM file at the time of import. In particular, comments in the input file header will not be preserved, some custom tags will be converted to strings, and original reference sequence order is not necessarily preserved.",
 	//   "httpMethod": "POST",
@@ -4440,13 +4248,26 @@ func (c *ReadgroupsetsExportCall) Do() (*ExportReadGroupSetsResponse, error) {
 type ReadgroupsetsGetCall struct {
 	s              *Service
 	readGroupSetId string
-	opt_           map[string]interface{}
+	caller_        googleapi.Caller
+	params_        url.Values
+	pathTemplate_  string
+	context_       context.Context
 }
 
 // Get: Gets a read group set by ID.
+
 func (r *ReadgroupsetsService) Get(readGroupSetId string) *ReadgroupsetsGetCall {
-	c := &ReadgroupsetsGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.readGroupSetId = readGroupSetId
+	return &ReadgroupsetsGetCall{
+		s:              r.s,
+		readGroupSetId: readGroupSetId,
+		caller_:        googleapi.JSONCall{},
+		params_:        make(map[string][]string),
+		pathTemplate_:  "readgroupsets/{readGroupSetId}",
+		context_:       googleapi.NoContext,
+	}
+}
+func (c *ReadgroupsetsGetCall) Context(ctx context.Context) *ReadgroupsetsGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -4454,37 +4275,23 @@ func (r *ReadgroupsetsService) Get(readGroupSetId string) *ReadgroupsetsGetCall 
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ReadgroupsetsGetCall) Fields(s ...googleapi.Field) *ReadgroupsetsGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ReadgroupsetsGetCall) Do() (*ReadGroupSet, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "readgroupsets/{readGroupSetId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *ReadGroupSet
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"readGroupSetId": c.readGroupSetId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ReadGroupSet
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Gets a read group set by ID.",
 	//   "httpMethod": "GET",
@@ -4517,7 +4324,10 @@ func (c *ReadgroupsetsGetCall) Do() (*ReadGroupSet, error) {
 type ReadgroupsetsImportCall struct {
 	s                          *Service
 	importreadgroupsetsrequest *ImportReadGroupSetsRequest
-	opt_                       map[string]interface{}
+	caller_                    googleapi.Caller
+	params_                    url.Values
+	pathTemplate_              string
+	context_                   context.Context
 }
 
 // Import: Creates read group sets by asynchronously importing the
@@ -4527,9 +4337,19 @@ type ReadgroupsetsImportCall struct {
 // header are not imported and some custom tags will be converted to
 // strings, rather than preserving tag types. The caller must have WRITE
 // permissions to the dataset.
+
 func (r *ReadgroupsetsService) Import(importreadgroupsetsrequest *ImportReadGroupSetsRequest) *ReadgroupsetsImportCall {
-	c := &ReadgroupsetsImportCall{s: r.s, opt_: make(map[string]interface{})}
-	c.importreadgroupsetsrequest = importreadgroupsetsrequest
+	return &ReadgroupsetsImportCall{
+		s: r.s,
+		importreadgroupsetsrequest: importreadgroupsetsrequest,
+		caller_:                    googleapi.JSONCall{},
+		params_:                    make(map[string][]string),
+		pathTemplate_:              "readgroupsets/import",
+		context_:                   googleapi.NoContext,
+	}
+}
+func (c *ReadgroupsetsImportCall) Context(ctx context.Context) *ReadgroupsetsImportCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -4537,41 +4357,22 @@ func (r *ReadgroupsetsService) Import(importreadgroupsetsrequest *ImportReadGrou
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ReadgroupsetsImportCall) Fields(s ...googleapi.Field) *ReadgroupsetsImportCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ReadgroupsetsImportCall) Do() (*ImportReadGroupSetsResponse, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.importreadgroupsetsrequest)
-	if err != nil {
-		return nil, err
+	var returnValue *ImportReadGroupSetsResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.importreadgroupsetsrequest,
+		Result:  &returnValue,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "readgroupsets/import")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ImportReadGroupSetsResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Creates read group sets by asynchronously importing the provided information.\n\nNote that currently comments in the input file header are not imported and some custom tags will be converted to strings, rather than preserving tag types. The caller must have WRITE permissions to the dataset.",
 	//   "httpMethod": "POST",
@@ -4597,15 +4398,28 @@ type ReadgroupsetsPatchCall struct {
 	s              *Service
 	readGroupSetId string
 	readgroupset   *ReadGroupSet
-	opt_           map[string]interface{}
+	caller_        googleapi.Caller
+	params_        url.Values
+	pathTemplate_  string
+	context_       context.Context
 }
 
 // Patch: Updates a read group set. This method supports patch
 // semantics.
+
 func (r *ReadgroupsetsService) Patch(readGroupSetId string, readgroupset *ReadGroupSet) *ReadgroupsetsPatchCall {
-	c := &ReadgroupsetsPatchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.readGroupSetId = readGroupSetId
-	c.readgroupset = readgroupset
+	return &ReadgroupsetsPatchCall{
+		s:              r.s,
+		readGroupSetId: readGroupSetId,
+		readgroupset:   readgroupset,
+		caller_:        googleapi.JSONCall{},
+		params_:        make(map[string][]string),
+		pathTemplate_:  "readgroupsets/{readGroupSetId}",
+		context_:       googleapi.NoContext,
+	}
+}
+func (c *ReadgroupsetsPatchCall) Context(ctx context.Context) *ReadgroupsetsPatchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -4613,43 +4427,24 @@ func (r *ReadgroupsetsService) Patch(readGroupSetId string, readgroupset *ReadGr
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ReadgroupsetsPatchCall) Fields(s ...googleapi.Field) *ReadgroupsetsPatchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ReadgroupsetsPatchCall) Do() (*ReadGroupSet, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.readgroupset)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "readgroupsets/{readGroupSetId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PATCH", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *ReadGroupSet
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"readGroupSetId": c.readGroupSetId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PATCH",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.readgroupset,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ReadGroupSet
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates a read group set. This method supports patch semantics.",
 	//   "httpMethod": "PATCH",
@@ -4684,16 +4479,29 @@ func (c *ReadgroupsetsPatchCall) Do() (*ReadGroupSet, error) {
 type ReadgroupsetsSearchCall struct {
 	s                          *Service
 	searchreadgroupsetsrequest *SearchReadGroupSetsRequest
-	opt_                       map[string]interface{}
+	caller_                    googleapi.Caller
+	params_                    url.Values
+	pathTemplate_              string
+	context_                   context.Context
 }
 
 // Search: Searches for read group sets matching the
 // criteria.
 //
 // Implements GlobalAllianceApi.searchReadGroupSets.
+
 func (r *ReadgroupsetsService) Search(searchreadgroupsetsrequest *SearchReadGroupSetsRequest) *ReadgroupsetsSearchCall {
-	c := &ReadgroupsetsSearchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.searchreadgroupsetsrequest = searchreadgroupsetsrequest
+	return &ReadgroupsetsSearchCall{
+		s: r.s,
+		searchreadgroupsetsrequest: searchreadgroupsetsrequest,
+		caller_:                    googleapi.JSONCall{},
+		params_:                    make(map[string][]string),
+		pathTemplate_:              "readgroupsets/search",
+		context_:                   googleapi.NoContext,
+	}
+}
+func (c *ReadgroupsetsSearchCall) Context(ctx context.Context) *ReadgroupsetsSearchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -4701,41 +4509,22 @@ func (r *ReadgroupsetsService) Search(searchreadgroupsetsrequest *SearchReadGrou
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ReadgroupsetsSearchCall) Fields(s ...googleapi.Field) *ReadgroupsetsSearchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ReadgroupsetsSearchCall) Do() (*SearchReadGroupSetsResponse, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.searchreadgroupsetsrequest)
-	if err != nil {
-		return nil, err
+	var returnValue *SearchReadGroupSetsResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.searchreadgroupsetsrequest,
+		Result:  &returnValue,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "readgroupsets/search")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *SearchReadGroupSetsResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Searches for read group sets matching the criteria.\n\nImplements GlobalAllianceApi.searchReadGroupSets.",
 	//   "httpMethod": "POST",
@@ -4761,14 +4550,27 @@ type ReadgroupsetsUpdateCall struct {
 	s              *Service
 	readGroupSetId string
 	readgroupset   *ReadGroupSet
-	opt_           map[string]interface{}
+	caller_        googleapi.Caller
+	params_        url.Values
+	pathTemplate_  string
+	context_       context.Context
 }
 
 // Update: Updates a read group set.
+
 func (r *ReadgroupsetsService) Update(readGroupSetId string, readgroupset *ReadGroupSet) *ReadgroupsetsUpdateCall {
-	c := &ReadgroupsetsUpdateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.readGroupSetId = readGroupSetId
-	c.readgroupset = readgroupset
+	return &ReadgroupsetsUpdateCall{
+		s:              r.s,
+		readGroupSetId: readGroupSetId,
+		readgroupset:   readgroupset,
+		caller_:        googleapi.JSONCall{},
+		params_:        make(map[string][]string),
+		pathTemplate_:  "readgroupsets/{readGroupSetId}",
+		context_:       googleapi.NoContext,
+	}
+}
+func (c *ReadgroupsetsUpdateCall) Context(ctx context.Context) *ReadgroupsetsUpdateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -4776,43 +4578,24 @@ func (r *ReadgroupsetsService) Update(readGroupSetId string, readgroupset *ReadG
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ReadgroupsetsUpdateCall) Fields(s ...googleapi.Field) *ReadgroupsetsUpdateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ReadgroupsetsUpdateCall) Do() (*ReadGroupSet, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.readgroupset)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "readgroupsets/{readGroupSetId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *ReadGroupSet
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"readGroupSetId": c.readGroupSetId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.readgroupset,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ReadGroupSet
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates a read group set.",
 	//   "httpMethod": "PUT",
@@ -4847,7 +4630,10 @@ func (c *ReadgroupsetsUpdateCall) Do() (*ReadGroupSet, error) {
 type ReadgroupsetsCoveragebucketsListCall struct {
 	s              *Service
 	readGroupSetId string
-	opt_           map[string]interface{}
+	caller_        googleapi.Caller
+	params_        url.Values
+	pathTemplate_  string
+	context_       context.Context
 }
 
 // List: Lists fixed width coverage buckets for a read group set, each
@@ -4860,17 +4646,23 @@ type ReadgroupsetsCoveragebucketsListCall struct {
 // available at several precomputed bucket widths, enabling retrieval of
 // various coverage 'zoom levels'. The caller must have READ permissions
 // for the target read group set.
+
 func (r *ReadgroupsetsCoveragebucketsService) List(readGroupSetId string) *ReadgroupsetsCoveragebucketsListCall {
-	c := &ReadgroupsetsCoveragebucketsListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.readGroupSetId = readGroupSetId
-	return c
+	return &ReadgroupsetsCoveragebucketsListCall{
+		s:              r.s,
+		readGroupSetId: readGroupSetId,
+		caller_:        googleapi.JSONCall{},
+		params_:        make(map[string][]string),
+		pathTemplate_:  "readgroupsets/{readGroupSetId}/coveragebuckets",
+		context_:       googleapi.NoContext,
+	}
 }
 
 // PageSize sets the optional parameter "pageSize": The maximum number
 // of results to return in a single page. If unspecified, defaults to
 // 1024. The maximum value is 2048.
 func (c *ReadgroupsetsCoveragebucketsListCall) PageSize(pageSize int64) *ReadgroupsetsCoveragebucketsListCall {
-	c.opt_["pageSize"] = pageSize
+	c.params_.Set("pageSize", fmt.Sprintf("%v", pageSize))
 	return c
 }
 
@@ -4879,7 +4671,7 @@ func (c *ReadgroupsetsCoveragebucketsListCall) PageSize(pageSize int64) *Readgro
 // next page of results, set this parameter to the value of
 // nextPageToken from the previous response.
 func (c *ReadgroupsetsCoveragebucketsListCall) PageToken(pageToken string) *ReadgroupsetsCoveragebucketsListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
 	return c
 }
 
@@ -4887,14 +4679,14 @@ func (c *ReadgroupsetsCoveragebucketsListCall) PageToken(pageToken string) *Read
 // the range on the reference, 0-based exclusive. If specified,
 // referenceName must also be specified.
 func (c *ReadgroupsetsCoveragebucketsListCall) RangeEnd(rangeEnd int64) *ReadgroupsetsCoveragebucketsListCall {
-	c.opt_["range.end"] = rangeEnd
+	c.params_.Set("range.end", fmt.Sprintf("%v", rangeEnd))
 	return c
 }
 
 // RangeReferenceName sets the optional parameter "range.referenceName":
 // The reference sequence name, for example chr1, 1, or chrX.
 func (c *ReadgroupsetsCoveragebucketsListCall) RangeReferenceName(rangeReferenceName string) *ReadgroupsetsCoveragebucketsListCall {
-	c.opt_["range.referenceName"] = rangeReferenceName
+	c.params_.Set("range.referenceName", fmt.Sprintf("%v", rangeReferenceName))
 	return c
 }
 
@@ -4902,7 +4694,7 @@ func (c *ReadgroupsetsCoveragebucketsListCall) RangeReferenceName(rangeReference
 // position of the range on the reference, 0-based inclusive. If
 // specified, referenceName must also be specified.
 func (c *ReadgroupsetsCoveragebucketsListCall) RangeStart(rangeStart int64) *ReadgroupsetsCoveragebucketsListCall {
-	c.opt_["range.start"] = rangeStart
+	c.params_.Set("range.start", fmt.Sprintf("%v", rangeStart))
 	return c
 }
 
@@ -4915,7 +4707,11 @@ func (c *ReadgroupsetsCoveragebucketsListCall) RangeStart(rangeStart int64) *Rea
 // precomputed bucketWidth is currently 2048 base pairs; this is subject
 // to change.
 func (c *ReadgroupsetsCoveragebucketsListCall) TargetBucketWidth(targetBucketWidth int64) *ReadgroupsetsCoveragebucketsListCall {
-	c.opt_["targetBucketWidth"] = targetBucketWidth
+	c.params_.Set("targetBucketWidth", fmt.Sprintf("%v", targetBucketWidth))
+	return c
+}
+func (c *ReadgroupsetsCoveragebucketsListCall) Context(ctx context.Context) *ReadgroupsetsCoveragebucketsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -4923,55 +4719,23 @@ func (c *ReadgroupsetsCoveragebucketsListCall) TargetBucketWidth(targetBucketWid
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ReadgroupsetsCoveragebucketsListCall) Fields(s ...googleapi.Field) *ReadgroupsetsCoveragebucketsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ReadgroupsetsCoveragebucketsListCall) Do() (*ListCoverageBucketsResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["pageSize"]; ok {
-		params.Set("pageSize", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["range.end"]; ok {
-		params.Set("range.end", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["range.referenceName"]; ok {
-		params.Set("range.referenceName", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["range.start"]; ok {
-		params.Set("range.start", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["targetBucketWidth"]; ok {
-		params.Set("targetBucketWidth", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "readgroupsets/{readGroupSetId}/coveragebuckets")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *ListCoverageBucketsResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"readGroupSetId": c.readGroupSetId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ListCoverageBucketsResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Lists fixed width coverage buckets for a read group set, each of which correspond to a range of a reference sequence. Each bucket summarizes coverage information across its corresponding genomic range.\n\nCoverage is defined as the number of reads which are aligned to a given base in the reference sequence. Coverage buckets are available at several precomputed bucket widths, enabling retrieval of various coverage 'zoom levels'. The caller must have READ permissions for the target read group set.",
 	//   "httpMethod": "GET",
@@ -5038,7 +4802,10 @@ func (c *ReadgroupsetsCoveragebucketsListCall) Do() (*ListCoverageBucketsRespons
 type ReadsSearchCall struct {
 	s                  *Service
 	searchreadsrequest *SearchReadsRequest
-	opt_               map[string]interface{}
+	caller_            googleapi.Caller
+	params_            url.Values
+	pathTemplate_      string
+	context_           context.Context
 }
 
 // Search: Gets a list of reads for one or more read group sets. Reads
@@ -5058,9 +4825,19 @@ type ReadsSearchCall struct {
 // a deterministic order.
 //
 // Implements GlobalAllianceApi.searchReads.
+
 func (r *ReadsService) Search(searchreadsrequest *SearchReadsRequest) *ReadsSearchCall {
-	c := &ReadsSearchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.searchreadsrequest = searchreadsrequest
+	return &ReadsSearchCall{
+		s:                  r.s,
+		searchreadsrequest: searchreadsrequest,
+		caller_:            googleapi.JSONCall{},
+		params_:            make(map[string][]string),
+		pathTemplate_:      "reads/search",
+		context_:           googleapi.NoContext,
+	}
+}
+func (c *ReadsSearchCall) Context(ctx context.Context) *ReadsSearchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -5068,41 +4845,22 @@ func (r *ReadsService) Search(searchreadsrequest *SearchReadsRequest) *ReadsSear
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ReadsSearchCall) Fields(s ...googleapi.Field) *ReadsSearchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ReadsSearchCall) Do() (*SearchReadsResponse, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.searchreadsrequest)
-	if err != nil {
-		return nil, err
+	var returnValue *SearchReadsResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.searchreadsrequest,
+		Result:  &returnValue,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "reads/search")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *SearchReadsResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Gets a list of reads for one or more read group sets. Reads search operates over a genomic coordinate space of reference sequence \u0026 position defined over the reference sequences to which the requested read group sets are aligned.\n\nIf a target positional range is specified, search returns all reads whose alignment to the reference genome overlap the range. A query which specifies only read group set IDs yields all reads in those read group sets, including unmapped reads.\n\nAll reads returned (including reads on subsequent pages) are ordered by genomic coordinate (reference sequence \u0026 position). Reads with equivalent genomic coordinates are returned in a deterministic order.\n\nImplements GlobalAllianceApi.searchReads.",
 	//   "httpMethod": "POST",
@@ -5125,17 +4883,30 @@ func (c *ReadsSearchCall) Do() (*SearchReadsResponse, error) {
 // method id "genomics.references.get":
 
 type ReferencesGetCall struct {
-	s           *Service
-	referenceId string
-	opt_        map[string]interface{}
+	s             *Service
+	referenceId   string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Gets a reference.
 //
 // Implements GlobalAllianceApi.getReference.
+
 func (r *ReferencesService) Get(referenceId string) *ReferencesGetCall {
-	c := &ReferencesGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.referenceId = referenceId
+	return &ReferencesGetCall{
+		s:             r.s,
+		referenceId:   referenceId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "references/{referenceId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *ReferencesGetCall) Context(ctx context.Context) *ReferencesGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -5143,37 +4914,23 @@ func (r *ReferencesService) Get(referenceId string) *ReferencesGetCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ReferencesGetCall) Fields(s ...googleapi.Field) *ReferencesGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ReferencesGetCall) Do() (*Reference, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "references/{referenceId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Reference
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"referenceId": c.referenceId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Reference
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Gets a reference.\n\nImplements GlobalAllianceApi.getReference.",
 	//   "httpMethod": "GET",
@@ -5206,16 +4963,29 @@ func (c *ReferencesGetCall) Do() (*Reference, error) {
 type ReferencesSearchCall struct {
 	s                       *Service
 	searchreferencesrequest *SearchReferencesRequest
-	opt_                    map[string]interface{}
+	caller_                 googleapi.Caller
+	params_                 url.Values
+	pathTemplate_           string
+	context_                context.Context
 }
 
 // Search: Searches for references which match the given
 // criteria.
 //
 // Implements GlobalAllianceApi.searchReferences.
+
 func (r *ReferencesService) Search(searchreferencesrequest *SearchReferencesRequest) *ReferencesSearchCall {
-	c := &ReferencesSearchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.searchreferencesrequest = searchreferencesrequest
+	return &ReferencesSearchCall{
+		s: r.s,
+		searchreferencesrequest: searchreferencesrequest,
+		caller_:                 googleapi.JSONCall{},
+		params_:                 make(map[string][]string),
+		pathTemplate_:           "references/search",
+		context_:                googleapi.NoContext,
+	}
+}
+func (c *ReferencesSearchCall) Context(ctx context.Context) *ReferencesSearchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -5223,41 +4993,22 @@ func (r *ReferencesService) Search(searchreferencesrequest *SearchReferencesRequ
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ReferencesSearchCall) Fields(s ...googleapi.Field) *ReferencesSearchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ReferencesSearchCall) Do() (*SearchReferencesResponse, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.searchreferencesrequest)
-	if err != nil {
-		return nil, err
+	var returnValue *SearchReferencesResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.searchreferencesrequest,
+		Result:  &returnValue,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "references/search")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *SearchReferencesResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Searches for references which match the given criteria.\n\nImplements GlobalAllianceApi.searchReferences.",
 	//   "httpMethod": "POST",
@@ -5280,32 +5031,41 @@ func (c *ReferencesSearchCall) Do() (*SearchReferencesResponse, error) {
 // method id "genomics.references.bases.list":
 
 type ReferencesBasesListCall struct {
-	s           *Service
-	referenceId string
-	opt_        map[string]interface{}
+	s             *Service
+	referenceId   string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Lists the bases in a reference, optionally restricted to a
 // range.
 //
 // Implements GlobalAllianceApi.getReferenceBases.
+
 func (r *ReferencesBasesService) List(referenceId string) *ReferencesBasesListCall {
-	c := &ReferencesBasesListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.referenceId = referenceId
-	return c
+	return &ReferencesBasesListCall{
+		s:             r.s,
+		referenceId:   referenceId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "references/{referenceId}/bases",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // End sets the optional parameter "end": The end position (0-based,
 // exclusive) of this query. Defaults to the length of this reference.
 func (c *ReferencesBasesListCall) End(end int64) *ReferencesBasesListCall {
-	c.opt_["end"] = end
+	c.params_.Set("end", fmt.Sprintf("%v", end))
 	return c
 }
 
 // PageSize sets the optional parameter "pageSize": Specifies the
 // maximum number of bases to return in a single page.
 func (c *ReferencesBasesListCall) PageSize(pageSize int64) *ReferencesBasesListCall {
-	c.opt_["pageSize"] = pageSize
+	c.params_.Set("pageSize", fmt.Sprintf("%v", pageSize))
 	return c
 }
 
@@ -5314,14 +5074,18 @@ func (c *ReferencesBasesListCall) PageSize(pageSize int64) *ReferencesBasesListC
 // next page of results, set this parameter to the value of
 // nextPageToken from the previous response.
 func (c *ReferencesBasesListCall) PageToken(pageToken string) *ReferencesBasesListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
 	return c
 }
 
 // Start sets the optional parameter "start": The start position
 // (0-based) of this query. Defaults to 0.
 func (c *ReferencesBasesListCall) Start(start int64) *ReferencesBasesListCall {
-	c.opt_["start"] = start
+	c.params_.Set("start", fmt.Sprintf("%v", start))
+	return c
+}
+func (c *ReferencesBasesListCall) Context(ctx context.Context) *ReferencesBasesListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -5329,49 +5093,23 @@ func (c *ReferencesBasesListCall) Start(start int64) *ReferencesBasesListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ReferencesBasesListCall) Fields(s ...googleapi.Field) *ReferencesBasesListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ReferencesBasesListCall) Do() (*ListBasesResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["end"]; ok {
-		params.Set("end", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageSize"]; ok {
-		params.Set("pageSize", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["start"]; ok {
-		params.Set("start", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "references/{referenceId}/bases")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *ListBasesResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"referenceId": c.referenceId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ListBasesResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Lists the bases in a reference, optionally restricted to a range.\n\nImplements GlobalAllianceApi.getReferenceBases.",
 	//   "httpMethod": "GET",
@@ -5427,16 +5165,29 @@ func (c *ReferencesBasesListCall) Do() (*ListBasesResponse, error) {
 type ReferencesetsGetCall struct {
 	s              *Service
 	referenceSetId string
-	opt_           map[string]interface{}
+	caller_        googleapi.Caller
+	params_        url.Values
+	pathTemplate_  string
+	context_       context.Context
 }
 
 // Get: Gets a reference set.
 //
 // Implements
 // GlobalAllianceApi.getReferenceSet.
+
 func (r *ReferencesetsService) Get(referenceSetId string) *ReferencesetsGetCall {
-	c := &ReferencesetsGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.referenceSetId = referenceSetId
+	return &ReferencesetsGetCall{
+		s:              r.s,
+		referenceSetId: referenceSetId,
+		caller_:        googleapi.JSONCall{},
+		params_:        make(map[string][]string),
+		pathTemplate_:  "referencesets/{referenceSetId}",
+		context_:       googleapi.NoContext,
+	}
+}
+func (c *ReferencesetsGetCall) Context(ctx context.Context) *ReferencesetsGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -5444,37 +5195,23 @@ func (r *ReferencesetsService) Get(referenceSetId string) *ReferencesetsGetCall 
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ReferencesetsGetCall) Fields(s ...googleapi.Field) *ReferencesetsGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ReferencesetsGetCall) Do() (*ReferenceSet, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "referencesets/{referenceSetId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *ReferenceSet
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"referenceSetId": c.referenceSetId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ReferenceSet
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Gets a reference set.\n\nImplements GlobalAllianceApi.getReferenceSet.",
 	//   "httpMethod": "GET",
@@ -5507,16 +5244,29 @@ func (c *ReferencesetsGetCall) Do() (*ReferenceSet, error) {
 type ReferencesetsSearchCall struct {
 	s                          *Service
 	searchreferencesetsrequest *SearchReferenceSetsRequest
-	opt_                       map[string]interface{}
+	caller_                    googleapi.Caller
+	params_                    url.Values
+	pathTemplate_              string
+	context_                   context.Context
 }
 
 // Search: Searches for reference sets which match the given
 // criteria.
 //
 // Implements GlobalAllianceApi.searchReferenceSets.
+
 func (r *ReferencesetsService) Search(searchreferencesetsrequest *SearchReferenceSetsRequest) *ReferencesetsSearchCall {
-	c := &ReferencesetsSearchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.searchreferencesetsrequest = searchreferencesetsrequest
+	return &ReferencesetsSearchCall{
+		s: r.s,
+		searchreferencesetsrequest: searchreferencesetsrequest,
+		caller_:                    googleapi.JSONCall{},
+		params_:                    make(map[string][]string),
+		pathTemplate_:              "referencesets/search",
+		context_:                   googleapi.NoContext,
+	}
+}
+func (c *ReferencesetsSearchCall) Context(ctx context.Context) *ReferencesetsSearchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -5524,41 +5274,22 @@ func (r *ReferencesetsService) Search(searchreferencesetsrequest *SearchReferenc
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ReferencesetsSearchCall) Fields(s ...googleapi.Field) *ReferencesetsSearchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ReferencesetsSearchCall) Do() (*SearchReferenceSetsResponse, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.searchreferencesetsrequest)
-	if err != nil {
-		return nil, err
+	var returnValue *SearchReferenceSetsResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.searchreferencesetsrequest,
+		Result:  &returnValue,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "referencesets/search")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *SearchReferenceSetsResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Searches for reference sets which match the given criteria.\n\nImplements GlobalAllianceApi.searchReferenceSets.",
 	//   "httpMethod": "POST",
@@ -5581,15 +5312,28 @@ func (c *ReferencesetsSearchCall) Do() (*SearchReferenceSetsResponse, error) {
 // method id "genomics.variants.create":
 
 type VariantsCreateCall struct {
-	s       *Service
-	variant *Variant
-	opt_    map[string]interface{}
+	s             *Service
+	variant       *Variant
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Create: Creates a new variant.
+
 func (r *VariantsService) Create(variant *Variant) *VariantsCreateCall {
-	c := &VariantsCreateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.variant = variant
+	return &VariantsCreateCall{
+		s:             r.s,
+		variant:       variant,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "variants",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *VariantsCreateCall) Context(ctx context.Context) *VariantsCreateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -5597,41 +5341,22 @@ func (r *VariantsService) Create(variant *Variant) *VariantsCreateCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *VariantsCreateCall) Fields(s ...googleapi.Field) *VariantsCreateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *VariantsCreateCall) Do() (*Variant, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.variant)
-	if err != nil {
-		return nil, err
+	var returnValue *Variant
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.variant,
+		Result:  &returnValue,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "variants")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Variant
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Creates a new variant.",
 	//   "httpMethod": "POST",
@@ -5653,49 +5378,42 @@ func (c *VariantsCreateCall) Do() (*Variant, error) {
 // method id "genomics.variants.delete":
 
 type VariantsDeleteCall struct {
-	s         *Service
-	variantId string
-	opt_      map[string]interface{}
+	s             *Service
+	variantId     string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Delete: Deletes a variant.
-func (r *VariantsService) Delete(variantId string) *VariantsDeleteCall {
-	c := &VariantsDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.variantId = variantId
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *VariantsDeleteCall) Fields(s ...googleapi.Field) *VariantsDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *VariantsService) Delete(variantId string) *VariantsDeleteCall {
+	return &VariantsDeleteCall{
+		s:             r.s,
+		variantId:     variantId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "variants/{variantId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *VariantsDeleteCall) Context(ctx context.Context) *VariantsDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *VariantsDeleteCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "variants/{variantId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"variantId": c.variantId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Deletes a variant.",
 	//   "httpMethod": "DELETE",
@@ -5722,15 +5440,28 @@ func (c *VariantsDeleteCall) Do() error {
 // method id "genomics.variants.get":
 
 type VariantsGetCall struct {
-	s         *Service
-	variantId string
-	opt_      map[string]interface{}
+	s             *Service
+	variantId     string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Gets a variant by ID.
+
 func (r *VariantsService) Get(variantId string) *VariantsGetCall {
-	c := &VariantsGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.variantId = variantId
+	return &VariantsGetCall{
+		s:             r.s,
+		variantId:     variantId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "variants/{variantId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *VariantsGetCall) Context(ctx context.Context) *VariantsGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -5738,37 +5469,23 @@ func (r *VariantsService) Get(variantId string) *VariantsGetCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *VariantsGetCall) Fields(s ...googleapi.Field) *VariantsGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *VariantsGetCall) Do() (*Variant, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "variants/{variantId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Variant
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"variantId": c.variantId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Variant
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Gets a variant by ID.",
 	//   "httpMethod": "GET",
@@ -5801,16 +5518,29 @@ func (c *VariantsGetCall) Do() (*Variant, error) {
 type VariantsSearchCall struct {
 	s                     *Service
 	searchvariantsrequest *SearchVariantsRequest
-	opt_                  map[string]interface{}
+	caller_               googleapi.Caller
+	params_               url.Values
+	pathTemplate_         string
+	context_              context.Context
 }
 
 // Search: Gets a list of variants matching the criteria.
 //
 // Implements
 // GlobalAllianceApi.searchVariants.
+
 func (r *VariantsService) Search(searchvariantsrequest *SearchVariantsRequest) *VariantsSearchCall {
-	c := &VariantsSearchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.searchvariantsrequest = searchvariantsrequest
+	return &VariantsSearchCall{
+		s: r.s,
+		searchvariantsrequest: searchvariantsrequest,
+		caller_:               googleapi.JSONCall{},
+		params_:               make(map[string][]string),
+		pathTemplate_:         "variants/search",
+		context_:              googleapi.NoContext,
+	}
+}
+func (c *VariantsSearchCall) Context(ctx context.Context) *VariantsSearchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -5818,41 +5548,22 @@ func (r *VariantsService) Search(searchvariantsrequest *SearchVariantsRequest) *
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *VariantsSearchCall) Fields(s ...googleapi.Field) *VariantsSearchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *VariantsSearchCall) Do() (*SearchVariantsResponse, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.searchvariantsrequest)
-	if err != nil {
-		return nil, err
+	var returnValue *SearchVariantsResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.searchvariantsrequest,
+		Result:  &returnValue,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "variants/search")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *SearchVariantsResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Gets a list of variants matching the criteria.\n\nImplements GlobalAllianceApi.searchVariants.",
 	//   "httpMethod": "POST",
@@ -5875,19 +5586,32 @@ func (c *VariantsSearchCall) Do() (*SearchVariantsResponse, error) {
 // method id "genomics.variants.update":
 
 type VariantsUpdateCall struct {
-	s         *Service
-	variantId string
-	variant   *Variant
-	opt_      map[string]interface{}
+	s             *Service
+	variantId     string
+	variant       *Variant
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Update: Updates a variant's names and info fields. All other
 // modifications are silently ignored. Returns the modified variant
 // without its calls.
+
 func (r *VariantsService) Update(variantId string, variant *Variant) *VariantsUpdateCall {
-	c := &VariantsUpdateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.variantId = variantId
-	c.variant = variant
+	return &VariantsUpdateCall{
+		s:             r.s,
+		variantId:     variantId,
+		variant:       variant,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "variants/{variantId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *VariantsUpdateCall) Context(ctx context.Context) *VariantsUpdateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -5895,43 +5619,24 @@ func (r *VariantsService) Update(variantId string, variant *Variant) *VariantsUp
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *VariantsUpdateCall) Fields(s ...googleapi.Field) *VariantsUpdateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *VariantsUpdateCall) Do() (*Variant, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.variant)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "variants/{variantId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Variant
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"variantId": c.variantId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.variant,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Variant
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates a variant's names and info fields. All other modifications are silently ignored. Returns the modified variant without its calls.",
 	//   "httpMethod": "PUT",
@@ -5964,50 +5669,43 @@ func (c *VariantsUpdateCall) Do() (*Variant, error) {
 // method id "genomics.variantsets.delete":
 
 type VariantsetsDeleteCall struct {
-	s            *Service
-	variantSetId string
-	opt_         map[string]interface{}
+	s             *Service
+	variantSetId  string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Delete: Deletes the contents of a variant set. The variant set object
 // is not deleted.
-func (r *VariantsetsService) Delete(variantSetId string) *VariantsetsDeleteCall {
-	c := &VariantsetsDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.variantSetId = variantSetId
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *VariantsetsDeleteCall) Fields(s ...googleapi.Field) *VariantsetsDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *VariantsetsService) Delete(variantSetId string) *VariantsetsDeleteCall {
+	return &VariantsetsDeleteCall{
+		s:             r.s,
+		variantSetId:  variantSetId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "variantsets/{variantSetId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *VariantsetsDeleteCall) Context(ctx context.Context) *VariantsetsDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *VariantsetsDeleteCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "variantsets/{variantSetId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"variantSetId": c.variantSetId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Deletes the contents of a variant set. The variant set object is not deleted.",
 	//   "httpMethod": "DELETE",
@@ -6037,14 +5735,27 @@ type VariantsetsExportCall struct {
 	s                       *Service
 	variantSetId            string
 	exportvariantsetrequest *ExportVariantSetRequest
-	opt_                    map[string]interface{}
+	caller_                 googleapi.Caller
+	params_                 url.Values
+	pathTemplate_           string
+	context_                context.Context
 }
 
 // Export: Exports variant set data to an external destination.
+
 func (r *VariantsetsService) Export(variantSetId string, exportvariantsetrequest *ExportVariantSetRequest) *VariantsetsExportCall {
-	c := &VariantsetsExportCall{s: r.s, opt_: make(map[string]interface{})}
-	c.variantSetId = variantSetId
-	c.exportvariantsetrequest = exportvariantsetrequest
+	return &VariantsetsExportCall{
+		s:                       r.s,
+		variantSetId:            variantSetId,
+		exportvariantsetrequest: exportvariantsetrequest,
+		caller_:                 googleapi.JSONCall{},
+		params_:                 make(map[string][]string),
+		pathTemplate_:           "variantsets/{variantSetId}/export",
+		context_:                googleapi.NoContext,
+	}
+}
+func (c *VariantsetsExportCall) Context(ctx context.Context) *VariantsetsExportCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -6052,43 +5763,24 @@ func (r *VariantsetsService) Export(variantSetId string, exportvariantsetrequest
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *VariantsetsExportCall) Fields(s ...googleapi.Field) *VariantsetsExportCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *VariantsetsExportCall) Do() (*ExportVariantSetResponse, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.exportvariantsetrequest)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "variantsets/{variantSetId}/export")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *ExportVariantSetResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"variantSetId": c.variantSetId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.exportvariantsetrequest,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ExportVariantSetResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Exports variant set data to an external destination.",
 	//   "httpMethod": "POST",
@@ -6122,15 +5814,28 @@ func (c *VariantsetsExportCall) Do() (*ExportVariantSetResponse, error) {
 // method id "genomics.variantsets.get":
 
 type VariantsetsGetCall struct {
-	s            *Service
-	variantSetId string
-	opt_         map[string]interface{}
+	s             *Service
+	variantSetId  string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Gets a variant set by ID.
+
 func (r *VariantsetsService) Get(variantSetId string) *VariantsetsGetCall {
-	c := &VariantsetsGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.variantSetId = variantSetId
+	return &VariantsetsGetCall{
+		s:             r.s,
+		variantSetId:  variantSetId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "variantsets/{variantSetId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *VariantsetsGetCall) Context(ctx context.Context) *VariantsetsGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -6138,37 +5843,23 @@ func (r *VariantsetsService) Get(variantSetId string) *VariantsetsGetCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *VariantsetsGetCall) Fields(s ...googleapi.Field) *VariantsetsGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *VariantsetsGetCall) Do() (*VariantSet, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "variantsets/{variantSetId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *VariantSet
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"variantSetId": c.variantSetId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *VariantSet
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Gets a variant set by ID.",
 	//   "httpMethod": "GET",
@@ -6202,7 +5893,10 @@ type VariantsetsImportVariantsCall struct {
 	s                     *Service
 	variantSetId          string
 	importvariantsrequest *ImportVariantsRequest
-	opt_                  map[string]interface{}
+	caller_               googleapi.Caller
+	params_               url.Values
+	pathTemplate_         string
+	context_              context.Context
 }
 
 // ImportVariants: Creates variant data by asynchronously importing the
@@ -6216,10 +5910,20 @@ type VariantsetsImportVariantsCall struct {
 // FILTER fields will be moved to the call level; these are sometimes
 // interpreted in a call-specific context. Imported VCF headers are
 // appended to the metadata already in a variant set.
+
 func (r *VariantsetsService) ImportVariants(variantSetId string, importvariantsrequest *ImportVariantsRequest) *VariantsetsImportVariantsCall {
-	c := &VariantsetsImportVariantsCall{s: r.s, opt_: make(map[string]interface{})}
-	c.variantSetId = variantSetId
-	c.importvariantsrequest = importvariantsrequest
+	return &VariantsetsImportVariantsCall{
+		s:                     r.s,
+		variantSetId:          variantSetId,
+		importvariantsrequest: importvariantsrequest,
+		caller_:               googleapi.JSONCall{},
+		params_:               make(map[string][]string),
+		pathTemplate_:         "variantsets/{variantSetId}/importVariants",
+		context_:              googleapi.NoContext,
+	}
+}
+func (c *VariantsetsImportVariantsCall) Context(ctx context.Context) *VariantsetsImportVariantsCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -6227,43 +5931,24 @@ func (r *VariantsetsService) ImportVariants(variantSetId string, importvariantsr
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *VariantsetsImportVariantsCall) Fields(s ...googleapi.Field) *VariantsetsImportVariantsCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *VariantsetsImportVariantsCall) Do() (*ImportVariantsResponse, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.importvariantsrequest)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "variantsets/{variantSetId}/importVariants")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *ImportVariantsResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"variantSetId": c.variantSetId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.importvariantsrequest,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ImportVariantsResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Creates variant data by asynchronously importing the provided information.\n\nThe variants for import will be merged with any existing data and each other according to the behavior of mergeVariants. In particular, this means for merged VCF variants that have conflicting INFO fields, some data will be arbitrarily discarded. As a special case, for single-sample VCF files, QUAL and FILTER fields will be moved to the call level; these are sometimes interpreted in a call-specific context. Imported VCF headers are appended to the metadata already in a variant set.",
 	//   "httpMethod": "POST",
@@ -6300,7 +5985,10 @@ type VariantsetsMergeVariantsCall struct {
 	s                    *Service
 	variantSetId         string
 	mergevariantsrequest *MergeVariantsRequest
-	opt_                 map[string]interface{}
+	caller_              googleapi.Caller
+	params_              url.Values
+	pathTemplate_        string
+	context_             context.Context
 }
 
 // MergeVariants: Merges the given variants with existing variants. Each
@@ -6312,50 +6000,35 @@ type VariantsetsMergeVariantsCall struct {
 // variants are merged, the call information from the new variant is
 // added to the existing variant, and other fields (such as key/value
 // pairs) are discarded.
-func (r *VariantsetsService) MergeVariants(variantSetId string, mergevariantsrequest *MergeVariantsRequest) *VariantsetsMergeVariantsCall {
-	c := &VariantsetsMergeVariantsCall{s: r.s, opt_: make(map[string]interface{})}
-	c.variantSetId = variantSetId
-	c.mergevariantsrequest = mergevariantsrequest
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *VariantsetsMergeVariantsCall) Fields(s ...googleapi.Field) *VariantsetsMergeVariantsCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *VariantsetsService) MergeVariants(variantSetId string, mergevariantsrequest *MergeVariantsRequest) *VariantsetsMergeVariantsCall {
+	return &VariantsetsMergeVariantsCall{
+		s:                    r.s,
+		variantSetId:         variantSetId,
+		mergevariantsrequest: mergevariantsrequest,
+		caller_:              googleapi.JSONCall{},
+		params_:              make(map[string][]string),
+		pathTemplate_:        "variantsets/{variantSetId}/mergeVariants",
+		context_:             googleapi.NoContext,
+	}
+}
+func (c *VariantsetsMergeVariantsCall) Context(ctx context.Context) *VariantsetsMergeVariantsCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *VariantsetsMergeVariantsCall) Do() error {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.mergevariantsrequest)
-	if err != nil {
-		return err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "variantsets/{variantSetId}/mergeVariants")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"variantSetId": c.variantSetId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.mergevariantsrequest,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Merges the given variants with existing variants. Each variant will be merged with an existing variant that matches its reference sequence, start, end, reference bases, and alternative bases. If no such variant exists, a new one will be created.\n\nWhen variants are merged, the call information from the new variant is added to the existing variant, and other fields (such as key/value pairs) are discarded.",
 	//   "httpMethod": "POST",
@@ -6385,18 +6058,31 @@ func (c *VariantsetsMergeVariantsCall) Do() error {
 // method id "genomics.variantsets.patch":
 
 type VariantsetsPatchCall struct {
-	s            *Service
-	variantSetId string
-	variantset   *VariantSet
-	opt_         map[string]interface{}
+	s             *Service
+	variantSetId  string
+	variantset    *VariantSet
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Patch: Updates a variant set's metadata. All other modifications are
 // silently ignored. This method supports patch semantics.
+
 func (r *VariantsetsService) Patch(variantSetId string, variantset *VariantSet) *VariantsetsPatchCall {
-	c := &VariantsetsPatchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.variantSetId = variantSetId
-	c.variantset = variantset
+	return &VariantsetsPatchCall{
+		s:             r.s,
+		variantSetId:  variantSetId,
+		variantset:    variantset,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "variantsets/{variantSetId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *VariantsetsPatchCall) Context(ctx context.Context) *VariantsetsPatchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -6404,43 +6090,24 @@ func (r *VariantsetsService) Patch(variantSetId string, variantset *VariantSet) 
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *VariantsetsPatchCall) Fields(s ...googleapi.Field) *VariantsetsPatchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *VariantsetsPatchCall) Do() (*VariantSet, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.variantset)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "variantsets/{variantSetId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PATCH", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *VariantSet
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"variantSetId": c.variantSetId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PATCH",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.variantset,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *VariantSet
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates a variant set's metadata. All other modifications are silently ignored. This method supports patch semantics.",
 	//   "httpMethod": "PATCH",
@@ -6475,16 +6142,29 @@ func (c *VariantsetsPatchCall) Do() (*VariantSet, error) {
 type VariantsetsSearchCall struct {
 	s                        *Service
 	searchvariantsetsrequest *SearchVariantSetsRequest
-	opt_                     map[string]interface{}
+	caller_                  googleapi.Caller
+	params_                  url.Values
+	pathTemplate_            string
+	context_                 context.Context
 }
 
 // Search: Returns a list of all variant sets matching search
 // criteria.
 //
 // Implements GlobalAllianceApi.searchVariantSets.
+
 func (r *VariantsetsService) Search(searchvariantsetsrequest *SearchVariantSetsRequest) *VariantsetsSearchCall {
-	c := &VariantsetsSearchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.searchvariantsetsrequest = searchvariantsetsrequest
+	return &VariantsetsSearchCall{
+		s: r.s,
+		searchvariantsetsrequest: searchvariantsetsrequest,
+		caller_:                  googleapi.JSONCall{},
+		params_:                  make(map[string][]string),
+		pathTemplate_:            "variantsets/search",
+		context_:                 googleapi.NoContext,
+	}
+}
+func (c *VariantsetsSearchCall) Context(ctx context.Context) *VariantsetsSearchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -6492,41 +6172,22 @@ func (r *VariantsetsService) Search(searchvariantsetsrequest *SearchVariantSetsR
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *VariantsetsSearchCall) Fields(s ...googleapi.Field) *VariantsetsSearchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *VariantsetsSearchCall) Do() (*SearchVariantSetsResponse, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.searchvariantsetsrequest)
-	if err != nil {
-		return nil, err
+	var returnValue *SearchVariantSetsResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.searchvariantsetsrequest,
+		Result:  &returnValue,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "variantsets/search")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *SearchVariantSetsResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Returns a list of all variant sets matching search criteria.\n\nImplements GlobalAllianceApi.searchVariantSets.",
 	//   "httpMethod": "POST",
@@ -6549,18 +6210,31 @@ func (c *VariantsetsSearchCall) Do() (*SearchVariantSetsResponse, error) {
 // method id "genomics.variantsets.update":
 
 type VariantsetsUpdateCall struct {
-	s            *Service
-	variantSetId string
-	variantset   *VariantSet
-	opt_         map[string]interface{}
+	s             *Service
+	variantSetId  string
+	variantset    *VariantSet
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Update: Updates a variant set's metadata. All other modifications are
 // silently ignored.
+
 func (r *VariantsetsService) Update(variantSetId string, variantset *VariantSet) *VariantsetsUpdateCall {
-	c := &VariantsetsUpdateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.variantSetId = variantSetId
-	c.variantset = variantset
+	return &VariantsetsUpdateCall{
+		s:             r.s,
+		variantSetId:  variantSetId,
+		variantset:    variantset,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "variantsets/{variantSetId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *VariantsetsUpdateCall) Context(ctx context.Context) *VariantsetsUpdateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -6568,43 +6242,24 @@ func (r *VariantsetsService) Update(variantSetId string, variantset *VariantSet)
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *VariantsetsUpdateCall) Fields(s ...googleapi.Field) *VariantsetsUpdateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *VariantsetsUpdateCall) Do() (*VariantSet, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.variantset)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "variantsets/{variantSetId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *VariantSet
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"variantSetId": c.variantSetId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.variantset,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *VariantSet
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates a variant set's metadata. All other modifications are silently ignored.",
 	//   "httpMethod": "PUT",

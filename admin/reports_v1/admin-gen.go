@@ -4,18 +4,16 @@
 //
 // Usage example:
 //
-//   import "google.golang.org/api/admin/reports_v1"
+//   import "github.com/jfcote87/api2/admin/reports_v1"
 //   ...
 //   adminService, err := admin.New(oauthHttpClient)
 package admin
 
 import (
-	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/jfcote87/api2/googleapi"
 	"golang.org/x/net/context"
-	"google.golang.org/api/googleapi"
 	"io"
 	"net/http"
 	"net/url"
@@ -25,10 +23,8 @@ import (
 
 // Always reference these packages, just in case the auto-generated code
 // below doesn't.
-var _ = bytes.NewBuffer
 var _ = strconv.Itoa
 var _ = fmt.Sprintf
-var _ = json.NewDecoder
 var _ = io.Copy
 var _ = url.Parse
 var _ = googleapi.Version
@@ -39,7 +35,8 @@ var _ = context.Background
 const apiId = "admin:reports_v1"
 const apiName = "admin"
 const apiVersion = "reports_v1"
-const basePath = "https://www.googleapis.com/admin/reports/v1/"
+
+var baseURL *url.URL = &url.URL{Scheme: "https", Host: "www.googleapis.com", Path: "/admin/reports/v1/"}
 
 // OAuth2 scopes used by this API.
 const (
@@ -54,7 +51,7 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
+	s := &Service{client: client}
 	s.Activities = NewActivitiesService(s)
 	s.Channels = NewChannelsService(s)
 	s.CustomerUsageReports = NewCustomerUsageReportsService(s)
@@ -63,9 +60,7 @@ func New(client *http.Client) (*Service, error) {
 }
 
 type Service struct {
-	client    *http.Client
-	BasePath  string // API endpoint base URL
-	UserAgent string // optional additional User-Agent fragment
+	client *http.Client
 
 	Activities *ActivitiesService
 
@@ -74,13 +69,6 @@ type Service struct {
 	CustomerUsageReports *CustomerUsageReportsService
 
 	UserUsageReport *UserUsageReportService
-}
-
-func (s *Service) userAgent() string {
-	if s.UserAgent == "" {
-		return googleapi.UserAgent
-	}
-	return googleapi.UserAgent + " " + s.UserAgent
 }
 
 func NewActivitiesService(s *Service) *ActivitiesService {
@@ -353,44 +341,53 @@ type ActivitiesListCall struct {
 	s               *Service
 	userKey         string
 	applicationName string
-	opt_            map[string]interface{}
+	caller_         googleapi.Caller
+	params_         url.Values
+	pathTemplate_   string
+	context_        context.Context
 }
 
 // List: Retrieves a list of activities for a specific customer and
 // application.
+
 func (r *ActivitiesService) List(userKey string, applicationName string) *ActivitiesListCall {
-	c := &ActivitiesListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.userKey = userKey
-	c.applicationName = applicationName
-	return c
+	return &ActivitiesListCall{
+		s:               r.s,
+		userKey:         userKey,
+		applicationName: applicationName,
+		caller_:         googleapi.JSONCall{},
+		params_:         make(map[string][]string),
+		pathTemplate_:   "activity/users/{userKey}/applications/{applicationName}",
+		context_:        googleapi.NoContext,
+	}
 }
 
 // ActorIpAddress sets the optional parameter "actorIpAddress": IP
 // Address of host where the event was performed. Supports both IPv4 and
 // IPv6 addresses.
 func (c *ActivitiesListCall) ActorIpAddress(actorIpAddress string) *ActivitiesListCall {
-	c.opt_["actorIpAddress"] = actorIpAddress
+	c.params_.Set("actorIpAddress", fmt.Sprintf("%v", actorIpAddress))
 	return c
 }
 
 // CustomerId sets the optional parameter "customerId": Represents the
 // customer for which the data is to be fetched.
 func (c *ActivitiesListCall) CustomerId(customerId string) *ActivitiesListCall {
-	c.opt_["customerId"] = customerId
+	c.params_.Set("customerId", fmt.Sprintf("%v", customerId))
 	return c
 }
 
 // EndTime sets the optional parameter "endTime": Return events which
 // occured at or before this time.
 func (c *ActivitiesListCall) EndTime(endTime string) *ActivitiesListCall {
-	c.opt_["endTime"] = endTime
+	c.params_.Set("endTime", fmt.Sprintf("%v", endTime))
 	return c
 }
 
 // EventName sets the optional parameter "eventName": Name of the event
 // being queried.
 func (c *ActivitiesListCall) EventName(eventName string) *ActivitiesListCall {
-	c.opt_["eventName"] = eventName
+	c.params_.Set("eventName", fmt.Sprintf("%v", eventName))
 	return c
 }
 
@@ -398,28 +395,32 @@ func (c *ActivitiesListCall) EventName(eventName string) *ActivitiesListCall {
 // the form [parameter1 name][operator][parameter1 value],[parameter2
 // name][operator][parameter2 value],...
 func (c *ActivitiesListCall) Filters(filters string) *ActivitiesListCall {
-	c.opt_["filters"] = filters
+	c.params_.Set("filters", fmt.Sprintf("%v", filters))
 	return c
 }
 
 // MaxResults sets the optional parameter "maxResults": Number of
 // activity records to be shown in each page.
 func (c *ActivitiesListCall) MaxResults(maxResults int64) *ActivitiesListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
 // PageToken sets the optional parameter "pageToken": Token to specify
 // next page.
 func (c *ActivitiesListCall) PageToken(pageToken string) *ActivitiesListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
 	return c
 }
 
 // StartTime sets the optional parameter "startTime": Return events
 // which occured at or after this time.
 func (c *ActivitiesListCall) StartTime(startTime string) *ActivitiesListCall {
-	c.opt_["startTime"] = startTime
+	c.params_.Set("startTime", fmt.Sprintf("%v", startTime))
+	return c
+}
+func (c *ActivitiesListCall) Context(ctx context.Context) *ActivitiesListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -427,62 +428,24 @@ func (c *ActivitiesListCall) StartTime(startTime string) *ActivitiesListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ActivitiesListCall) Fields(s ...googleapi.Field) *ActivitiesListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ActivitiesListCall) Do() (*Activities, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["actorIpAddress"]; ok {
-		params.Set("actorIpAddress", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["customerId"]; ok {
-		params.Set("customerId", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["endTime"]; ok {
-		params.Set("endTime", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["eventName"]; ok {
-		params.Set("eventName", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["filters"]; ok {
-		params.Set("filters", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["startTime"]; ok {
-		params.Set("startTime", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "activity/users/{userKey}/applications/{applicationName}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Activities
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"userKey":         c.userKey,
 		"applicationName": c.applicationName,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Activities
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves a list of activities for a specific customer and application.",
 	//   "httpMethod": "GET",
@@ -572,44 +535,53 @@ type ActivitiesWatchCall struct {
 	userKey         string
 	applicationName string
 	channel         *Channel
-	opt_            map[string]interface{}
+	caller_         googleapi.Caller
+	params_         url.Values
+	pathTemplate_   string
+	context_        context.Context
 }
 
 // Watch: Push changes to activities
+
 func (r *ActivitiesService) Watch(userKey string, applicationName string, channel *Channel) *ActivitiesWatchCall {
-	c := &ActivitiesWatchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.userKey = userKey
-	c.applicationName = applicationName
-	c.channel = channel
-	return c
+	return &ActivitiesWatchCall{
+		s:               r.s,
+		userKey:         userKey,
+		applicationName: applicationName,
+		channel:         channel,
+		caller_:         googleapi.JSONCall{},
+		params_:         make(map[string][]string),
+		pathTemplate_:   "activity/users/{userKey}/applications/{applicationName}/watch",
+		context_:        googleapi.NoContext,
+	}
 }
 
 // ActorIpAddress sets the optional parameter "actorIpAddress": IP
 // Address of host where the event was performed. Supports both IPv4 and
 // IPv6 addresses.
 func (c *ActivitiesWatchCall) ActorIpAddress(actorIpAddress string) *ActivitiesWatchCall {
-	c.opt_["actorIpAddress"] = actorIpAddress
+	c.params_.Set("actorIpAddress", fmt.Sprintf("%v", actorIpAddress))
 	return c
 }
 
 // CustomerId sets the optional parameter "customerId": Represents the
 // customer for which the data is to be fetched.
 func (c *ActivitiesWatchCall) CustomerId(customerId string) *ActivitiesWatchCall {
-	c.opt_["customerId"] = customerId
+	c.params_.Set("customerId", fmt.Sprintf("%v", customerId))
 	return c
 }
 
 // EndTime sets the optional parameter "endTime": Return events which
 // occured at or before this time.
 func (c *ActivitiesWatchCall) EndTime(endTime string) *ActivitiesWatchCall {
-	c.opt_["endTime"] = endTime
+	c.params_.Set("endTime", fmt.Sprintf("%v", endTime))
 	return c
 }
 
 // EventName sets the optional parameter "eventName": Name of the event
 // being queried.
 func (c *ActivitiesWatchCall) EventName(eventName string) *ActivitiesWatchCall {
-	c.opt_["eventName"] = eventName
+	c.params_.Set("eventName", fmt.Sprintf("%v", eventName))
 	return c
 }
 
@@ -617,28 +589,32 @@ func (c *ActivitiesWatchCall) EventName(eventName string) *ActivitiesWatchCall {
 // the form [parameter1 name][operator][parameter1 value],[parameter2
 // name][operator][parameter2 value],...
 func (c *ActivitiesWatchCall) Filters(filters string) *ActivitiesWatchCall {
-	c.opt_["filters"] = filters
+	c.params_.Set("filters", fmt.Sprintf("%v", filters))
 	return c
 }
 
 // MaxResults sets the optional parameter "maxResults": Number of
 // activity records to be shown in each page.
 func (c *ActivitiesWatchCall) MaxResults(maxResults int64) *ActivitiesWatchCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
 // PageToken sets the optional parameter "pageToken": Token to specify
 // next page.
 func (c *ActivitiesWatchCall) PageToken(pageToken string) *ActivitiesWatchCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
 	return c
 }
 
 // StartTime sets the optional parameter "startTime": Return events
 // which occured at or after this time.
 func (c *ActivitiesWatchCall) StartTime(startTime string) *ActivitiesWatchCall {
-	c.opt_["startTime"] = startTime
+	c.params_.Set("startTime", fmt.Sprintf("%v", startTime))
+	return c
+}
+func (c *ActivitiesWatchCall) Context(ctx context.Context) *ActivitiesWatchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -646,68 +622,25 @@ func (c *ActivitiesWatchCall) StartTime(startTime string) *ActivitiesWatchCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ActivitiesWatchCall) Fields(s ...googleapi.Field) *ActivitiesWatchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ActivitiesWatchCall) Do() (*Channel, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.channel)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["actorIpAddress"]; ok {
-		params.Set("actorIpAddress", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["customerId"]; ok {
-		params.Set("customerId", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["endTime"]; ok {
-		params.Set("endTime", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["eventName"]; ok {
-		params.Set("eventName", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["filters"]; ok {
-		params.Set("filters", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["startTime"]; ok {
-		params.Set("startTime", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "activity/users/{userKey}/applications/{applicationName}/watch")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Channel
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"userKey":         c.userKey,
 		"applicationName": c.applicationName,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.channel,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Channel
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Push changes to activities",
 	//   "httpMethod": "POST",
@@ -797,53 +730,41 @@ func (c *ActivitiesWatchCall) Do() (*Channel, error) {
 // method id "admin.channels.stop":
 
 type ChannelsStopCall struct {
-	s       *Service
-	channel *Channel
-	opt_    map[string]interface{}
+	s             *Service
+	channel       *Channel
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Stop: Stop watching resources through this channel
-func (r *ChannelsService) Stop(channel *Channel) *ChannelsStopCall {
-	c := &ChannelsStopCall{s: r.s, opt_: make(map[string]interface{})}
-	c.channel = channel
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *ChannelsStopCall) Fields(s ...googleapi.Field) *ChannelsStopCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *ChannelsService) Stop(channel *Channel) *ChannelsStopCall {
+	return &ChannelsStopCall{
+		s:             r.s,
+		channel:       channel,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "/admin/reports_v1/channels/stop",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *ChannelsStopCall) Context(ctx context.Context) *ChannelsStopCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *ChannelsStopCall) Do() error {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.channel)
-	if err != nil {
-		return err
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.channel,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "/admin/reports_v1/channels/stop")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Stop watching resources through this channel",
 	//   "httpMethod": "POST",
@@ -863,30 +784,39 @@ func (c *ChannelsStopCall) Do() error {
 // method id "reports.customerUsageReports.get":
 
 type CustomerUsageReportsGetCall struct {
-	s    *Service
-	date string
-	opt_ map[string]interface{}
+	s             *Service
+	date          string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Retrieves a report which is a collection of properties /
 // statistics for a specific customer.
+
 func (r *CustomerUsageReportsService) Get(date string) *CustomerUsageReportsGetCall {
-	c := &CustomerUsageReportsGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.date = date
-	return c
+	return &CustomerUsageReportsGetCall{
+		s:             r.s,
+		date:          date,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "usage/dates/{date}",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // CustomerId sets the optional parameter "customerId": Represents the
 // customer for which the data is to be fetched.
 func (c *CustomerUsageReportsGetCall) CustomerId(customerId string) *CustomerUsageReportsGetCall {
-	c.opt_["customerId"] = customerId
+	c.params_.Set("customerId", fmt.Sprintf("%v", customerId))
 	return c
 }
 
 // PageToken sets the optional parameter "pageToken": Token to specify
 // next page.
 func (c *CustomerUsageReportsGetCall) PageToken(pageToken string) *CustomerUsageReportsGetCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
 	return c
 }
 
@@ -894,7 +824,11 @@ func (c *CustomerUsageReportsGetCall) PageToken(pageToken string) *CustomerUsage
 // application name, parameter name pairs to fetch in csv as
 // app_name1:param_name1, app_name2:param_name2.
 func (c *CustomerUsageReportsGetCall) Parameters(parameters string) *CustomerUsageReportsGetCall {
-	c.opt_["parameters"] = parameters
+	c.params_.Set("parameters", fmt.Sprintf("%v", parameters))
+	return c
+}
+func (c *CustomerUsageReportsGetCall) Context(ctx context.Context) *CustomerUsageReportsGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -902,46 +836,23 @@ func (c *CustomerUsageReportsGetCall) Parameters(parameters string) *CustomerUsa
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *CustomerUsageReportsGetCall) Fields(s ...googleapi.Field) *CustomerUsageReportsGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *CustomerUsageReportsGetCall) Do() (*UsageReports, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["customerId"]; ok {
-		params.Set("customerId", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["parameters"]; ok {
-		params.Set("parameters", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "usage/dates/{date}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *UsageReports
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"date": c.date,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *UsageReports
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves a report which is a collection of properties / statistics for a specific customer.",
 	//   "httpMethod": "GET",
@@ -989,46 +900,55 @@ func (c *CustomerUsageReportsGetCall) Do() (*UsageReports, error) {
 // method id "reports.userUsageReport.get":
 
 type UserUsageReportGetCall struct {
-	s       *Service
-	userKey string
-	date    string
-	opt_    map[string]interface{}
+	s             *Service
+	userKey       string
+	date          string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Retrieves a report which is a collection of properties /
 // statistics for a set of users.
+
 func (r *UserUsageReportService) Get(userKey string, date string) *UserUsageReportGetCall {
-	c := &UserUsageReportGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.userKey = userKey
-	c.date = date
-	return c
+	return &UserUsageReportGetCall{
+		s:             r.s,
+		userKey:       userKey,
+		date:          date,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "usage/users/{userKey}/dates/{date}",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // CustomerId sets the optional parameter "customerId": Represents the
 // customer for which the data is to be fetched.
 func (c *UserUsageReportGetCall) CustomerId(customerId string) *UserUsageReportGetCall {
-	c.opt_["customerId"] = customerId
+	c.params_.Set("customerId", fmt.Sprintf("%v", customerId))
 	return c
 }
 
 // Filters sets the optional parameter "filters": Represents the set of
 // filters including parameter operator value.
 func (c *UserUsageReportGetCall) Filters(filters string) *UserUsageReportGetCall {
-	c.opt_["filters"] = filters
+	c.params_.Set("filters", fmt.Sprintf("%v", filters))
 	return c
 }
 
 // MaxResults sets the optional parameter "maxResults": Maximum number
 // of results to return. Maximum allowed is 1000
 func (c *UserUsageReportGetCall) MaxResults(maxResults int64) *UserUsageReportGetCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
 // PageToken sets the optional parameter "pageToken": Token to specify
 // next page.
 func (c *UserUsageReportGetCall) PageToken(pageToken string) *UserUsageReportGetCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
 	return c
 }
 
@@ -1036,7 +956,11 @@ func (c *UserUsageReportGetCall) PageToken(pageToken string) *UserUsageReportGet
 // application name, parameter name pairs to fetch in csv as
 // app_name1:param_name1, app_name2:param_name2.
 func (c *UserUsageReportGetCall) Parameters(parameters string) *UserUsageReportGetCall {
-	c.opt_["parameters"] = parameters
+	c.params_.Set("parameters", fmt.Sprintf("%v", parameters))
+	return c
+}
+func (c *UserUsageReportGetCall) Context(ctx context.Context) *UserUsageReportGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1044,53 +968,24 @@ func (c *UserUsageReportGetCall) Parameters(parameters string) *UserUsageReportG
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *UserUsageReportGetCall) Fields(s ...googleapi.Field) *UserUsageReportGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *UserUsageReportGetCall) Do() (*UsageReports, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["customerId"]; ok {
-		params.Set("customerId", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["filters"]; ok {
-		params.Set("filters", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["parameters"]; ok {
-		params.Set("parameters", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "usage/users/{userKey}/dates/{date}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *UsageReports
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"userKey": c.userKey,
 		"date":    c.date,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *UsageReports
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves a report which is a collection of properties / statistics for a set of users.",
 	//   "httpMethod": "GET",

@@ -4,18 +4,16 @@
 //
 // Usage example:
 //
-//   import "google.golang.org/api/groupssettings/v1"
+//   import "github.com/jfcote87/api2/groupssettings/v1"
 //   ...
 //   groupssettingsService, err := groupssettings.New(oauthHttpClient)
 package groupssettings
 
 import (
-	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/jfcote87/api2/googleapi"
 	"golang.org/x/net/context"
-	"google.golang.org/api/googleapi"
 	"io"
 	"net/http"
 	"net/url"
@@ -25,10 +23,8 @@ import (
 
 // Always reference these packages, just in case the auto-generated code
 // below doesn't.
-var _ = bytes.NewBuffer
 var _ = strconv.Itoa
 var _ = fmt.Sprintf
-var _ = json.NewDecoder
 var _ = io.Copy
 var _ = url.Parse
 var _ = googleapi.Version
@@ -39,7 +35,8 @@ var _ = context.Background
 const apiId = "groupssettings:v1"
 const apiName = "groupssettings"
 const apiVersion = "v1"
-const basePath = "https://www.googleapis.com/groups/v1/groups/"
+
+var baseURL *url.URL = &url.URL{Scheme: "https", Host: "www.googleapis.com", Path: "/groups/v1/groups/"}
 
 // OAuth2 scopes used by this API.
 const (
@@ -51,24 +48,15 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
+	s := &Service{client: client}
 	s.Groups = NewGroupsService(s)
 	return s, nil
 }
 
 type Service struct {
-	client    *http.Client
-	BasePath  string // API endpoint base URL
-	UserAgent string // optional additional User-Agent fragment
+	client *http.Client
 
 	Groups *GroupsService
-}
-
-func (s *Service) userAgent() string {
-	if s.UserAgent == "" {
-		return googleapi.UserAgent
-	}
-	return googleapi.UserAgent + " " + s.UserAgent
 }
 
 func NewGroupsService(s *Service) *GroupsService {
@@ -193,13 +181,26 @@ type Groups struct {
 type GroupsGetCall struct {
 	s             *Service
 	groupUniqueId string
-	opt_          map[string]interface{}
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Gets one resource by id.
+
 func (r *GroupsService) Get(groupUniqueId string) *GroupsGetCall {
-	c := &GroupsGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.groupUniqueId = groupUniqueId
+	return &GroupsGetCall{
+		s:             r.s,
+		groupUniqueId: groupUniqueId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{groupUniqueId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *GroupsGetCall) Context(ctx context.Context) *GroupsGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -207,37 +208,23 @@ func (r *GroupsService) Get(groupUniqueId string) *GroupsGetCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *GroupsGetCall) Fields(s ...googleapi.Field) *GroupsGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *GroupsGetCall) Do() (*Groups, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{groupUniqueId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Groups
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"groupUniqueId": c.groupUniqueId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Groups
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Gets one resource by id.",
 	//   "httpMethod": "GET",
@@ -270,15 +257,28 @@ type GroupsPatchCall struct {
 	s             *Service
 	groupUniqueId string
 	groups        *Groups
-	opt_          map[string]interface{}
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Patch: Updates an existing resource. This method supports patch
 // semantics.
+
 func (r *GroupsService) Patch(groupUniqueId string, groups *Groups) *GroupsPatchCall {
-	c := &GroupsPatchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.groupUniqueId = groupUniqueId
-	c.groups = groups
+	return &GroupsPatchCall{
+		s:             r.s,
+		groupUniqueId: groupUniqueId,
+		groups:        groups,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{groupUniqueId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *GroupsPatchCall) Context(ctx context.Context) *GroupsPatchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -286,43 +286,24 @@ func (r *GroupsService) Patch(groupUniqueId string, groups *Groups) *GroupsPatch
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *GroupsPatchCall) Fields(s ...googleapi.Field) *GroupsPatchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *GroupsPatchCall) Do() (*Groups, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.groups)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{groupUniqueId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PATCH", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Groups
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"groupUniqueId": c.groupUniqueId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PATCH",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.groups,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Groups
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates an existing resource. This method supports patch semantics.",
 	//   "httpMethod": "PATCH",
@@ -358,14 +339,27 @@ type GroupsUpdateCall struct {
 	s             *Service
 	groupUniqueId string
 	groups        *Groups
-	opt_          map[string]interface{}
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Update: Updates an existing resource.
+
 func (r *GroupsService) Update(groupUniqueId string, groups *Groups) *GroupsUpdateCall {
-	c := &GroupsUpdateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.groupUniqueId = groupUniqueId
-	c.groups = groups
+	return &GroupsUpdateCall{
+		s:             r.s,
+		groupUniqueId: groupUniqueId,
+		groups:        groups,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{groupUniqueId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *GroupsUpdateCall) Context(ctx context.Context) *GroupsUpdateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -373,43 +367,24 @@ func (r *GroupsService) Update(groupUniqueId string, groups *Groups) *GroupsUpda
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *GroupsUpdateCall) Fields(s ...googleapi.Field) *GroupsUpdateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *GroupsUpdateCall) Do() (*Groups, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.groups)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{groupUniqueId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Groups
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"groupUniqueId": c.groupUniqueId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.groups,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Groups
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates an existing resource.",
 	//   "httpMethod": "PUT",

@@ -4,18 +4,16 @@
 //
 // Usage example:
 //
-//   import "google.golang.org/api/youtubeanalytics/v1"
+//   import "github.com/jfcote87/api2/youtubeanalytics/v1"
 //   ...
 //   youtubeanalyticsService, err := youtubeanalytics.New(oauthHttpClient)
 package youtubeanalytics
 
 import (
-	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/jfcote87/api2/googleapi"
 	"golang.org/x/net/context"
-	"google.golang.org/api/googleapi"
 	"io"
 	"net/http"
 	"net/url"
@@ -25,10 +23,8 @@ import (
 
 // Always reference these packages, just in case the auto-generated code
 // below doesn't.
-var _ = bytes.NewBuffer
 var _ = strconv.Itoa
 var _ = fmt.Sprintf
-var _ = json.NewDecoder
 var _ = io.Copy
 var _ = url.Parse
 var _ = googleapi.Version
@@ -39,7 +35,8 @@ var _ = context.Background
 const apiId = "youtubeAnalytics:v1"
 const apiName = "youtubeAnalytics"
 const apiVersion = "v1"
-const basePath = "https://www.googleapis.com/youtube/analytics/v1/"
+
+var baseURL *url.URL = &url.URL{Scheme: "https", Host: "www.googleapis.com", Path: "/youtube/analytics/v1/"}
 
 // OAuth2 scopes used by this API.
 const (
@@ -63,7 +60,7 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
+	s := &Service{client: client}
 	s.BatchReportDefinitions = NewBatchReportDefinitionsService(s)
 	s.BatchReports = NewBatchReportsService(s)
 	s.GroupItems = NewGroupItemsService(s)
@@ -73,9 +70,7 @@ func New(client *http.Client) (*Service, error) {
 }
 
 type Service struct {
-	client    *http.Client
-	BasePath  string // API endpoint base URL
-	UserAgent string // optional additional User-Agent fragment
+	client *http.Client
 
 	BatchReportDefinitions *BatchReportDefinitionsService
 
@@ -86,13 +81,6 @@ type Service struct {
 	Groups *GroupsService
 
 	Reports *ReportsService
-}
-
-func (s *Service) userAgent() string {
-	if s.UserAgent == "" {
-		return googleapi.UserAgent
-	}
-	return googleapi.UserAgent + " " + s.UserAgent
 }
 
 func NewBatchReportDefinitionsService(s *Service) *BatchReportDefinitionsService {
@@ -330,13 +318,26 @@ type ResultTableColumnHeaders struct {
 type BatchReportDefinitionsListCall struct {
 	s                      *Service
 	onBehalfOfContentOwner string
-	opt_                   map[string]interface{}
+	caller_                googleapi.Caller
+	params_                url.Values
+	pathTemplate_          string
+	context_               context.Context
 }
 
 // List: Retrieves a list of available batch report definitions.
+
 func (r *BatchReportDefinitionsService) List(onBehalfOfContentOwner string) *BatchReportDefinitionsListCall {
-	c := &BatchReportDefinitionsListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.onBehalfOfContentOwner = onBehalfOfContentOwner
+	return &BatchReportDefinitionsListCall{
+		s: r.s,
+		onBehalfOfContentOwner: onBehalfOfContentOwner,
+		caller_:                googleapi.JSONCall{},
+		params_:                make(map[string][]string),
+		pathTemplate_:          "batchReportDefinitions",
+		context_:               googleapi.NoContext,
+	}
+}
+func (c *BatchReportDefinitionsListCall) Context(ctx context.Context) *BatchReportDefinitionsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -344,36 +345,22 @@ func (r *BatchReportDefinitionsService) List(onBehalfOfContentOwner string) *Bat
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *BatchReportDefinitionsListCall) Fields(s ...googleapi.Field) *BatchReportDefinitionsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *BatchReportDefinitionsListCall) Do() (*BatchReportDefinitionList, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("onBehalfOfContentOwner", fmt.Sprintf("%v", c.onBehalfOfContentOwner))
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
+	var returnValue *BatchReportDefinitionList
+	c.params_.Set("onBehalfOfContentOwner", fmt.Sprintf("%v", c.onBehalfOfContentOwner))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "batchReportDefinitions")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *BatchReportDefinitionList
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves a list of available batch report definitions.",
 	//   "httpMethod": "GET",
@@ -407,14 +394,27 @@ type BatchReportsListCall struct {
 	s                       *Service
 	batchReportDefinitionId string
 	onBehalfOfContentOwner  string
-	opt_                    map[string]interface{}
+	caller_                 googleapi.Caller
+	params_                 url.Values
+	pathTemplate_           string
+	context_                context.Context
 }
 
 // List: Retrieves a list of processed batch reports.
+
 func (r *BatchReportsService) List(batchReportDefinitionId string, onBehalfOfContentOwner string) *BatchReportsListCall {
-	c := &BatchReportsListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.batchReportDefinitionId = batchReportDefinitionId
-	c.onBehalfOfContentOwner = onBehalfOfContentOwner
+	return &BatchReportsListCall{
+		s: r.s,
+		batchReportDefinitionId: batchReportDefinitionId,
+		onBehalfOfContentOwner:  onBehalfOfContentOwner,
+		caller_:                 googleapi.JSONCall{},
+		params_:                 make(map[string][]string),
+		pathTemplate_:           "batchReports",
+		context_:                googleapi.NoContext,
+	}
+}
+func (c *BatchReportsListCall) Context(ctx context.Context) *BatchReportsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -422,37 +422,23 @@ func (r *BatchReportsService) List(batchReportDefinitionId string, onBehalfOfCon
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *BatchReportsListCall) Fields(s ...googleapi.Field) *BatchReportsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *BatchReportsListCall) Do() (*BatchReportList, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("batchReportDefinitionId", fmt.Sprintf("%v", c.batchReportDefinitionId))
-	params.Set("onBehalfOfContentOwner", fmt.Sprintf("%v", c.onBehalfOfContentOwner))
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
+	var returnValue *BatchReportList
+	c.params_.Set("batchReportDefinitionId", fmt.Sprintf("%v", c.batchReportDefinitionId))
+	c.params_.Set("onBehalfOfContentOwner", fmt.Sprintf("%v", c.onBehalfOfContentOwner))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "batchReports")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *BatchReportList
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves a list of processed batch reports.",
 	//   "httpMethod": "GET",
@@ -490,16 +476,25 @@ func (c *BatchReportsListCall) Do() (*BatchReportList, error) {
 // method id "youtubeAnalytics.groupItems.delete":
 
 type GroupItemsDeleteCall struct {
-	s    *Service
-	id   string
-	opt_ map[string]interface{}
+	s             *Service
+	id            string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Delete: Removes an item from a group.
+
 func (r *GroupItemsService) Delete(id string) *GroupItemsDeleteCall {
-	c := &GroupItemsDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.id = id
-	return c
+	return &GroupItemsDeleteCall{
+		s:             r.s,
+		id:            id,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "groupItems",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // OnBehalfOfContentOwner sets the optional parameter
@@ -517,43 +512,24 @@ func (r *GroupItemsService) Delete(id string) *GroupItemsDeleteCall {
 // CMS account that the user authenticates with must be linked to the
 // specified YouTube content owner.
 func (c *GroupItemsDeleteCall) OnBehalfOfContentOwner(onBehalfOfContentOwner string) *GroupItemsDeleteCall {
-	c.opt_["onBehalfOfContentOwner"] = onBehalfOfContentOwner
+	c.params_.Set("onBehalfOfContentOwner", fmt.Sprintf("%v", onBehalfOfContentOwner))
 	return c
 }
-
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *GroupItemsDeleteCall) Fields(s ...googleapi.Field) *GroupItemsDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (c *GroupItemsDeleteCall) Context(ctx context.Context) *GroupItemsDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *GroupItemsDeleteCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("id", fmt.Sprintf("%v", c.id))
-	if v, ok := c.opt_["onBehalfOfContentOwner"]; ok {
-		params.Set("onBehalfOfContentOwner", fmt.Sprintf("%v", v))
+	c.params_.Set("id", fmt.Sprintf("%v", c.id))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
 	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "groupItems")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Removes an item from a group.",
 	//   "httpMethod": "DELETE",
@@ -586,16 +562,25 @@ func (c *GroupItemsDeleteCall) Do() error {
 // method id "youtubeAnalytics.groupItems.insert":
 
 type GroupItemsInsertCall struct {
-	s         *Service
-	groupitem *GroupItem
-	opt_      map[string]interface{}
+	s             *Service
+	groupitem     *GroupItem
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Insert: Creates a group item.
+
 func (r *GroupItemsService) Insert(groupitem *GroupItem) *GroupItemsInsertCall {
-	c := &GroupItemsInsertCall{s: r.s, opt_: make(map[string]interface{})}
-	c.groupitem = groupitem
-	return c
+	return &GroupItemsInsertCall{
+		s:             r.s,
+		groupitem:     groupitem,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "groupItems",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // OnBehalfOfContentOwner sets the optional parameter
@@ -613,7 +598,11 @@ func (r *GroupItemsService) Insert(groupitem *GroupItem) *GroupItemsInsertCall {
 // CMS account that the user authenticates with must be linked to the
 // specified YouTube content owner.
 func (c *GroupItemsInsertCall) OnBehalfOfContentOwner(onBehalfOfContentOwner string) *GroupItemsInsertCall {
-	c.opt_["onBehalfOfContentOwner"] = onBehalfOfContentOwner
+	c.params_.Set("onBehalfOfContentOwner", fmt.Sprintf("%v", onBehalfOfContentOwner))
+	return c
+}
+func (c *GroupItemsInsertCall) Context(ctx context.Context) *GroupItemsInsertCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -621,44 +610,22 @@ func (c *GroupItemsInsertCall) OnBehalfOfContentOwner(onBehalfOfContentOwner str
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *GroupItemsInsertCall) Fields(s ...googleapi.Field) *GroupItemsInsertCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *GroupItemsInsertCall) Do() (*GroupItem, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.groupitem)
-	if err != nil {
-		return nil, err
+	var returnValue *GroupItem
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.groupitem,
+		Result:  &returnValue,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["onBehalfOfContentOwner"]; ok {
-		params.Set("onBehalfOfContentOwner", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "groupItems")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *GroupItem
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Creates a group item.",
 	//   "httpMethod": "POST",
@@ -688,17 +655,26 @@ func (c *GroupItemsInsertCall) Do() (*GroupItem, error) {
 // method id "youtubeAnalytics.groupItems.list":
 
 type GroupItemsListCall struct {
-	s       *Service
-	groupId string
-	opt_    map[string]interface{}
+	s             *Service
+	groupId       string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Returns a collection of group items that match the API request
 // parameters.
+
 func (r *GroupItemsService) List(groupId string) *GroupItemsListCall {
-	c := &GroupItemsListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.groupId = groupId
-	return c
+	return &GroupItemsListCall{
+		s:             r.s,
+		groupId:       groupId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "groupItems",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // OnBehalfOfContentOwner sets the optional parameter
@@ -716,7 +692,11 @@ func (r *GroupItemsService) List(groupId string) *GroupItemsListCall {
 // CMS account that the user authenticates with must be linked to the
 // specified YouTube content owner.
 func (c *GroupItemsListCall) OnBehalfOfContentOwner(onBehalfOfContentOwner string) *GroupItemsListCall {
-	c.opt_["onBehalfOfContentOwner"] = onBehalfOfContentOwner
+	c.params_.Set("onBehalfOfContentOwner", fmt.Sprintf("%v", onBehalfOfContentOwner))
+	return c
+}
+func (c *GroupItemsListCall) Context(ctx context.Context) *GroupItemsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -724,39 +704,22 @@ func (c *GroupItemsListCall) OnBehalfOfContentOwner(onBehalfOfContentOwner strin
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *GroupItemsListCall) Fields(s ...googleapi.Field) *GroupItemsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *GroupItemsListCall) Do() (*GroupItemListResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("groupId", fmt.Sprintf("%v", c.groupId))
-	if v, ok := c.opt_["onBehalfOfContentOwner"]; ok {
-		params.Set("onBehalfOfContentOwner", fmt.Sprintf("%v", v))
+	var returnValue *GroupItemListResponse
+	c.params_.Set("groupId", fmt.Sprintf("%v", c.groupId))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "groupItems")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *GroupItemListResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Returns a collection of group items that match the API request parameters.",
 	//   "httpMethod": "GET",
@@ -794,16 +757,25 @@ func (c *GroupItemsListCall) Do() (*GroupItemListResponse, error) {
 // method id "youtubeAnalytics.groups.delete":
 
 type GroupsDeleteCall struct {
-	s    *Service
-	id   string
-	opt_ map[string]interface{}
+	s             *Service
+	id            string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Delete: Deletes a group.
+
 func (r *GroupsService) Delete(id string) *GroupsDeleteCall {
-	c := &GroupsDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.id = id
-	return c
+	return &GroupsDeleteCall{
+		s:             r.s,
+		id:            id,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "groups",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // OnBehalfOfContentOwner sets the optional parameter
@@ -821,43 +793,24 @@ func (r *GroupsService) Delete(id string) *GroupsDeleteCall {
 // CMS account that the user authenticates with must be linked to the
 // specified YouTube content owner.
 func (c *GroupsDeleteCall) OnBehalfOfContentOwner(onBehalfOfContentOwner string) *GroupsDeleteCall {
-	c.opt_["onBehalfOfContentOwner"] = onBehalfOfContentOwner
+	c.params_.Set("onBehalfOfContentOwner", fmt.Sprintf("%v", onBehalfOfContentOwner))
 	return c
 }
-
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *GroupsDeleteCall) Fields(s ...googleapi.Field) *GroupsDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (c *GroupsDeleteCall) Context(ctx context.Context) *GroupsDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *GroupsDeleteCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("id", fmt.Sprintf("%v", c.id))
-	if v, ok := c.opt_["onBehalfOfContentOwner"]; ok {
-		params.Set("onBehalfOfContentOwner", fmt.Sprintf("%v", v))
+	c.params_.Set("id", fmt.Sprintf("%v", c.id))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
 	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "groups")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Deletes a group.",
 	//   "httpMethod": "DELETE",
@@ -890,16 +843,25 @@ func (c *GroupsDeleteCall) Do() error {
 // method id "youtubeAnalytics.groups.insert":
 
 type GroupsInsertCall struct {
-	s     *Service
-	group *Group
-	opt_  map[string]interface{}
+	s             *Service
+	group         *Group
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Insert: Creates a group.
+
 func (r *GroupsService) Insert(group *Group) *GroupsInsertCall {
-	c := &GroupsInsertCall{s: r.s, opt_: make(map[string]interface{})}
-	c.group = group
-	return c
+	return &GroupsInsertCall{
+		s:             r.s,
+		group:         group,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "groups",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // OnBehalfOfContentOwner sets the optional parameter
@@ -917,7 +879,11 @@ func (r *GroupsService) Insert(group *Group) *GroupsInsertCall {
 // CMS account that the user authenticates with must be linked to the
 // specified YouTube content owner.
 func (c *GroupsInsertCall) OnBehalfOfContentOwner(onBehalfOfContentOwner string) *GroupsInsertCall {
-	c.opt_["onBehalfOfContentOwner"] = onBehalfOfContentOwner
+	c.params_.Set("onBehalfOfContentOwner", fmt.Sprintf("%v", onBehalfOfContentOwner))
+	return c
+}
+func (c *GroupsInsertCall) Context(ctx context.Context) *GroupsInsertCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -925,44 +891,22 @@ func (c *GroupsInsertCall) OnBehalfOfContentOwner(onBehalfOfContentOwner string)
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *GroupsInsertCall) Fields(s ...googleapi.Field) *GroupsInsertCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *GroupsInsertCall) Do() (*Group, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.group)
-	if err != nil {
-		return nil, err
+	var returnValue *Group
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.group,
+		Result:  &returnValue,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["onBehalfOfContentOwner"]; ok {
-		params.Set("onBehalfOfContentOwner", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "groups")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Group
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Creates a group.",
 	//   "httpMethod": "POST",
@@ -992,17 +936,26 @@ func (c *GroupsInsertCall) Do() (*Group, error) {
 // method id "youtubeAnalytics.groups.list":
 
 type GroupsListCall struct {
-	s    *Service
-	opt_ map[string]interface{}
+	s             *Service
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Returns a collection of groups that match the API request
 // parameters. For example, you can retrieve all groups that the
 // authenticated user owns, or you can retrieve one or more groups by
 // their unique IDs.
+
 func (r *GroupsService) List() *GroupsListCall {
-	c := &GroupsListCall{s: r.s, opt_: make(map[string]interface{})}
-	return c
+	return &GroupsListCall{
+		s:             r.s,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "groups",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Id sets the optional parameter "id": The id parameter specifies a
@@ -1010,7 +963,7 @@ func (r *GroupsService) List() *GroupsListCall {
 // that are being retrieved. In a group resource, the id property
 // specifies the group's YouTube group ID.
 func (c *GroupsListCall) Id(id string) *GroupsListCall {
-	c.opt_["id"] = id
+	c.params_.Set("id", fmt.Sprintf("%v", id))
 	return c
 }
 
@@ -1018,7 +971,7 @@ func (c *GroupsListCall) Id(id string) *GroupsListCall {
 // to true to instruct the API to only return groups owned by the
 // authenticated user.
 func (c *GroupsListCall) Mine(mine bool) *GroupsListCall {
-	c.opt_["mine"] = mine
+	c.params_.Set("mine", fmt.Sprintf("%v", mine))
 	return c
 }
 
@@ -1037,7 +990,11 @@ func (c *GroupsListCall) Mine(mine bool) *GroupsListCall {
 // CMS account that the user authenticates with must be linked to the
 // specified YouTube content owner.
 func (c *GroupsListCall) OnBehalfOfContentOwner(onBehalfOfContentOwner string) *GroupsListCall {
-	c.opt_["onBehalfOfContentOwner"] = onBehalfOfContentOwner
+	c.params_.Set("onBehalfOfContentOwner", fmt.Sprintf("%v", onBehalfOfContentOwner))
+	return c
+}
+func (c *GroupsListCall) Context(ctx context.Context) *GroupsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1045,44 +1002,21 @@ func (c *GroupsListCall) OnBehalfOfContentOwner(onBehalfOfContentOwner string) *
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *GroupsListCall) Fields(s ...googleapi.Field) *GroupsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *GroupsListCall) Do() (*GroupListResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["id"]; ok {
-		params.Set("id", fmt.Sprintf("%v", v))
+	var returnValue *GroupListResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	if v, ok := c.opt_["mine"]; ok {
-		params.Set("mine", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["onBehalfOfContentOwner"]; ok {
-		params.Set("onBehalfOfContentOwner", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "groups")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *GroupListResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Returns a collection of groups that match the API request parameters. For example, you can retrieve all groups that the authenticated user owns, or you can retrieve one or more groups by their unique IDs.",
 	//   "httpMethod": "GET",
@@ -1121,17 +1055,26 @@ func (c *GroupsListCall) Do() (*GroupListResponse, error) {
 // method id "youtubeAnalytics.groups.update":
 
 type GroupsUpdateCall struct {
-	s     *Service
-	group *Group
-	opt_  map[string]interface{}
+	s             *Service
+	group         *Group
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Update: Modifies a group. For example, you could change a group's
 // title.
+
 func (r *GroupsService) Update(group *Group) *GroupsUpdateCall {
-	c := &GroupsUpdateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.group = group
-	return c
+	return &GroupsUpdateCall{
+		s:             r.s,
+		group:         group,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "groups",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // OnBehalfOfContentOwner sets the optional parameter
@@ -1149,7 +1092,11 @@ func (r *GroupsService) Update(group *Group) *GroupsUpdateCall {
 // CMS account that the user authenticates with must be linked to the
 // specified YouTube content owner.
 func (c *GroupsUpdateCall) OnBehalfOfContentOwner(onBehalfOfContentOwner string) *GroupsUpdateCall {
-	c.opt_["onBehalfOfContentOwner"] = onBehalfOfContentOwner
+	c.params_.Set("onBehalfOfContentOwner", fmt.Sprintf("%v", onBehalfOfContentOwner))
+	return c
+}
+func (c *GroupsUpdateCall) Context(ctx context.Context) *GroupsUpdateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1157,44 +1104,22 @@ func (c *GroupsUpdateCall) OnBehalfOfContentOwner(onBehalfOfContentOwner string)
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *GroupsUpdateCall) Fields(s ...googleapi.Field) *GroupsUpdateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *GroupsUpdateCall) Do() (*Group, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.group)
-	if err != nil {
-		return nil, err
+	var returnValue *Group
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.group,
+		Result:  &returnValue,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["onBehalfOfContentOwner"]; ok {
-		params.Set("onBehalfOfContentOwner", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "groups")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Group
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Modifies a group. For example, you could change a group's title.",
 	//   "httpMethod": "PUT",
@@ -1224,22 +1149,31 @@ func (c *GroupsUpdateCall) Do() (*Group, error) {
 // method id "youtubeAnalytics.reports.query":
 
 type ReportsQueryCall struct {
-	s         *Service
-	ids       string
-	startDate string
-	endDate   string
-	metrics   string
-	opt_      map[string]interface{}
+	s             *Service
+	ids           string
+	startDate     string
+	endDate       string
+	metrics       string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Query: Retrieve your YouTube Analytics reports.
+
 func (r *ReportsService) Query(ids string, startDate string, endDate string, metrics string) *ReportsQueryCall {
-	c := &ReportsQueryCall{s: r.s, opt_: make(map[string]interface{})}
-	c.ids = ids
-	c.startDate = startDate
-	c.endDate = endDate
-	c.metrics = metrics
-	return c
+	return &ReportsQueryCall{
+		s:             r.s,
+		ids:           ids,
+		startDate:     startDate,
+		endDate:       endDate,
+		metrics:       metrics,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "reports",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Currency sets the optional parameter "currency": The currency to
@@ -1248,7 +1182,7 @@ func (r *ReportsService) Query(ids string, startDate string, endDate string, met
 // ignored. Responds with an error if the specified currency is not
 // recognized.
 func (c *ReportsQueryCall) Currency(currency string) *ReportsQueryCall {
-	c.opt_["currency"] = currency
+	c.params_.Set("currency", fmt.Sprintf("%v", currency))
 	return c
 }
 
@@ -1259,7 +1193,7 @@ func (c *ReportsQueryCall) Currency(currency string) *ReportsQueryCall {
 // reports. Also see the Dimensions document for definitions of those
 // dimensions.
 func (c *ReportsQueryCall) Dimensions(dimensions string) *ReportsQueryCall {
-	c.opt_["dimensions"] = dimensions
+	c.params_.Set("dimensions", fmt.Sprintf("%v", dimensions))
 	return c
 }
 
@@ -1273,14 +1207,14 @@ func (c *ReportsQueryCall) Dimensions(dimensions string) *ReportsQueryCall {
 // video==dMH0bHeiRNg;country==IT restricts the result set to include
 // data for the given video in Italy.
 func (c *ReportsQueryCall) Filters(filters string) *ReportsQueryCall {
-	c.opt_["filters"] = filters
+	c.params_.Set("filters", fmt.Sprintf("%v", filters))
 	return c
 }
 
 // MaxResults sets the optional parameter "max-results": The maximum
 // number of rows to include in the response.
 func (c *ReportsQueryCall) MaxResults(maxResults int64) *ReportsQueryCall {
-	c.opt_["max-results"] = maxResults
+	c.params_.Set("max-results", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
@@ -1289,7 +1223,7 @@ func (c *ReportsQueryCall) MaxResults(maxResults int64) *ReportsQueryCall {
 // Analytics data. By default the sort order is ascending. The '-'
 // prefix causes descending sort order.
 func (c *ReportsQueryCall) Sort(sort string) *ReportsQueryCall {
-	c.opt_["sort"] = sort
+	c.params_.Set("sort", fmt.Sprintf("%v", sort))
 	return c
 }
 
@@ -1298,7 +1232,11 @@ func (c *ReportsQueryCall) Sort(sort string) *ReportsQueryCall {
 // mechanism along with the max-results parameter (one-based,
 // inclusive).
 func (c *ReportsQueryCall) StartIndex(startIndex int64) *ReportsQueryCall {
-	c.opt_["start-index"] = startIndex
+	c.params_.Set("start-index", fmt.Sprintf("%v", startIndex))
+	return c
+}
+func (c *ReportsQueryCall) Context(ctx context.Context) *ReportsQueryCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1306,57 +1244,25 @@ func (c *ReportsQueryCall) StartIndex(startIndex int64) *ReportsQueryCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ReportsQueryCall) Fields(s ...googleapi.Field) *ReportsQueryCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ReportsQueryCall) Do() (*ResultTable, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("end-date", fmt.Sprintf("%v", c.endDate))
-	params.Set("ids", fmt.Sprintf("%v", c.ids))
-	params.Set("metrics", fmt.Sprintf("%v", c.metrics))
-	params.Set("start-date", fmt.Sprintf("%v", c.startDate))
-	if v, ok := c.opt_["currency"]; ok {
-		params.Set("currency", fmt.Sprintf("%v", v))
+	var returnValue *ResultTable
+	c.params_.Set("end-date", fmt.Sprintf("%v", c.endDate))
+	c.params_.Set("ids", fmt.Sprintf("%v", c.ids))
+	c.params_.Set("metrics", fmt.Sprintf("%v", c.metrics))
+	c.params_.Set("start-date", fmt.Sprintf("%v", c.startDate))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	if v, ok := c.opt_["dimensions"]; ok {
-		params.Set("dimensions", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["filters"]; ok {
-		params.Set("filters", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["max-results"]; ok {
-		params.Set("max-results", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["sort"]; ok {
-		params.Set("sort", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["start-index"]; ok {
-		params.Set("start-index", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "reports")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ResultTable
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieve your YouTube Analytics reports.",
 	//   "httpMethod": "GET",

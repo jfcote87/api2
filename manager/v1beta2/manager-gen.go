@@ -4,18 +4,16 @@
 //
 // Usage example:
 //
-//   import "google.golang.org/api/manager/v1beta2"
+//   import "github.com/jfcote87/api2/manager/v1beta2"
 //   ...
 //   managerService, err := manager.New(oauthHttpClient)
 package manager
 
 import (
-	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/jfcote87/api2/googleapi"
 	"golang.org/x/net/context"
-	"google.golang.org/api/googleapi"
 	"io"
 	"net/http"
 	"net/url"
@@ -25,10 +23,8 @@ import (
 
 // Always reference these packages, just in case the auto-generated code
 // below doesn't.
-var _ = bytes.NewBuffer
 var _ = strconv.Itoa
 var _ = fmt.Sprintf
-var _ = json.NewDecoder
 var _ = io.Copy
 var _ = url.Parse
 var _ = googleapi.Version
@@ -39,7 +35,8 @@ var _ = context.Background
 const apiId = "manager:v1beta2"
 const apiName = "manager"
 const apiVersion = "v1beta2"
-const basePath = "https://www.googleapis.com/manager/v1beta2/projects/"
+
+var baseURL *url.URL = &url.URL{Scheme: "https", Host: "www.googleapis.com", Path: "/manager/v1beta2/projects/"}
 
 // OAuth2 scopes used by this API.
 const (
@@ -68,27 +65,18 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
+	s := &Service{client: client}
 	s.Deployments = NewDeploymentsService(s)
 	s.Templates = NewTemplatesService(s)
 	return s, nil
 }
 
 type Service struct {
-	client    *http.Client
-	BasePath  string // API endpoint base URL
-	UserAgent string // optional additional User-Agent fragment
+	client *http.Client
 
 	Deployments *DeploymentsService
 
 	Templates *TemplatesService
-}
-
-func (s *Service) userAgent() string {
-	if s.UserAgent == "" {
-		return googleapi.UserAgent
-	}
-	return googleapi.UserAgent + " " + s.UserAgent
 }
 
 func NewDeploymentsService(s *Service) *DeploymentsService {
@@ -603,51 +591,44 @@ type DeploymentsDeleteCall struct {
 	projectId      string
 	region         string
 	deploymentName string
-	opt_           map[string]interface{}
+	caller_        googleapi.Caller
+	params_        url.Values
+	pathTemplate_  string
+	context_       context.Context
 }
 
 // Delete:
-func (r *DeploymentsService) Delete(projectId string, region string, deploymentName string) *DeploymentsDeleteCall {
-	c := &DeploymentsDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.projectId = projectId
-	c.region = region
-	c.deploymentName = deploymentName
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *DeploymentsDeleteCall) Fields(s ...googleapi.Field) *DeploymentsDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *DeploymentsService) Delete(projectId string, region string, deploymentName string) *DeploymentsDeleteCall {
+	return &DeploymentsDeleteCall{
+		s:              r.s,
+		projectId:      projectId,
+		region:         region,
+		deploymentName: deploymentName,
+		caller_:        googleapi.JSONCall{},
+		params_:        make(map[string][]string),
+		pathTemplate_:  "{projectId}/regions/{region}/deployments/{deploymentName}",
+		context_:       googleapi.NoContext,
+	}
+}
+func (c *DeploymentsDeleteCall) Context(ctx context.Context) *DeploymentsDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *DeploymentsDeleteCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{projectId}/regions/{region}/deployments/{deploymentName}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"projectId":      c.projectId,
 		"region":         c.region,
 		"deploymentName": c.deploymentName,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "",
 	//   "httpMethod": "DELETE",
@@ -690,15 +671,28 @@ type DeploymentsGetCall struct {
 	projectId      string
 	region         string
 	deploymentName string
-	opt_           map[string]interface{}
+	caller_        googleapi.Caller
+	params_        url.Values
+	pathTemplate_  string
+	context_       context.Context
 }
 
 // Get:
+
 func (r *DeploymentsService) Get(projectId string, region string, deploymentName string) *DeploymentsGetCall {
-	c := &DeploymentsGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.projectId = projectId
-	c.region = region
-	c.deploymentName = deploymentName
+	return &DeploymentsGetCall{
+		s:              r.s,
+		projectId:      projectId,
+		region:         region,
+		deploymentName: deploymentName,
+		caller_:        googleapi.JSONCall{},
+		params_:        make(map[string][]string),
+		pathTemplate_:  "{projectId}/regions/{region}/deployments/{deploymentName}",
+		context_:       googleapi.NoContext,
+	}
+}
+func (c *DeploymentsGetCall) Context(ctx context.Context) *DeploymentsGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -706,39 +700,25 @@ func (r *DeploymentsService) Get(projectId string, region string, deploymentName
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *DeploymentsGetCall) Fields(s ...googleapi.Field) *DeploymentsGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *DeploymentsGetCall) Do() (*Deployment, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{projectId}/regions/{region}/deployments/{deploymentName}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Deployment
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"projectId":      c.projectId,
 		"region":         c.region,
 		"deploymentName": c.deploymentName,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Deployment
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "",
 	//   "httpMethod": "GET",
@@ -781,19 +761,32 @@ func (c *DeploymentsGetCall) Do() (*Deployment, error) {
 // method id "manager.deployments.insert":
 
 type DeploymentsInsertCall struct {
-	s          *Service
-	projectId  string
-	region     string
-	deployment *Deployment
-	opt_       map[string]interface{}
+	s             *Service
+	projectId     string
+	region        string
+	deployment    *Deployment
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Insert:
+
 func (r *DeploymentsService) Insert(projectId string, region string, deployment *Deployment) *DeploymentsInsertCall {
-	c := &DeploymentsInsertCall{s: r.s, opt_: make(map[string]interface{})}
-	c.projectId = projectId
-	c.region = region
-	c.deployment = deployment
+	return &DeploymentsInsertCall{
+		s:             r.s,
+		projectId:     projectId,
+		region:        region,
+		deployment:    deployment,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{projectId}/regions/{region}/deployments",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *DeploymentsInsertCall) Context(ctx context.Context) *DeploymentsInsertCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -801,44 +794,25 @@ func (r *DeploymentsService) Insert(projectId string, region string, deployment 
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *DeploymentsInsertCall) Fields(s ...googleapi.Field) *DeploymentsInsertCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *DeploymentsInsertCall) Do() (*Deployment, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.deployment)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{projectId}/regions/{region}/deployments")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Deployment
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"projectId": c.projectId,
 		"region":    c.region,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.deployment,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Deployment
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "",
 	//   "httpMethod": "POST",
@@ -880,25 +854,34 @@ func (c *DeploymentsInsertCall) Do() (*Deployment, error) {
 // method id "manager.deployments.list":
 
 type DeploymentsListCall struct {
-	s         *Service
-	projectId string
-	region    string
-	opt_      map[string]interface{}
+	s             *Service
+	projectId     string
+	region        string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List:
+
 func (r *DeploymentsService) List(projectId string, region string) *DeploymentsListCall {
-	c := &DeploymentsListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.projectId = projectId
-	c.region = region
-	return c
+	return &DeploymentsListCall{
+		s:             r.s,
+		projectId:     projectId,
+		region:        region,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{projectId}/regions/{region}/deployments",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // MaxResults sets the optional parameter "maxResults": Maximum count of
 // results to be returned. Acceptable values are 0 to 100, inclusive.
 // (Default: 50)
 func (c *DeploymentsListCall) MaxResults(maxResults int64) *DeploymentsListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
@@ -907,7 +890,11 @@ func (c *DeploymentsListCall) MaxResults(maxResults int64) *DeploymentsListCall 
 // used to request the next page of results from a previous list
 // request.
 func (c *DeploymentsListCall) PageToken(pageToken string) *DeploymentsListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
+	return c
+}
+func (c *DeploymentsListCall) Context(ctx context.Context) *DeploymentsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -915,44 +902,24 @@ func (c *DeploymentsListCall) PageToken(pageToken string) *DeploymentsListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *DeploymentsListCall) Fields(s ...googleapi.Field) *DeploymentsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *DeploymentsListCall) Do() (*DeploymentsListResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{projectId}/regions/{region}/deployments")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *DeploymentsListResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"projectId": c.projectId,
 		"region":    c.region,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *DeploymentsListResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "",
 	//   "httpMethod": "GET",
@@ -1003,52 +970,45 @@ func (c *DeploymentsListCall) Do() (*DeploymentsListResponse, error) {
 // method id "manager.templates.delete":
 
 type TemplatesDeleteCall struct {
-	s            *Service
-	projectId    string
-	templateName string
-	opt_         map[string]interface{}
+	s             *Service
+	projectId     string
+	templateName  string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Delete:
-func (r *TemplatesService) Delete(projectId string, templateName string) *TemplatesDeleteCall {
-	c := &TemplatesDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.projectId = projectId
-	c.templateName = templateName
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *TemplatesDeleteCall) Fields(s ...googleapi.Field) *TemplatesDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *TemplatesService) Delete(projectId string, templateName string) *TemplatesDeleteCall {
+	return &TemplatesDeleteCall{
+		s:             r.s,
+		projectId:     projectId,
+		templateName:  templateName,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{projectId}/templates/{templateName}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *TemplatesDeleteCall) Context(ctx context.Context) *TemplatesDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *TemplatesDeleteCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{projectId}/templates/{templateName}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"projectId":    c.projectId,
 		"templateName": c.templateName,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "",
 	//   "httpMethod": "DELETE",
@@ -1081,17 +1041,30 @@ func (c *TemplatesDeleteCall) Do() error {
 // method id "manager.templates.get":
 
 type TemplatesGetCall struct {
-	s            *Service
-	projectId    string
-	templateName string
-	opt_         map[string]interface{}
+	s             *Service
+	projectId     string
+	templateName  string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get:
+
 func (r *TemplatesService) Get(projectId string, templateName string) *TemplatesGetCall {
-	c := &TemplatesGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.projectId = projectId
-	c.templateName = templateName
+	return &TemplatesGetCall{
+		s:             r.s,
+		projectId:     projectId,
+		templateName:  templateName,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{projectId}/templates/{templateName}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *TemplatesGetCall) Context(ctx context.Context) *TemplatesGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1099,38 +1072,24 @@ func (r *TemplatesService) Get(projectId string, templateName string) *Templates
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *TemplatesGetCall) Fields(s ...googleapi.Field) *TemplatesGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *TemplatesGetCall) Do() (*Template, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{projectId}/templates/{templateName}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Template
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"projectId":    c.projectId,
 		"templateName": c.templateName,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Template
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "",
 	//   "httpMethod": "GET",
@@ -1167,17 +1126,30 @@ func (c *TemplatesGetCall) Do() (*Template, error) {
 // method id "manager.templates.insert":
 
 type TemplatesInsertCall struct {
-	s         *Service
-	projectId string
-	template  *Template
-	opt_      map[string]interface{}
+	s             *Service
+	projectId     string
+	template      *Template
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Insert:
+
 func (r *TemplatesService) Insert(projectId string, template *Template) *TemplatesInsertCall {
-	c := &TemplatesInsertCall{s: r.s, opt_: make(map[string]interface{})}
-	c.projectId = projectId
-	c.template = template
+	return &TemplatesInsertCall{
+		s:             r.s,
+		projectId:     projectId,
+		template:      template,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{projectId}/templates",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *TemplatesInsertCall) Context(ctx context.Context) *TemplatesInsertCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1185,43 +1157,24 @@ func (r *TemplatesService) Insert(projectId string, template *Template) *Templat
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *TemplatesInsertCall) Fields(s ...googleapi.Field) *TemplatesInsertCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *TemplatesInsertCall) Do() (*Template, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.template)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{projectId}/templates")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Template
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"projectId": c.projectId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.template,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Template
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "",
 	//   "httpMethod": "POST",
@@ -1254,23 +1207,32 @@ func (c *TemplatesInsertCall) Do() (*Template, error) {
 // method id "manager.templates.list":
 
 type TemplatesListCall struct {
-	s         *Service
-	projectId string
-	opt_      map[string]interface{}
+	s             *Service
+	projectId     string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List:
+
 func (r *TemplatesService) List(projectId string) *TemplatesListCall {
-	c := &TemplatesListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.projectId = projectId
-	return c
+	return &TemplatesListCall{
+		s:             r.s,
+		projectId:     projectId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{projectId}/templates",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // MaxResults sets the optional parameter "maxResults": Maximum count of
 // results to be returned. Acceptable values are 0 to 100, inclusive.
 // (Default: 50)
 func (c *TemplatesListCall) MaxResults(maxResults int64) *TemplatesListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
@@ -1279,7 +1241,11 @@ func (c *TemplatesListCall) MaxResults(maxResults int64) *TemplatesListCall {
 // used to request the next page of results from a previous list
 // request.
 func (c *TemplatesListCall) PageToken(pageToken string) *TemplatesListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
+	return c
+}
+func (c *TemplatesListCall) Context(ctx context.Context) *TemplatesListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1287,43 +1253,23 @@ func (c *TemplatesListCall) PageToken(pageToken string) *TemplatesListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *TemplatesListCall) Fields(s ...googleapi.Field) *TemplatesListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *TemplatesListCall) Do() (*TemplatesListResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{projectId}/templates")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *TemplatesListResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"projectId": c.projectId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *TemplatesListResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "",
 	//   "httpMethod": "GET",

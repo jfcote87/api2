@@ -4,18 +4,16 @@
 //
 // Usage example:
 //
-//   import "google.golang.org/api/replicapool/v1beta1"
+//   import "github.com/jfcote87/api2/replicapool/v1beta1"
 //   ...
 //   replicapoolService, err := replicapool.New(oauthHttpClient)
 package replicapool
 
 import (
-	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/jfcote87/api2/googleapi"
 	"golang.org/x/net/context"
-	"google.golang.org/api/googleapi"
 	"io"
 	"net/http"
 	"net/url"
@@ -25,10 +23,8 @@ import (
 
 // Always reference these packages, just in case the auto-generated code
 // below doesn't.
-var _ = bytes.NewBuffer
 var _ = strconv.Itoa
 var _ = fmt.Sprintf
-var _ = json.NewDecoder
 var _ = io.Copy
 var _ = url.Parse
 var _ = googleapi.Version
@@ -39,7 +35,8 @@ var _ = context.Background
 const apiId = "replicapool:v1beta1"
 const apiName = "replicapool"
 const apiVersion = "v1beta1"
-const basePath = "https://www.googleapis.com/replicapool/v1beta1/projects/"
+
+var baseURL *url.URL = &url.URL{Scheme: "https", Host: "www.googleapis.com", Path: "/replicapool/v1beta1/projects/"}
 
 // OAuth2 scopes used by this API.
 const (
@@ -65,27 +62,18 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
+	s := &Service{client: client}
 	s.Pools = NewPoolsService(s)
 	s.Replicas = NewReplicasService(s)
 	return s, nil
 }
 
 type Service struct {
-	client    *http.Client
-	BasePath  string // API endpoint base URL
-	UserAgent string // optional additional User-Agent fragment
+	client *http.Client
 
 	Pools *PoolsService
 
 	Replicas *ReplicasService
-}
-
-func (s *Service) userAgent() string {
-	if s.UserAgent == "" {
-		return googleapi.UserAgent
-	}
-	return googleapi.UserAgent + " " + s.UserAgent
 }
 
 func NewPoolsService(s *Service) *PoolsService {
@@ -505,58 +493,46 @@ type PoolsDeleteCall struct {
 	zone               string
 	poolName           string
 	poolsdeleterequest *PoolsDeleteRequest
-	opt_               map[string]interface{}
+	caller_            googleapi.Caller
+	params_            url.Values
+	pathTemplate_      string
+	context_           context.Context
 }
 
 // Delete: Deletes a replica pool.
-func (r *PoolsService) Delete(projectName string, zone string, poolName string, poolsdeleterequest *PoolsDeleteRequest) *PoolsDeleteCall {
-	c := &PoolsDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.projectName = projectName
-	c.zone = zone
-	c.poolName = poolName
-	c.poolsdeleterequest = poolsdeleterequest
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *PoolsDeleteCall) Fields(s ...googleapi.Field) *PoolsDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *PoolsService) Delete(projectName string, zone string, poolName string, poolsdeleterequest *PoolsDeleteRequest) *PoolsDeleteCall {
+	return &PoolsDeleteCall{
+		s:                  r.s,
+		projectName:        projectName,
+		zone:               zone,
+		poolName:           poolName,
+		poolsdeleterequest: poolsdeleterequest,
+		caller_:            googleapi.JSONCall{},
+		params_:            make(map[string][]string),
+		pathTemplate_:      "{projectName}/zones/{zone}/pools/{poolName}",
+		context_:           googleapi.NoContext,
+	}
+}
+func (c *PoolsDeleteCall) Context(ctx context.Context) *PoolsDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *PoolsDeleteCall) Do() error {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.poolsdeleterequest)
-	if err != nil {
-		return err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{projectName}/zones/{zone}/pools/{poolName}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"projectName": c.projectName,
 		"zone":        c.zone,
 		"poolName":    c.poolName,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.poolsdeleterequest,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Deletes a replica pool.",
 	//   "httpMethod": "POST",
@@ -602,19 +578,32 @@ func (c *PoolsDeleteCall) Do() error {
 // method id "replicapool.pools.get":
 
 type PoolsGetCall struct {
-	s           *Service
-	projectName string
-	zone        string
-	poolName    string
-	opt_        map[string]interface{}
+	s             *Service
+	projectName   string
+	zone          string
+	poolName      string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Gets information about a single replica pool.
+
 func (r *PoolsService) Get(projectName string, zone string, poolName string) *PoolsGetCall {
-	c := &PoolsGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.projectName = projectName
-	c.zone = zone
-	c.poolName = poolName
+	return &PoolsGetCall{
+		s:             r.s,
+		projectName:   projectName,
+		zone:          zone,
+		poolName:      poolName,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{projectName}/zones/{zone}/pools/{poolName}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *PoolsGetCall) Context(ctx context.Context) *PoolsGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -622,39 +611,25 @@ func (r *PoolsService) Get(projectName string, zone string, poolName string) *Po
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *PoolsGetCall) Fields(s ...googleapi.Field) *PoolsGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *PoolsGetCall) Do() (*Pool, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{projectName}/zones/{zone}/pools/{poolName}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Pool
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"projectName": c.projectName,
 		"zone":        c.zone,
 		"poolName":    c.poolName,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Pool
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Gets information about a single replica pool.",
 	//   "httpMethod": "GET",
@@ -702,19 +677,32 @@ func (c *PoolsGetCall) Do() (*Pool, error) {
 // method id "replicapool.pools.insert":
 
 type PoolsInsertCall struct {
-	s           *Service
-	projectName string
-	zone        string
-	pool        *Pool
-	opt_        map[string]interface{}
+	s             *Service
+	projectName   string
+	zone          string
+	pool          *Pool
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Insert: Inserts a new replica pool.
+
 func (r *PoolsService) Insert(projectName string, zone string, pool *Pool) *PoolsInsertCall {
-	c := &PoolsInsertCall{s: r.s, opt_: make(map[string]interface{})}
-	c.projectName = projectName
-	c.zone = zone
-	c.pool = pool
+	return &PoolsInsertCall{
+		s:             r.s,
+		projectName:   projectName,
+		zone:          zone,
+		pool:          pool,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{projectName}/zones/{zone}/pools",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *PoolsInsertCall) Context(ctx context.Context) *PoolsInsertCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -722,44 +710,25 @@ func (r *PoolsService) Insert(projectName string, zone string, pool *Pool) *Pool
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *PoolsInsertCall) Fields(s ...googleapi.Field) *PoolsInsertCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *PoolsInsertCall) Do() (*Pool, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.pool)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{projectName}/zones/{zone}/pools")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Pool
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"projectName": c.projectName,
 		"zone":        c.zone,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.pool,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Pool
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Inserts a new replica pool.",
 	//   "httpMethod": "POST",
@@ -801,25 +770,34 @@ func (c *PoolsInsertCall) Do() (*Pool, error) {
 // method id "replicapool.pools.list":
 
 type PoolsListCall struct {
-	s           *Service
-	projectName string
-	zone        string
-	opt_        map[string]interface{}
+	s             *Service
+	projectName   string
+	zone          string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: List all replica pools.
+
 func (r *PoolsService) List(projectName string, zone string) *PoolsListCall {
-	c := &PoolsListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.projectName = projectName
-	c.zone = zone
-	return c
+	return &PoolsListCall{
+		s:             r.s,
+		projectName:   projectName,
+		zone:          zone,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{projectName}/zones/{zone}/pools",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // MaxResults sets the optional parameter "maxResults": Maximum count of
 // results to be returned. Acceptable values are 0 to 100, inclusive.
 // (Default: 50)
 func (c *PoolsListCall) MaxResults(maxResults int64) *PoolsListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
@@ -827,7 +805,11 @@ func (c *PoolsListCall) MaxResults(maxResults int64) *PoolsListCall {
 // nextPageToken value returned by a previous list request to obtain the
 // next page of results from the previous list request.
 func (c *PoolsListCall) PageToken(pageToken string) *PoolsListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
+	return c
+}
+func (c *PoolsListCall) Context(ctx context.Context) *PoolsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -835,44 +817,24 @@ func (c *PoolsListCall) PageToken(pageToken string) *PoolsListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *PoolsListCall) Fields(s ...googleapi.Field) *PoolsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *PoolsListCall) Do() (*PoolsListResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{projectName}/zones/{zone}/pools")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *PoolsListResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"projectName": c.projectName,
 		"zone":        c.zone,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *PoolsListResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "List all replica pools.",
 	//   "httpMethod": "GET",
@@ -927,22 +889,31 @@ func (c *PoolsListCall) Do() (*PoolsListResponse, error) {
 // method id "replicapool.pools.resize":
 
 type PoolsResizeCall struct {
-	s           *Service
-	projectName string
-	zone        string
-	poolName    string
-	opt_        map[string]interface{}
+	s             *Service
+	projectName   string
+	zone          string
+	poolName      string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Resize: Resize a pool. This is an asynchronous operation, and
 // multiple overlapping resize requests can be made. Replica Pools will
 // use the information from the last resize request.
+
 func (r *PoolsService) Resize(projectName string, zone string, poolName string) *PoolsResizeCall {
-	c := &PoolsResizeCall{s: r.s, opt_: make(map[string]interface{})}
-	c.projectName = projectName
-	c.zone = zone
-	c.poolName = poolName
-	return c
+	return &PoolsResizeCall{
+		s:             r.s,
+		projectName:   projectName,
+		zone:          zone,
+		poolName:      poolName,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{projectName}/zones/{zone}/pools/{poolName}/resize",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // NumReplicas sets the optional parameter "numReplicas": The desired
@@ -950,7 +921,11 @@ func (r *PoolsService) Resize(projectName string, zone string, poolName string) 
 // existing number of replicas, new replicas will be added. If the
 // number is smaller, then existing replicas will be deleted.
 func (c *PoolsResizeCall) NumReplicas(numReplicas int64) *PoolsResizeCall {
-	c.opt_["numReplicas"] = numReplicas
+	c.params_.Set("numReplicas", fmt.Sprintf("%v", numReplicas))
+	return c
+}
+func (c *PoolsResizeCall) Context(ctx context.Context) *PoolsResizeCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -958,42 +933,25 @@ func (c *PoolsResizeCall) NumReplicas(numReplicas int64) *PoolsResizeCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *PoolsResizeCall) Fields(s ...googleapi.Field) *PoolsResizeCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *PoolsResizeCall) Do() (*Pool, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["numReplicas"]; ok {
-		params.Set("numReplicas", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{projectName}/zones/{zone}/pools/{poolName}/resize")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Pool
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"projectName": c.projectName,
 		"zone":        c.zone,
 		"poolName":    c.poolName,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "POST",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Pool
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Resize a pool. This is an asynchronous operation, and multiple overlapping resize requests can be made. Replica Pools will use the information from the last resize request.",
 	//   "httpMethod": "POST",
@@ -1045,63 +1003,51 @@ func (c *PoolsResizeCall) Do() (*Pool, error) {
 // method id "replicapool.pools.updatetemplate":
 
 type PoolsUpdatetemplateCall struct {
-	s           *Service
-	projectName string
-	zone        string
-	poolName    string
-	template    *Template
-	opt_        map[string]interface{}
+	s             *Service
+	projectName   string
+	zone          string
+	poolName      string
+	template      *Template
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Updatetemplate: Update the template used by the pool.
-func (r *PoolsService) Updatetemplate(projectName string, zone string, poolName string, template *Template) *PoolsUpdatetemplateCall {
-	c := &PoolsUpdatetemplateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.projectName = projectName
-	c.zone = zone
-	c.poolName = poolName
-	c.template = template
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *PoolsUpdatetemplateCall) Fields(s ...googleapi.Field) *PoolsUpdatetemplateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *PoolsService) Updatetemplate(projectName string, zone string, poolName string, template *Template) *PoolsUpdatetemplateCall {
+	return &PoolsUpdatetemplateCall{
+		s:             r.s,
+		projectName:   projectName,
+		zone:          zone,
+		poolName:      poolName,
+		template:      template,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{projectName}/zones/{zone}/pools/{poolName}/updateTemplate",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *PoolsUpdatetemplateCall) Context(ctx context.Context) *PoolsUpdatetemplateCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *PoolsUpdatetemplateCall) Do() error {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.template)
-	if err != nil {
-		return err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{projectName}/zones/{zone}/pools/{poolName}/updateTemplate")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"projectName": c.projectName,
 		"zone":        c.zone,
 		"poolName":    c.poolName,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.template,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Update the template used by the pool.",
 	//   "httpMethod": "POST",
@@ -1153,17 +1099,30 @@ type ReplicasDeleteCall struct {
 	poolName              string
 	replicaName           string
 	replicasdeleterequest *ReplicasDeleteRequest
-	opt_                  map[string]interface{}
+	caller_               googleapi.Caller
+	params_               url.Values
+	pathTemplate_         string
+	context_              context.Context
 }
 
 // Delete: Deletes a replica from the pool.
+
 func (r *ReplicasService) Delete(projectName string, zone string, poolName string, replicaName string, replicasdeleterequest *ReplicasDeleteRequest) *ReplicasDeleteCall {
-	c := &ReplicasDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.projectName = projectName
-	c.zone = zone
-	c.poolName = poolName
-	c.replicaName = replicaName
-	c.replicasdeleterequest = replicasdeleterequest
+	return &ReplicasDeleteCall{
+		s:                     r.s,
+		projectName:           projectName,
+		zone:                  zone,
+		poolName:              poolName,
+		replicaName:           replicaName,
+		replicasdeleterequest: replicasdeleterequest,
+		caller_:               googleapi.JSONCall{},
+		params_:               make(map[string][]string),
+		pathTemplate_:         "{projectName}/zones/{zone}/pools/{poolName}/replicas/{replicaName}",
+		context_:              googleapi.NoContext,
+	}
+}
+func (c *ReplicasDeleteCall) Context(ctx context.Context) *ReplicasDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1171,46 +1130,27 @@ func (r *ReplicasService) Delete(projectName string, zone string, poolName strin
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ReplicasDeleteCall) Fields(s ...googleapi.Field) *ReplicasDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ReplicasDeleteCall) Do() (*Replica, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.replicasdeleterequest)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{projectName}/zones/{zone}/pools/{poolName}/replicas/{replicaName}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Replica
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"projectName": c.projectName,
 		"zone":        c.zone,
 		"poolName":    c.poolName,
 		"replicaName": c.replicaName,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.replicasdeleterequest,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Replica
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Deletes a replica from the pool.",
 	//   "httpMethod": "POST",
@@ -1266,21 +1206,34 @@ func (c *ReplicasDeleteCall) Do() (*Replica, error) {
 // method id "replicapool.replicas.get":
 
 type ReplicasGetCall struct {
-	s           *Service
-	projectName string
-	zone        string
-	poolName    string
-	replicaName string
-	opt_        map[string]interface{}
+	s             *Service
+	projectName   string
+	zone          string
+	poolName      string
+	replicaName   string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Gets information about a specific replica.
+
 func (r *ReplicasService) Get(projectName string, zone string, poolName string, replicaName string) *ReplicasGetCall {
-	c := &ReplicasGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.projectName = projectName
-	c.zone = zone
-	c.poolName = poolName
-	c.replicaName = replicaName
+	return &ReplicasGetCall{
+		s:             r.s,
+		projectName:   projectName,
+		zone:          zone,
+		poolName:      poolName,
+		replicaName:   replicaName,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{projectName}/zones/{zone}/pools/{poolName}/replicas/{replicaName}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *ReplicasGetCall) Context(ctx context.Context) *ReplicasGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1288,40 +1241,26 @@ func (r *ReplicasService) Get(projectName string, zone string, poolName string, 
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ReplicasGetCall) Fields(s ...googleapi.Field) *ReplicasGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ReplicasGetCall) Do() (*Replica, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{projectName}/zones/{zone}/pools/{poolName}/replicas/{replicaName}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Replica
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"projectName": c.projectName,
 		"zone":        c.zone,
 		"poolName":    c.poolName,
 		"replicaName": c.replicaName,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Replica
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Gets information about a specific replica.",
 	//   "httpMethod": "GET",
@@ -1376,27 +1315,36 @@ func (c *ReplicasGetCall) Do() (*Replica, error) {
 // method id "replicapool.replicas.list":
 
 type ReplicasListCall struct {
-	s           *Service
-	projectName string
-	zone        string
-	poolName    string
-	opt_        map[string]interface{}
+	s             *Service
+	projectName   string
+	zone          string
+	poolName      string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Lists all replicas in a pool.
+
 func (r *ReplicasService) List(projectName string, zone string, poolName string) *ReplicasListCall {
-	c := &ReplicasListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.projectName = projectName
-	c.zone = zone
-	c.poolName = poolName
-	return c
+	return &ReplicasListCall{
+		s:             r.s,
+		projectName:   projectName,
+		zone:          zone,
+		poolName:      poolName,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{projectName}/zones/{zone}/pools/{poolName}/replicas",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // MaxResults sets the optional parameter "maxResults": Maximum count of
 // results to be returned. Acceptable values are 0 to 100, inclusive.
 // (Default: 50)
 func (c *ReplicasListCall) MaxResults(maxResults int64) *ReplicasListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
@@ -1404,7 +1352,11 @@ func (c *ReplicasListCall) MaxResults(maxResults int64) *ReplicasListCall {
 // nextPageToken value returned by a previous list request to obtain the
 // next page of results from the previous list request.
 func (c *ReplicasListCall) PageToken(pageToken string) *ReplicasListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
+	return c
+}
+func (c *ReplicasListCall) Context(ctx context.Context) *ReplicasListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1412,45 +1364,25 @@ func (c *ReplicasListCall) PageToken(pageToken string) *ReplicasListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ReplicasListCall) Fields(s ...googleapi.Field) *ReplicasListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ReplicasListCall) Do() (*ReplicasListResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{projectName}/zones/{zone}/pools/{poolName}/replicas")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *ReplicasListResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"projectName": c.projectName,
 		"zone":        c.zone,
 		"poolName":    c.poolName,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ReplicasListResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Lists all replicas in a pool.",
 	//   "httpMethod": "GET",
@@ -1512,21 +1444,34 @@ func (c *ReplicasListCall) Do() (*ReplicasListResponse, error) {
 // method id "replicapool.replicas.restart":
 
 type ReplicasRestartCall struct {
-	s           *Service
-	projectName string
-	zone        string
-	poolName    string
-	replicaName string
-	opt_        map[string]interface{}
+	s             *Service
+	projectName   string
+	zone          string
+	poolName      string
+	replicaName   string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Restart: Restarts a replica in a pool.
+
 func (r *ReplicasService) Restart(projectName string, zone string, poolName string, replicaName string) *ReplicasRestartCall {
-	c := &ReplicasRestartCall{s: r.s, opt_: make(map[string]interface{})}
-	c.projectName = projectName
-	c.zone = zone
-	c.poolName = poolName
-	c.replicaName = replicaName
+	return &ReplicasRestartCall{
+		s:             r.s,
+		projectName:   projectName,
+		zone:          zone,
+		poolName:      poolName,
+		replicaName:   replicaName,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{projectName}/zones/{zone}/pools/{poolName}/replicas/{replicaName}/restart",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *ReplicasRestartCall) Context(ctx context.Context) *ReplicasRestartCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1534,40 +1479,26 @@ func (r *ReplicasService) Restart(projectName string, zone string, poolName stri
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ReplicasRestartCall) Fields(s ...googleapi.Field) *ReplicasRestartCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ReplicasRestartCall) Do() (*Replica, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{projectName}/zones/{zone}/pools/{poolName}/replicas/{replicaName}/restart")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Replica
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"projectName": c.projectName,
 		"zone":        c.zone,
 		"poolName":    c.poolName,
 		"replicaName": c.replicaName,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "POST",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Replica
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Restarts a replica in a pool.",
 	//   "httpMethod": "POST",

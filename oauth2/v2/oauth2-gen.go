@@ -4,18 +4,16 @@
 //
 // Usage example:
 //
-//   import "google.golang.org/api/oauth2/v2"
+//   import "github.com/jfcote87/api2/oauth2/v2"
 //   ...
 //   oauth2Service, err := oauth2.New(oauthHttpClient)
 package oauth2
 
 import (
-	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/jfcote87/api2/googleapi"
 	"golang.org/x/net/context"
-	"google.golang.org/api/googleapi"
 	"io"
 	"net/http"
 	"net/url"
@@ -25,10 +23,8 @@ import (
 
 // Always reference these packages, just in case the auto-generated code
 // below doesn't.
-var _ = bytes.NewBuffer
 var _ = strconv.Itoa
 var _ = fmt.Sprintf
-var _ = json.NewDecoder
 var _ = io.Copy
 var _ = url.Parse
 var _ = googleapi.Version
@@ -39,7 +35,8 @@ var _ = context.Background
 const apiId = "oauth2:v2"
 const apiName = "oauth2"
 const apiVersion = "v2"
-const basePath = "https://www.googleapis.com/"
+
+var baseURL *url.URL = &url.URL{Scheme: "https", Host: "www.googleapis.com", Path: "/"}
 
 // OAuth2 scopes used by this API.
 const (
@@ -60,24 +57,15 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
+	s := &Service{client: client}
 	s.Userinfo = NewUserinfoService(s)
 	return s, nil
 }
 
 type Service struct {
-	client    *http.Client
-	BasePath  string // API endpoint base URL
-	UserAgent string // optional additional User-Agent fragment
+	client *http.Client
 
 	Userinfo *UserinfoService
-}
-
-func (s *Service) userAgent() string {
-	if s.UserAgent == "" {
-		return googleapi.UserAgent
-	}
-	return googleapi.UserAgent + " " + s.UserAgent
 }
 
 func NewUserinfoService(s *Service) *UserinfoService {
@@ -155,6 +143,9 @@ type Tokeninfo struct {
 	// Scope: The space separated list of scopes granted to this token.
 	Scope string `json:"scope,omitempty"`
 
+	// Token_handle: The token handle associated with this token.
+	Token_handle string `json:"token_handle,omitempty"`
+
 	// User_id: The obfuscated user id.
 	User_id string `json:"user_id,omitempty"`
 
@@ -204,13 +195,26 @@ type Userinfoplus struct {
 // method id "oauth2.getCertForOpenIdConnect":
 
 type GetCertForOpenIdConnectCall struct {
-	s    *Service
-	opt_ map[string]interface{}
+	s             *Service
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // GetCertForOpenIdConnect:
+
 func (s *Service) GetCertForOpenIdConnect() *GetCertForOpenIdConnectCall {
-	c := &GetCertForOpenIdConnectCall{s: s, opt_: make(map[string]interface{})}
+	return &GetCertForOpenIdConnectCall{
+		s:             s,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "oauth2/v2/certs",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *GetCertForOpenIdConnectCall) Context(ctx context.Context) *GetCertForOpenIdConnectCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -218,35 +222,21 @@ func (s *Service) GetCertForOpenIdConnect() *GetCertForOpenIdConnectCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *GetCertForOpenIdConnectCall) Fields(s ...googleapi.Field) *GetCertForOpenIdConnectCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *GetCertForOpenIdConnectCall) Do() (*Jwk, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
+	var returnValue *Jwk
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "oauth2/v2/certs")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Jwk
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "httpMethod": "GET",
 	//   "id": "oauth2.getCertForOpenIdConnect",
@@ -261,25 +251,44 @@ func (c *GetCertForOpenIdConnectCall) Do() (*Jwk, error) {
 // method id "oauth2.tokeninfo":
 
 type TokeninfoCall struct {
-	s    *Service
-	opt_ map[string]interface{}
+	s             *Service
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Tokeninfo:
+
 func (s *Service) Tokeninfo() *TokeninfoCall {
-	c := &TokeninfoCall{s: s, opt_: make(map[string]interface{})}
-	return c
+	return &TokeninfoCall{
+		s:             s,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "oauth2/v2/tokeninfo",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Access_token sets the optional parameter "access_token":
 func (c *TokeninfoCall) Access_token(access_token string) *TokeninfoCall {
-	c.opt_["access_token"] = access_token
+	c.params_.Set("access_token", fmt.Sprintf("%v", access_token))
 	return c
 }
 
 // Id_token sets the optional parameter "id_token":
 func (c *TokeninfoCall) Id_token(id_token string) *TokeninfoCall {
-	c.opt_["id_token"] = id_token
+	c.params_.Set("id_token", fmt.Sprintf("%v", id_token))
+	return c
+}
+
+// Token_handle sets the optional parameter "token_handle":
+func (c *TokeninfoCall) Token_handle(token_handle string) *TokeninfoCall {
+	c.params_.Set("token_handle", fmt.Sprintf("%v", token_handle))
+	return c
+}
+func (c *TokeninfoCall) Context(ctx context.Context) *TokeninfoCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -287,41 +296,21 @@ func (c *TokeninfoCall) Id_token(id_token string) *TokeninfoCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *TokeninfoCall) Fields(s ...googleapi.Field) *TokeninfoCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *TokeninfoCall) Do() (*Tokeninfo, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["access_token"]; ok {
-		params.Set("access_token", fmt.Sprintf("%v", v))
+	var returnValue *Tokeninfo
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "POST",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	if v, ok := c.opt_["id_token"]; ok {
-		params.Set("id_token", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "oauth2/v2/tokeninfo")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Tokeninfo
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "httpMethod": "POST",
 	//   "id": "oauth2.tokeninfo",
@@ -331,6 +320,10 @@ func (c *TokeninfoCall) Do() (*Tokeninfo, error) {
 	//       "type": "string"
 	//     },
 	//     "id_token": {
+	//       "location": "query",
+	//       "type": "string"
+	//     },
+	//     "token_handle": {
 	//       "location": "query",
 	//       "type": "string"
 	//     }
@@ -346,13 +339,26 @@ func (c *TokeninfoCall) Do() (*Tokeninfo, error) {
 // method id "oauth2.userinfo.get":
 
 type UserinfoGetCall struct {
-	s    *Service
-	opt_ map[string]interface{}
+	s             *Service
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get:
+
 func (r *UserinfoService) Get() *UserinfoGetCall {
-	c := &UserinfoGetCall{s: r.s, opt_: make(map[string]interface{})}
+	return &UserinfoGetCall{
+		s:             r.s,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "oauth2/v2/userinfo",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *UserinfoGetCall) Context(ctx context.Context) *UserinfoGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -360,35 +366,21 @@ func (r *UserinfoService) Get() *UserinfoGetCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *UserinfoGetCall) Fields(s ...googleapi.Field) *UserinfoGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *UserinfoGetCall) Do() (*Userinfoplus, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
+	var returnValue *Userinfoplus
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "oauth2/v2/userinfo")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Userinfoplus
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "httpMethod": "GET",
 	//   "id": "oauth2.userinfo.get",
@@ -409,13 +401,26 @@ func (c *UserinfoGetCall) Do() (*Userinfoplus, error) {
 // method id "oauth2.userinfo.v2.me.get":
 
 type UserinfoV2MeGetCall struct {
-	s    *Service
-	opt_ map[string]interface{}
+	s             *Service
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get:
+
 func (r *UserinfoV2MeService) Get() *UserinfoV2MeGetCall {
-	c := &UserinfoV2MeGetCall{s: r.s, opt_: make(map[string]interface{})}
+	return &UserinfoV2MeGetCall{
+		s:             r.s,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userinfo/v2/me",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *UserinfoV2MeGetCall) Context(ctx context.Context) *UserinfoV2MeGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -423,35 +428,21 @@ func (r *UserinfoV2MeService) Get() *UserinfoV2MeGetCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *UserinfoV2MeGetCall) Fields(s ...googleapi.Field) *UserinfoV2MeGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *UserinfoV2MeGetCall) Do() (*Userinfoplus, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
+	var returnValue *Userinfoplus
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userinfo/v2/me")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Userinfoplus
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "httpMethod": "GET",
 	//   "id": "oauth2.userinfo.v2.me.get",

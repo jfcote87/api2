@@ -4,18 +4,16 @@
 //
 // Usage example:
 //
-//   import "google.golang.org/api/admin/directory_v1"
+//   import "github.com/jfcote87/api2/admin/directory_v1"
 //   ...
 //   adminService, err := admin.New(oauthHttpClient)
 package admin
 
 import (
-	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/jfcote87/api2/googleapi"
 	"golang.org/x/net/context"
-	"google.golang.org/api/googleapi"
 	"io"
 	"net/http"
 	"net/url"
@@ -25,10 +23,8 @@ import (
 
 // Always reference these packages, just in case the auto-generated code
 // below doesn't.
-var _ = bytes.NewBuffer
 var _ = strconv.Itoa
 var _ = fmt.Sprintf
-var _ = json.NewDecoder
 var _ = io.Copy
 var _ = url.Parse
 var _ = googleapi.Version
@@ -39,7 +35,8 @@ var _ = context.Background
 const apiId = "admin:directory_v1"
 const apiName = "admin"
 const apiVersion = "directory_v1"
-const basePath = "https://www.googleapis.com/admin/directory/v1/"
+
+var baseURL *url.URL = &url.URL{Scheme: "https", Host: "www.googleapis.com", Path: "/admin/directory/v1/"}
 
 // OAuth2 scopes used by this API.
 const (
@@ -105,7 +102,7 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
+	s := &Service{client: client}
 	s.Asps = NewAspsService(s)
 	s.Channels = NewChannelsService(s)
 	s.Chromeosdevices = NewChromeosdevicesService(s)
@@ -122,9 +119,7 @@ func New(client *http.Client) (*Service, error) {
 }
 
 type Service struct {
-	client    *http.Client
-	BasePath  string // API endpoint base URL
-	UserAgent string // optional additional User-Agent fragment
+	client *http.Client
 
 	Asps *AspsService
 
@@ -149,13 +144,6 @@ type Service struct {
 	Users *UsersService
 
 	VerificationCodes *VerificationCodesService
-}
-
-func (s *Service) userAgent() string {
-	if s.UserAgent == "" {
-		return googleapi.UserAgent
-	}
-	return googleapi.UserAgent + " " + s.UserAgent
 }
 
 func NewAspsService(s *Service) *AspsService {
@@ -413,6 +401,10 @@ type Channel struct {
 type ChromeOsDevice struct {
 	// ActiveTimeRanges: List of active time ranges (Read-only)
 	ActiveTimeRanges []*ChromeOsDeviceActiveTimeRanges `json:"activeTimeRanges,omitempty"`
+
+	// AnnotatedAssetId: AssetId specified during enrollment or through
+	// later annotation
+	AnnotatedAssetId string `json:"annotatedAssetId,omitempty"`
 
 	// AnnotatedLocation: Address or location of the device as noted by the
 	// administrator
@@ -790,8 +782,14 @@ type OrgUnit struct {
 	// Name: Name of OrgUnit
 	Name string `json:"name,omitempty"`
 
+	// OrgUnitId: Id of OrgUnit
+	OrgUnitId string `json:"orgUnitId,omitempty"`
+
 	// OrgUnitPath: Path of OrgUnit
 	OrgUnitPath string `json:"orgUnitPath,omitempty"`
+
+	// ParentOrgUnitId: Id of parent OrgUnit
+	ParentOrgUnitId string `json:"parentOrgUnitId,omitempty"`
 
 	// ParentOrgUnitPath: Path of parent OrgUnit
 	ParentOrgUnitPath string `json:"parentOrgUnitPath,omitempty"`
@@ -1326,52 +1324,45 @@ type VerificationCodes struct {
 // method id "directory.asps.delete":
 
 type AspsDeleteCall struct {
-	s       *Service
-	userKey string
-	codeId  int64
-	opt_    map[string]interface{}
+	s             *Service
+	userKey       string
+	codeId        int64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Delete: Delete an ASP issued by a user.
-func (r *AspsService) Delete(userKey string, codeId int64) *AspsDeleteCall {
-	c := &AspsDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.userKey = userKey
-	c.codeId = codeId
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *AspsDeleteCall) Fields(s ...googleapi.Field) *AspsDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *AspsService) Delete(userKey string, codeId int64) *AspsDeleteCall {
+	return &AspsDeleteCall{
+		s:             r.s,
+		userKey:       userKey,
+		codeId:        codeId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "users/{userKey}/asps/{codeId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *AspsDeleteCall) Context(ctx context.Context) *AspsDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *AspsDeleteCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "users/{userKey}/asps/{codeId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"userKey": c.userKey,
 		"codeId":  strconv.FormatInt(c.codeId, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Delete an ASP issued by a user.",
 	//   "httpMethod": "DELETE",
@@ -1406,17 +1397,30 @@ func (c *AspsDeleteCall) Do() error {
 // method id "directory.asps.get":
 
 type AspsGetCall struct {
-	s       *Service
-	userKey string
-	codeId  int64
-	opt_    map[string]interface{}
+	s             *Service
+	userKey       string
+	codeId        int64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Get information about an ASP issued by a user.
+
 func (r *AspsService) Get(userKey string, codeId int64) *AspsGetCall {
-	c := &AspsGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.userKey = userKey
-	c.codeId = codeId
+	return &AspsGetCall{
+		s:             r.s,
+		userKey:       userKey,
+		codeId:        codeId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "users/{userKey}/asps/{codeId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *AspsGetCall) Context(ctx context.Context) *AspsGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1424,38 +1428,24 @@ func (r *AspsService) Get(userKey string, codeId int64) *AspsGetCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AspsGetCall) Fields(s ...googleapi.Field) *AspsGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AspsGetCall) Do() (*Asp, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "users/{userKey}/asps/{codeId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Asp
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"userKey": c.userKey,
 		"codeId":  strconv.FormatInt(c.codeId, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Asp
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Get information about an ASP issued by a user.",
 	//   "httpMethod": "GET",
@@ -1493,15 +1483,28 @@ func (c *AspsGetCall) Do() (*Asp, error) {
 // method id "directory.asps.list":
 
 type AspsListCall struct {
-	s       *Service
-	userKey string
-	opt_    map[string]interface{}
+	s             *Service
+	userKey       string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: List the ASPs issued by a user.
+
 func (r *AspsService) List(userKey string) *AspsListCall {
-	c := &AspsListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.userKey = userKey
+	return &AspsListCall{
+		s:             r.s,
+		userKey:       userKey,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "users/{userKey}/asps",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *AspsListCall) Context(ctx context.Context) *AspsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1509,37 +1512,23 @@ func (r *AspsService) List(userKey string) *AspsListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AspsListCall) Fields(s ...googleapi.Field) *AspsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AspsListCall) Do() (*Asps, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "users/{userKey}/asps")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Asps
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"userKey": c.userKey,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Asps
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "List the ASPs issued by a user.",
 	//   "httpMethod": "GET",
@@ -1569,53 +1558,41 @@ func (c *AspsListCall) Do() (*Asps, error) {
 // method id "admin.channels.stop":
 
 type ChannelsStopCall struct {
-	s       *Service
-	channel *Channel
-	opt_    map[string]interface{}
+	s             *Service
+	channel       *Channel
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Stop: Stop watching resources through this channel
-func (r *ChannelsService) Stop(channel *Channel) *ChannelsStopCall {
-	c := &ChannelsStopCall{s: r.s, opt_: make(map[string]interface{})}
-	c.channel = channel
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *ChannelsStopCall) Fields(s ...googleapi.Field) *ChannelsStopCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *ChannelsService) Stop(channel *Channel) *ChannelsStopCall {
+	return &ChannelsStopCall{
+		s:             r.s,
+		channel:       channel,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "/admin/directory_v1/channels/stop",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *ChannelsStopCall) Context(ctx context.Context) *ChannelsStopCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *ChannelsStopCall) Do() error {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.channel)
-	if err != nil {
-		return err
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.channel,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "/admin/directory_v1/channels/stop")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Stop watching resources through this channel",
 	//   "httpMethod": "POST",
@@ -1638,24 +1615,37 @@ func (c *ChannelsStopCall) Do() error {
 // method id "directory.chromeosdevices.get":
 
 type ChromeosdevicesGetCall struct {
-	s          *Service
-	customerId string
-	deviceId   string
-	opt_       map[string]interface{}
+	s             *Service
+	customerId    string
+	deviceId      string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Retrieve Chrome OS Device
+
 func (r *ChromeosdevicesService) Get(customerId string, deviceId string) *ChromeosdevicesGetCall {
-	c := &ChromeosdevicesGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.customerId = customerId
-	c.deviceId = deviceId
-	return c
+	return &ChromeosdevicesGetCall{
+		s:             r.s,
+		customerId:    customerId,
+		deviceId:      deviceId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "customer/{customerId}/devices/chromeos/{deviceId}",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Projection sets the optional parameter "projection": Restrict
 // information returned to a set of selected fields.
 func (c *ChromeosdevicesGetCall) Projection(projection string) *ChromeosdevicesGetCall {
-	c.opt_["projection"] = projection
+	c.params_.Set("projection", fmt.Sprintf("%v", projection))
+	return c
+}
+func (c *ChromeosdevicesGetCall) Context(ctx context.Context) *ChromeosdevicesGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1663,41 +1653,24 @@ func (c *ChromeosdevicesGetCall) Projection(projection string) *ChromeosdevicesG
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ChromeosdevicesGetCall) Fields(s ...googleapi.Field) *ChromeosdevicesGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ChromeosdevicesGetCall) Do() (*ChromeOsDevice, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["projection"]; ok {
-		params.Set("projection", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "customer/{customerId}/devices/chromeos/{deviceId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *ChromeOsDevice
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"customerId": c.customerId,
 		"deviceId":   c.deviceId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ChromeOsDevice
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieve Chrome OS Device",
 	//   "httpMethod": "GET",
@@ -1748,43 +1721,52 @@ func (c *ChromeosdevicesGetCall) Do() (*ChromeOsDevice, error) {
 // method id "directory.chromeosdevices.list":
 
 type ChromeosdevicesListCall struct {
-	s          *Service
-	customerId string
-	opt_       map[string]interface{}
+	s             *Service
+	customerId    string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Retrieve all Chrome OS Devices of a customer (paginated)
+
 func (r *ChromeosdevicesService) List(customerId string) *ChromeosdevicesListCall {
-	c := &ChromeosdevicesListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.customerId = customerId
-	return c
+	return &ChromeosdevicesListCall{
+		s:             r.s,
+		customerId:    customerId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "customer/{customerId}/devices/chromeos",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // MaxResults sets the optional parameter "maxResults": Maximum number
 // of results to return. Default is 100
 func (c *ChromeosdevicesListCall) MaxResults(maxResults int64) *ChromeosdevicesListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
 // OrderBy sets the optional parameter "orderBy": Column to use for
 // sorting results
 func (c *ChromeosdevicesListCall) OrderBy(orderBy string) *ChromeosdevicesListCall {
-	c.opt_["orderBy"] = orderBy
+	c.params_.Set("orderBy", fmt.Sprintf("%v", orderBy))
 	return c
 }
 
 // PageToken sets the optional parameter "pageToken": Token to specify
 // next page in the list
 func (c *ChromeosdevicesListCall) PageToken(pageToken string) *ChromeosdevicesListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
 	return c
 }
 
 // Projection sets the optional parameter "projection": Restrict
 // information returned to a set of selected fields.
 func (c *ChromeosdevicesListCall) Projection(projection string) *ChromeosdevicesListCall {
-	c.opt_["projection"] = projection
+	c.params_.Set("projection", fmt.Sprintf("%v", projection))
 	return c
 }
 
@@ -1793,7 +1775,7 @@ func (c *ChromeosdevicesListCall) Projection(projection string) *Chromeosdevices
 // http://support.google.com/chromeos/a/bin/answer.py?hl=en&answer=169833
 // 3
 func (c *ChromeosdevicesListCall) Query(query string) *ChromeosdevicesListCall {
-	c.opt_["query"] = query
+	c.params_.Set("query", fmt.Sprintf("%v", query))
 	return c
 }
 
@@ -1801,7 +1783,11 @@ func (c *ChromeosdevicesListCall) Query(query string) *ChromeosdevicesListCall {
 // results in ascending or descending order. Only of use when orderBy is
 // also used
 func (c *ChromeosdevicesListCall) SortOrder(sortOrder string) *ChromeosdevicesListCall {
-	c.opt_["sortOrder"] = sortOrder
+	c.params_.Set("sortOrder", fmt.Sprintf("%v", sortOrder))
+	return c
+}
+func (c *ChromeosdevicesListCall) Context(ctx context.Context) *ChromeosdevicesListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1809,55 +1795,23 @@ func (c *ChromeosdevicesListCall) SortOrder(sortOrder string) *ChromeosdevicesLi
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ChromeosdevicesListCall) Fields(s ...googleapi.Field) *ChromeosdevicesListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ChromeosdevicesListCall) Do() (*ChromeOsDevices, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["orderBy"]; ok {
-		params.Set("orderBy", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["projection"]; ok {
-		params.Set("projection", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["query"]; ok {
-		params.Set("query", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["sortOrder"]; ok {
-		params.Set("sortOrder", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "customer/{customerId}/devices/chromeos")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *ChromeOsDevices
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"customerId": c.customerId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ChromeOsDevices
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieve all Chrome OS Devices of a customer (paginated)",
 	//   "httpMethod": "GET",
@@ -1958,22 +1912,35 @@ type ChromeosdevicesPatchCall struct {
 	customerId     string
 	deviceId       string
 	chromeosdevice *ChromeOsDevice
-	opt_           map[string]interface{}
+	caller_        googleapi.Caller
+	params_        url.Values
+	pathTemplate_  string
+	context_       context.Context
 }
 
 // Patch: Update Chrome OS Device. This method supports patch semantics.
+
 func (r *ChromeosdevicesService) Patch(customerId string, deviceId string, chromeosdevice *ChromeOsDevice) *ChromeosdevicesPatchCall {
-	c := &ChromeosdevicesPatchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.customerId = customerId
-	c.deviceId = deviceId
-	c.chromeosdevice = chromeosdevice
-	return c
+	return &ChromeosdevicesPatchCall{
+		s:              r.s,
+		customerId:     customerId,
+		deviceId:       deviceId,
+		chromeosdevice: chromeosdevice,
+		caller_:        googleapi.JSONCall{},
+		params_:        make(map[string][]string),
+		pathTemplate_:  "customer/{customerId}/devices/chromeos/{deviceId}",
+		context_:       googleapi.NoContext,
+	}
 }
 
 // Projection sets the optional parameter "projection": Restrict
 // information returned to a set of selected fields.
 func (c *ChromeosdevicesPatchCall) Projection(projection string) *ChromeosdevicesPatchCall {
-	c.opt_["projection"] = projection
+	c.params_.Set("projection", fmt.Sprintf("%v", projection))
+	return c
+}
+func (c *ChromeosdevicesPatchCall) Context(ctx context.Context) *ChromeosdevicesPatchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1981,47 +1948,25 @@ func (c *ChromeosdevicesPatchCall) Projection(projection string) *Chromeosdevice
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ChromeosdevicesPatchCall) Fields(s ...googleapi.Field) *ChromeosdevicesPatchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ChromeosdevicesPatchCall) Do() (*ChromeOsDevice, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.chromeosdevice)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["projection"]; ok {
-		params.Set("projection", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "customer/{customerId}/devices/chromeos/{deviceId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PATCH", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *ChromeOsDevice
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"customerId": c.customerId,
 		"deviceId":   c.deviceId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PATCH",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.chromeosdevice,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ChromeOsDevice
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Update Chrome OS Device. This method supports patch semantics.",
 	//   "httpMethod": "PATCH",
@@ -2078,22 +2023,35 @@ type ChromeosdevicesUpdateCall struct {
 	customerId     string
 	deviceId       string
 	chromeosdevice *ChromeOsDevice
-	opt_           map[string]interface{}
+	caller_        googleapi.Caller
+	params_        url.Values
+	pathTemplate_  string
+	context_       context.Context
 }
 
 // Update: Update Chrome OS Device
+
 func (r *ChromeosdevicesService) Update(customerId string, deviceId string, chromeosdevice *ChromeOsDevice) *ChromeosdevicesUpdateCall {
-	c := &ChromeosdevicesUpdateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.customerId = customerId
-	c.deviceId = deviceId
-	c.chromeosdevice = chromeosdevice
-	return c
+	return &ChromeosdevicesUpdateCall{
+		s:              r.s,
+		customerId:     customerId,
+		deviceId:       deviceId,
+		chromeosdevice: chromeosdevice,
+		caller_:        googleapi.JSONCall{},
+		params_:        make(map[string][]string),
+		pathTemplate_:  "customer/{customerId}/devices/chromeos/{deviceId}",
+		context_:       googleapi.NoContext,
+	}
 }
 
 // Projection sets the optional parameter "projection": Restrict
 // information returned to a set of selected fields.
 func (c *ChromeosdevicesUpdateCall) Projection(projection string) *ChromeosdevicesUpdateCall {
-	c.opt_["projection"] = projection
+	c.params_.Set("projection", fmt.Sprintf("%v", projection))
+	return c
+}
+func (c *ChromeosdevicesUpdateCall) Context(ctx context.Context) *ChromeosdevicesUpdateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2101,47 +2059,25 @@ func (c *ChromeosdevicesUpdateCall) Projection(projection string) *Chromeosdevic
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ChromeosdevicesUpdateCall) Fields(s ...googleapi.Field) *ChromeosdevicesUpdateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ChromeosdevicesUpdateCall) Do() (*ChromeOsDevice, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.chromeosdevice)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["projection"]; ok {
-		params.Set("projection", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "customer/{customerId}/devices/chromeos/{deviceId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *ChromeOsDevice
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"customerId": c.customerId,
 		"deviceId":   c.deviceId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.chromeosdevice,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ChromeOsDevice
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Update Chrome OS Device",
 	//   "httpMethod": "PUT",
@@ -2194,49 +2130,42 @@ func (c *ChromeosdevicesUpdateCall) Do() (*ChromeOsDevice, error) {
 // method id "directory.groups.delete":
 
 type GroupsDeleteCall struct {
-	s        *Service
-	groupKey string
-	opt_     map[string]interface{}
+	s             *Service
+	groupKey      string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Delete: Delete Group
-func (r *GroupsService) Delete(groupKey string) *GroupsDeleteCall {
-	c := &GroupsDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.groupKey = groupKey
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *GroupsDeleteCall) Fields(s ...googleapi.Field) *GroupsDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *GroupsService) Delete(groupKey string) *GroupsDeleteCall {
+	return &GroupsDeleteCall{
+		s:             r.s,
+		groupKey:      groupKey,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "groups/{groupKey}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *GroupsDeleteCall) Context(ctx context.Context) *GroupsDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *GroupsDeleteCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "groups/{groupKey}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"groupKey": c.groupKey,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Delete Group",
 	//   "httpMethod": "DELETE",
@@ -2263,15 +2192,28 @@ func (c *GroupsDeleteCall) Do() error {
 // method id "directory.groups.get":
 
 type GroupsGetCall struct {
-	s        *Service
-	groupKey string
-	opt_     map[string]interface{}
+	s             *Service
+	groupKey      string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Retrieve Group
+
 func (r *GroupsService) Get(groupKey string) *GroupsGetCall {
-	c := &GroupsGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.groupKey = groupKey
+	return &GroupsGetCall{
+		s:             r.s,
+		groupKey:      groupKey,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "groups/{groupKey}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *GroupsGetCall) Context(ctx context.Context) *GroupsGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2279,37 +2221,23 @@ func (r *GroupsService) Get(groupKey string) *GroupsGetCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *GroupsGetCall) Fields(s ...googleapi.Field) *GroupsGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *GroupsGetCall) Do() (*Group, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "groups/{groupKey}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Group
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"groupKey": c.groupKey,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Group
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieve Group",
 	//   "httpMethod": "GET",
@@ -2340,15 +2268,28 @@ func (c *GroupsGetCall) Do() (*Group, error) {
 // method id "directory.groups.insert":
 
 type GroupsInsertCall struct {
-	s     *Service
-	group *Group
-	opt_  map[string]interface{}
+	s             *Service
+	group         *Group
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Insert: Create Group
+
 func (r *GroupsService) Insert(group *Group) *GroupsInsertCall {
-	c := &GroupsInsertCall{s: r.s, opt_: make(map[string]interface{})}
-	c.group = group
+	return &GroupsInsertCall{
+		s:             r.s,
+		group:         group,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "groups",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *GroupsInsertCall) Context(ctx context.Context) *GroupsInsertCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2356,41 +2297,22 @@ func (r *GroupsService) Insert(group *Group) *GroupsInsertCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *GroupsInsertCall) Fields(s ...googleapi.Field) *GroupsInsertCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *GroupsInsertCall) Do() (*Group, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.group)
-	if err != nil {
-		return nil, err
+	var returnValue *Group
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.group,
+		Result:  &returnValue,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "groups")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Group
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Create Group",
 	//   "httpMethod": "POST",
@@ -2412,21 +2334,30 @@ func (c *GroupsInsertCall) Do() (*Group, error) {
 // method id "directory.groups.list":
 
 type GroupsListCall struct {
-	s    *Service
-	opt_ map[string]interface{}
+	s             *Service
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Retrieve all groups in a domain (paginated)
+
 func (r *GroupsService) List() *GroupsListCall {
-	c := &GroupsListCall{s: r.s, opt_: make(map[string]interface{})}
-	return c
+	return &GroupsListCall{
+		s:             r.s,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "groups",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Customer sets the optional parameter "customer": Immutable id of the
 // Google Apps account. In case of multi-domain, to fetch all groups for
 // a customer, fill this field instead of domain.
 func (c *GroupsListCall) Customer(customer string) *GroupsListCall {
-	c.opt_["customer"] = customer
+	c.params_.Set("customer", fmt.Sprintf("%v", customer))
 	return c
 }
 
@@ -2434,21 +2365,21 @@ func (c *GroupsListCall) Customer(customer string) *GroupsListCall {
 // this field to get groups from only this domain. To return all groups
 // in a multi-domain fill customer field instead.
 func (c *GroupsListCall) Domain(domain string) *GroupsListCall {
-	c.opt_["domain"] = domain
+	c.params_.Set("domain", fmt.Sprintf("%v", domain))
 	return c
 }
 
 // MaxResults sets the optional parameter "maxResults": Maximum number
 // of results to return. Default is 200
 func (c *GroupsListCall) MaxResults(maxResults int64) *GroupsListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
 // PageToken sets the optional parameter "pageToken": Token to specify
 // next page in the list
 func (c *GroupsListCall) PageToken(pageToken string) *GroupsListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
 	return c
 }
 
@@ -2456,7 +2387,11 @@ func (c *GroupsListCall) PageToken(pageToken string) *GroupsListCall {
 // of the user if only those groups are to be listed, the given user is
 // a member of. If Id, it should match with id of user object
 func (c *GroupsListCall) UserKey(userKey string) *GroupsListCall {
-	c.opt_["userKey"] = userKey
+	c.params_.Set("userKey", fmt.Sprintf("%v", userKey))
+	return c
+}
+func (c *GroupsListCall) Context(ctx context.Context) *GroupsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2464,50 +2399,21 @@ func (c *GroupsListCall) UserKey(userKey string) *GroupsListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *GroupsListCall) Fields(s ...googleapi.Field) *GroupsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *GroupsListCall) Do() (*Groups, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["customer"]; ok {
-		params.Set("customer", fmt.Sprintf("%v", v))
+	var returnValue *Groups
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	if v, ok := c.opt_["domain"]; ok {
-		params.Set("domain", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["userKey"]; ok {
-		params.Set("userKey", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "groups")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Groups
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieve all groups in a domain (paginated)",
 	//   "httpMethod": "GET",
@@ -2556,17 +2462,30 @@ func (c *GroupsListCall) Do() (*Groups, error) {
 // method id "directory.groups.patch":
 
 type GroupsPatchCall struct {
-	s        *Service
-	groupKey string
-	group    *Group
-	opt_     map[string]interface{}
+	s             *Service
+	groupKey      string
+	group         *Group
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Patch: Update Group. This method supports patch semantics.
+
 func (r *GroupsService) Patch(groupKey string, group *Group) *GroupsPatchCall {
-	c := &GroupsPatchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.groupKey = groupKey
-	c.group = group
+	return &GroupsPatchCall{
+		s:             r.s,
+		groupKey:      groupKey,
+		group:         group,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "groups/{groupKey}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *GroupsPatchCall) Context(ctx context.Context) *GroupsPatchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2574,43 +2493,24 @@ func (r *GroupsService) Patch(groupKey string, group *Group) *GroupsPatchCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *GroupsPatchCall) Fields(s ...googleapi.Field) *GroupsPatchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *GroupsPatchCall) Do() (*Group, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.group)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "groups/{groupKey}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PATCH", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Group
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"groupKey": c.groupKey,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PATCH",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.group,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Group
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Update Group. This method supports patch semantics.",
 	//   "httpMethod": "PATCH",
@@ -2643,17 +2543,30 @@ func (c *GroupsPatchCall) Do() (*Group, error) {
 // method id "directory.groups.update":
 
 type GroupsUpdateCall struct {
-	s        *Service
-	groupKey string
-	group    *Group
-	opt_     map[string]interface{}
+	s             *Service
+	groupKey      string
+	group         *Group
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Update: Update Group
+
 func (r *GroupsService) Update(groupKey string, group *Group) *GroupsUpdateCall {
-	c := &GroupsUpdateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.groupKey = groupKey
-	c.group = group
+	return &GroupsUpdateCall{
+		s:             r.s,
+		groupKey:      groupKey,
+		group:         group,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "groups/{groupKey}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *GroupsUpdateCall) Context(ctx context.Context) *GroupsUpdateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2661,43 +2574,24 @@ func (r *GroupsService) Update(groupKey string, group *Group) *GroupsUpdateCall 
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *GroupsUpdateCall) Fields(s ...googleapi.Field) *GroupsUpdateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *GroupsUpdateCall) Do() (*Group, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.group)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "groups/{groupKey}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Group
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"groupKey": c.groupKey,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.group,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Group
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Update Group",
 	//   "httpMethod": "PUT",
@@ -2730,52 +2624,45 @@ func (c *GroupsUpdateCall) Do() (*Group, error) {
 // method id "directory.groups.aliases.delete":
 
 type GroupsAliasesDeleteCall struct {
-	s        *Service
-	groupKey string
-	alias    string
-	opt_     map[string]interface{}
+	s             *Service
+	groupKey      string
+	alias         string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Delete: Remove a alias for the group
-func (r *GroupsAliasesService) Delete(groupKey string, alias string) *GroupsAliasesDeleteCall {
-	c := &GroupsAliasesDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.groupKey = groupKey
-	c.alias = alias
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *GroupsAliasesDeleteCall) Fields(s ...googleapi.Field) *GroupsAliasesDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *GroupsAliasesService) Delete(groupKey string, alias string) *GroupsAliasesDeleteCall {
+	return &GroupsAliasesDeleteCall{
+		s:             r.s,
+		groupKey:      groupKey,
+		alias:         alias,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "groups/{groupKey}/aliases/{alias}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *GroupsAliasesDeleteCall) Context(ctx context.Context) *GroupsAliasesDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *GroupsAliasesDeleteCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "groups/{groupKey}/aliases/{alias}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"groupKey": c.groupKey,
 		"alias":    c.alias,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Remove a alias for the group",
 	//   "httpMethod": "DELETE",
@@ -2809,17 +2696,30 @@ func (c *GroupsAliasesDeleteCall) Do() error {
 // method id "directory.groups.aliases.insert":
 
 type GroupsAliasesInsertCall struct {
-	s        *Service
-	groupKey string
-	alias    *Alias
-	opt_     map[string]interface{}
+	s             *Service
+	groupKey      string
+	alias         *Alias
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Insert: Add a alias for the group
+
 func (r *GroupsAliasesService) Insert(groupKey string, alias *Alias) *GroupsAliasesInsertCall {
-	c := &GroupsAliasesInsertCall{s: r.s, opt_: make(map[string]interface{})}
-	c.groupKey = groupKey
-	c.alias = alias
+	return &GroupsAliasesInsertCall{
+		s:             r.s,
+		groupKey:      groupKey,
+		alias:         alias,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "groups/{groupKey}/aliases",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *GroupsAliasesInsertCall) Context(ctx context.Context) *GroupsAliasesInsertCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2827,43 +2727,24 @@ func (r *GroupsAliasesService) Insert(groupKey string, alias *Alias) *GroupsAlia
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *GroupsAliasesInsertCall) Fields(s ...googleapi.Field) *GroupsAliasesInsertCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *GroupsAliasesInsertCall) Do() (*Alias, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.alias)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "groups/{groupKey}/aliases")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Alias
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"groupKey": c.groupKey,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.alias,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Alias
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Add a alias for the group",
 	//   "httpMethod": "POST",
@@ -2896,15 +2777,28 @@ func (c *GroupsAliasesInsertCall) Do() (*Alias, error) {
 // method id "directory.groups.aliases.list":
 
 type GroupsAliasesListCall struct {
-	s        *Service
-	groupKey string
-	opt_     map[string]interface{}
+	s             *Service
+	groupKey      string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: List all aliases for a group
+
 func (r *GroupsAliasesService) List(groupKey string) *GroupsAliasesListCall {
-	c := &GroupsAliasesListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.groupKey = groupKey
+	return &GroupsAliasesListCall{
+		s:             r.s,
+		groupKey:      groupKey,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "groups/{groupKey}/aliases",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *GroupsAliasesListCall) Context(ctx context.Context) *GroupsAliasesListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2912,37 +2806,23 @@ func (r *GroupsAliasesService) List(groupKey string) *GroupsAliasesListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *GroupsAliasesListCall) Fields(s ...googleapi.Field) *GroupsAliasesListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *GroupsAliasesListCall) Do() (*Aliases, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "groups/{groupKey}/aliases")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Aliases
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"groupKey": c.groupKey,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Aliases
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "List all aliases for a group",
 	//   "httpMethod": "GET",
@@ -2974,52 +2854,45 @@ func (c *GroupsAliasesListCall) Do() (*Aliases, error) {
 // method id "directory.members.delete":
 
 type MembersDeleteCall struct {
-	s         *Service
-	groupKey  string
-	memberKey string
-	opt_      map[string]interface{}
+	s             *Service
+	groupKey      string
+	memberKey     string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Delete: Remove membership.
-func (r *MembersService) Delete(groupKey string, memberKey string) *MembersDeleteCall {
-	c := &MembersDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.groupKey = groupKey
-	c.memberKey = memberKey
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *MembersDeleteCall) Fields(s ...googleapi.Field) *MembersDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *MembersService) Delete(groupKey string, memberKey string) *MembersDeleteCall {
+	return &MembersDeleteCall{
+		s:             r.s,
+		groupKey:      groupKey,
+		memberKey:     memberKey,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "groups/{groupKey}/members/{memberKey}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *MembersDeleteCall) Context(ctx context.Context) *MembersDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *MembersDeleteCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "groups/{groupKey}/members/{memberKey}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"groupKey":  c.groupKey,
 		"memberKey": c.memberKey,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Remove membership.",
 	//   "httpMethod": "DELETE",
@@ -3054,17 +2927,30 @@ func (c *MembersDeleteCall) Do() error {
 // method id "directory.members.get":
 
 type MembersGetCall struct {
-	s         *Service
-	groupKey  string
-	memberKey string
-	opt_      map[string]interface{}
+	s             *Service
+	groupKey      string
+	memberKey     string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Retrieve Group Member
+
 func (r *MembersService) Get(groupKey string, memberKey string) *MembersGetCall {
-	c := &MembersGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.groupKey = groupKey
-	c.memberKey = memberKey
+	return &MembersGetCall{
+		s:             r.s,
+		groupKey:      groupKey,
+		memberKey:     memberKey,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "groups/{groupKey}/members/{memberKey}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *MembersGetCall) Context(ctx context.Context) *MembersGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -3072,38 +2958,24 @@ func (r *MembersService) Get(groupKey string, memberKey string) *MembersGetCall 
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *MembersGetCall) Fields(s ...googleapi.Field) *MembersGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *MembersGetCall) Do() (*Member, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "groups/{groupKey}/members/{memberKey}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Member
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"groupKey":  c.groupKey,
 		"memberKey": c.memberKey,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Member
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieve Group Member",
 	//   "httpMethod": "GET",
@@ -3143,17 +3015,30 @@ func (c *MembersGetCall) Do() (*Member, error) {
 // method id "directory.members.insert":
 
 type MembersInsertCall struct {
-	s        *Service
-	groupKey string
-	member   *Member
-	opt_     map[string]interface{}
+	s             *Service
+	groupKey      string
+	member        *Member
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Insert: Add user to the specified group.
+
 func (r *MembersService) Insert(groupKey string, member *Member) *MembersInsertCall {
-	c := &MembersInsertCall{s: r.s, opt_: make(map[string]interface{})}
-	c.groupKey = groupKey
-	c.member = member
+	return &MembersInsertCall{
+		s:             r.s,
+		groupKey:      groupKey,
+		member:        member,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "groups/{groupKey}/members",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *MembersInsertCall) Context(ctx context.Context) *MembersInsertCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -3161,43 +3046,24 @@ func (r *MembersService) Insert(groupKey string, member *Member) *MembersInsertC
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *MembersInsertCall) Fields(s ...googleapi.Field) *MembersInsertCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *MembersInsertCall) Do() (*Member, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.member)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "groups/{groupKey}/members")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Member
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"groupKey": c.groupKey,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.member,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Member
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Add user to the specified group.",
 	//   "httpMethod": "POST",
@@ -3231,36 +3097,49 @@ func (c *MembersInsertCall) Do() (*Member, error) {
 // method id "directory.members.list":
 
 type MembersListCall struct {
-	s        *Service
-	groupKey string
-	opt_     map[string]interface{}
+	s             *Service
+	groupKey      string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Retrieve all members in a group (paginated)
+
 func (r *MembersService) List(groupKey string) *MembersListCall {
-	c := &MembersListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.groupKey = groupKey
-	return c
+	return &MembersListCall{
+		s:             r.s,
+		groupKey:      groupKey,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "groups/{groupKey}/members",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // MaxResults sets the optional parameter "maxResults": Maximum number
 // of results to return. Default is 200
 func (c *MembersListCall) MaxResults(maxResults int64) *MembersListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
 // PageToken sets the optional parameter "pageToken": Token to specify
 // next page in the list
 func (c *MembersListCall) PageToken(pageToken string) *MembersListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
 	return c
 }
 
 // Roles sets the optional parameter "roles": Comma separated role
 // values to filter list results on.
 func (c *MembersListCall) Roles(roles string) *MembersListCall {
-	c.opt_["roles"] = roles
+	c.params_.Set("roles", fmt.Sprintf("%v", roles))
+	return c
+}
+func (c *MembersListCall) Context(ctx context.Context) *MembersListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -3268,46 +3147,23 @@ func (c *MembersListCall) Roles(roles string) *MembersListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *MembersListCall) Fields(s ...googleapi.Field) *MembersListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *MembersListCall) Do() (*Members, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["roles"]; ok {
-		params.Set("roles", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "groups/{groupKey}/members")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Members
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"groupKey": c.groupKey,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Members
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieve all members in a group (paginated)",
 	//   "httpMethod": "GET",
@@ -3357,20 +3213,33 @@ func (c *MembersListCall) Do() (*Members, error) {
 // method id "directory.members.patch":
 
 type MembersPatchCall struct {
-	s         *Service
-	groupKey  string
-	memberKey string
-	member    *Member
-	opt_      map[string]interface{}
+	s             *Service
+	groupKey      string
+	memberKey     string
+	member        *Member
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Patch: Update membership of a user in the specified group. This
 // method supports patch semantics.
+
 func (r *MembersService) Patch(groupKey string, memberKey string, member *Member) *MembersPatchCall {
-	c := &MembersPatchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.groupKey = groupKey
-	c.memberKey = memberKey
-	c.member = member
+	return &MembersPatchCall{
+		s:             r.s,
+		groupKey:      groupKey,
+		memberKey:     memberKey,
+		member:        member,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "groups/{groupKey}/members/{memberKey}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *MembersPatchCall) Context(ctx context.Context) *MembersPatchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -3378,44 +3247,25 @@ func (r *MembersService) Patch(groupKey string, memberKey string, member *Member
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *MembersPatchCall) Fields(s ...googleapi.Field) *MembersPatchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *MembersPatchCall) Do() (*Member, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.member)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "groups/{groupKey}/members/{memberKey}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PATCH", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Member
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"groupKey":  c.groupKey,
 		"memberKey": c.memberKey,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PATCH",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.member,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Member
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Update membership of a user in the specified group. This method supports patch semantics.",
 	//   "httpMethod": "PATCH",
@@ -3456,19 +3306,32 @@ func (c *MembersPatchCall) Do() (*Member, error) {
 // method id "directory.members.update":
 
 type MembersUpdateCall struct {
-	s         *Service
-	groupKey  string
-	memberKey string
-	member    *Member
-	opt_      map[string]interface{}
+	s             *Service
+	groupKey      string
+	memberKey     string
+	member        *Member
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Update: Update membership of a user in the specified group.
+
 func (r *MembersService) Update(groupKey string, memberKey string, member *Member) *MembersUpdateCall {
-	c := &MembersUpdateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.groupKey = groupKey
-	c.memberKey = memberKey
-	c.member = member
+	return &MembersUpdateCall{
+		s:             r.s,
+		groupKey:      groupKey,
+		memberKey:     memberKey,
+		member:        member,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "groups/{groupKey}/members/{memberKey}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *MembersUpdateCall) Context(ctx context.Context) *MembersUpdateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -3476,44 +3339,25 @@ func (r *MembersService) Update(groupKey string, memberKey string, member *Membe
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *MembersUpdateCall) Fields(s ...googleapi.Field) *MembersUpdateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *MembersUpdateCall) Do() (*Member, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.member)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "groups/{groupKey}/members/{memberKey}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Member
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"groupKey":  c.groupKey,
 		"memberKey": c.memberKey,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.member,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Member
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Update membership of a user in the specified group.",
 	//   "httpMethod": "PUT",
@@ -3558,56 +3402,44 @@ type MobiledevicesActionCall struct {
 	customerId         string
 	resourceId         string
 	mobiledeviceaction *MobileDeviceAction
-	opt_               map[string]interface{}
+	caller_            googleapi.Caller
+	params_            url.Values
+	pathTemplate_      string
+	context_           context.Context
 }
 
 // Action: Take action on Mobile Device
-func (r *MobiledevicesService) Action(customerId string, resourceId string, mobiledeviceaction *MobileDeviceAction) *MobiledevicesActionCall {
-	c := &MobiledevicesActionCall{s: r.s, opt_: make(map[string]interface{})}
-	c.customerId = customerId
-	c.resourceId = resourceId
-	c.mobiledeviceaction = mobiledeviceaction
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *MobiledevicesActionCall) Fields(s ...googleapi.Field) *MobiledevicesActionCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *MobiledevicesService) Action(customerId string, resourceId string, mobiledeviceaction *MobileDeviceAction) *MobiledevicesActionCall {
+	return &MobiledevicesActionCall{
+		s:                  r.s,
+		customerId:         customerId,
+		resourceId:         resourceId,
+		mobiledeviceaction: mobiledeviceaction,
+		caller_:            googleapi.JSONCall{},
+		params_:            make(map[string][]string),
+		pathTemplate_:      "customer/{customerId}/devices/mobile/{resourceId}/action",
+		context_:           googleapi.NoContext,
+	}
+}
+func (c *MobiledevicesActionCall) Context(ctx context.Context) *MobiledevicesActionCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *MobiledevicesActionCall) Do() error {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.mobiledeviceaction)
-	if err != nil {
-		return err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "customer/{customerId}/devices/mobile/{resourceId}/action")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"customerId": c.customerId,
 		"resourceId": c.resourceId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.mobiledeviceaction,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Take action on Mobile Device",
 	//   "httpMethod": "POST",
@@ -3645,52 +3477,45 @@ func (c *MobiledevicesActionCall) Do() error {
 // method id "directory.mobiledevices.delete":
 
 type MobiledevicesDeleteCall struct {
-	s          *Service
-	customerId string
-	resourceId string
-	opt_       map[string]interface{}
+	s             *Service
+	customerId    string
+	resourceId    string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Delete: Delete Mobile Device
-func (r *MobiledevicesService) Delete(customerId string, resourceId string) *MobiledevicesDeleteCall {
-	c := &MobiledevicesDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.customerId = customerId
-	c.resourceId = resourceId
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *MobiledevicesDeleteCall) Fields(s ...googleapi.Field) *MobiledevicesDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *MobiledevicesService) Delete(customerId string, resourceId string) *MobiledevicesDeleteCall {
+	return &MobiledevicesDeleteCall{
+		s:             r.s,
+		customerId:    customerId,
+		resourceId:    resourceId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "customer/{customerId}/devices/mobile/{resourceId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *MobiledevicesDeleteCall) Context(ctx context.Context) *MobiledevicesDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *MobiledevicesDeleteCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "customer/{customerId}/devices/mobile/{resourceId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"customerId": c.customerId,
 		"resourceId": c.resourceId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Delete Mobile Device",
 	//   "httpMethod": "DELETE",
@@ -3724,24 +3549,37 @@ func (c *MobiledevicesDeleteCall) Do() error {
 // method id "directory.mobiledevices.get":
 
 type MobiledevicesGetCall struct {
-	s          *Service
-	customerId string
-	resourceId string
-	opt_       map[string]interface{}
+	s             *Service
+	customerId    string
+	resourceId    string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Retrieve Mobile Device
+
 func (r *MobiledevicesService) Get(customerId string, resourceId string) *MobiledevicesGetCall {
-	c := &MobiledevicesGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.customerId = customerId
-	c.resourceId = resourceId
-	return c
+	return &MobiledevicesGetCall{
+		s:             r.s,
+		customerId:    customerId,
+		resourceId:    resourceId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "customer/{customerId}/devices/mobile/{resourceId}",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Projection sets the optional parameter "projection": Restrict
 // information returned to a set of selected fields.
 func (c *MobiledevicesGetCall) Projection(projection string) *MobiledevicesGetCall {
-	c.opt_["projection"] = projection
+	c.params_.Set("projection", fmt.Sprintf("%v", projection))
+	return c
+}
+func (c *MobiledevicesGetCall) Context(ctx context.Context) *MobiledevicesGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -3749,41 +3587,24 @@ func (c *MobiledevicesGetCall) Projection(projection string) *MobiledevicesGetCa
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *MobiledevicesGetCall) Fields(s ...googleapi.Field) *MobiledevicesGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *MobiledevicesGetCall) Do() (*MobileDevice, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["projection"]; ok {
-		params.Set("projection", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "customer/{customerId}/devices/mobile/{resourceId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *MobileDevice
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"customerId": c.customerId,
 		"resourceId": c.resourceId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *MobileDevice
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieve Mobile Device",
 	//   "httpMethod": "GET",
@@ -3835,43 +3656,52 @@ func (c *MobiledevicesGetCall) Do() (*MobileDevice, error) {
 // method id "directory.mobiledevices.list":
 
 type MobiledevicesListCall struct {
-	s          *Service
-	customerId string
-	opt_       map[string]interface{}
+	s             *Service
+	customerId    string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Retrieve all Mobile Devices of a customer (paginated)
+
 func (r *MobiledevicesService) List(customerId string) *MobiledevicesListCall {
-	c := &MobiledevicesListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.customerId = customerId
-	return c
+	return &MobiledevicesListCall{
+		s:             r.s,
+		customerId:    customerId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "customer/{customerId}/devices/mobile",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // MaxResults sets the optional parameter "maxResults": Maximum number
 // of results to return. Default is 100
 func (c *MobiledevicesListCall) MaxResults(maxResults int64) *MobiledevicesListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
 // OrderBy sets the optional parameter "orderBy": Column to use for
 // sorting results
 func (c *MobiledevicesListCall) OrderBy(orderBy string) *MobiledevicesListCall {
-	c.opt_["orderBy"] = orderBy
+	c.params_.Set("orderBy", fmt.Sprintf("%v", orderBy))
 	return c
 }
 
 // PageToken sets the optional parameter "pageToken": Token to specify
 // next page in the list
 func (c *MobiledevicesListCall) PageToken(pageToken string) *MobiledevicesListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
 	return c
 }
 
 // Projection sets the optional parameter "projection": Restrict
 // information returned to a set of selected fields.
 func (c *MobiledevicesListCall) Projection(projection string) *MobiledevicesListCall {
-	c.opt_["projection"] = projection
+	c.params_.Set("projection", fmt.Sprintf("%v", projection))
 	return c
 }
 
@@ -3879,7 +3709,7 @@ func (c *MobiledevicesListCall) Projection(projection string) *MobiledevicesList
 // format given at
 // http://support.google.com/a/bin/answer.py?hl=en&answer=1408863#search
 func (c *MobiledevicesListCall) Query(query string) *MobiledevicesListCall {
-	c.opt_["query"] = query
+	c.params_.Set("query", fmt.Sprintf("%v", query))
 	return c
 }
 
@@ -3887,7 +3717,11 @@ func (c *MobiledevicesListCall) Query(query string) *MobiledevicesListCall {
 // results in ascending or descending order. Only of use when orderBy is
 // also used
 func (c *MobiledevicesListCall) SortOrder(sortOrder string) *MobiledevicesListCall {
-	c.opt_["sortOrder"] = sortOrder
+	c.params_.Set("sortOrder", fmt.Sprintf("%v", sortOrder))
+	return c
+}
+func (c *MobiledevicesListCall) Context(ctx context.Context) *MobiledevicesListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -3895,55 +3729,23 @@ func (c *MobiledevicesListCall) SortOrder(sortOrder string) *MobiledevicesListCa
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *MobiledevicesListCall) Fields(s ...googleapi.Field) *MobiledevicesListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *MobiledevicesListCall) Do() (*MobileDevices, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["orderBy"]; ok {
-		params.Set("orderBy", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["projection"]; ok {
-		params.Set("projection", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["query"]; ok {
-		params.Set("query", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["sortOrder"]; ok {
-		params.Set("sortOrder", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "customer/{customerId}/devices/mobile")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *MobileDevices
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"customerId": c.customerId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *MobileDevices
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieve all Mobile Devices of a customer (paginated)",
 	//   "httpMethod": "GET",
@@ -4046,49 +3848,42 @@ type NotificationsDeleteCall struct {
 	s              *Service
 	customer       string
 	notificationId string
-	opt_           map[string]interface{}
+	caller_        googleapi.Caller
+	params_        url.Values
+	pathTemplate_  string
+	context_       context.Context
 }
 
 // Delete: Deletes a notification
-func (r *NotificationsService) Delete(customer string, notificationId string) *NotificationsDeleteCall {
-	c := &NotificationsDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.customer = customer
-	c.notificationId = notificationId
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *NotificationsDeleteCall) Fields(s ...googleapi.Field) *NotificationsDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *NotificationsService) Delete(customer string, notificationId string) *NotificationsDeleteCall {
+	return &NotificationsDeleteCall{
+		s:              r.s,
+		customer:       customer,
+		notificationId: notificationId,
+		caller_:        googleapi.JSONCall{},
+		params_:        make(map[string][]string),
+		pathTemplate_:  "customer/{customer}/notifications/{notificationId}",
+		context_:       googleapi.NoContext,
+	}
+}
+func (c *NotificationsDeleteCall) Context(ctx context.Context) *NotificationsDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *NotificationsDeleteCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "customer/{customer}/notifications/{notificationId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"customer":       c.customer,
 		"notificationId": c.notificationId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Deletes a notification",
 	//   "httpMethod": "DELETE",
@@ -4125,14 +3920,27 @@ type NotificationsGetCall struct {
 	s              *Service
 	customer       string
 	notificationId string
-	opt_           map[string]interface{}
+	caller_        googleapi.Caller
+	params_        url.Values
+	pathTemplate_  string
+	context_       context.Context
 }
 
 // Get: Retrieves a notification.
+
 func (r *NotificationsService) Get(customer string, notificationId string) *NotificationsGetCall {
-	c := &NotificationsGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.customer = customer
-	c.notificationId = notificationId
+	return &NotificationsGetCall{
+		s:              r.s,
+		customer:       customer,
+		notificationId: notificationId,
+		caller_:        googleapi.JSONCall{},
+		params_:        make(map[string][]string),
+		pathTemplate_:  "customer/{customer}/notifications/{notificationId}",
+		context_:       googleapi.NoContext,
+	}
+}
+func (c *NotificationsGetCall) Context(ctx context.Context) *NotificationsGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -4140,38 +3948,24 @@ func (r *NotificationsService) Get(customer string, notificationId string) *Noti
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *NotificationsGetCall) Fields(s ...googleapi.Field) *NotificationsGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *NotificationsGetCall) Do() (*Notification, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "customer/{customer}/notifications/{notificationId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Notification
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"customer":       c.customer,
 		"notificationId": c.notificationId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Notification
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves a notification.",
 	//   "httpMethod": "GET",
@@ -4208,37 +4002,50 @@ func (c *NotificationsGetCall) Do() (*Notification, error) {
 // method id "directory.notifications.list":
 
 type NotificationsListCall struct {
-	s        *Service
-	customer string
-	opt_     map[string]interface{}
+	s             *Service
+	customer      string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Retrieves a list of notifications.
+
 func (r *NotificationsService) List(customer string) *NotificationsListCall {
-	c := &NotificationsListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.customer = customer
-	return c
+	return &NotificationsListCall{
+		s:             r.s,
+		customer:      customer,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "customer/{customer}/notifications",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Language sets the optional parameter "language": The ISO 639-1 code
 // of the language notifications are returned in. The default is English
 // (en).
 func (c *NotificationsListCall) Language(language string) *NotificationsListCall {
-	c.opt_["language"] = language
+	c.params_.Set("language", fmt.Sprintf("%v", language))
 	return c
 }
 
 // MaxResults sets the optional parameter "maxResults": Maximum number
 // of notifications to return per page. The default is 100.
 func (c *NotificationsListCall) MaxResults(maxResults int64) *NotificationsListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
 // PageToken sets the optional parameter "pageToken": The token to
 // specify the page of results to retrieve.
 func (c *NotificationsListCall) PageToken(pageToken string) *NotificationsListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
+	return c
+}
+func (c *NotificationsListCall) Context(ctx context.Context) *NotificationsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -4246,46 +4053,23 @@ func (c *NotificationsListCall) PageToken(pageToken string) *NotificationsListCa
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *NotificationsListCall) Fields(s ...googleapi.Field) *NotificationsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *NotificationsListCall) Do() (*Notifications, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["language"]; ok {
-		params.Set("language", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "customer/{customer}/notifications")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Notifications
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"customer": c.customer,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Notifications
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves a list of notifications.",
 	//   "httpMethod": "GET",
@@ -4335,15 +4119,28 @@ type NotificationsPatchCall struct {
 	customer       string
 	notificationId string
 	notification   *Notification
-	opt_           map[string]interface{}
+	caller_        googleapi.Caller
+	params_        url.Values
+	pathTemplate_  string
+	context_       context.Context
 }
 
 // Patch: Updates a notification. This method supports patch semantics.
+
 func (r *NotificationsService) Patch(customer string, notificationId string, notification *Notification) *NotificationsPatchCall {
-	c := &NotificationsPatchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.customer = customer
-	c.notificationId = notificationId
-	c.notification = notification
+	return &NotificationsPatchCall{
+		s:              r.s,
+		customer:       customer,
+		notificationId: notificationId,
+		notification:   notification,
+		caller_:        googleapi.JSONCall{},
+		params_:        make(map[string][]string),
+		pathTemplate_:  "customer/{customer}/notifications/{notificationId}",
+		context_:       googleapi.NoContext,
+	}
+}
+func (c *NotificationsPatchCall) Context(ctx context.Context) *NotificationsPatchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -4351,44 +4148,25 @@ func (r *NotificationsService) Patch(customer string, notificationId string, not
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *NotificationsPatchCall) Fields(s ...googleapi.Field) *NotificationsPatchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *NotificationsPatchCall) Do() (*Notification, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.notification)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "customer/{customer}/notifications/{notificationId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PATCH", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Notification
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"customer":       c.customer,
 		"notificationId": c.notificationId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PATCH",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.notification,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Notification
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates a notification. This method supports patch semantics.",
 	//   "httpMethod": "PATCH",
@@ -4432,15 +4210,28 @@ type NotificationsUpdateCall struct {
 	customer       string
 	notificationId string
 	notification   *Notification
-	opt_           map[string]interface{}
+	caller_        googleapi.Caller
+	params_        url.Values
+	pathTemplate_  string
+	context_       context.Context
 }
 
 // Update: Updates a notification.
+
 func (r *NotificationsService) Update(customer string, notificationId string, notification *Notification) *NotificationsUpdateCall {
-	c := &NotificationsUpdateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.customer = customer
-	c.notificationId = notificationId
-	c.notification = notification
+	return &NotificationsUpdateCall{
+		s:              r.s,
+		customer:       customer,
+		notificationId: notificationId,
+		notification:   notification,
+		caller_:        googleapi.JSONCall{},
+		params_:        make(map[string][]string),
+		pathTemplate_:  "customer/{customer}/notifications/{notificationId}",
+		context_:       googleapi.NoContext,
+	}
+}
+func (c *NotificationsUpdateCall) Context(ctx context.Context) *NotificationsUpdateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -4448,44 +4239,25 @@ func (r *NotificationsService) Update(customer string, notificationId string, no
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *NotificationsUpdateCall) Fields(s ...googleapi.Field) *NotificationsUpdateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *NotificationsUpdateCall) Do() (*Notification, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.notification)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "customer/{customer}/notifications/{notificationId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Notification
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"customer":       c.customer,
 		"notificationId": c.notificationId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.notification,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Notification
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates a notification.",
 	//   "httpMethod": "PUT",
@@ -4525,52 +4297,45 @@ func (c *NotificationsUpdateCall) Do() (*Notification, error) {
 // method id "directory.orgunits.delete":
 
 type OrgunitsDeleteCall struct {
-	s           *Service
-	customerId  string
-	orgUnitPath []string
-	opt_        map[string]interface{}
+	s             *Service
+	customerId    string
+	orgUnitPath   []string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Delete: Remove Organization Unit
-func (r *OrgunitsService) Delete(customerId string, orgUnitPath []string) *OrgunitsDeleteCall {
-	c := &OrgunitsDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.customerId = customerId
-	c.orgUnitPath = orgUnitPath
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *OrgunitsDeleteCall) Fields(s ...googleapi.Field) *OrgunitsDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *OrgunitsService) Delete(customerId string, orgUnitPath []string) *OrgunitsDeleteCall {
+	return &OrgunitsDeleteCall{
+		s:             r.s,
+		customerId:    customerId,
+		orgUnitPath:   orgUnitPath,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "customer/{customerId}/orgunits{/orgUnitPath*}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *OrgunitsDeleteCall) Context(ctx context.Context) *OrgunitsDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *OrgunitsDeleteCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "customer/{customerId}/orgunits{/orgUnitPath*}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"customerId":  c.customerId,
 		"orgUnitPath": c.orgUnitPath[0],
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Remove Organization Unit",
 	//   "httpMethod": "DELETE",
@@ -4587,7 +4352,7 @@ func (c *OrgunitsDeleteCall) Do() error {
 	//       "type": "string"
 	//     },
 	//     "orgUnitPath": {
-	//       "description": "Full path of the organization unit",
+	//       "description": "Full path of the organization unit or its Id",
 	//       "location": "path",
 	//       "repeated": true,
 	//       "required": true,
@@ -4605,17 +4370,30 @@ func (c *OrgunitsDeleteCall) Do() error {
 // method id "directory.orgunits.get":
 
 type OrgunitsGetCall struct {
-	s           *Service
-	customerId  string
-	orgUnitPath []string
-	opt_        map[string]interface{}
+	s             *Service
+	customerId    string
+	orgUnitPath   []string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Retrieve Organization Unit
+
 func (r *OrgunitsService) Get(customerId string, orgUnitPath []string) *OrgunitsGetCall {
-	c := &OrgunitsGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.customerId = customerId
-	c.orgUnitPath = orgUnitPath
+	return &OrgunitsGetCall{
+		s:             r.s,
+		customerId:    customerId,
+		orgUnitPath:   orgUnitPath,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "customer/{customerId}/orgunits{/orgUnitPath*}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *OrgunitsGetCall) Context(ctx context.Context) *OrgunitsGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -4623,38 +4401,24 @@ func (r *OrgunitsService) Get(customerId string, orgUnitPath []string) *Orgunits
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *OrgunitsGetCall) Fields(s ...googleapi.Field) *OrgunitsGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *OrgunitsGetCall) Do() (*OrgUnit, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "customer/{customerId}/orgunits{/orgUnitPath*}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *OrgUnit
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"customerId":  c.customerId,
 		"orgUnitPath": c.orgUnitPath[0],
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *OrgUnit
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieve Organization Unit",
 	//   "httpMethod": "GET",
@@ -4671,7 +4435,7 @@ func (c *OrgunitsGetCall) Do() (*OrgUnit, error) {
 	//       "type": "string"
 	//     },
 	//     "orgUnitPath": {
-	//       "description": "Full path of the organization unit",
+	//       "description": "Full path of the organization unit or its Id",
 	//       "location": "path",
 	//       "repeated": true,
 	//       "required": true,
@@ -4693,17 +4457,30 @@ func (c *OrgunitsGetCall) Do() (*OrgUnit, error) {
 // method id "directory.orgunits.insert":
 
 type OrgunitsInsertCall struct {
-	s          *Service
-	customerId string
-	orgunit    *OrgUnit
-	opt_       map[string]interface{}
+	s             *Service
+	customerId    string
+	orgunit       *OrgUnit
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Insert: Add Organization Unit
+
 func (r *OrgunitsService) Insert(customerId string, orgunit *OrgUnit) *OrgunitsInsertCall {
-	c := &OrgunitsInsertCall{s: r.s, opt_: make(map[string]interface{})}
-	c.customerId = customerId
-	c.orgunit = orgunit
+	return &OrgunitsInsertCall{
+		s:             r.s,
+		customerId:    customerId,
+		orgunit:       orgunit,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "customer/{customerId}/orgunits",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *OrgunitsInsertCall) Context(ctx context.Context) *OrgunitsInsertCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -4711,43 +4488,24 @@ func (r *OrgunitsService) Insert(customerId string, orgunit *OrgUnit) *OrgunitsI
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *OrgunitsInsertCall) Fields(s ...googleapi.Field) *OrgunitsInsertCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *OrgunitsInsertCall) Do() (*OrgUnit, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.orgunit)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "customer/{customerId}/orgunits")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *OrgUnit
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"customerId": c.customerId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.orgunit,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *OrgUnit
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Add Organization Unit",
 	//   "httpMethod": "POST",
@@ -4780,29 +4538,42 @@ func (c *OrgunitsInsertCall) Do() (*OrgUnit, error) {
 // method id "directory.orgunits.list":
 
 type OrgunitsListCall struct {
-	s          *Service
-	customerId string
-	opt_       map[string]interface{}
+	s             *Service
+	customerId    string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Retrieve all Organization Units
+
 func (r *OrgunitsService) List(customerId string) *OrgunitsListCall {
-	c := &OrgunitsListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.customerId = customerId
-	return c
+	return &OrgunitsListCall{
+		s:             r.s,
+		customerId:    customerId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "customer/{customerId}/orgunits",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // OrgUnitPath sets the optional parameter "orgUnitPath": the
-// URL-encoded organization unit
+// URL-encoded organization unit's path or its Id
 func (c *OrgunitsListCall) OrgUnitPath(orgUnitPath string) *OrgunitsListCall {
-	c.opt_["orgUnitPath"] = orgUnitPath
+	c.params_.Set("orgUnitPath", fmt.Sprintf("%v", orgUnitPath))
 	return c
 }
 
 // Type sets the optional parameter "type": Whether to return all
 // sub-organizations or just immediate children
 func (c *OrgunitsListCall) Type(type_ string) *OrgunitsListCall {
-	c.opt_["type"] = type_
+	c.params_.Set("type", fmt.Sprintf("%v", type_))
+	return c
+}
+func (c *OrgunitsListCall) Context(ctx context.Context) *OrgunitsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -4810,43 +4581,23 @@ func (c *OrgunitsListCall) Type(type_ string) *OrgunitsListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *OrgunitsListCall) Fields(s ...googleapi.Field) *OrgunitsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *OrgunitsListCall) Do() (*OrgUnits, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["orgUnitPath"]; ok {
-		params.Set("orgUnitPath", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["type"]; ok {
-		params.Set("type", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "customer/{customerId}/orgunits")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *OrgUnits
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"customerId": c.customerId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *OrgUnits
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieve all Organization Units",
 	//   "httpMethod": "GET",
@@ -4863,7 +4614,7 @@ func (c *OrgunitsListCall) Do() (*OrgUnits, error) {
 	//     },
 	//     "orgUnitPath": {
 	//       "default": "",
-	//       "description": "the URL-encoded organization unit",
+	//       "description": "the URL-encoded organization unit's path or its Id",
 	//       "location": "query",
 	//       "type": "string"
 	//     },
@@ -4896,20 +4647,33 @@ func (c *OrgunitsListCall) Do() (*OrgUnits, error) {
 // method id "directory.orgunits.patch":
 
 type OrgunitsPatchCall struct {
-	s           *Service
-	customerId  string
-	orgUnitPath []string
-	orgunit     *OrgUnit
-	opt_        map[string]interface{}
+	s             *Service
+	customerId    string
+	orgUnitPath   []string
+	orgunit       *OrgUnit
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Patch: Update Organization Unit. This method supports patch
 // semantics.
+
 func (r *OrgunitsService) Patch(customerId string, orgUnitPath []string, orgunit *OrgUnit) *OrgunitsPatchCall {
-	c := &OrgunitsPatchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.customerId = customerId
-	c.orgUnitPath = orgUnitPath
-	c.orgunit = orgunit
+	return &OrgunitsPatchCall{
+		s:             r.s,
+		customerId:    customerId,
+		orgUnitPath:   orgUnitPath,
+		orgunit:       orgunit,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "customer/{customerId}/orgunits{/orgUnitPath*}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *OrgunitsPatchCall) Context(ctx context.Context) *OrgunitsPatchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -4917,44 +4681,25 @@ func (r *OrgunitsService) Patch(customerId string, orgUnitPath []string, orgunit
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *OrgunitsPatchCall) Fields(s ...googleapi.Field) *OrgunitsPatchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *OrgunitsPatchCall) Do() (*OrgUnit, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.orgunit)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "customer/{customerId}/orgunits{/orgUnitPath*}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PATCH", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *OrgUnit
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"customerId":  c.customerId,
 		"orgUnitPath": c.orgUnitPath[0],
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PATCH",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.orgunit,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *OrgUnit
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Update Organization Unit. This method supports patch semantics.",
 	//   "httpMethod": "PATCH",
@@ -4971,7 +4716,7 @@ func (c *OrgunitsPatchCall) Do() (*OrgUnit, error) {
 	//       "type": "string"
 	//     },
 	//     "orgUnitPath": {
-	//       "description": "Full path of the organization unit",
+	//       "description": "Full path of the organization unit or its Id",
 	//       "location": "path",
 	//       "repeated": true,
 	//       "required": true,
@@ -4995,19 +4740,32 @@ func (c *OrgunitsPatchCall) Do() (*OrgUnit, error) {
 // method id "directory.orgunits.update":
 
 type OrgunitsUpdateCall struct {
-	s           *Service
-	customerId  string
-	orgUnitPath []string
-	orgunit     *OrgUnit
-	opt_        map[string]interface{}
+	s             *Service
+	customerId    string
+	orgUnitPath   []string
+	orgunit       *OrgUnit
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Update: Update Organization Unit
+
 func (r *OrgunitsService) Update(customerId string, orgUnitPath []string, orgunit *OrgUnit) *OrgunitsUpdateCall {
-	c := &OrgunitsUpdateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.customerId = customerId
-	c.orgUnitPath = orgUnitPath
-	c.orgunit = orgunit
+	return &OrgunitsUpdateCall{
+		s:             r.s,
+		customerId:    customerId,
+		orgUnitPath:   orgUnitPath,
+		orgunit:       orgunit,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "customer/{customerId}/orgunits{/orgUnitPath*}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *OrgunitsUpdateCall) Context(ctx context.Context) *OrgunitsUpdateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -5015,44 +4773,25 @@ func (r *OrgunitsService) Update(customerId string, orgUnitPath []string, orguni
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *OrgunitsUpdateCall) Fields(s ...googleapi.Field) *OrgunitsUpdateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *OrgunitsUpdateCall) Do() (*OrgUnit, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.orgunit)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "customer/{customerId}/orgunits{/orgUnitPath*}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *OrgUnit
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"customerId":  c.customerId,
 		"orgUnitPath": c.orgUnitPath[0],
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.orgunit,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *OrgUnit
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Update Organization Unit",
 	//   "httpMethod": "PUT",
@@ -5069,7 +4808,7 @@ func (c *OrgunitsUpdateCall) Do() (*OrgUnit, error) {
 	//       "type": "string"
 	//     },
 	//     "orgUnitPath": {
-	//       "description": "Full path of the organization unit",
+	//       "description": "Full path of the organization unit or its Id",
 	//       "location": "path",
 	//       "repeated": true,
 	//       "required": true,
@@ -5093,52 +4832,45 @@ func (c *OrgunitsUpdateCall) Do() (*OrgUnit, error) {
 // method id "directory.schemas.delete":
 
 type SchemasDeleteCall struct {
-	s          *Service
-	customerId string
-	schemaKey  string
-	opt_       map[string]interface{}
+	s             *Service
+	customerId    string
+	schemaKey     string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Delete: Delete schema
-func (r *SchemasService) Delete(customerId string, schemaKey string) *SchemasDeleteCall {
-	c := &SchemasDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.customerId = customerId
-	c.schemaKey = schemaKey
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *SchemasDeleteCall) Fields(s ...googleapi.Field) *SchemasDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *SchemasService) Delete(customerId string, schemaKey string) *SchemasDeleteCall {
+	return &SchemasDeleteCall{
+		s:             r.s,
+		customerId:    customerId,
+		schemaKey:     schemaKey,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "customer/{customerId}/schemas/{schemaKey}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *SchemasDeleteCall) Context(ctx context.Context) *SchemasDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *SchemasDeleteCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "customer/{customerId}/schemas/{schemaKey}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"customerId": c.customerId,
 		"schemaKey":  c.schemaKey,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Delete schema",
 	//   "httpMethod": "DELETE",
@@ -5172,17 +4904,30 @@ func (c *SchemasDeleteCall) Do() error {
 // method id "directory.schemas.get":
 
 type SchemasGetCall struct {
-	s          *Service
-	customerId string
-	schemaKey  string
-	opt_       map[string]interface{}
+	s             *Service
+	customerId    string
+	schemaKey     string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Retrieve schema
+
 func (r *SchemasService) Get(customerId string, schemaKey string) *SchemasGetCall {
-	c := &SchemasGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.customerId = customerId
-	c.schemaKey = schemaKey
+	return &SchemasGetCall{
+		s:             r.s,
+		customerId:    customerId,
+		schemaKey:     schemaKey,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "customer/{customerId}/schemas/{schemaKey}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *SchemasGetCall) Context(ctx context.Context) *SchemasGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -5190,38 +4935,24 @@ func (r *SchemasService) Get(customerId string, schemaKey string) *SchemasGetCal
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *SchemasGetCall) Fields(s ...googleapi.Field) *SchemasGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *SchemasGetCall) Do() (*Schema, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "customer/{customerId}/schemas/{schemaKey}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Schema
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"customerId": c.customerId,
 		"schemaKey":  c.schemaKey,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Schema
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieve schema",
 	//   "httpMethod": "GET",
@@ -5259,17 +4990,30 @@ func (c *SchemasGetCall) Do() (*Schema, error) {
 // method id "directory.schemas.insert":
 
 type SchemasInsertCall struct {
-	s          *Service
-	customerId string
-	schema     *Schema
-	opt_       map[string]interface{}
+	s             *Service
+	customerId    string
+	schema        *Schema
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Insert: Create schema.
+
 func (r *SchemasService) Insert(customerId string, schema *Schema) *SchemasInsertCall {
-	c := &SchemasInsertCall{s: r.s, opt_: make(map[string]interface{})}
-	c.customerId = customerId
-	c.schema = schema
+	return &SchemasInsertCall{
+		s:             r.s,
+		customerId:    customerId,
+		schema:        schema,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "customer/{customerId}/schemas",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *SchemasInsertCall) Context(ctx context.Context) *SchemasInsertCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -5277,43 +5021,24 @@ func (r *SchemasService) Insert(customerId string, schema *Schema) *SchemasInser
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *SchemasInsertCall) Fields(s ...googleapi.Field) *SchemasInsertCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *SchemasInsertCall) Do() (*Schema, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.schema)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "customer/{customerId}/schemas")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Schema
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"customerId": c.customerId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.schema,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Schema
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Create schema.",
 	//   "httpMethod": "POST",
@@ -5346,15 +5071,28 @@ func (c *SchemasInsertCall) Do() (*Schema, error) {
 // method id "directory.schemas.list":
 
 type SchemasListCall struct {
-	s          *Service
-	customerId string
-	opt_       map[string]interface{}
+	s             *Service
+	customerId    string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Retrieve all schemas for a customer
+
 func (r *SchemasService) List(customerId string) *SchemasListCall {
-	c := &SchemasListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.customerId = customerId
+	return &SchemasListCall{
+		s:             r.s,
+		customerId:    customerId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "customer/{customerId}/schemas",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *SchemasListCall) Context(ctx context.Context) *SchemasListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -5362,37 +5100,23 @@ func (r *SchemasService) List(customerId string) *SchemasListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *SchemasListCall) Fields(s ...googleapi.Field) *SchemasListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *SchemasListCall) Do() (*Schemas, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "customer/{customerId}/schemas")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Schemas
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"customerId": c.customerId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Schemas
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieve all schemas for a customer",
 	//   "httpMethod": "GET",
@@ -5423,19 +5147,32 @@ func (c *SchemasListCall) Do() (*Schemas, error) {
 // method id "directory.schemas.patch":
 
 type SchemasPatchCall struct {
-	s          *Service
-	customerId string
-	schemaKey  string
-	schema     *Schema
-	opt_       map[string]interface{}
+	s             *Service
+	customerId    string
+	schemaKey     string
+	schema        *Schema
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Patch: Update schema. This method supports patch semantics.
+
 func (r *SchemasService) Patch(customerId string, schemaKey string, schema *Schema) *SchemasPatchCall {
-	c := &SchemasPatchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.customerId = customerId
-	c.schemaKey = schemaKey
-	c.schema = schema
+	return &SchemasPatchCall{
+		s:             r.s,
+		customerId:    customerId,
+		schemaKey:     schemaKey,
+		schema:        schema,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "customer/{customerId}/schemas/{schemaKey}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *SchemasPatchCall) Context(ctx context.Context) *SchemasPatchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -5443,44 +5180,25 @@ func (r *SchemasService) Patch(customerId string, schemaKey string, schema *Sche
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *SchemasPatchCall) Fields(s ...googleapi.Field) *SchemasPatchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *SchemasPatchCall) Do() (*Schema, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.schema)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "customer/{customerId}/schemas/{schemaKey}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PATCH", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Schema
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"customerId": c.customerId,
 		"schemaKey":  c.schemaKey,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PATCH",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.schema,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Schema
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Update schema. This method supports patch semantics.",
 	//   "httpMethod": "PATCH",
@@ -5520,19 +5238,32 @@ func (c *SchemasPatchCall) Do() (*Schema, error) {
 // method id "directory.schemas.update":
 
 type SchemasUpdateCall struct {
-	s          *Service
-	customerId string
-	schemaKey  string
-	schema     *Schema
-	opt_       map[string]interface{}
+	s             *Service
+	customerId    string
+	schemaKey     string
+	schema        *Schema
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Update: Update schema
+
 func (r *SchemasService) Update(customerId string, schemaKey string, schema *Schema) *SchemasUpdateCall {
-	c := &SchemasUpdateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.customerId = customerId
-	c.schemaKey = schemaKey
-	c.schema = schema
+	return &SchemasUpdateCall{
+		s:             r.s,
+		customerId:    customerId,
+		schemaKey:     schemaKey,
+		schema:        schema,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "customer/{customerId}/schemas/{schemaKey}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *SchemasUpdateCall) Context(ctx context.Context) *SchemasUpdateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -5540,44 +5271,25 @@ func (r *SchemasService) Update(customerId string, schemaKey string, schema *Sch
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *SchemasUpdateCall) Fields(s ...googleapi.Field) *SchemasUpdateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *SchemasUpdateCall) Do() (*Schema, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.schema)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "customer/{customerId}/schemas/{schemaKey}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Schema
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"customerId": c.customerId,
 		"schemaKey":  c.schemaKey,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.schema,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Schema
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Update schema",
 	//   "httpMethod": "PUT",
@@ -5617,52 +5329,45 @@ func (c *SchemasUpdateCall) Do() (*Schema, error) {
 // method id "directory.tokens.delete":
 
 type TokensDeleteCall struct {
-	s        *Service
-	userKey  string
-	clientId string
-	opt_     map[string]interface{}
+	s             *Service
+	userKey       string
+	clientId      string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Delete: Delete all access tokens issued by a user for an application.
-func (r *TokensService) Delete(userKey string, clientId string) *TokensDeleteCall {
-	c := &TokensDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.userKey = userKey
-	c.clientId = clientId
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *TokensDeleteCall) Fields(s ...googleapi.Field) *TokensDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *TokensService) Delete(userKey string, clientId string) *TokensDeleteCall {
+	return &TokensDeleteCall{
+		s:             r.s,
+		userKey:       userKey,
+		clientId:      clientId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "users/{userKey}/tokens/{clientId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *TokensDeleteCall) Context(ctx context.Context) *TokensDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *TokensDeleteCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "users/{userKey}/tokens/{clientId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"userKey":  c.userKey,
 		"clientId": c.clientId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Delete all access tokens issued by a user for an application.",
 	//   "httpMethod": "DELETE",
@@ -5696,17 +5401,30 @@ func (c *TokensDeleteCall) Do() error {
 // method id "directory.tokens.get":
 
 type TokensGetCall struct {
-	s        *Service
-	userKey  string
-	clientId string
-	opt_     map[string]interface{}
+	s             *Service
+	userKey       string
+	clientId      string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Get information about an access token issued by a user.
+
 func (r *TokensService) Get(userKey string, clientId string) *TokensGetCall {
-	c := &TokensGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.userKey = userKey
-	c.clientId = clientId
+	return &TokensGetCall{
+		s:             r.s,
+		userKey:       userKey,
+		clientId:      clientId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "users/{userKey}/tokens/{clientId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *TokensGetCall) Context(ctx context.Context) *TokensGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -5714,38 +5432,24 @@ func (r *TokensService) Get(userKey string, clientId string) *TokensGetCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *TokensGetCall) Fields(s ...googleapi.Field) *TokensGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *TokensGetCall) Do() (*Token, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "users/{userKey}/tokens/{clientId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Token
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"userKey":  c.userKey,
 		"clientId": c.clientId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Token
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Get information about an access token issued by a user.",
 	//   "httpMethod": "GET",
@@ -5782,16 +5486,29 @@ func (c *TokensGetCall) Do() (*Token, error) {
 // method id "directory.tokens.list":
 
 type TokensListCall struct {
-	s       *Service
-	userKey string
-	opt_    map[string]interface{}
+	s             *Service
+	userKey       string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Returns the set of tokens specified user has issued to 3rd
 // party applications.
+
 func (r *TokensService) List(userKey string) *TokensListCall {
-	c := &TokensListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.userKey = userKey
+	return &TokensListCall{
+		s:             r.s,
+		userKey:       userKey,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "users/{userKey}/tokens",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *TokensListCall) Context(ctx context.Context) *TokensListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -5799,37 +5516,23 @@ func (r *TokensService) List(userKey string) *TokensListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *TokensListCall) Fields(s ...googleapi.Field) *TokensListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *TokensListCall) Do() (*Tokens, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "users/{userKey}/tokens")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Tokens
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"userKey": c.userKey,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Tokens
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Returns the set of tokens specified user has issued to 3rd party applications.",
 	//   "httpMethod": "GET",
@@ -5859,49 +5562,42 @@ func (c *TokensListCall) Do() (*Tokens, error) {
 // method id "directory.users.delete":
 
 type UsersDeleteCall struct {
-	s       *Service
-	userKey string
-	opt_    map[string]interface{}
+	s             *Service
+	userKey       string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Delete: Delete user
-func (r *UsersService) Delete(userKey string) *UsersDeleteCall {
-	c := &UsersDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.userKey = userKey
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *UsersDeleteCall) Fields(s ...googleapi.Field) *UsersDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *UsersService) Delete(userKey string) *UsersDeleteCall {
+	return &UsersDeleteCall{
+		s:             r.s,
+		userKey:       userKey,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "users/{userKey}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *UsersDeleteCall) Context(ctx context.Context) *UsersDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *UsersDeleteCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "users/{userKey}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"userKey": c.userKey,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Delete user",
 	//   "httpMethod": "DELETE",
@@ -5928,37 +5624,50 @@ func (c *UsersDeleteCall) Do() error {
 // method id "directory.users.get":
 
 type UsersGetCall struct {
-	s       *Service
-	userKey string
-	opt_    map[string]interface{}
+	s             *Service
+	userKey       string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: retrieve user
+
 func (r *UsersService) Get(userKey string) *UsersGetCall {
-	c := &UsersGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.userKey = userKey
-	return c
+	return &UsersGetCall{
+		s:             r.s,
+		userKey:       userKey,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "users/{userKey}",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // CustomFieldMask sets the optional parameter "customFieldMask":
 // Comma-separated list of schema names. All fields from these schemas
 // are fetched. This should only be set when projection=custom.
 func (c *UsersGetCall) CustomFieldMask(customFieldMask string) *UsersGetCall {
-	c.opt_["customFieldMask"] = customFieldMask
+	c.params_.Set("customFieldMask", fmt.Sprintf("%v", customFieldMask))
 	return c
 }
 
 // Projection sets the optional parameter "projection": What subset of
 // fields to fetch for this user.
 func (c *UsersGetCall) Projection(projection string) *UsersGetCall {
-	c.opt_["projection"] = projection
+	c.params_.Set("projection", fmt.Sprintf("%v", projection))
 	return c
 }
 
 // ViewType sets the optional parameter "viewType": Whether to fetch the
 // ADMIN_VIEW or DOMAIN_PUBLIC view of the user.
 func (c *UsersGetCall) ViewType(viewType string) *UsersGetCall {
-	c.opt_["viewType"] = viewType
+	c.params_.Set("viewType", fmt.Sprintf("%v", viewType))
+	return c
+}
+func (c *UsersGetCall) Context(ctx context.Context) *UsersGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -5966,46 +5675,23 @@ func (c *UsersGetCall) ViewType(viewType string) *UsersGetCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *UsersGetCall) Fields(s ...googleapi.Field) *UsersGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *UsersGetCall) Do() (*User, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["customFieldMask"]; ok {
-		params.Set("customFieldMask", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["projection"]; ok {
-		params.Set("projection", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["viewType"]; ok {
-		params.Set("viewType", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "users/{userKey}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *User
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"userKey": c.userKey,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *User
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "retrieve user",
 	//   "httpMethod": "GET",
@@ -6071,15 +5757,28 @@ func (c *UsersGetCall) Do() (*User, error) {
 // method id "directory.users.insert":
 
 type UsersInsertCall struct {
-	s    *Service
-	user *User
-	opt_ map[string]interface{}
+	s             *Service
+	user          *User
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Insert: create user.
+
 func (r *UsersService) Insert(user *User) *UsersInsertCall {
-	c := &UsersInsertCall{s: r.s, opt_: make(map[string]interface{})}
-	c.user = user
+	return &UsersInsertCall{
+		s:             r.s,
+		user:          user,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "users",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *UsersInsertCall) Context(ctx context.Context) *UsersInsertCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -6087,41 +5786,22 @@ func (r *UsersService) Insert(user *User) *UsersInsertCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *UsersInsertCall) Fields(s ...googleapi.Field) *UsersInsertCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *UsersInsertCall) Do() (*User, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.user)
-	if err != nil {
-		return nil, err
+	var returnValue *User
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.user,
+		Result:  &returnValue,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "users")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *User
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "create user.",
 	//   "httpMethod": "POST",
@@ -6143,22 +5823,31 @@ func (c *UsersInsertCall) Do() (*User, error) {
 // method id "directory.users.list":
 
 type UsersListCall struct {
-	s    *Service
-	opt_ map[string]interface{}
+	s             *Service
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Retrieve either deleted users or all users in a domain
 // (paginated)
+
 func (r *UsersService) List() *UsersListCall {
-	c := &UsersListCall{s: r.s, opt_: make(map[string]interface{})}
-	return c
+	return &UsersListCall{
+		s:             r.s,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "users",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // CustomFieldMask sets the optional parameter "customFieldMask":
 // Comma-separated list of schema names. All fields from these schemas
 // are fetched. This should only be set when projection=custom.
 func (c *UsersListCall) CustomFieldMask(customFieldMask string) *UsersListCall {
-	c.opt_["customFieldMask"] = customFieldMask
+	c.params_.Set("customFieldMask", fmt.Sprintf("%v", customFieldMask))
 	return c
 }
 
@@ -6166,7 +5855,7 @@ func (c *UsersListCall) CustomFieldMask(customFieldMask string) *UsersListCall {
 // Google Apps account. In case of multi-domain, to fetch all users for
 // a customer, fill this field instead of domain.
 func (c *UsersListCall) Customer(customer string) *UsersListCall {
-	c.opt_["customer"] = customer
+	c.params_.Set("customer", fmt.Sprintf("%v", customer))
 	return c
 }
 
@@ -6174,42 +5863,42 @@ func (c *UsersListCall) Customer(customer string) *UsersListCall {
 // this field to get users from only this domain. To return all users in
 // a multi-domain fill customer field instead.
 func (c *UsersListCall) Domain(domain string) *UsersListCall {
-	c.opt_["domain"] = domain
+	c.params_.Set("domain", fmt.Sprintf("%v", domain))
 	return c
 }
 
 // Event sets the optional parameter "event": Event on which
 // subscription is intended (if subscribing)
 func (c *UsersListCall) Event(event string) *UsersListCall {
-	c.opt_["event"] = event
+	c.params_.Set("event", fmt.Sprintf("%v", event))
 	return c
 }
 
 // MaxResults sets the optional parameter "maxResults": Maximum number
 // of results to return. Default is 100. Max allowed is 500
 func (c *UsersListCall) MaxResults(maxResults int64) *UsersListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
 // OrderBy sets the optional parameter "orderBy": Column to use for
 // sorting results
 func (c *UsersListCall) OrderBy(orderBy string) *UsersListCall {
-	c.opt_["orderBy"] = orderBy
+	c.params_.Set("orderBy", fmt.Sprintf("%v", orderBy))
 	return c
 }
 
 // PageToken sets the optional parameter "pageToken": Token to specify
 // next page in the list
 func (c *UsersListCall) PageToken(pageToken string) *UsersListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
 	return c
 }
 
 // Projection sets the optional parameter "projection": What subset of
 // fields to fetch for this user.
 func (c *UsersListCall) Projection(projection string) *UsersListCall {
-	c.opt_["projection"] = projection
+	c.params_.Set("projection", fmt.Sprintf("%v", projection))
 	return c
 }
 
@@ -6218,28 +5907,32 @@ func (c *UsersListCall) Projection(projection string) *UsersListCall {
 // https://developers.google.com/admin-sdk/directory/v1/guides/search-use
 // rs
 func (c *UsersListCall) Query(query string) *UsersListCall {
-	c.opt_["query"] = query
+	c.params_.Set("query", fmt.Sprintf("%v", query))
 	return c
 }
 
 // ShowDeleted sets the optional parameter "showDeleted": If set to true
 // retrieves the list of deleted users. Default is false
 func (c *UsersListCall) ShowDeleted(showDeleted string) *UsersListCall {
-	c.opt_["showDeleted"] = showDeleted
+	c.params_.Set("showDeleted", fmt.Sprintf("%v", showDeleted))
 	return c
 }
 
 // SortOrder sets the optional parameter "sortOrder": Whether to return
 // results in ascending or descending order.
 func (c *UsersListCall) SortOrder(sortOrder string) *UsersListCall {
-	c.opt_["sortOrder"] = sortOrder
+	c.params_.Set("sortOrder", fmt.Sprintf("%v", sortOrder))
 	return c
 }
 
 // ViewType sets the optional parameter "viewType": Whether to fetch the
 // ADMIN_VIEW or DOMAIN_PUBLIC view of the user.
 func (c *UsersListCall) ViewType(viewType string) *UsersListCall {
-	c.opt_["viewType"] = viewType
+	c.params_.Set("viewType", fmt.Sprintf("%v", viewType))
+	return c
+}
+func (c *UsersListCall) Context(ctx context.Context) *UsersListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -6247,71 +5940,21 @@ func (c *UsersListCall) ViewType(viewType string) *UsersListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *UsersListCall) Fields(s ...googleapi.Field) *UsersListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *UsersListCall) Do() (*Users, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["customFieldMask"]; ok {
-		params.Set("customFieldMask", fmt.Sprintf("%v", v))
+	var returnValue *Users
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	if v, ok := c.opt_["customer"]; ok {
-		params.Set("customer", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["domain"]; ok {
-		params.Set("domain", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["event"]; ok {
-		params.Set("event", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["orderBy"]; ok {
-		params.Set("orderBy", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["projection"]; ok {
-		params.Set("projection", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["query"]; ok {
-		params.Set("query", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["showDeleted"]; ok {
-		params.Set("showDeleted", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["sortOrder"]; ok {
-		params.Set("sortOrder", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["viewType"]; ok {
-		params.Set("viewType", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "users")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Users
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieve either deleted users or all users in a domain (paginated)",
 	//   "httpMethod": "GET",
@@ -6452,54 +6095,42 @@ type UsersMakeAdminCall struct {
 	s             *Service
 	userKey       string
 	usermakeadmin *UserMakeAdmin
-	opt_          map[string]interface{}
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // MakeAdmin: change admin status of a user
-func (r *UsersService) MakeAdmin(userKey string, usermakeadmin *UserMakeAdmin) *UsersMakeAdminCall {
-	c := &UsersMakeAdminCall{s: r.s, opt_: make(map[string]interface{})}
-	c.userKey = userKey
-	c.usermakeadmin = usermakeadmin
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *UsersMakeAdminCall) Fields(s ...googleapi.Field) *UsersMakeAdminCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *UsersService) MakeAdmin(userKey string, usermakeadmin *UserMakeAdmin) *UsersMakeAdminCall {
+	return &UsersMakeAdminCall{
+		s:             r.s,
+		userKey:       userKey,
+		usermakeadmin: usermakeadmin,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "users/{userKey}/makeAdmin",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *UsersMakeAdminCall) Context(ctx context.Context) *UsersMakeAdminCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *UsersMakeAdminCall) Do() error {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.usermakeadmin)
-	if err != nil {
-		return err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "users/{userKey}/makeAdmin")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"userKey": c.userKey,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.usermakeadmin,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "change admin status of a user",
 	//   "httpMethod": "POST",
@@ -6529,17 +6160,30 @@ func (c *UsersMakeAdminCall) Do() error {
 // method id "directory.users.patch":
 
 type UsersPatchCall struct {
-	s       *Service
-	userKey string
-	user    *User
-	opt_    map[string]interface{}
+	s             *Service
+	userKey       string
+	user          *User
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Patch: update user. This method supports patch semantics.
+
 func (r *UsersService) Patch(userKey string, user *User) *UsersPatchCall {
-	c := &UsersPatchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.userKey = userKey
-	c.user = user
+	return &UsersPatchCall{
+		s:             r.s,
+		userKey:       userKey,
+		user:          user,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "users/{userKey}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *UsersPatchCall) Context(ctx context.Context) *UsersPatchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -6547,43 +6191,24 @@ func (r *UsersService) Patch(userKey string, user *User) *UsersPatchCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *UsersPatchCall) Fields(s ...googleapi.Field) *UsersPatchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *UsersPatchCall) Do() (*User, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.user)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "users/{userKey}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PATCH", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *User
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"userKey": c.userKey,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PATCH",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.user,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *User
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "update user. This method supports patch semantics.",
 	//   "httpMethod": "PATCH",
@@ -6616,57 +6241,45 @@ func (c *UsersPatchCall) Do() (*User, error) {
 // method id "directory.users.undelete":
 
 type UsersUndeleteCall struct {
-	s            *Service
-	userKey      string
-	userundelete *UserUndelete
-	opt_         map[string]interface{}
+	s             *Service
+	userKey       string
+	userundelete  *UserUndelete
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Undelete: Undelete a deleted user
-func (r *UsersService) Undelete(userKey string, userundelete *UserUndelete) *UsersUndeleteCall {
-	c := &UsersUndeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.userKey = userKey
-	c.userundelete = userundelete
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *UsersUndeleteCall) Fields(s ...googleapi.Field) *UsersUndeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *UsersService) Undelete(userKey string, userundelete *UserUndelete) *UsersUndeleteCall {
+	return &UsersUndeleteCall{
+		s:             r.s,
+		userKey:       userKey,
+		userundelete:  userundelete,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "users/{userKey}/undelete",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *UsersUndeleteCall) Context(ctx context.Context) *UsersUndeleteCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *UsersUndeleteCall) Do() error {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.userundelete)
-	if err != nil {
-		return err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "users/{userKey}/undelete")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"userKey": c.userKey,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.userundelete,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Undelete a deleted user",
 	//   "httpMethod": "POST",
@@ -6696,17 +6309,30 @@ func (c *UsersUndeleteCall) Do() error {
 // method id "directory.users.update":
 
 type UsersUpdateCall struct {
-	s       *Service
-	userKey string
-	user    *User
-	opt_    map[string]interface{}
+	s             *Service
+	userKey       string
+	user          *User
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Update: update user
+
 func (r *UsersService) Update(userKey string, user *User) *UsersUpdateCall {
-	c := &UsersUpdateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.userKey = userKey
-	c.user = user
+	return &UsersUpdateCall{
+		s:             r.s,
+		userKey:       userKey,
+		user:          user,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "users/{userKey}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *UsersUpdateCall) Context(ctx context.Context) *UsersUpdateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -6714,43 +6340,24 @@ func (r *UsersService) Update(userKey string, user *User) *UsersUpdateCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *UsersUpdateCall) Fields(s ...googleapi.Field) *UsersUpdateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *UsersUpdateCall) Do() (*User, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.user)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "users/{userKey}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *User
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"userKey": c.userKey,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.user,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *User
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "update user",
 	//   "httpMethod": "PUT",
@@ -6783,23 +6390,32 @@ func (c *UsersUpdateCall) Do() (*User, error) {
 // method id "directory.users.watch":
 
 type UsersWatchCall struct {
-	s       *Service
-	channel *Channel
-	opt_    map[string]interface{}
+	s             *Service
+	channel       *Channel
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Watch: Watch for changes in users list
+
 func (r *UsersService) Watch(channel *Channel) *UsersWatchCall {
-	c := &UsersWatchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.channel = channel
-	return c
+	return &UsersWatchCall{
+		s:             r.s,
+		channel:       channel,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "users/watch",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // CustomFieldMask sets the optional parameter "customFieldMask":
 // Comma-separated list of schema names. All fields from these schemas
 // are fetched. This should only be set when projection=custom.
 func (c *UsersWatchCall) CustomFieldMask(customFieldMask string) *UsersWatchCall {
-	c.opt_["customFieldMask"] = customFieldMask
+	c.params_.Set("customFieldMask", fmt.Sprintf("%v", customFieldMask))
 	return c
 }
 
@@ -6807,7 +6423,7 @@ func (c *UsersWatchCall) CustomFieldMask(customFieldMask string) *UsersWatchCall
 // Google Apps account. In case of multi-domain, to fetch all users for
 // a customer, fill this field instead of domain.
 func (c *UsersWatchCall) Customer(customer string) *UsersWatchCall {
-	c.opt_["customer"] = customer
+	c.params_.Set("customer", fmt.Sprintf("%v", customer))
 	return c
 }
 
@@ -6815,42 +6431,42 @@ func (c *UsersWatchCall) Customer(customer string) *UsersWatchCall {
 // this field to get users from only this domain. To return all users in
 // a multi-domain fill customer field instead.
 func (c *UsersWatchCall) Domain(domain string) *UsersWatchCall {
-	c.opt_["domain"] = domain
+	c.params_.Set("domain", fmt.Sprintf("%v", domain))
 	return c
 }
 
 // Event sets the optional parameter "event": Event on which
 // subscription is intended (if subscribing)
 func (c *UsersWatchCall) Event(event string) *UsersWatchCall {
-	c.opt_["event"] = event
+	c.params_.Set("event", fmt.Sprintf("%v", event))
 	return c
 }
 
 // MaxResults sets the optional parameter "maxResults": Maximum number
 // of results to return. Default is 100. Max allowed is 500
 func (c *UsersWatchCall) MaxResults(maxResults int64) *UsersWatchCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
 // OrderBy sets the optional parameter "orderBy": Column to use for
 // sorting results
 func (c *UsersWatchCall) OrderBy(orderBy string) *UsersWatchCall {
-	c.opt_["orderBy"] = orderBy
+	c.params_.Set("orderBy", fmt.Sprintf("%v", orderBy))
 	return c
 }
 
 // PageToken sets the optional parameter "pageToken": Token to specify
 // next page in the list
 func (c *UsersWatchCall) PageToken(pageToken string) *UsersWatchCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
 	return c
 }
 
 // Projection sets the optional parameter "projection": What subset of
 // fields to fetch for this user.
 func (c *UsersWatchCall) Projection(projection string) *UsersWatchCall {
-	c.opt_["projection"] = projection
+	c.params_.Set("projection", fmt.Sprintf("%v", projection))
 	return c
 }
 
@@ -6859,28 +6475,32 @@ func (c *UsersWatchCall) Projection(projection string) *UsersWatchCall {
 // https://developers.google.com/admin-sdk/directory/v1/guides/search-use
 // rs
 func (c *UsersWatchCall) Query(query string) *UsersWatchCall {
-	c.opt_["query"] = query
+	c.params_.Set("query", fmt.Sprintf("%v", query))
 	return c
 }
 
 // ShowDeleted sets the optional parameter "showDeleted": If set to true
 // retrieves the list of deleted users. Default is false
 func (c *UsersWatchCall) ShowDeleted(showDeleted string) *UsersWatchCall {
-	c.opt_["showDeleted"] = showDeleted
+	c.params_.Set("showDeleted", fmt.Sprintf("%v", showDeleted))
 	return c
 }
 
 // SortOrder sets the optional parameter "sortOrder": Whether to return
 // results in ascending or descending order.
 func (c *UsersWatchCall) SortOrder(sortOrder string) *UsersWatchCall {
-	c.opt_["sortOrder"] = sortOrder
+	c.params_.Set("sortOrder", fmt.Sprintf("%v", sortOrder))
 	return c
 }
 
 // ViewType sets the optional parameter "viewType": Whether to fetch the
 // ADMIN_VIEW or DOMAIN_PUBLIC view of the user.
 func (c *UsersWatchCall) ViewType(viewType string) *UsersWatchCall {
-	c.opt_["viewType"] = viewType
+	c.params_.Set("viewType", fmt.Sprintf("%v", viewType))
+	return c
+}
+func (c *UsersWatchCall) Context(ctx context.Context) *UsersWatchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -6888,77 +6508,22 @@ func (c *UsersWatchCall) ViewType(viewType string) *UsersWatchCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *UsersWatchCall) Fields(s ...googleapi.Field) *UsersWatchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *UsersWatchCall) Do() (*Channel, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.channel)
-	if err != nil {
-		return nil, err
+	var returnValue *Channel
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.channel,
+		Result:  &returnValue,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["customFieldMask"]; ok {
-		params.Set("customFieldMask", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["customer"]; ok {
-		params.Set("customer", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["domain"]; ok {
-		params.Set("domain", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["event"]; ok {
-		params.Set("event", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["orderBy"]; ok {
-		params.Set("orderBy", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["projection"]; ok {
-		params.Set("projection", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["query"]; ok {
-		params.Set("query", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["showDeleted"]; ok {
-		params.Set("showDeleted", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["sortOrder"]; ok {
-		params.Set("sortOrder", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["viewType"]; ok {
-		params.Set("viewType", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "users/watch")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Channel
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Watch for changes in users list",
 	//   "httpMethod": "POST",
@@ -7100,52 +6665,45 @@ func (c *UsersWatchCall) Do() (*Channel, error) {
 // method id "directory.users.aliases.delete":
 
 type UsersAliasesDeleteCall struct {
-	s       *Service
-	userKey string
-	alias   string
-	opt_    map[string]interface{}
+	s             *Service
+	userKey       string
+	alias         string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Delete: Remove a alias for the user
-func (r *UsersAliasesService) Delete(userKey string, alias string) *UsersAliasesDeleteCall {
-	c := &UsersAliasesDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.userKey = userKey
-	c.alias = alias
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *UsersAliasesDeleteCall) Fields(s ...googleapi.Field) *UsersAliasesDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *UsersAliasesService) Delete(userKey string, alias string) *UsersAliasesDeleteCall {
+	return &UsersAliasesDeleteCall{
+		s:             r.s,
+		userKey:       userKey,
+		alias:         alias,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "users/{userKey}/aliases/{alias}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *UsersAliasesDeleteCall) Context(ctx context.Context) *UsersAliasesDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *UsersAliasesDeleteCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "users/{userKey}/aliases/{alias}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"userKey": c.userKey,
 		"alias":   c.alias,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Remove a alias for the user",
 	//   "httpMethod": "DELETE",
@@ -7180,17 +6738,30 @@ func (c *UsersAliasesDeleteCall) Do() error {
 // method id "directory.users.aliases.insert":
 
 type UsersAliasesInsertCall struct {
-	s       *Service
-	userKey string
-	alias   *Alias
-	opt_    map[string]interface{}
+	s             *Service
+	userKey       string
+	alias         *Alias
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Insert: Add a alias for the user
+
 func (r *UsersAliasesService) Insert(userKey string, alias *Alias) *UsersAliasesInsertCall {
-	c := &UsersAliasesInsertCall{s: r.s, opt_: make(map[string]interface{})}
-	c.userKey = userKey
-	c.alias = alias
+	return &UsersAliasesInsertCall{
+		s:             r.s,
+		userKey:       userKey,
+		alias:         alias,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "users/{userKey}/aliases",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *UsersAliasesInsertCall) Context(ctx context.Context) *UsersAliasesInsertCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -7198,43 +6769,24 @@ func (r *UsersAliasesService) Insert(userKey string, alias *Alias) *UsersAliases
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *UsersAliasesInsertCall) Fields(s ...googleapi.Field) *UsersAliasesInsertCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *UsersAliasesInsertCall) Do() (*Alias, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.alias)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "users/{userKey}/aliases")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Alias
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"userKey": c.userKey,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.alias,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Alias
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Add a alias for the user",
 	//   "httpMethod": "POST",
@@ -7268,22 +6820,35 @@ func (c *UsersAliasesInsertCall) Do() (*Alias, error) {
 // method id "directory.users.aliases.list":
 
 type UsersAliasesListCall struct {
-	s       *Service
-	userKey string
-	opt_    map[string]interface{}
+	s             *Service
+	userKey       string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: List all aliases for a user
+
 func (r *UsersAliasesService) List(userKey string) *UsersAliasesListCall {
-	c := &UsersAliasesListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.userKey = userKey
-	return c
+	return &UsersAliasesListCall{
+		s:             r.s,
+		userKey:       userKey,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "users/{userKey}/aliases",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Event sets the optional parameter "event": Event on which
 // subscription is intended (if subscribing)
 func (c *UsersAliasesListCall) Event(event string) *UsersAliasesListCall {
-	c.opt_["event"] = event
+	c.params_.Set("event", fmt.Sprintf("%v", event))
+	return c
+}
+func (c *UsersAliasesListCall) Context(ctx context.Context) *UsersAliasesListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -7291,40 +6856,23 @@ func (c *UsersAliasesListCall) Event(event string) *UsersAliasesListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *UsersAliasesListCall) Fields(s ...googleapi.Field) *UsersAliasesListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *UsersAliasesListCall) Do() (*Aliases, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["event"]; ok {
-		params.Set("event", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "users/{userKey}/aliases")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Aliases
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"userKey": c.userKey,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Aliases
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "List all aliases for a user",
 	//   "httpMethod": "GET",
@@ -7371,24 +6919,37 @@ func (c *UsersAliasesListCall) Do() (*Aliases, error) {
 // method id "directory.users.aliases.watch":
 
 type UsersAliasesWatchCall struct {
-	s       *Service
-	userKey string
-	channel *Channel
-	opt_    map[string]interface{}
+	s             *Service
+	userKey       string
+	channel       *Channel
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Watch: Watch for changes in user aliases list
+
 func (r *UsersAliasesService) Watch(userKey string, channel *Channel) *UsersAliasesWatchCall {
-	c := &UsersAliasesWatchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.userKey = userKey
-	c.channel = channel
-	return c
+	return &UsersAliasesWatchCall{
+		s:             r.s,
+		userKey:       userKey,
+		channel:       channel,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "users/{userKey}/aliases/watch",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Event sets the optional parameter "event": Event on which
 // subscription is intended (if subscribing)
 func (c *UsersAliasesWatchCall) Event(event string) *UsersAliasesWatchCall {
-	c.opt_["event"] = event
+	c.params_.Set("event", fmt.Sprintf("%v", event))
+	return c
+}
+func (c *UsersAliasesWatchCall) Context(ctx context.Context) *UsersAliasesWatchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -7396,46 +6957,24 @@ func (c *UsersAliasesWatchCall) Event(event string) *UsersAliasesWatchCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *UsersAliasesWatchCall) Fields(s ...googleapi.Field) *UsersAliasesWatchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *UsersAliasesWatchCall) Do() (*Channel, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.channel)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["event"]; ok {
-		params.Set("event", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "users/{userKey}/aliases/watch")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Channel
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"userKey": c.userKey,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.channel,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Channel
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Watch for changes in user aliases list",
 	//   "httpMethod": "POST",
@@ -7486,49 +7025,42 @@ func (c *UsersAliasesWatchCall) Do() (*Channel, error) {
 // method id "directory.users.photos.delete":
 
 type UsersPhotosDeleteCall struct {
-	s       *Service
-	userKey string
-	opt_    map[string]interface{}
+	s             *Service
+	userKey       string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Delete: Remove photos for the user
-func (r *UsersPhotosService) Delete(userKey string) *UsersPhotosDeleteCall {
-	c := &UsersPhotosDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.userKey = userKey
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *UsersPhotosDeleteCall) Fields(s ...googleapi.Field) *UsersPhotosDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *UsersPhotosService) Delete(userKey string) *UsersPhotosDeleteCall {
+	return &UsersPhotosDeleteCall{
+		s:             r.s,
+		userKey:       userKey,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "users/{userKey}/photos/thumbnail",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *UsersPhotosDeleteCall) Context(ctx context.Context) *UsersPhotosDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *UsersPhotosDeleteCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "users/{userKey}/photos/thumbnail")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"userKey": c.userKey,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Remove photos for the user",
 	//   "httpMethod": "DELETE",
@@ -7555,15 +7087,28 @@ func (c *UsersPhotosDeleteCall) Do() error {
 // method id "directory.users.photos.get":
 
 type UsersPhotosGetCall struct {
-	s       *Service
-	userKey string
-	opt_    map[string]interface{}
+	s             *Service
+	userKey       string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Retrieve photo of a user
+
 func (r *UsersPhotosService) Get(userKey string) *UsersPhotosGetCall {
-	c := &UsersPhotosGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.userKey = userKey
+	return &UsersPhotosGetCall{
+		s:             r.s,
+		userKey:       userKey,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "users/{userKey}/photos/thumbnail",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *UsersPhotosGetCall) Context(ctx context.Context) *UsersPhotosGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -7571,37 +7116,23 @@ func (r *UsersPhotosService) Get(userKey string) *UsersPhotosGetCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *UsersPhotosGetCall) Fields(s ...googleapi.Field) *UsersPhotosGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *UsersPhotosGetCall) Do() (*UserPhoto, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "users/{userKey}/photos/thumbnail")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *UserPhoto
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"userKey": c.userKey,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *UserPhoto
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieve photo of a user",
 	//   "httpMethod": "GET",
@@ -7632,18 +7163,31 @@ func (c *UsersPhotosGetCall) Do() (*UserPhoto, error) {
 // method id "directory.users.photos.patch":
 
 type UsersPhotosPatchCall struct {
-	s         *Service
-	userKey   string
-	userphoto *UserPhoto
-	opt_      map[string]interface{}
+	s             *Service
+	userKey       string
+	userphoto     *UserPhoto
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Patch: Add a photo for the user. This method supports patch
 // semantics.
+
 func (r *UsersPhotosService) Patch(userKey string, userphoto *UserPhoto) *UsersPhotosPatchCall {
-	c := &UsersPhotosPatchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.userKey = userKey
-	c.userphoto = userphoto
+	return &UsersPhotosPatchCall{
+		s:             r.s,
+		userKey:       userKey,
+		userphoto:     userphoto,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "users/{userKey}/photos/thumbnail",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *UsersPhotosPatchCall) Context(ctx context.Context) *UsersPhotosPatchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -7651,43 +7195,24 @@ func (r *UsersPhotosService) Patch(userKey string, userphoto *UserPhoto) *UsersP
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *UsersPhotosPatchCall) Fields(s ...googleapi.Field) *UsersPhotosPatchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *UsersPhotosPatchCall) Do() (*UserPhoto, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.userphoto)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "users/{userKey}/photos/thumbnail")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PATCH", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *UserPhoto
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"userKey": c.userKey,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PATCH",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.userphoto,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *UserPhoto
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Add a photo for the user. This method supports patch semantics.",
 	//   "httpMethod": "PATCH",
@@ -7720,17 +7245,30 @@ func (c *UsersPhotosPatchCall) Do() (*UserPhoto, error) {
 // method id "directory.users.photos.update":
 
 type UsersPhotosUpdateCall struct {
-	s         *Service
-	userKey   string
-	userphoto *UserPhoto
-	opt_      map[string]interface{}
+	s             *Service
+	userKey       string
+	userphoto     *UserPhoto
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Update: Add a photo for the user
+
 func (r *UsersPhotosService) Update(userKey string, userphoto *UserPhoto) *UsersPhotosUpdateCall {
-	c := &UsersPhotosUpdateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.userKey = userKey
-	c.userphoto = userphoto
+	return &UsersPhotosUpdateCall{
+		s:             r.s,
+		userKey:       userKey,
+		userphoto:     userphoto,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "users/{userKey}/photos/thumbnail",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *UsersPhotosUpdateCall) Context(ctx context.Context) *UsersPhotosUpdateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -7738,43 +7276,24 @@ func (r *UsersPhotosService) Update(userKey string, userphoto *UserPhoto) *Users
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *UsersPhotosUpdateCall) Fields(s ...googleapi.Field) *UsersPhotosUpdateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *UsersPhotosUpdateCall) Do() (*UserPhoto, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.userphoto)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "users/{userKey}/photos/thumbnail")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *UserPhoto
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"userKey": c.userKey,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.userphoto,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *UserPhoto
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Add a photo for the user",
 	//   "httpMethod": "PUT",
@@ -7807,49 +7326,42 @@ func (c *UsersPhotosUpdateCall) Do() (*UserPhoto, error) {
 // method id "directory.verificationCodes.generate":
 
 type VerificationCodesGenerateCall struct {
-	s       *Service
-	userKey string
-	opt_    map[string]interface{}
+	s             *Service
+	userKey       string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Generate: Generate new backup verification codes for the user.
-func (r *VerificationCodesService) Generate(userKey string) *VerificationCodesGenerateCall {
-	c := &VerificationCodesGenerateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.userKey = userKey
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *VerificationCodesGenerateCall) Fields(s ...googleapi.Field) *VerificationCodesGenerateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *VerificationCodesService) Generate(userKey string) *VerificationCodesGenerateCall {
+	return &VerificationCodesGenerateCall{
+		s:             r.s,
+		userKey:       userKey,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "users/{userKey}/verificationCodes/generate",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *VerificationCodesGenerateCall) Context(ctx context.Context) *VerificationCodesGenerateCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *VerificationCodesGenerateCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "users/{userKey}/verificationCodes/generate")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"userKey": c.userKey,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "POST",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Generate new backup verification codes for the user.",
 	//   "httpMethod": "POST",
@@ -7876,50 +7388,43 @@ func (c *VerificationCodesGenerateCall) Do() error {
 // method id "directory.verificationCodes.invalidate":
 
 type VerificationCodesInvalidateCall struct {
-	s       *Service
-	userKey string
-	opt_    map[string]interface{}
+	s             *Service
+	userKey       string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Invalidate: Invalidate the current backup verification codes for the
 // user.
-func (r *VerificationCodesService) Invalidate(userKey string) *VerificationCodesInvalidateCall {
-	c := &VerificationCodesInvalidateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.userKey = userKey
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *VerificationCodesInvalidateCall) Fields(s ...googleapi.Field) *VerificationCodesInvalidateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *VerificationCodesService) Invalidate(userKey string) *VerificationCodesInvalidateCall {
+	return &VerificationCodesInvalidateCall{
+		s:             r.s,
+		userKey:       userKey,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "users/{userKey}/verificationCodes/invalidate",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *VerificationCodesInvalidateCall) Context(ctx context.Context) *VerificationCodesInvalidateCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *VerificationCodesInvalidateCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "users/{userKey}/verificationCodes/invalidate")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"userKey": c.userKey,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "POST",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Invalidate the current backup verification codes for the user.",
 	//   "httpMethod": "POST",
@@ -7946,16 +7451,29 @@ func (c *VerificationCodesInvalidateCall) Do() error {
 // method id "directory.verificationCodes.list":
 
 type VerificationCodesListCall struct {
-	s       *Service
-	userKey string
-	opt_    map[string]interface{}
+	s             *Service
+	userKey       string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Returns the current set of valid backup verification codes for
 // the specified user.
+
 func (r *VerificationCodesService) List(userKey string) *VerificationCodesListCall {
-	c := &VerificationCodesListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.userKey = userKey
+	return &VerificationCodesListCall{
+		s:             r.s,
+		userKey:       userKey,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "users/{userKey}/verificationCodes",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *VerificationCodesListCall) Context(ctx context.Context) *VerificationCodesListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -7963,37 +7481,23 @@ func (r *VerificationCodesService) List(userKey string) *VerificationCodesListCa
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *VerificationCodesListCall) Fields(s ...googleapi.Field) *VerificationCodesListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *VerificationCodesListCall) Do() (*VerificationCodes, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "users/{userKey}/verificationCodes")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *VerificationCodes
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"userKey": c.userKey,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *VerificationCodes
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Returns the current set of valid backup verification codes for the specified user.",
 	//   "httpMethod": "GET",

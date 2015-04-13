@@ -4,18 +4,16 @@
 //
 // Usage example:
 //
-//   import "google.golang.org/api/doubleclickbidmanager/v1"
+//   import "github.com/jfcote87/api2/doubleclickbidmanager/v1"
 //   ...
 //   doubleclickbidmanagerService, err := doubleclickbidmanager.New(oauthHttpClient)
 package doubleclickbidmanager
 
 import (
-	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/jfcote87/api2/googleapi"
 	"golang.org/x/net/context"
-	"google.golang.org/api/googleapi"
 	"io"
 	"net/http"
 	"net/url"
@@ -25,10 +23,8 @@ import (
 
 // Always reference these packages, just in case the auto-generated code
 // below doesn't.
-var _ = bytes.NewBuffer
 var _ = strconv.Itoa
 var _ = fmt.Sprintf
-var _ = json.NewDecoder
 var _ = io.Copy
 var _ = url.Parse
 var _ = googleapi.Version
@@ -39,13 +35,14 @@ var _ = context.Background
 const apiId = "doubleclickbidmanager:v1"
 const apiName = "doubleclickbidmanager"
 const apiVersion = "v1"
-const basePath = "https://www.googleapis.com/doubleclickbidmanager/v1/"
+
+var baseURL *url.URL = &url.URL{Scheme: "https", Host: "www.googleapis.com", Path: "/doubleclickbidmanager/v1/"}
 
 func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
+	s := &Service{client: client}
 	s.Lineitems = NewLineitemsService(s)
 	s.Queries = NewQueriesService(s)
 	s.Reports = NewReportsService(s)
@@ -53,22 +50,13 @@ func New(client *http.Client) (*Service, error) {
 }
 
 type Service struct {
-	client    *http.Client
-	BasePath  string // API endpoint base URL
-	UserAgent string // optional additional User-Agent fragment
+	client *http.Client
 
 	Lineitems *LineitemsService
 
 	Queries *QueriesService
 
 	Reports *ReportsService
-}
-
-func (s *Service) userAgent() string {
-	if s.UserAgent == "" {
-		return googleapi.UserAgent
-	}
-	return googleapi.UserAgent + " " + s.UserAgent
 }
 
 func NewLineitemsService(s *Service) *LineitemsService {
@@ -384,13 +372,26 @@ type UploadStatus struct {
 type LineitemsDownloadlineitemsCall struct {
 	s                        *Service
 	downloadlineitemsrequest *DownloadLineItemsRequest
-	opt_                     map[string]interface{}
+	caller_                  googleapi.Caller
+	params_                  url.Values
+	pathTemplate_            string
+	context_                 context.Context
 }
 
 // Downloadlineitems: Retrieves line items in CSV format.
+
 func (r *LineitemsService) Downloadlineitems(downloadlineitemsrequest *DownloadLineItemsRequest) *LineitemsDownloadlineitemsCall {
-	c := &LineitemsDownloadlineitemsCall{s: r.s, opt_: make(map[string]interface{})}
-	c.downloadlineitemsrequest = downloadlineitemsrequest
+	return &LineitemsDownloadlineitemsCall{
+		s: r.s,
+		downloadlineitemsrequest: downloadlineitemsrequest,
+		caller_:                  googleapi.JSONCall{},
+		params_:                  make(map[string][]string),
+		pathTemplate_:            "lineitems/downloadlineitems",
+		context_:                 googleapi.NoContext,
+	}
+}
+func (c *LineitemsDownloadlineitemsCall) Context(ctx context.Context) *LineitemsDownloadlineitemsCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -398,41 +399,22 @@ func (r *LineitemsService) Downloadlineitems(downloadlineitemsrequest *DownloadL
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *LineitemsDownloadlineitemsCall) Fields(s ...googleapi.Field) *LineitemsDownloadlineitemsCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *LineitemsDownloadlineitemsCall) Do() (*DownloadLineItemsResponse, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.downloadlineitemsrequest)
-	if err != nil {
-		return nil, err
+	var returnValue *DownloadLineItemsResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.downloadlineitemsrequest,
+		Result:  &returnValue,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "lineitems/downloadlineitems")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *DownloadLineItemsResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves line items in CSV format.",
 	//   "httpMethod": "POST",
@@ -453,13 +435,26 @@ func (c *LineitemsDownloadlineitemsCall) Do() (*DownloadLineItemsResponse, error
 type LineitemsUploadlineitemsCall struct {
 	s                      *Service
 	uploadlineitemsrequest *UploadLineItemsRequest
-	opt_                   map[string]interface{}
+	caller_                googleapi.Caller
+	params_                url.Values
+	pathTemplate_          string
+	context_               context.Context
 }
 
 // Uploadlineitems: Uploads line items in CSV format.
+
 func (r *LineitemsService) Uploadlineitems(uploadlineitemsrequest *UploadLineItemsRequest) *LineitemsUploadlineitemsCall {
-	c := &LineitemsUploadlineitemsCall{s: r.s, opt_: make(map[string]interface{})}
-	c.uploadlineitemsrequest = uploadlineitemsrequest
+	return &LineitemsUploadlineitemsCall{
+		s: r.s,
+		uploadlineitemsrequest: uploadlineitemsrequest,
+		caller_:                googleapi.JSONCall{},
+		params_:                make(map[string][]string),
+		pathTemplate_:          "lineitems/uploadlineitems",
+		context_:               googleapi.NoContext,
+	}
+}
+func (c *LineitemsUploadlineitemsCall) Context(ctx context.Context) *LineitemsUploadlineitemsCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -467,41 +462,22 @@ func (r *LineitemsService) Uploadlineitems(uploadlineitemsrequest *UploadLineIte
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *LineitemsUploadlineitemsCall) Fields(s ...googleapi.Field) *LineitemsUploadlineitemsCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *LineitemsUploadlineitemsCall) Do() (*UploadLineItemsResponse, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.uploadlineitemsrequest)
-	if err != nil {
-		return nil, err
+	var returnValue *UploadLineItemsResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.uploadlineitemsrequest,
+		Result:  &returnValue,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "lineitems/uploadlineitems")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *UploadLineItemsResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Uploads line items in CSV format.",
 	//   "httpMethod": "POST",
@@ -520,15 +496,28 @@ func (c *LineitemsUploadlineitemsCall) Do() (*UploadLineItemsResponse, error) {
 // method id "doubleclickbidmanager.queries.createquery":
 
 type QueriesCreatequeryCall struct {
-	s     *Service
-	query *Query
-	opt_  map[string]interface{}
+	s             *Service
+	query         *Query
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Createquery: Creates a query.
+
 func (r *QueriesService) Createquery(query *Query) *QueriesCreatequeryCall {
-	c := &QueriesCreatequeryCall{s: r.s, opt_: make(map[string]interface{})}
-	c.query = query
+	return &QueriesCreatequeryCall{
+		s:             r.s,
+		query:         query,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "query",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *QueriesCreatequeryCall) Context(ctx context.Context) *QueriesCreatequeryCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -536,41 +525,22 @@ func (r *QueriesService) Createquery(query *Query) *QueriesCreatequeryCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *QueriesCreatequeryCall) Fields(s ...googleapi.Field) *QueriesCreatequeryCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *QueriesCreatequeryCall) Do() (*Query, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.query)
-	if err != nil {
-		return nil, err
+	var returnValue *Query
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.query,
+		Result:  &returnValue,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "query")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Query
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Creates a query.",
 	//   "httpMethod": "POST",
@@ -589,50 +559,43 @@ func (c *QueriesCreatequeryCall) Do() (*Query, error) {
 // method id "doubleclickbidmanager.queries.deletequery":
 
 type QueriesDeletequeryCall struct {
-	s       *Service
-	queryId int64
-	opt_    map[string]interface{}
+	s             *Service
+	queryId       int64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Deletequery: Deletes a stored query as well as the associated stored
 // reports.
-func (r *QueriesService) Deletequery(queryId int64) *QueriesDeletequeryCall {
-	c := &QueriesDeletequeryCall{s: r.s, opt_: make(map[string]interface{})}
-	c.queryId = queryId
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *QueriesDeletequeryCall) Fields(s ...googleapi.Field) *QueriesDeletequeryCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *QueriesService) Deletequery(queryId int64) *QueriesDeletequeryCall {
+	return &QueriesDeletequeryCall{
+		s:             r.s,
+		queryId:       queryId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "query/{queryId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *QueriesDeletequeryCall) Context(ctx context.Context) *QueriesDeletequeryCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *QueriesDeletequeryCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "query/{queryId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"queryId": strconv.FormatInt(c.queryId, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Deletes a stored query as well as the associated stored reports.",
 	//   "httpMethod": "DELETE",
@@ -657,15 +620,28 @@ func (c *QueriesDeletequeryCall) Do() error {
 // method id "doubleclickbidmanager.queries.getquery":
 
 type QueriesGetqueryCall struct {
-	s       *Service
-	queryId int64
-	opt_    map[string]interface{}
+	s             *Service
+	queryId       int64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Getquery: Retrieves a stored query.
+
 func (r *QueriesService) Getquery(queryId int64) *QueriesGetqueryCall {
-	c := &QueriesGetqueryCall{s: r.s, opt_: make(map[string]interface{})}
-	c.queryId = queryId
+	return &QueriesGetqueryCall{
+		s:             r.s,
+		queryId:       queryId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "query/{queryId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *QueriesGetqueryCall) Context(ctx context.Context) *QueriesGetqueryCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -673,37 +649,23 @@ func (r *QueriesService) Getquery(queryId int64) *QueriesGetqueryCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *QueriesGetqueryCall) Fields(s ...googleapi.Field) *QueriesGetqueryCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *QueriesGetqueryCall) Do() (*Query, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "query/{queryId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Query
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"queryId": strconv.FormatInt(c.queryId, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Query
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves a stored query.",
 	//   "httpMethod": "GET",
@@ -731,13 +693,26 @@ func (c *QueriesGetqueryCall) Do() (*Query, error) {
 // method id "doubleclickbidmanager.queries.listqueries":
 
 type QueriesListqueriesCall struct {
-	s    *Service
-	opt_ map[string]interface{}
+	s             *Service
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Listqueries: Retrieves stored queries.
+
 func (r *QueriesService) Listqueries() *QueriesListqueriesCall {
-	c := &QueriesListqueriesCall{s: r.s, opt_: make(map[string]interface{})}
+	return &QueriesListqueriesCall{
+		s:             r.s,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "queries",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *QueriesListqueriesCall) Context(ctx context.Context) *QueriesListqueriesCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -745,35 +720,21 @@ func (r *QueriesService) Listqueries() *QueriesListqueriesCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *QueriesListqueriesCall) Fields(s ...googleapi.Field) *QueriesListqueriesCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *QueriesListqueriesCall) Do() (*ListQueriesResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
+	var returnValue *ListQueriesResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "queries")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ListQueriesResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves stored queries.",
 	//   "httpMethod": "GET",
@@ -792,54 +753,42 @@ type QueriesRunqueryCall struct {
 	s               *Service
 	queryId         int64
 	runqueryrequest *RunQueryRequest
-	opt_            map[string]interface{}
+	caller_         googleapi.Caller
+	params_         url.Values
+	pathTemplate_   string
+	context_        context.Context
 }
 
 // Runquery: Runs a stored query to generate a report.
-func (r *QueriesService) Runquery(queryId int64, runqueryrequest *RunQueryRequest) *QueriesRunqueryCall {
-	c := &QueriesRunqueryCall{s: r.s, opt_: make(map[string]interface{})}
-	c.queryId = queryId
-	c.runqueryrequest = runqueryrequest
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *QueriesRunqueryCall) Fields(s ...googleapi.Field) *QueriesRunqueryCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *QueriesService) Runquery(queryId int64, runqueryrequest *RunQueryRequest) *QueriesRunqueryCall {
+	return &QueriesRunqueryCall{
+		s:               r.s,
+		queryId:         queryId,
+		runqueryrequest: runqueryrequest,
+		caller_:         googleapi.JSONCall{},
+		params_:         make(map[string][]string),
+		pathTemplate_:   "query/{queryId}",
+		context_:        googleapi.NoContext,
+	}
+}
+func (c *QueriesRunqueryCall) Context(ctx context.Context) *QueriesRunqueryCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *QueriesRunqueryCall) Do() error {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.runqueryrequest)
-	if err != nil {
-		return err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "query/{queryId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"queryId": strconv.FormatInt(c.queryId, 10),
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.runqueryrequest,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Runs a stored query to generate a report.",
 	//   "httpMethod": "POST",
@@ -867,15 +816,28 @@ func (c *QueriesRunqueryCall) Do() error {
 // method id "doubleclickbidmanager.reports.listreports":
 
 type ReportsListreportsCall struct {
-	s       *Service
-	queryId int64
-	opt_    map[string]interface{}
+	s             *Service
+	queryId       int64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Listreports: Retrieves stored reports.
+
 func (r *ReportsService) Listreports(queryId int64) *ReportsListreportsCall {
-	c := &ReportsListreportsCall{s: r.s, opt_: make(map[string]interface{})}
-	c.queryId = queryId
+	return &ReportsListreportsCall{
+		s:             r.s,
+		queryId:       queryId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "queries/{queryId}/reports",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *ReportsListreportsCall) Context(ctx context.Context) *ReportsListreportsCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -883,37 +845,23 @@ func (r *ReportsService) Listreports(queryId int64) *ReportsListreportsCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ReportsListreportsCall) Fields(s ...googleapi.Field) *ReportsListreportsCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ReportsListreportsCall) Do() (*ListReportsResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "queries/{queryId}/reports")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *ListReportsResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"queryId": strconv.FormatInt(c.queryId, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ListReportsResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves stored reports.",
 	//   "httpMethod": "GET",

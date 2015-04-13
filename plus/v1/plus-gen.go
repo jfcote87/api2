@@ -4,18 +4,16 @@
 //
 // Usage example:
 //
-//   import "google.golang.org/api/plus/v1"
+//   import "github.com/jfcote87/api2/plus/v1"
 //   ...
 //   plusService, err := plus.New(oauthHttpClient)
 package plus
 
 import (
-	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/jfcote87/api2/googleapi"
 	"golang.org/x/net/context"
-	"google.golang.org/api/googleapi"
 	"io"
 	"net/http"
 	"net/url"
@@ -25,10 +23,8 @@ import (
 
 // Always reference these packages, just in case the auto-generated code
 // below doesn't.
-var _ = bytes.NewBuffer
 var _ = strconv.Itoa
 var _ = fmt.Sprintf
-var _ = json.NewDecoder
 var _ = io.Copy
 var _ = url.Parse
 var _ = googleapi.Version
@@ -39,7 +35,8 @@ var _ = context.Background
 const apiId = "plus:v1"
 const apiName = "plus"
 const apiVersion = "v1"
-const basePath = "https://www.googleapis.com/plus/v1/"
+
+var baseURL *url.URL = &url.URL{Scheme: "https", Host: "www.googleapis.com", Path: "/plus/v1/"}
 
 // OAuth2 scopes used by this API.
 const (
@@ -60,7 +57,7 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
+	s := &Service{client: client}
 	s.Activities = NewActivitiesService(s)
 	s.Comments = NewCommentsService(s)
 	s.Moments = NewMomentsService(s)
@@ -69,9 +66,7 @@ func New(client *http.Client) (*Service, error) {
 }
 
 type Service struct {
-	client    *http.Client
-	BasePath  string // API endpoint base URL
-	UserAgent string // optional additional User-Agent fragment
+	client *http.Client
 
 	Activities *ActivitiesService
 
@@ -80,13 +75,6 @@ type Service struct {
 	Moments *MomentsService
 
 	People *PeopleService
-}
-
-func (s *Service) userAgent() string {
-	if s.UserAgent == "" {
-		return googleapi.UserAgent
-	}
-	return googleapi.UserAgent + " " + s.UserAgent
 }
 
 func NewActivitiesService(s *Service) *ActivitiesService {
@@ -1242,15 +1230,28 @@ type PlusAclentryResource struct {
 // method id "plus.activities.get":
 
 type ActivitiesGetCall struct {
-	s          *Service
-	activityId string
-	opt_       map[string]interface{}
+	s             *Service
+	activityId    string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Get an activity.
+
 func (r *ActivitiesService) Get(activityId string) *ActivitiesGetCall {
-	c := &ActivitiesGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.activityId = activityId
+	return &ActivitiesGetCall{
+		s:             r.s,
+		activityId:    activityId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "activities/{activityId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *ActivitiesGetCall) Context(ctx context.Context) *ActivitiesGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1258,37 +1259,23 @@ func (r *ActivitiesService) Get(activityId string) *ActivitiesGetCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ActivitiesGetCall) Fields(s ...googleapi.Field) *ActivitiesGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ActivitiesGetCall) Do() (*Activity, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "activities/{activityId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Activity
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"activityId": c.activityId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Activity
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Get an activity.",
 	//   "httpMethod": "GET",
@@ -1319,19 +1306,28 @@ func (c *ActivitiesGetCall) Do() (*Activity, error) {
 // method id "plus.activities.list":
 
 type ActivitiesListCall struct {
-	s          *Service
-	userId     string
-	collection string
-	opt_       map[string]interface{}
+	s             *Service
+	userId        string
+	collection    string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: List all of the activities in the specified collection for a
 // particular user.
+
 func (r *ActivitiesService) List(userId string, collection string) *ActivitiesListCall {
-	c := &ActivitiesListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.userId = userId
-	c.collection = collection
-	return c
+	return &ActivitiesListCall{
+		s:             r.s,
+		userId:        userId,
+		collection:    collection,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "people/{userId}/activities/{collection}",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // MaxResults sets the optional parameter "maxResults": The maximum
@@ -1339,7 +1335,7 @@ func (r *ActivitiesService) List(userId string, collection string) *ActivitiesLi
 // paging. For any response, the actual number returned might be less
 // than the specified maxResults.
 func (c *ActivitiesListCall) MaxResults(maxResults int64) *ActivitiesListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
@@ -1348,7 +1344,11 @@ func (c *ActivitiesListCall) MaxResults(maxResults int64) *ActivitiesListCall {
 // next page of results, set this parameter to the value of
 // "nextPageToken" from the previous response.
 func (c *ActivitiesListCall) PageToken(pageToken string) *ActivitiesListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
+	return c
+}
+func (c *ActivitiesListCall) Context(ctx context.Context) *ActivitiesListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1356,44 +1356,24 @@ func (c *ActivitiesListCall) PageToken(pageToken string) *ActivitiesListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ActivitiesListCall) Fields(s ...googleapi.Field) *ActivitiesListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ActivitiesListCall) Do() (*ActivityFeed, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "people/{userId}/activities/{collection}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *ActivityFeed
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"userId":     c.userId,
 		"collection": c.collection,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ActivityFeed
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "List all of the activities in the specified collection for a particular user.",
 	//   "httpMethod": "GET",
@@ -1451,23 +1431,32 @@ func (c *ActivitiesListCall) Do() (*ActivityFeed, error) {
 // method id "plus.activities.search":
 
 type ActivitiesSearchCall struct {
-	s     *Service
-	query string
-	opt_  map[string]interface{}
+	s             *Service
+	query         string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Search: Search public activities.
+
 func (r *ActivitiesService) Search(query string) *ActivitiesSearchCall {
-	c := &ActivitiesSearchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.query = query
-	return c
+	return &ActivitiesSearchCall{
+		s:             r.s,
+		query:         query,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "activities",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Language sets the optional parameter "language": Specify the
 // preferred language to search with. See search language codes for
 // available values.
 func (c *ActivitiesSearchCall) Language(language string) *ActivitiesSearchCall {
-	c.opt_["language"] = language
+	c.params_.Set("language", fmt.Sprintf("%v", language))
 	return c
 }
 
@@ -1476,14 +1465,14 @@ func (c *ActivitiesSearchCall) Language(language string) *ActivitiesSearchCall {
 // paging. For any response, the actual number returned might be less
 // than the specified maxResults.
 func (c *ActivitiesSearchCall) MaxResults(maxResults int64) *ActivitiesSearchCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
 // OrderBy sets the optional parameter "orderBy": Specifies how to order
 // search results.
 func (c *ActivitiesSearchCall) OrderBy(orderBy string) *ActivitiesSearchCall {
-	c.opt_["orderBy"] = orderBy
+	c.params_.Set("orderBy", fmt.Sprintf("%v", orderBy))
 	return c
 }
 
@@ -1493,7 +1482,11 @@ func (c *ActivitiesSearchCall) OrderBy(orderBy string) *ActivitiesSearchCall {
 // "nextPageToken" from the previous response. This token can be of any
 // length.
 func (c *ActivitiesSearchCall) PageToken(pageToken string) *ActivitiesSearchCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
+	return c
+}
+func (c *ActivitiesSearchCall) Context(ctx context.Context) *ActivitiesSearchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1501,48 +1494,22 @@ func (c *ActivitiesSearchCall) PageToken(pageToken string) *ActivitiesSearchCall
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ActivitiesSearchCall) Fields(s ...googleapi.Field) *ActivitiesSearchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ActivitiesSearchCall) Do() (*ActivityFeed, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("query", fmt.Sprintf("%v", c.query))
-	if v, ok := c.opt_["language"]; ok {
-		params.Set("language", fmt.Sprintf("%v", v))
+	var returnValue *ActivityFeed
+	c.params_.Set("query", fmt.Sprintf("%v", c.query))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["orderBy"]; ok {
-		params.Set("orderBy", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "activities")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ActivityFeed
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Search public activities.",
 	//   "httpMethod": "GET",
@@ -1607,15 +1574,28 @@ func (c *ActivitiesSearchCall) Do() (*ActivityFeed, error) {
 // method id "plus.comments.get":
 
 type CommentsGetCall struct {
-	s         *Service
-	commentId string
-	opt_      map[string]interface{}
+	s             *Service
+	commentId     string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Get a comment.
+
 func (r *CommentsService) Get(commentId string) *CommentsGetCall {
-	c := &CommentsGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.commentId = commentId
+	return &CommentsGetCall{
+		s:             r.s,
+		commentId:     commentId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "comments/{commentId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *CommentsGetCall) Context(ctx context.Context) *CommentsGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1623,37 +1603,23 @@ func (r *CommentsService) Get(commentId string) *CommentsGetCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *CommentsGetCall) Fields(s ...googleapi.Field) *CommentsGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *CommentsGetCall) Do() (*Comment, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "comments/{commentId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Comment
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"commentId": c.commentId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Comment
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Get a comment.",
 	//   "httpMethod": "GET",
@@ -1684,16 +1650,25 @@ func (c *CommentsGetCall) Do() (*Comment, error) {
 // method id "plus.comments.list":
 
 type CommentsListCall struct {
-	s          *Service
-	activityId string
-	opt_       map[string]interface{}
+	s             *Service
+	activityId    string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: List all of the comments for an activity.
+
 func (r *CommentsService) List(activityId string) *CommentsListCall {
-	c := &CommentsListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.activityId = activityId
-	return c
+	return &CommentsListCall{
+		s:             r.s,
+		activityId:    activityId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "activities/{activityId}/comments",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // MaxResults sets the optional parameter "maxResults": The maximum
@@ -1701,7 +1676,7 @@ func (r *CommentsService) List(activityId string) *CommentsListCall {
 // paging. For any response, the actual number returned might be less
 // than the specified maxResults.
 func (c *CommentsListCall) MaxResults(maxResults int64) *CommentsListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
@@ -1710,14 +1685,18 @@ func (c *CommentsListCall) MaxResults(maxResults int64) *CommentsListCall {
 // next page of results, set this parameter to the value of
 // "nextPageToken" from the previous response.
 func (c *CommentsListCall) PageToken(pageToken string) *CommentsListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
 	return c
 }
 
 // SortOrder sets the optional parameter "sortOrder": The order in which
 // to sort the list of comments.
 func (c *CommentsListCall) SortOrder(sortOrder string) *CommentsListCall {
-	c.opt_["sortOrder"] = sortOrder
+	c.params_.Set("sortOrder", fmt.Sprintf("%v", sortOrder))
+	return c
+}
+func (c *CommentsListCall) Context(ctx context.Context) *CommentsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1725,46 +1704,23 @@ func (c *CommentsListCall) SortOrder(sortOrder string) *CommentsListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *CommentsListCall) Fields(s ...googleapi.Field) *CommentsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *CommentsListCall) Do() (*CommentFeed, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["sortOrder"]; ok {
-		params.Set("sortOrder", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "activities/{activityId}/comments")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *CommentFeed
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"activityId": c.activityId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *CommentFeed
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "List all of the comments for an activity.",
 	//   "httpMethod": "GET",
@@ -1823,27 +1779,40 @@ func (c *CommentsListCall) Do() (*CommentFeed, error) {
 // method id "plus.moments.insert":
 
 type MomentsInsertCall struct {
-	s          *Service
-	userId     string
-	collection string
-	moment     *Moment
-	opt_       map[string]interface{}
+	s             *Service
+	userId        string
+	collection    string
+	moment        *Moment
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Insert: Record a moment representing a user's action such as making a
 // purchase or commenting on a blog.
+
 func (r *MomentsService) Insert(userId string, collection string, moment *Moment) *MomentsInsertCall {
-	c := &MomentsInsertCall{s: r.s, opt_: make(map[string]interface{})}
-	c.userId = userId
-	c.collection = collection
-	c.moment = moment
-	return c
+	return &MomentsInsertCall{
+		s:             r.s,
+		userId:        userId,
+		collection:    collection,
+		moment:        moment,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "people/{userId}/moments/{collection}",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Debug sets the optional parameter "debug": Return the moment as
 // written. Should be used only for debugging.
 func (c *MomentsInsertCall) Debug(debug bool) *MomentsInsertCall {
-	c.opt_["debug"] = debug
+	c.params_.Set("debug", fmt.Sprintf("%v", debug))
+	return c
+}
+func (c *MomentsInsertCall) Context(ctx context.Context) *MomentsInsertCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1851,47 +1820,25 @@ func (c *MomentsInsertCall) Debug(debug bool) *MomentsInsertCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *MomentsInsertCall) Fields(s ...googleapi.Field) *MomentsInsertCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *MomentsInsertCall) Do() (*Moment, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.moment)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["debug"]; ok {
-		params.Set("debug", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "people/{userId}/moments/{collection}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Moment
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"userId":     c.userId,
 		"collection": c.collection,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.moment,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Moment
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Record a moment representing a user's action such as making a purchase or commenting on a blog.",
 	//   "httpMethod": "POST",
@@ -1943,18 +1890,27 @@ func (c *MomentsInsertCall) Do() (*Moment, error) {
 // method id "plus.moments.list":
 
 type MomentsListCall struct {
-	s          *Service
-	userId     string
-	collection string
-	opt_       map[string]interface{}
+	s             *Service
+	userId        string
+	collection    string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: List all of the moments for a particular user.
+
 func (r *MomentsService) List(userId string, collection string) *MomentsListCall {
-	c := &MomentsListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.userId = userId
-	c.collection = collection
-	return c
+	return &MomentsListCall{
+		s:             r.s,
+		userId:        userId,
+		collection:    collection,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "people/{userId}/moments/{collection}",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // MaxResults sets the optional parameter "maxResults": The maximum
@@ -1962,7 +1918,7 @@ func (r *MomentsService) List(userId string, collection string) *MomentsListCall
 // paging. For any response, the actual number returned might be less
 // than the specified maxResults.
 func (c *MomentsListCall) MaxResults(maxResults int64) *MomentsListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
@@ -1971,21 +1927,25 @@ func (c *MomentsListCall) MaxResults(maxResults int64) *MomentsListCall {
 // next page of results, set this parameter to the value of
 // "nextPageToken" from the previous response.
 func (c *MomentsListCall) PageToken(pageToken string) *MomentsListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
 	return c
 }
 
 // TargetUrl sets the optional parameter "targetUrl": Only moments
 // containing this targetUrl will be returned.
 func (c *MomentsListCall) TargetUrl(targetUrl string) *MomentsListCall {
-	c.opt_["targetUrl"] = targetUrl
+	c.params_.Set("targetUrl", fmt.Sprintf("%v", targetUrl))
 	return c
 }
 
 // Type sets the optional parameter "type": Only moments of this type
 // will be returned.
 func (c *MomentsListCall) Type(type_ string) *MomentsListCall {
-	c.opt_["type"] = type_
+	c.params_.Set("type", fmt.Sprintf("%v", type_))
+	return c
+}
+func (c *MomentsListCall) Context(ctx context.Context) *MomentsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1993,50 +1953,24 @@ func (c *MomentsListCall) Type(type_ string) *MomentsListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *MomentsListCall) Fields(s ...googleapi.Field) *MomentsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *MomentsListCall) Do() (*MomentsFeed, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["targetUrl"]; ok {
-		params.Set("targetUrl", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["type"]; ok {
-		params.Set("type", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "people/{userId}/moments/{collection}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *MomentsFeed
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"userId":     c.userId,
 		"collection": c.collection,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *MomentsFeed
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "List all of the moments for a particular user.",
 	//   "httpMethod": "GET",
@@ -2104,49 +2038,42 @@ func (c *MomentsListCall) Do() (*MomentsFeed, error) {
 // method id "plus.moments.remove":
 
 type MomentsRemoveCall struct {
-	s    *Service
-	id   string
-	opt_ map[string]interface{}
+	s             *Service
+	id            string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Remove: Delete a moment.
-func (r *MomentsService) Remove(id string) *MomentsRemoveCall {
-	c := &MomentsRemoveCall{s: r.s, opt_: make(map[string]interface{})}
-	c.id = id
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *MomentsRemoveCall) Fields(s ...googleapi.Field) *MomentsRemoveCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *MomentsService) Remove(id string) *MomentsRemoveCall {
+	return &MomentsRemoveCall{
+		s:             r.s,
+		id:            id,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "moments/{id}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *MomentsRemoveCall) Context(ctx context.Context) *MomentsRemoveCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *MomentsRemoveCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "moments/{id}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"id": c.id,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Delete a moment.",
 	//   "httpMethod": "DELETE",
@@ -2173,17 +2100,30 @@ func (c *MomentsRemoveCall) Do() error {
 // method id "plus.people.get":
 
 type PeopleGetCall struct {
-	s      *Service
-	userId string
-	opt_   map[string]interface{}
+	s             *Service
+	userId        string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Get a person's profile. If your app uses scope
 // https://www.googleapis.com/auth/plus.login, this method is guaranteed
 // to return ageRange and language.
+
 func (r *PeopleService) Get(userId string) *PeopleGetCall {
-	c := &PeopleGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.userId = userId
+	return &PeopleGetCall{
+		s:             r.s,
+		userId:        userId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "people/{userId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *PeopleGetCall) Context(ctx context.Context) *PeopleGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2191,37 +2131,23 @@ func (r *PeopleService) Get(userId string) *PeopleGetCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *PeopleGetCall) Fields(s ...googleapi.Field) *PeopleGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *PeopleGetCall) Do() (*Person, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "people/{userId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Person
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"userId": c.userId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Person
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Get a person's profile. If your app uses scope https://www.googleapis.com/auth/plus.login, this method is guaranteed to return ageRange and language.",
 	//   "httpMethod": "GET",
@@ -2254,18 +2180,27 @@ func (c *PeopleGetCall) Do() (*Person, error) {
 // method id "plus.people.list":
 
 type PeopleListCall struct {
-	s          *Service
-	userId     string
-	collection string
-	opt_       map[string]interface{}
+	s             *Service
+	userId        string
+	collection    string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: List all of the people in the specified collection.
+
 func (r *PeopleService) List(userId string, collection string) *PeopleListCall {
-	c := &PeopleListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.userId = userId
-	c.collection = collection
-	return c
+	return &PeopleListCall{
+		s:             r.s,
+		userId:        userId,
+		collection:    collection,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "people/{userId}/people/{collection}",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // MaxResults sets the optional parameter "maxResults": The maximum
@@ -2273,14 +2208,14 @@ func (r *PeopleService) List(userId string, collection string) *PeopleListCall {
 // paging. For any response, the actual number returned might be less
 // than the specified maxResults.
 func (c *PeopleListCall) MaxResults(maxResults int64) *PeopleListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
 // OrderBy sets the optional parameter "orderBy": The order to return
 // people in.
 func (c *PeopleListCall) OrderBy(orderBy string) *PeopleListCall {
-	c.opt_["orderBy"] = orderBy
+	c.params_.Set("orderBy", fmt.Sprintf("%v", orderBy))
 	return c
 }
 
@@ -2289,7 +2224,11 @@ func (c *PeopleListCall) OrderBy(orderBy string) *PeopleListCall {
 // next page of results, set this parameter to the value of
 // "nextPageToken" from the previous response.
 func (c *PeopleListCall) PageToken(pageToken string) *PeopleListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
+	return c
+}
+func (c *PeopleListCall) Context(ctx context.Context) *PeopleListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2297,47 +2236,24 @@ func (c *PeopleListCall) PageToken(pageToken string) *PeopleListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *PeopleListCall) Fields(s ...googleapi.Field) *PeopleListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *PeopleListCall) Do() (*PeopleFeed, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["orderBy"]; ok {
-		params.Set("orderBy", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "people/{userId}/people/{collection}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *PeopleFeed
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"userId":     c.userId,
 		"collection": c.collection,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *PeopleFeed
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "List all of the people in the specified collection.",
 	//   "httpMethod": "GET",
@@ -2410,19 +2326,28 @@ func (c *PeopleListCall) Do() (*PeopleFeed, error) {
 // method id "plus.people.listByActivity":
 
 type PeopleListByActivityCall struct {
-	s          *Service
-	activityId string
-	collection string
-	opt_       map[string]interface{}
+	s             *Service
+	activityId    string
+	collection    string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // ListByActivity: List all of the people in the specified collection
 // for a particular activity.
+
 func (r *PeopleService) ListByActivity(activityId string, collection string) *PeopleListByActivityCall {
-	c := &PeopleListByActivityCall{s: r.s, opt_: make(map[string]interface{})}
-	c.activityId = activityId
-	c.collection = collection
-	return c
+	return &PeopleListByActivityCall{
+		s:             r.s,
+		activityId:    activityId,
+		collection:    collection,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "activities/{activityId}/people/{collection}",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // MaxResults sets the optional parameter "maxResults": The maximum
@@ -2430,7 +2355,7 @@ func (r *PeopleService) ListByActivity(activityId string, collection string) *Pe
 // paging. For any response, the actual number returned might be less
 // than the specified maxResults.
 func (c *PeopleListByActivityCall) MaxResults(maxResults int64) *PeopleListByActivityCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
@@ -2439,7 +2364,11 @@ func (c *PeopleListByActivityCall) MaxResults(maxResults int64) *PeopleListByAct
 // next page of results, set this parameter to the value of
 // "nextPageToken" from the previous response.
 func (c *PeopleListByActivityCall) PageToken(pageToken string) *PeopleListByActivityCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
+	return c
+}
+func (c *PeopleListByActivityCall) Context(ctx context.Context) *PeopleListByActivityCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2447,44 +2376,24 @@ func (c *PeopleListByActivityCall) PageToken(pageToken string) *PeopleListByActi
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *PeopleListByActivityCall) Fields(s ...googleapi.Field) *PeopleListByActivityCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *PeopleListByActivityCall) Do() (*PeopleFeed, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "activities/{activityId}/people/{collection}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *PeopleFeed
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"activityId": c.activityId,
 		"collection": c.collection,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *PeopleFeed
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "List all of the people in the specified collection for a particular activity.",
 	//   "httpMethod": "GET",
@@ -2544,23 +2453,32 @@ func (c *PeopleListByActivityCall) Do() (*PeopleFeed, error) {
 // method id "plus.people.search":
 
 type PeopleSearchCall struct {
-	s     *Service
-	query string
-	opt_  map[string]interface{}
+	s             *Service
+	query         string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Search: Search all public profiles.
+
 func (r *PeopleService) Search(query string) *PeopleSearchCall {
-	c := &PeopleSearchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.query = query
-	return c
+	return &PeopleSearchCall{
+		s:             r.s,
+		query:         query,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "people",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Language sets the optional parameter "language": Specify the
 // preferred language to search with. See search language codes for
 // available values.
 func (c *PeopleSearchCall) Language(language string) *PeopleSearchCall {
-	c.opt_["language"] = language
+	c.params_.Set("language", fmt.Sprintf("%v", language))
 	return c
 }
 
@@ -2569,7 +2487,7 @@ func (c *PeopleSearchCall) Language(language string) *PeopleSearchCall {
 // paging. For any response, the actual number returned might be less
 // than the specified maxResults.
 func (c *PeopleSearchCall) MaxResults(maxResults int64) *PeopleSearchCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
@@ -2579,7 +2497,11 @@ func (c *PeopleSearchCall) MaxResults(maxResults int64) *PeopleSearchCall {
 // "nextPageToken" from the previous response. This token can be of any
 // length.
 func (c *PeopleSearchCall) PageToken(pageToken string) *PeopleSearchCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
+	return c
+}
+func (c *PeopleSearchCall) Context(ctx context.Context) *PeopleSearchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2587,45 +2509,22 @@ func (c *PeopleSearchCall) PageToken(pageToken string) *PeopleSearchCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *PeopleSearchCall) Fields(s ...googleapi.Field) *PeopleSearchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *PeopleSearchCall) Do() (*PeopleFeed, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("query", fmt.Sprintf("%v", c.query))
-	if v, ok := c.opt_["language"]; ok {
-		params.Set("language", fmt.Sprintf("%v", v))
+	var returnValue *PeopleFeed
+	c.params_.Set("query", fmt.Sprintf("%v", c.query))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "people")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *PeopleFeed
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Search all public profiles.",
 	//   "httpMethod": "GET",

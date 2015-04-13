@@ -1,25 +1,7 @@
 # Google APIs Client Library for Go
 
-## Status
-[![Build Status](https://travis-ci.org/google/google-api-go-client.png)](https://travis-ci.org/google/google-api-go-client)
-
+This is a rewrite of google.golang.org/api that is attempting to be an in place replacement for the existing library while adding an ability to add batch capability and more flexible upload operations.
 These are auto-generated Go libraries from the Google Discovery Service's JSON description files of the available "new style" Google APIs.
-
-Announcement email:
-http://groups.google.com/group/golang-nuts/browse_thread/thread/6c7281450be9a21e
-
-Getting started documentation:
-
-   http://code.google.com/p/google-api-go-client/wiki/GettingStarted
-
-In summary:
-
-```
-$ go get google.golang.org/api/storage/v1
-$ go get google.golang.org/api/tasks/v1
-$ go get google.golang.org/api/moderator/v1
-... etc ...
-```
 
 For docs, see e.g.:
 
@@ -31,6 +13,3 @@ For examples, see:
 
    https://github.com/google/google-api-go-client/tree/master/examples
 
-For support, use the golang-nuts@ mailing list:
-
-   https://groups.google.com/group/golang-nuts

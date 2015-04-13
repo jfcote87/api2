@@ -4,18 +4,16 @@
 //
 // Usage example:
 //
-//   import "google.golang.org/api/reseller/v1"
+//   import "github.com/jfcote87/api2/reseller/v1"
 //   ...
 //   resellerService, err := reseller.New(oauthHttpClient)
 package reseller
 
 import (
-	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/jfcote87/api2/googleapi"
 	"golang.org/x/net/context"
-	"google.golang.org/api/googleapi"
 	"io"
 	"net/http"
 	"net/url"
@@ -25,10 +23,8 @@ import (
 
 // Always reference these packages, just in case the auto-generated code
 // below doesn't.
-var _ = bytes.NewBuffer
 var _ = strconv.Itoa
 var _ = fmt.Sprintf
-var _ = json.NewDecoder
 var _ = io.Copy
 var _ = url.Parse
 var _ = googleapi.Version
@@ -39,7 +35,8 @@ var _ = context.Background
 const apiId = "reseller:v1"
 const apiName = "reseller"
 const apiVersion = "v1"
-const basePath = "https://www.googleapis.com/apps/reseller/v1/"
+
+var baseURL *url.URL = &url.URL{Scheme: "https", Host: "www.googleapis.com", Path: "/apps/reseller/v1/"}
 
 // OAuth2 scopes used by this API.
 const (
@@ -54,27 +51,18 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
+	s := &Service{client: client}
 	s.Customers = NewCustomersService(s)
 	s.Subscriptions = NewSubscriptionsService(s)
 	return s, nil
 }
 
 type Service struct {
-	client    *http.Client
-	BasePath  string // API endpoint base URL
-	UserAgent string // optional additional User-Agent fragment
+	client *http.Client
 
 	Customers *CustomersService
 
 	Subscriptions *SubscriptionsService
-}
-
-func (s *Service) userAgent() string {
-	if s.UserAgent == "" {
-		return googleapi.UserAgent
-	}
-	return googleapi.UserAgent + " " + s.UserAgent
 }
 
 func NewCustomersService(s *Service) *CustomersService {
@@ -293,16 +281,29 @@ type Subscriptions struct {
 // method id "reseller.customers.get":
 
 type CustomersGetCall struct {
-	s          *Service
-	customerId string
-	opt_       map[string]interface{}
+	s             *Service
+	customerId    string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Gets a customer resource if one exists and is owned by the
 // reseller.
+
 func (r *CustomersService) Get(customerId string) *CustomersGetCall {
-	c := &CustomersGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.customerId = customerId
+	return &CustomersGetCall{
+		s:             r.s,
+		customerId:    customerId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "customers/{customerId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *CustomersGetCall) Context(ctx context.Context) *CustomersGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -310,37 +311,23 @@ func (r *CustomersService) Get(customerId string) *CustomersGetCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *CustomersGetCall) Fields(s ...googleapi.Field) *CustomersGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *CustomersGetCall) Do() (*Customer, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "customers/{customerId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Customer
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"customerId": c.customerId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Customer
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Gets a customer resource if one exists and is owned by the reseller.",
 	//   "httpMethod": "GET",
@@ -371,16 +358,25 @@ func (c *CustomersGetCall) Do() (*Customer, error) {
 // method id "reseller.customers.insert":
 
 type CustomersInsertCall struct {
-	s        *Service
-	customer *Customer
-	opt_     map[string]interface{}
+	s             *Service
+	customer      *Customer
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Insert: Creates a customer resource if one does not already exist.
+
 func (r *CustomersService) Insert(customer *Customer) *CustomersInsertCall {
-	c := &CustomersInsertCall{s: r.s, opt_: make(map[string]interface{})}
-	c.customer = customer
-	return c
+	return &CustomersInsertCall{
+		s:             r.s,
+		customer:      customer,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "customers",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // CustomerAuthToken sets the optional parameter "customerAuthToken": An
@@ -388,7 +384,11 @@ func (r *CustomersService) Insert(customer *Customer) *CustomersInsertCall {
 // exists. Can be generated at
 // https://www.google.com/a/cpanel//TransferToken.
 func (c *CustomersInsertCall) CustomerAuthToken(customerAuthToken string) *CustomersInsertCall {
-	c.opt_["customerAuthToken"] = customerAuthToken
+	c.params_.Set("customerAuthToken", fmt.Sprintf("%v", customerAuthToken))
+	return c
+}
+func (c *CustomersInsertCall) Context(ctx context.Context) *CustomersInsertCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -396,44 +396,22 @@ func (c *CustomersInsertCall) CustomerAuthToken(customerAuthToken string) *Custo
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *CustomersInsertCall) Fields(s ...googleapi.Field) *CustomersInsertCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *CustomersInsertCall) Do() (*Customer, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.customer)
-	if err != nil {
-		return nil, err
+	var returnValue *Customer
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.customer,
+		Result:  &returnValue,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["customerAuthToken"]; ok {
-		params.Set("customerAuthToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "customers")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Customer
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Creates a customer resource if one does not already exist.",
 	//   "httpMethod": "POST",
@@ -462,18 +440,31 @@ func (c *CustomersInsertCall) Do() (*Customer, error) {
 // method id "reseller.customers.patch":
 
 type CustomersPatchCall struct {
-	s          *Service
-	customerId string
-	customer   *Customer
-	opt_       map[string]interface{}
+	s             *Service
+	customerId    string
+	customer      *Customer
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Patch: Update a customer resource if one it exists and is owned by
 // the reseller. This method supports patch semantics.
+
 func (r *CustomersService) Patch(customerId string, customer *Customer) *CustomersPatchCall {
-	c := &CustomersPatchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.customerId = customerId
-	c.customer = customer
+	return &CustomersPatchCall{
+		s:             r.s,
+		customerId:    customerId,
+		customer:      customer,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "customers/{customerId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *CustomersPatchCall) Context(ctx context.Context) *CustomersPatchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -481,43 +472,24 @@ func (r *CustomersService) Patch(customerId string, customer *Customer) *Custome
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *CustomersPatchCall) Fields(s ...googleapi.Field) *CustomersPatchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *CustomersPatchCall) Do() (*Customer, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.customer)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "customers/{customerId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PATCH", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Customer
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"customerId": c.customerId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PATCH",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.customer,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Customer
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Update a customer resource if one it exists and is owned by the reseller. This method supports patch semantics.",
 	//   "httpMethod": "PATCH",
@@ -550,18 +522,31 @@ func (c *CustomersPatchCall) Do() (*Customer, error) {
 // method id "reseller.customers.update":
 
 type CustomersUpdateCall struct {
-	s          *Service
-	customerId string
-	customer   *Customer
-	opt_       map[string]interface{}
+	s             *Service
+	customerId    string
+	customer      *Customer
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Update: Update a customer resource if one it exists and is owned by
 // the reseller.
+
 func (r *CustomersService) Update(customerId string, customer *Customer) *CustomersUpdateCall {
-	c := &CustomersUpdateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.customerId = customerId
-	c.customer = customer
+	return &CustomersUpdateCall{
+		s:             r.s,
+		customerId:    customerId,
+		customer:      customer,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "customers/{customerId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *CustomersUpdateCall) Context(ctx context.Context) *CustomersUpdateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -569,43 +554,24 @@ func (r *CustomersService) Update(customerId string, customer *Customer) *Custom
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *CustomersUpdateCall) Fields(s ...googleapi.Field) *CustomersUpdateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *CustomersUpdateCall) Do() (*Customer, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.customer)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "customers/{customerId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Customer
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"customerId": c.customerId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.customer,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Customer
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Update a customer resource if one it exists and is owned by the reseller.",
 	//   "httpMethod": "PUT",
@@ -641,15 +607,28 @@ type SubscriptionsActivateCall struct {
 	s              *Service
 	customerId     string
 	subscriptionId string
-	opt_           map[string]interface{}
+	caller_        googleapi.Caller
+	params_        url.Values
+	pathTemplate_  string
+	context_       context.Context
 }
 
 // Activate: Activates a subscription previously suspended by the
 // reseller
+
 func (r *SubscriptionsService) Activate(customerId string, subscriptionId string) *SubscriptionsActivateCall {
-	c := &SubscriptionsActivateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.customerId = customerId
-	c.subscriptionId = subscriptionId
+	return &SubscriptionsActivateCall{
+		s:              r.s,
+		customerId:     customerId,
+		subscriptionId: subscriptionId,
+		caller_:        googleapi.JSONCall{},
+		params_:        make(map[string][]string),
+		pathTemplate_:  "customers/{customerId}/subscriptions/{subscriptionId}/activate",
+		context_:       googleapi.NoContext,
+	}
+}
+func (c *SubscriptionsActivateCall) Context(ctx context.Context) *SubscriptionsActivateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -657,38 +636,24 @@ func (r *SubscriptionsService) Activate(customerId string, subscriptionId string
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *SubscriptionsActivateCall) Fields(s ...googleapi.Field) *SubscriptionsActivateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *SubscriptionsActivateCall) Do() (*Subscription, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "customers/{customerId}/subscriptions/{subscriptionId}/activate")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Subscription
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"customerId":     c.customerId,
 		"subscriptionId": c.subscriptionId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "POST",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Subscription
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Activates a subscription previously suspended by the reseller",
 	//   "httpMethod": "POST",
@@ -729,15 +694,28 @@ type SubscriptionsChangePlanCall struct {
 	customerId        string
 	subscriptionId    string
 	changeplanrequest *ChangePlanRequest
-	opt_              map[string]interface{}
+	caller_           googleapi.Caller
+	params_           url.Values
+	pathTemplate_     string
+	context_          context.Context
 }
 
 // ChangePlan: Changes the plan of a subscription
+
 func (r *SubscriptionsService) ChangePlan(customerId string, subscriptionId string, changeplanrequest *ChangePlanRequest) *SubscriptionsChangePlanCall {
-	c := &SubscriptionsChangePlanCall{s: r.s, opt_: make(map[string]interface{})}
-	c.customerId = customerId
-	c.subscriptionId = subscriptionId
-	c.changeplanrequest = changeplanrequest
+	return &SubscriptionsChangePlanCall{
+		s:                 r.s,
+		customerId:        customerId,
+		subscriptionId:    subscriptionId,
+		changeplanrequest: changeplanrequest,
+		caller_:           googleapi.JSONCall{},
+		params_:           make(map[string][]string),
+		pathTemplate_:     "customers/{customerId}/subscriptions/{subscriptionId}/changePlan",
+		context_:          googleapi.NoContext,
+	}
+}
+func (c *SubscriptionsChangePlanCall) Context(ctx context.Context) *SubscriptionsChangePlanCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -745,44 +723,25 @@ func (r *SubscriptionsService) ChangePlan(customerId string, subscriptionId stri
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *SubscriptionsChangePlanCall) Fields(s ...googleapi.Field) *SubscriptionsChangePlanCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *SubscriptionsChangePlanCall) Do() (*Subscription, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.changeplanrequest)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "customers/{customerId}/subscriptions/{subscriptionId}/changePlan")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Subscription
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"customerId":     c.customerId,
 		"subscriptionId": c.subscriptionId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.changeplanrequest,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Subscription
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Changes the plan of a subscription",
 	//   "httpMethod": "POST",
@@ -826,15 +785,28 @@ type SubscriptionsChangeRenewalSettingsCall struct {
 	customerId      string
 	subscriptionId  string
 	renewalsettings *RenewalSettings
-	opt_            map[string]interface{}
+	caller_         googleapi.Caller
+	params_         url.Values
+	pathTemplate_   string
+	context_        context.Context
 }
 
 // ChangeRenewalSettings: Changes the renewal settings of a subscription
+
 func (r *SubscriptionsService) ChangeRenewalSettings(customerId string, subscriptionId string, renewalsettings *RenewalSettings) *SubscriptionsChangeRenewalSettingsCall {
-	c := &SubscriptionsChangeRenewalSettingsCall{s: r.s, opt_: make(map[string]interface{})}
-	c.customerId = customerId
-	c.subscriptionId = subscriptionId
-	c.renewalsettings = renewalsettings
+	return &SubscriptionsChangeRenewalSettingsCall{
+		s:               r.s,
+		customerId:      customerId,
+		subscriptionId:  subscriptionId,
+		renewalsettings: renewalsettings,
+		caller_:         googleapi.JSONCall{},
+		params_:         make(map[string][]string),
+		pathTemplate_:   "customers/{customerId}/subscriptions/{subscriptionId}/changeRenewalSettings",
+		context_:        googleapi.NoContext,
+	}
+}
+func (c *SubscriptionsChangeRenewalSettingsCall) Context(ctx context.Context) *SubscriptionsChangeRenewalSettingsCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -842,44 +814,25 @@ func (r *SubscriptionsService) ChangeRenewalSettings(customerId string, subscrip
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *SubscriptionsChangeRenewalSettingsCall) Fields(s ...googleapi.Field) *SubscriptionsChangeRenewalSettingsCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *SubscriptionsChangeRenewalSettingsCall) Do() (*Subscription, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.renewalsettings)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "customers/{customerId}/subscriptions/{subscriptionId}/changeRenewalSettings")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Subscription
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"customerId":     c.customerId,
 		"subscriptionId": c.subscriptionId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.renewalsettings,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Subscription
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Changes the renewal settings of a subscription",
 	//   "httpMethod": "POST",
@@ -923,15 +876,28 @@ type SubscriptionsChangeSeatsCall struct {
 	customerId     string
 	subscriptionId string
 	seats          *Seats
-	opt_           map[string]interface{}
+	caller_        googleapi.Caller
+	params_        url.Values
+	pathTemplate_  string
+	context_       context.Context
 }
 
 // ChangeSeats: Changes the seats configuration of a subscription
+
 func (r *SubscriptionsService) ChangeSeats(customerId string, subscriptionId string, seats *Seats) *SubscriptionsChangeSeatsCall {
-	c := &SubscriptionsChangeSeatsCall{s: r.s, opt_: make(map[string]interface{})}
-	c.customerId = customerId
-	c.subscriptionId = subscriptionId
-	c.seats = seats
+	return &SubscriptionsChangeSeatsCall{
+		s:              r.s,
+		customerId:     customerId,
+		subscriptionId: subscriptionId,
+		seats:          seats,
+		caller_:        googleapi.JSONCall{},
+		params_:        make(map[string][]string),
+		pathTemplate_:  "customers/{customerId}/subscriptions/{subscriptionId}/changeSeats",
+		context_:       googleapi.NoContext,
+	}
+}
+func (c *SubscriptionsChangeSeatsCall) Context(ctx context.Context) *SubscriptionsChangeSeatsCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -939,44 +905,25 @@ func (r *SubscriptionsService) ChangeSeats(customerId string, subscriptionId str
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *SubscriptionsChangeSeatsCall) Fields(s ...googleapi.Field) *SubscriptionsChangeSeatsCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *SubscriptionsChangeSeatsCall) Do() (*Subscription, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.seats)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "customers/{customerId}/subscriptions/{subscriptionId}/changeSeats")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Subscription
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"customerId":     c.customerId,
 		"subscriptionId": c.subscriptionId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.seats,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Subscription
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Changes the seats configuration of a subscription",
 	//   "httpMethod": "POST",
@@ -1020,51 +967,44 @@ type SubscriptionsDeleteCall struct {
 	customerId     string
 	subscriptionId string
 	deletionType   string
-	opt_           map[string]interface{}
+	caller_        googleapi.Caller
+	params_        url.Values
+	pathTemplate_  string
+	context_       context.Context
 }
 
 // Delete: Cancels/Downgrades a subscription.
-func (r *SubscriptionsService) Delete(customerId string, subscriptionId string, deletionType string) *SubscriptionsDeleteCall {
-	c := &SubscriptionsDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.customerId = customerId
-	c.subscriptionId = subscriptionId
-	c.deletionType = deletionType
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *SubscriptionsDeleteCall) Fields(s ...googleapi.Field) *SubscriptionsDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *SubscriptionsService) Delete(customerId string, subscriptionId string, deletionType string) *SubscriptionsDeleteCall {
+	return &SubscriptionsDeleteCall{
+		s:              r.s,
+		customerId:     customerId,
+		subscriptionId: subscriptionId,
+		deletionType:   deletionType,
+		caller_:        googleapi.JSONCall{},
+		params_:        make(map[string][]string),
+		pathTemplate_:  "customers/{customerId}/subscriptions/{subscriptionId}",
+		context_:       googleapi.NoContext,
+	}
+}
+func (c *SubscriptionsDeleteCall) Context(ctx context.Context) *SubscriptionsDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *SubscriptionsDeleteCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("deletionType", fmt.Sprintf("%v", c.deletionType))
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "customers/{customerId}/subscriptions/{subscriptionId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	c.params_.Set("deletionType", fmt.Sprintf("%v", c.deletionType))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"customerId":     c.customerId,
 		"subscriptionId": c.subscriptionId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Cancels/Downgrades a subscription.",
 	//   "httpMethod": "DELETE",
@@ -1120,14 +1060,27 @@ type SubscriptionsGetCall struct {
 	s              *Service
 	customerId     string
 	subscriptionId string
-	opt_           map[string]interface{}
+	caller_        googleapi.Caller
+	params_        url.Values
+	pathTemplate_  string
+	context_       context.Context
 }
 
 // Get: Gets a subscription of the customer.
+
 func (r *SubscriptionsService) Get(customerId string, subscriptionId string) *SubscriptionsGetCall {
-	c := &SubscriptionsGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.customerId = customerId
-	c.subscriptionId = subscriptionId
+	return &SubscriptionsGetCall{
+		s:              r.s,
+		customerId:     customerId,
+		subscriptionId: subscriptionId,
+		caller_:        googleapi.JSONCall{},
+		params_:        make(map[string][]string),
+		pathTemplate_:  "customers/{customerId}/subscriptions/{subscriptionId}",
+		context_:       googleapi.NoContext,
+	}
+}
+func (c *SubscriptionsGetCall) Context(ctx context.Context) *SubscriptionsGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1135,38 +1088,24 @@ func (r *SubscriptionsService) Get(customerId string, subscriptionId string) *Su
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *SubscriptionsGetCall) Fields(s ...googleapi.Field) *SubscriptionsGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *SubscriptionsGetCall) Do() (*Subscription, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "customers/{customerId}/subscriptions/{subscriptionId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Subscription
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"customerId":     c.customerId,
 		"subscriptionId": c.subscriptionId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Subscription
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Gets a subscription of the customer.",
 	//   "httpMethod": "GET",
@@ -1204,25 +1143,38 @@ func (c *SubscriptionsGetCall) Do() (*Subscription, error) {
 // method id "reseller.subscriptions.insert":
 
 type SubscriptionsInsertCall struct {
-	s            *Service
-	customerId   string
-	subscription *Subscription
-	opt_         map[string]interface{}
+	s             *Service
+	customerId    string
+	subscription  *Subscription
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Insert: Creates/Transfers a subscription for the customer.
+
 func (r *SubscriptionsService) Insert(customerId string, subscription *Subscription) *SubscriptionsInsertCall {
-	c := &SubscriptionsInsertCall{s: r.s, opt_: make(map[string]interface{})}
-	c.customerId = customerId
-	c.subscription = subscription
-	return c
+	return &SubscriptionsInsertCall{
+		s:             r.s,
+		customerId:    customerId,
+		subscription:  subscription,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "customers/{customerId}/subscriptions",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // CustomerAuthToken sets the optional parameter "customerAuthToken": An
 // auth token needed for transferring a subscription. Can be generated
 // at https://www.google.com/a/cpanel/customer-domain/TransferToken.
 func (c *SubscriptionsInsertCall) CustomerAuthToken(customerAuthToken string) *SubscriptionsInsertCall {
-	c.opt_["customerAuthToken"] = customerAuthToken
+	c.params_.Set("customerAuthToken", fmt.Sprintf("%v", customerAuthToken))
+	return c
+}
+func (c *SubscriptionsInsertCall) Context(ctx context.Context) *SubscriptionsInsertCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1230,46 +1182,24 @@ func (c *SubscriptionsInsertCall) CustomerAuthToken(customerAuthToken string) *S
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *SubscriptionsInsertCall) Fields(s ...googleapi.Field) *SubscriptionsInsertCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *SubscriptionsInsertCall) Do() (*Subscription, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.subscription)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["customerAuthToken"]; ok {
-		params.Set("customerAuthToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "customers/{customerId}/subscriptions")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Subscription
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"customerId": c.customerId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.subscription,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Subscription
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Creates/Transfers a subscription for the customer.",
 	//   "httpMethod": "POST",
@@ -1307,15 +1237,24 @@ func (c *SubscriptionsInsertCall) Do() (*Subscription, error) {
 // method id "reseller.subscriptions.list":
 
 type SubscriptionsListCall struct {
-	s    *Service
-	opt_ map[string]interface{}
+	s             *Service
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Lists subscriptions of a reseller, optionally filtered by a
 // customer name prefix.
+
 func (r *SubscriptionsService) List() *SubscriptionsListCall {
-	c := &SubscriptionsListCall{s: r.s, opt_: make(map[string]interface{})}
-	return c
+	return &SubscriptionsListCall{
+		s:             r.s,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "subscriptions",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // CustomerAuthToken sets the optional parameter "customerAuthToken": An
@@ -1323,14 +1262,14 @@ func (r *SubscriptionsService) List() *SubscriptionsListCall {
 // reseller. Can be generated at
 // https://www.google.com/a/cpanel/customer-domain/TransferToken.
 func (c *SubscriptionsListCall) CustomerAuthToken(customerAuthToken string) *SubscriptionsListCall {
-	c.opt_["customerAuthToken"] = customerAuthToken
+	c.params_.Set("customerAuthToken", fmt.Sprintf("%v", customerAuthToken))
 	return c
 }
 
 // CustomerId sets the optional parameter "customerId": Id of the
 // Customer
 func (c *SubscriptionsListCall) CustomerId(customerId string) *SubscriptionsListCall {
-	c.opt_["customerId"] = customerId
+	c.params_.Set("customerId", fmt.Sprintf("%v", customerId))
 	return c
 }
 
@@ -1338,21 +1277,25 @@ func (c *SubscriptionsListCall) CustomerId(customerId string) *SubscriptionsList
 // Prefix of the customer's domain name by which the subscriptions
 // should be filtered. Optional
 func (c *SubscriptionsListCall) CustomerNamePrefix(customerNamePrefix string) *SubscriptionsListCall {
-	c.opt_["customerNamePrefix"] = customerNamePrefix
+	c.params_.Set("customerNamePrefix", fmt.Sprintf("%v", customerNamePrefix))
 	return c
 }
 
 // MaxResults sets the optional parameter "maxResults": Maximum number
 // of results to return
 func (c *SubscriptionsListCall) MaxResults(maxResults int64) *SubscriptionsListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
 // PageToken sets the optional parameter "pageToken": Token to specify
 // next page in the list
 func (c *SubscriptionsListCall) PageToken(pageToken string) *SubscriptionsListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
+	return c
+}
+func (c *SubscriptionsListCall) Context(ctx context.Context) *SubscriptionsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1360,50 +1303,21 @@ func (c *SubscriptionsListCall) PageToken(pageToken string) *SubscriptionsListCa
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *SubscriptionsListCall) Fields(s ...googleapi.Field) *SubscriptionsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *SubscriptionsListCall) Do() (*Subscriptions, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["customerAuthToken"]; ok {
-		params.Set("customerAuthToken", fmt.Sprintf("%v", v))
+	var returnValue *Subscriptions
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	if v, ok := c.opt_["customerId"]; ok {
-		params.Set("customerId", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["customerNamePrefix"]; ok {
-		params.Set("customerNamePrefix", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "subscriptions")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Subscriptions
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Lists subscriptions of a reseller, optionally filtered by a customer name prefix.",
 	//   "httpMethod": "GET",
@@ -1456,14 +1370,27 @@ type SubscriptionsStartPaidServiceCall struct {
 	s              *Service
 	customerId     string
 	subscriptionId string
-	opt_           map[string]interface{}
+	caller_        googleapi.Caller
+	params_        url.Values
+	pathTemplate_  string
+	context_       context.Context
 }
 
 // StartPaidService: Starts paid service of a trial subscription
+
 func (r *SubscriptionsService) StartPaidService(customerId string, subscriptionId string) *SubscriptionsStartPaidServiceCall {
-	c := &SubscriptionsStartPaidServiceCall{s: r.s, opt_: make(map[string]interface{})}
-	c.customerId = customerId
-	c.subscriptionId = subscriptionId
+	return &SubscriptionsStartPaidServiceCall{
+		s:              r.s,
+		customerId:     customerId,
+		subscriptionId: subscriptionId,
+		caller_:        googleapi.JSONCall{},
+		params_:        make(map[string][]string),
+		pathTemplate_:  "customers/{customerId}/subscriptions/{subscriptionId}/startPaidService",
+		context_:       googleapi.NoContext,
+	}
+}
+func (c *SubscriptionsStartPaidServiceCall) Context(ctx context.Context) *SubscriptionsStartPaidServiceCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1471,38 +1398,24 @@ func (r *SubscriptionsService) StartPaidService(customerId string, subscriptionI
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *SubscriptionsStartPaidServiceCall) Fields(s ...googleapi.Field) *SubscriptionsStartPaidServiceCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *SubscriptionsStartPaidServiceCall) Do() (*Subscription, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "customers/{customerId}/subscriptions/{subscriptionId}/startPaidService")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Subscription
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"customerId":     c.customerId,
 		"subscriptionId": c.subscriptionId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "POST",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Subscription
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Starts paid service of a trial subscription",
 	//   "httpMethod": "POST",
@@ -1542,14 +1455,27 @@ type SubscriptionsSuspendCall struct {
 	s              *Service
 	customerId     string
 	subscriptionId string
-	opt_           map[string]interface{}
+	caller_        googleapi.Caller
+	params_        url.Values
+	pathTemplate_  string
+	context_       context.Context
 }
 
 // Suspend: Suspends an active subscription
+
 func (r *SubscriptionsService) Suspend(customerId string, subscriptionId string) *SubscriptionsSuspendCall {
-	c := &SubscriptionsSuspendCall{s: r.s, opt_: make(map[string]interface{})}
-	c.customerId = customerId
-	c.subscriptionId = subscriptionId
+	return &SubscriptionsSuspendCall{
+		s:              r.s,
+		customerId:     customerId,
+		subscriptionId: subscriptionId,
+		caller_:        googleapi.JSONCall{},
+		params_:        make(map[string][]string),
+		pathTemplate_:  "customers/{customerId}/subscriptions/{subscriptionId}/suspend",
+		context_:       googleapi.NoContext,
+	}
+}
+func (c *SubscriptionsSuspendCall) Context(ctx context.Context) *SubscriptionsSuspendCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1557,38 +1483,24 @@ func (r *SubscriptionsService) Suspend(customerId string, subscriptionId string)
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *SubscriptionsSuspendCall) Fields(s ...googleapi.Field) *SubscriptionsSuspendCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *SubscriptionsSuspendCall) Do() (*Subscription, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "customers/{customerId}/subscriptions/{subscriptionId}/suspend")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Subscription
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"customerId":     c.customerId,
 		"subscriptionId": c.subscriptionId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "POST",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Subscription
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Suspends an active subscription",
 	//   "httpMethod": "POST",

@@ -4,18 +4,16 @@
 //
 // Usage example:
 //
-//   import "google.golang.org/api/youtube/v3"
+//   import "github.com/jfcote87/api2/youtube/v3"
 //   ...
 //   youtubeService, err := youtube.New(oauthHttpClient)
 package youtube
 
 import (
-	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/jfcote87/api2/googleapi"
 	"golang.org/x/net/context"
-	"google.golang.org/api/googleapi"
 	"io"
 	"net/http"
 	"net/url"
@@ -25,10 +23,8 @@ import (
 
 // Always reference these packages, just in case the auto-generated code
 // below doesn't.
-var _ = bytes.NewBuffer
 var _ = strconv.Itoa
 var _ = fmt.Sprintf
-var _ = json.NewDecoder
 var _ = io.Copy
 var _ = url.Parse
 var _ = googleapi.Version
@@ -39,7 +35,8 @@ var _ = context.Background
 const apiId = "youtube:v3"
 const apiName = "youtube"
 const apiVersion = "v3"
-const basePath = "https://www.googleapis.com/youtube/v3/"
+
+var baseURL *url.URL = &url.URL{Scheme: "https", Host: "www.googleapis.com", Path: "/youtube/v3/"}
 
 // OAuth2 scopes used by this API.
 const (
@@ -67,11 +64,14 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
+	s := &Service{client: client}
 	s.Activities = NewActivitiesService(s)
+	s.Captions = NewCaptionsService(s)
 	s.ChannelBanners = NewChannelBannersService(s)
 	s.ChannelSections = NewChannelSectionsService(s)
 	s.Channels = NewChannelsService(s)
+	s.CommentThreads = NewCommentThreadsService(s)
+	s.Comments = NewCommentsService(s)
 	s.GuideCategories = NewGuideCategoriesService(s)
 	s.I18nLanguages = NewI18nLanguagesService(s)
 	s.I18nRegions = NewI18nRegionsService(s)
@@ -89,17 +89,21 @@ func New(client *http.Client) (*Service, error) {
 }
 
 type Service struct {
-	client    *http.Client
-	BasePath  string // API endpoint base URL
-	UserAgent string // optional additional User-Agent fragment
+	client *http.Client
 
 	Activities *ActivitiesService
+
+	Captions *CaptionsService
 
 	ChannelBanners *ChannelBannersService
 
 	ChannelSections *ChannelSectionsService
 
 	Channels *ChannelsService
+
+	CommentThreads *CommentThreadsService
+
+	Comments *CommentsService
 
 	GuideCategories *GuideCategoriesService
 
@@ -128,19 +132,21 @@ type Service struct {
 	Watermarks *WatermarksService
 }
 
-func (s *Service) userAgent() string {
-	if s.UserAgent == "" {
-		return googleapi.UserAgent
-	}
-	return googleapi.UserAgent + " " + s.UserAgent
-}
-
 func NewActivitiesService(s *Service) *ActivitiesService {
 	rs := &ActivitiesService{s: s}
 	return rs
 }
 
 type ActivitiesService struct {
+	s *Service
+}
+
+func NewCaptionsService(s *Service) *CaptionsService {
+	rs := &CaptionsService{s: s}
+	return rs
+}
+
+type CaptionsService struct {
 	s *Service
 }
 
@@ -168,6 +174,24 @@ func NewChannelsService(s *Service) *ChannelsService {
 }
 
 type ChannelsService struct {
+	s *Service
+}
+
+func NewCommentThreadsService(s *Service) *CommentThreadsService {
+	rs := &CommentThreadsService{s: s}
+	return rs
+}
+
+type CommentThreadsService struct {
+	s *Service
+}
+
+func NewCommentsService(s *Service) *CommentsService {
+	rs := &CommentsService{s: s}
+	return rs
+}
+
+type CommentsService struct {
 	s *Service
 }
 
@@ -574,6 +598,102 @@ type ActivitySnippet struct {
 	Type string `json:"type,omitempty"`
 }
 
+type Caption struct {
+	// Etag: Etag of this resource.
+	Etag string `json:"etag,omitempty"`
+
+	// Id: The ID that YouTube uses to uniquely identify the caption track.
+	Id string `json:"id,omitempty"`
+
+	// Kind: Identifies what kind of resource this is. Value: the fixed
+	// string "youtube#caption".
+	Kind string `json:"kind,omitempty"`
+
+	// Snippet: The snippet object contains basic details about the caption.
+	Snippet *CaptionSnippet `json:"snippet,omitempty"`
+}
+
+type CaptionListResponse struct {
+	// Etag: Etag of this resource.
+	Etag string `json:"etag,omitempty"`
+
+	// EventId: Serialized EventId of the request which produced this
+	// response.
+	EventId string `json:"eventId,omitempty"`
+
+	// Items: A list of captions that match the request criteria.
+	Items []*Caption `json:"items,omitempty"`
+
+	// Kind: Identifies what kind of resource this is. Value: the fixed
+	// string "youtube#captionListResponse".
+	Kind string `json:"kind,omitempty"`
+
+	// VisitorId: The visitorId identifies the visitor.
+	VisitorId string `json:"visitorId,omitempty"`
+}
+
+type CaptionSnippet struct {
+	// AudioTrackType: The type of audio track associated with the caption
+	// track.
+	AudioTrackType string `json:"audioTrackType,omitempty"`
+
+	// FailureReason: The reason that YouTube failed to process the caption
+	// track. This property is only present if the state property's value is
+	// failed.
+	FailureReason string `json:"failureReason,omitempty"`
+
+	// IsAutoSynced: Indicates whether YouTube synchronized the caption
+	// track to the audio track in the video. The value will be true if a
+	// sync was explicitly requested when the caption track was uploaded.
+	// For example, when calling the captions.insert or captions.update
+	// methods, you can set the sync parameter to true to instruct YouTube
+	// to sync the uploaded track to the video. If the value is false,
+	// YouTube uses the time codes in the uploaded caption track to
+	// determine when to display captions.
+	IsAutoSynced bool `json:"isAutoSynced,omitempty"`
+
+	// IsCC: Indicates whether the track contains closed captions for the
+	// deaf and hard of hearing. The default value is false.
+	IsCC bool `json:"isCC,omitempty"`
+
+	// IsDraft: Indicates whether the caption track is a draft. If the value
+	// is true, then the track is not publicly visible. The default value is
+	// false.
+	IsDraft bool `json:"isDraft,omitempty"`
+
+	// IsEasyReader: Indicates whether caption track is formatted for "easy
+	// reader," meaning it is at a third-grade level for language learners.
+	// The default value is false.
+	IsEasyReader bool `json:"isEasyReader,omitempty"`
+
+	// IsLarge: Indicates whether the caption track uses large text for the
+	// vision-impaired. The default value is false.
+	IsLarge bool `json:"isLarge,omitempty"`
+
+	// Language: The language of the caption track. The property value is a
+	// BCP-47 language tag.
+	Language string `json:"language,omitempty"`
+
+	// LastUpdated: The date and time when the caption track was last
+	// updated. The value is specified in ISO 8601 (YYYY-MM-DDThh:mm:ss.sZ)
+	// format.
+	LastUpdated string `json:"lastUpdated,omitempty"`
+
+	// Name: The name of the caption track. The name is intended to be
+	// visible to the user as an option during playback.
+	Name string `json:"name,omitempty"`
+
+	// Status: The caption track's status.
+	Status string `json:"status,omitempty"`
+
+	// TrackKind: The caption track's type.
+	TrackKind string `json:"trackKind,omitempty"`
+
+	// VideoId: The ID that YouTube uses to uniquely identify the video
+	// associated with the caption track.
+	VideoId string `json:"videoId,omitempty"`
+}
+
 type CdnSettings struct {
 	// Format: The format of the video stream that you are sending to
 	// Youtube.
@@ -758,6 +878,10 @@ type ChannelConversionPings struct {
 	// cookie). Each ping has a context, in which the app must fire the
 	// ping, and a url identifying the ping.
 	Pings []*ChannelConversionPing `json:"pings,omitempty"`
+}
+
+type ChannelId struct {
+	Value string `json:"value,omitempty"`
 }
 
 type ChannelListResponse struct {
@@ -992,6 +1116,195 @@ type ChannelTopicDetails struct {
 	// You can retrieve information about each topic using the Freebase
 	// Topic API.
 	TopicIds []string `json:"topicIds,omitempty"`
+}
+
+type Comment struct {
+	// Etag: Etag of this resource.
+	Etag string `json:"etag,omitempty"`
+
+	// Id: The ID that YouTube uses to uniquely identify the comment.
+	Id string `json:"id,omitempty"`
+
+	// Kind: Identifies what kind of resource this is. Value: the fixed
+	// string "youtube#comment".
+	Kind string `json:"kind,omitempty"`
+
+	// Snippet: The snippet object contains basic details about the comment.
+	Snippet *CommentSnippet `json:"snippet,omitempty"`
+}
+
+type CommentListResponse struct {
+	// Etag: Etag of this resource.
+	Etag string `json:"etag,omitempty"`
+
+	// EventId: Serialized EventId of the request which produced this
+	// response.
+	EventId string `json:"eventId,omitempty"`
+
+	// Items: A list of comments that match the request criteria.
+	Items []*Comment `json:"items,omitempty"`
+
+	// Kind: Identifies what kind of resource this is. Value: the fixed
+	// string "youtube#commentListResponse".
+	Kind string `json:"kind,omitempty"`
+
+	// NextPageToken: The token that can be used as the value of the
+	// pageToken parameter to retrieve the next page in the result set.
+	NextPageToken string `json:"nextPageToken,omitempty"`
+
+	PageInfo *PageInfo `json:"pageInfo,omitempty"`
+
+	TokenPagination *TokenPagination `json:"tokenPagination,omitempty"`
+
+	// VisitorId: The visitorId identifies the visitor.
+	VisitorId string `json:"visitorId,omitempty"`
+}
+
+type CommentSnippet struct {
+	// AuthorChannelId: The id of the author's YouTube channel, if any.
+	AuthorChannelId *ChannelId `json:"authorChannelId,omitempty"`
+
+	// AuthorChannelUrl: Link to the author's YouTube channel, if any.
+	AuthorChannelUrl string `json:"authorChannelUrl,omitempty"`
+
+	// AuthorDisplayName: The name of the user who posted the comment.
+	AuthorDisplayName string `json:"authorDisplayName,omitempty"`
+
+	// AuthorGoogleplusProfileUrl: Link to the author's Google+ profile, if
+	// any.
+	AuthorGoogleplusProfileUrl string `json:"authorGoogleplusProfileUrl,omitempty"`
+
+	// AuthorProfileImageUrl: The URL for the avatar of the user who posted
+	// the comment.
+	AuthorProfileImageUrl string `json:"authorProfileImageUrl,omitempty"`
+
+	// CanRate: Whether the current viewer can rate this comment.
+	CanRate bool `json:"canRate,omitempty"`
+
+	// ChannelId: The id of the corresponding YouTube channel. In case of a
+	// channel comment this is the channel the comment refers to. In case of
+	// a video comment it's the video's channel.
+	ChannelId string `json:"channelId,omitempty"`
+
+	// LikeCount: The total number of likes this comment has received.
+	LikeCount int64 `json:"likeCount,omitempty"`
+
+	// ModerationStatus: The comment's moderation status. Will not be set if
+	// the comments were requested through the id filter.
+	ModerationStatus string `json:"moderationStatus,omitempty"`
+
+	// ParentId: The unique id of the parent comment, only set for replies.
+	ParentId string `json:"parentId,omitempty"`
+
+	// PublishedAt: The date and time when the comment was orignally
+	// published. The value is specified in ISO 8601
+	// (YYYY-MM-DDThh:mm:ss.sZ) format.
+	PublishedAt string `json:"publishedAt,omitempty"`
+
+	// TextDisplay: The comment's text. The format is either plain text or
+	// HTML dependent on what has been requested. Even the plain text
+	// representation may differ from the text originally posted in that it
+	// may replace video links with video titles etc.
+	TextDisplay string `json:"textDisplay,omitempty"`
+
+	// TextOriginal: The comment's original raw text as initially posted or
+	// last updated. The original text will only be returned if it is
+	// accessible to the viewer, which is only guaranteed if the viewer is
+	// the comment's author.
+	TextOriginal string `json:"textOriginal,omitempty"`
+
+	// UpdatedAt: The date and time when was last updated . The value is
+	// specified in ISO 8601 (YYYY-MM-DDThh:mm:ss.sZ) format.
+	UpdatedAt string `json:"updatedAt,omitempty"`
+
+	// VideoId: The ID of the video the comment refers to, if any.
+	VideoId string `json:"videoId,omitempty"`
+
+	// ViewerRating: The rating the viewer has given to this comment. For
+	// the time being this will never return RATE_TYPE_DISLIKE and instead
+	// return RATE_TYPE_NONE. This may change in the future.
+	ViewerRating string `json:"viewerRating,omitempty"`
+}
+
+type CommentThread struct {
+	// Etag: Etag of this resource.
+	Etag string `json:"etag,omitempty"`
+
+	// Id: The ID that YouTube uses to uniquely identify the comment thread.
+	Id string `json:"id,omitempty"`
+
+	// Kind: Identifies what kind of resource this is. Value: the fixed
+	// string "youtube#commentThread".
+	Kind string `json:"kind,omitempty"`
+
+	// Replies: The replies object contains a limited number of replies (if
+	// any) to the top level comment found in the snippet.
+	Replies *CommentThreadReplies `json:"replies,omitempty"`
+
+	// Snippet: The snippet object contains basic details about the comment
+	// thread and also the top level comment.
+	Snippet *CommentThreadSnippet `json:"snippet,omitempty"`
+}
+
+type CommentThreadListResponse struct {
+	// Etag: Etag of this resource.
+	Etag string `json:"etag,omitempty"`
+
+	// EventId: Serialized EventId of the request which produced this
+	// response.
+	EventId string `json:"eventId,omitempty"`
+
+	// Items: A list of comment threads that match the request criteria.
+	Items []*CommentThread `json:"items,omitempty"`
+
+	// Kind: Identifies what kind of resource this is. Value: the fixed
+	// string "youtube#commentThreadListResponse".
+	Kind string `json:"kind,omitempty"`
+
+	// NextPageToken: The token that can be used as the value of the
+	// pageToken parameter to retrieve the next page in the result set.
+	NextPageToken string `json:"nextPageToken,omitempty"`
+
+	PageInfo *PageInfo `json:"pageInfo,omitempty"`
+
+	TokenPagination *TokenPagination `json:"tokenPagination,omitempty"`
+
+	// VisitorId: The visitorId identifies the visitor.
+	VisitorId string `json:"visitorId,omitempty"`
+}
+
+type CommentThreadReplies struct {
+	// Comments: A limited number of replies. Unless the number of replies
+	// returned equals total_reply_count in the snippet the returned replies
+	// are only a subset of the total number of replies.
+	Comments []*Comment `json:"comments,omitempty"`
+}
+
+type CommentThreadSnippet struct {
+	// CanReply: Whether the current viewer of the thread can reply to it.
+	// This is viewer specific - other viewers may see a different value for
+	// this field.
+	CanReply bool `json:"canReply,omitempty"`
+
+	// ChannelId: The YouTube channel the comments in the thread refer to or
+	// the channel with the video the comments refer to. If video_id isn't
+	// set the comments refer to the channel itself.
+	ChannelId string `json:"channelId,omitempty"`
+
+	// IsPublic: Whether the thread (and therefore all its comments) is
+	// visible to all YouTube users.
+	IsPublic bool `json:"isPublic,omitempty"`
+
+	// TopLevelComment: The top level comment of this thread.
+	TopLevelComment *Comment `json:"topLevelComment,omitempty"`
+
+	// TotalReplyCount: The total number of replies (not including the top
+	// level comment).
+	TotalReplyCount int64 `json:"totalReplyCount,omitempty"`
+
+	// VideoId: The ID of the video the comments refer to, if any. No
+	// video_id implies a channel discussion comment.
+	VideoId string `json:"videoId,omitempty"`
 }
 
 type ContentRating struct {
@@ -3182,10 +3495,13 @@ type WatchSettings struct {
 // method id "youtube.activities.insert":
 
 type ActivitiesInsertCall struct {
-	s        *Service
-	part     string
-	activity *Activity
-	opt_     map[string]interface{}
+	s             *Service
+	part          string
+	activity      *Activity
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Insert: Posts a bulletin for a specific channel. (The user submitting
@@ -3198,10 +3514,20 @@ type ActivitiesInsertCall struct {
 // those activity resources. For example, you would use the API's
 // videos.rate() method to rate a video and the playlistItems.insert()
 // method to mark a video as a favorite.
+
 func (r *ActivitiesService) Insert(part string, activity *Activity) *ActivitiesInsertCall {
-	c := &ActivitiesInsertCall{s: r.s, opt_: make(map[string]interface{})}
-	c.part = part
-	c.activity = activity
+	return &ActivitiesInsertCall{
+		s:             r.s,
+		part:          part,
+		activity:      activity,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "activities",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *ActivitiesInsertCall) Context(ctx context.Context) *ActivitiesInsertCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -3209,42 +3535,23 @@ func (r *ActivitiesService) Insert(part string, activity *Activity) *ActivitiesI
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ActivitiesInsertCall) Fields(s ...googleapi.Field) *ActivitiesInsertCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ActivitiesInsertCall) Do() (*Activity, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.activity)
-	if err != nil {
-		return nil, err
+	var returnValue *Activity
+	c.params_.Set("part", fmt.Sprintf("%v", c.part))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.activity,
+		Result:  &returnValue,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("part", fmt.Sprintf("%v", c.part))
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "activities")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Activity
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Posts a bulletin for a specific channel. (The user submitting the request must be authorized to act on the channel's behalf.)\n\nNote: Even though an activity resource can contain information about actions like a user rating a video or marking a video as a favorite, you need to use other API methods to generate those activity resources. For example, you would use the API's videos.rate() method to rate a video and the playlistItems.insert() method to mark a video as a favorite.",
 	//   "httpMethod": "POST",
@@ -3278,9 +3585,12 @@ func (c *ActivitiesInsertCall) Do() (*Activity, error) {
 // method id "youtube.activities.list":
 
 type ActivitiesListCall struct {
-	s    *Service
-	part string
-	opt_ map[string]interface{}
+	s             *Service
+	part          string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Returns a list of channel activity events that match the
@@ -3288,17 +3598,23 @@ type ActivitiesListCall struct {
 // with a particular channel, events associated with the user's
 // subscriptions and Google+ friends, or the YouTube home page feed,
 // which is customized for each user.
+
 func (r *ActivitiesService) List(part string) *ActivitiesListCall {
-	c := &ActivitiesListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.part = part
-	return c
+	return &ActivitiesListCall{
+		s:             r.s,
+		part:          part,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "activities",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // ChannelId sets the optional parameter "channelId": The channelId
 // parameter specifies a unique YouTube channel ID. The API will then
 // return a list of that channel's activities.
 func (c *ActivitiesListCall) ChannelId(channelId string) *ActivitiesListCall {
-	c.opt_["channelId"] = channelId
+	c.params_.Set("channelId", fmt.Sprintf("%v", channelId))
 	return c
 }
 
@@ -3306,7 +3622,7 @@ func (c *ActivitiesListCall) ChannelId(channelId string) *ActivitiesListCall {
 // to true to retrieve the activity feed that displays on the YouTube
 // home page for the currently authenticated user.
 func (c *ActivitiesListCall) Home(home bool) *ActivitiesListCall {
-	c.opt_["home"] = home
+	c.params_.Set("home", fmt.Sprintf("%v", home))
 	return c
 }
 
@@ -3314,14 +3630,14 @@ func (c *ActivitiesListCall) Home(home bool) *ActivitiesListCall {
 // parameter specifies the maximum number of items that should be
 // returned in the result set.
 func (c *ActivitiesListCall) MaxResults(maxResults int64) *ActivitiesListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
 // Mine sets the optional parameter "mine": Set this parameter's value
 // to true to retrieve a feed of the authenticated user's activities.
 func (c *ActivitiesListCall) Mine(mine bool) *ActivitiesListCall {
-	c.opt_["mine"] = mine
+	c.params_.Set("mine", fmt.Sprintf("%v", mine))
 	return c
 }
 
@@ -3330,7 +3646,7 @@ func (c *ActivitiesListCall) Mine(mine bool) *ActivitiesListCall {
 // returned. In an API response, the nextPageToken and prevPageToken
 // properties identify other pages that could be retrieved.
 func (c *ActivitiesListCall) PageToken(pageToken string) *ActivitiesListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
 	return c
 }
 
@@ -3342,7 +3658,7 @@ func (c *ActivitiesListCall) PageToken(pageToken string) *ActivitiesListCall {
 // result set. The value is specified in ISO 8601
 // (YYYY-MM-DDThh:mm:ss.sZ) format.
 func (c *ActivitiesListCall) PublishedAfter(publishedAfter string) *ActivitiesListCall {
-	c.opt_["publishedAfter"] = publishedAfter
+	c.params_.Set("publishedAfter", fmt.Sprintf("%v", publishedAfter))
 	return c
 }
 
@@ -3354,7 +3670,7 @@ func (c *ActivitiesListCall) PublishedAfter(publishedAfter string) *ActivitiesLi
 // result set. The value is specified in ISO 8601
 // (YYYY-MM-DDThh:mm:ss.sZ) format.
 func (c *ActivitiesListCall) PublishedBefore(publishedBefore string) *ActivitiesListCall {
-	c.opt_["publishedBefore"] = publishedBefore
+	c.params_.Set("publishedBefore", fmt.Sprintf("%v", publishedBefore))
 	return c
 }
 
@@ -3365,7 +3681,11 @@ func (c *ActivitiesListCall) PublishedBefore(publishedBefore string) *Activities
 // on YouTube does not provide enough information to generate the
 // activity feed.
 func (c *ActivitiesListCall) RegionCode(regionCode string) *ActivitiesListCall {
-	c.opt_["regionCode"] = regionCode
+	c.params_.Set("regionCode", fmt.Sprintf("%v", regionCode))
+	return c
+}
+func (c *ActivitiesListCall) Context(ctx context.Context) *ActivitiesListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -3373,60 +3693,22 @@ func (c *ActivitiesListCall) RegionCode(regionCode string) *ActivitiesListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ActivitiesListCall) Fields(s ...googleapi.Field) *ActivitiesListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ActivitiesListCall) Do() (*ActivityListResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("part", fmt.Sprintf("%v", c.part))
-	if v, ok := c.opt_["channelId"]; ok {
-		params.Set("channelId", fmt.Sprintf("%v", v))
+	var returnValue *ActivityListResponse
+	c.params_.Set("part", fmt.Sprintf("%v", c.part))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	if v, ok := c.opt_["home"]; ok {
-		params.Set("home", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["mine"]; ok {
-		params.Set("mine", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["publishedAfter"]; ok {
-		params.Set("publishedAfter", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["publishedBefore"]; ok {
-		params.Set("publishedBefore", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["regionCode"]; ok {
-		params.Set("regionCode", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "activities")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ActivityListResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Returns a list of channel activity events that match the request criteria. For example, you can retrieve events associated with a particular channel, events associated with the user's subscriptions and Google+ friends, or the YouTube home page feed, which is customized for each user.",
 	//   "httpMethod": "GET",
@@ -3501,17 +3783,778 @@ func (c *ActivitiesListCall) Do() (*ActivityListResponse, error) {
 
 }
 
+// method id "youtube.captions.delete":
+
+type CaptionsDeleteCall struct {
+	s             *Service
+	id            string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
+}
+
+// Delete: Deletes a specified caption track.
+
+func (r *CaptionsService) Delete(id string) *CaptionsDeleteCall {
+	return &CaptionsDeleteCall{
+		s:             r.s,
+		id:            id,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "captions",
+		context_:      googleapi.NoContext,
+	}
+}
+
+// DebugProjectIdOverride sets the optional parameter
+// "debugProjectIdOverride": The debugProjectIdOverride parameter should
+// be used for mimicking a request for a certain project ID
+func (c *CaptionsDeleteCall) DebugProjectIdOverride(debugProjectIdOverride int64) *CaptionsDeleteCall {
+	c.params_.Set("debugProjectIdOverride", fmt.Sprintf("%v", debugProjectIdOverride))
+	return c
+}
+
+// OnBehalfOf sets the optional parameter "onBehalfOf": ID of the
+// Google+ Page for the channel that the request is be on behalf of
+func (c *CaptionsDeleteCall) OnBehalfOf(onBehalfOf string) *CaptionsDeleteCall {
+	c.params_.Set("onBehalfOf", fmt.Sprintf("%v", onBehalfOf))
+	return c
+}
+func (c *CaptionsDeleteCall) Context(ctx context.Context) *CaptionsDeleteCall {
+	c.context_ = ctx
+	return c
+}
+
+func (c *CaptionsDeleteCall) Do() error {
+	c.params_.Set("id", fmt.Sprintf("%v", c.id))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
+	}
+
+	return c.caller_.Do(c.context_, c.s.client, call)
+	// {
+	//   "description": "Deletes a specified caption track.",
+	//   "httpMethod": "DELETE",
+	//   "id": "youtube.captions.delete",
+	//   "parameterOrder": [
+	//     "id"
+	//   ],
+	//   "parameters": {
+	//     "debugProjectIdOverride": {
+	//       "description": "The debugProjectIdOverride parameter should be used for mimicking a request for a certain project ID",
+	//       "format": "int64",
+	//       "location": "query",
+	//       "type": "string"
+	//     },
+	//     "id": {
+	//       "description": "The id parameter identifies the caption track that is being deleted. The value is a caption track ID as identified by the id property in a caption resource.",
+	//       "location": "query",
+	//       "required": true,
+	//       "type": "string"
+	//     },
+	//     "onBehalfOf": {
+	//       "description": "ID of the Google+ Page for the channel that the request is be on behalf of",
+	//       "location": "query",
+	//       "type": "string"
+	//     }
+	//   },
+	//   "path": "captions",
+	//   "scopes": [
+	//     "https://www.googleapis.com/auth/youtube.force-ssl"
+	//   ]
+	// }
+
+}
+
+// method id "youtube.captions.download":
+
+type CaptionsDownloadCall struct {
+	s             *Service
+	id            string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
+}
+
+// Download: Downloads a caption track. The caption track is returned in
+// its original format unless the request specifies a value for the tfmt
+// parameter and in its original language unless the request specifies a
+// value for the tlang parameter.
+
+func (r *CaptionsService) Download(id string) *CaptionsDownloadCall {
+	return &CaptionsDownloadCall{
+		s:             r.s,
+		id:            id,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "captions/{id}",
+		context_:      googleapi.NoContext,
+	}
+}
+
+// DebugProjectIdOverride sets the optional parameter
+// "debugProjectIdOverride": The debugProjectIdOverride parameter should
+// be used for mimicking a request for a certain project ID
+func (c *CaptionsDownloadCall) DebugProjectIdOverride(debugProjectIdOverride int64) *CaptionsDownloadCall {
+	c.params_.Set("debugProjectIdOverride", fmt.Sprintf("%v", debugProjectIdOverride))
+	return c
+}
+
+// OnBehalfOf sets the optional parameter "onBehalfOf": ID of the
+// Google+ Page for the channel that the request is be on behalf of
+func (c *CaptionsDownloadCall) OnBehalfOf(onBehalfOf string) *CaptionsDownloadCall {
+	c.params_.Set("onBehalfOf", fmt.Sprintf("%v", onBehalfOf))
+	return c
+}
+
+// Tfmt sets the optional parameter "tfmt": The tfmt parameter specifies
+// that the caption track should be returned in a specific format. If
+// the parameter is not included in the request, the track is returned
+// in its original format.
+func (c *CaptionsDownloadCall) Tfmt(tfmt string) *CaptionsDownloadCall {
+	c.params_.Set("tfmt", fmt.Sprintf("%v", tfmt))
+	return c
+}
+
+// Tlang sets the optional parameter "tlang": The tlang parameter
+// specifies that the API response should return a translation of the
+// specified caption track. The parameter value is an ISO 639-1
+// two-letter language code that identifies the desired caption
+// language. The translation is generated by using machine translation,
+// such as Google Translate.
+func (c *CaptionsDownloadCall) Tlang(tlang string) *CaptionsDownloadCall {
+	c.params_.Set("tlang", fmt.Sprintf("%v", tlang))
+	return c
+}
+func (c *CaptionsDownloadCall) Context(ctx context.Context) *CaptionsDownloadCall {
+	c.context_ = ctx
+	return c
+}
+
+// GetResponse sets alt=media creating a file download request. The body
+// of the *http.Response contains the media.  You should close the response
+// body when finished reading.
+
+func (c *CaptionsDownloadCall) GetResponse() (*http.Response, error) {
+	var res *http.Response
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
+		"id": c.id,
+	})
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &res,
+	}
+	return res, c.caller_.Do(c.context_, c.s.client, call)
+}
+
+func (c *CaptionsDownloadCall) Do() error {
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
+		"id": c.id,
+	})
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+	}
+
+	return c.caller_.Do(c.context_, c.s.client, call)
+	// {
+	//   "description": "Downloads a caption track. The caption track is returned in its original format unless the request specifies a value for the tfmt parameter and in its original language unless the request specifies a value for the tlang parameter.",
+	//   "httpMethod": "GET",
+	//   "id": "youtube.captions.download",
+	//   "parameterOrder": [
+	//     "id"
+	//   ],
+	//   "parameters": {
+	//     "debugProjectIdOverride": {
+	//       "description": "The debugProjectIdOverride parameter should be used for mimicking a request for a certain project ID",
+	//       "format": "int64",
+	//       "location": "query",
+	//       "type": "string"
+	//     },
+	//     "id": {
+	//       "description": "The id parameter identifies the caption track that is being retrieved. The value is a caption track ID as identified by the id property in a caption resource.",
+	//       "location": "path",
+	//       "required": true,
+	//       "type": "string"
+	//     },
+	//     "onBehalfOf": {
+	//       "description": "ID of the Google+ Page for the channel that the request is be on behalf of",
+	//       "location": "query",
+	//       "type": "string"
+	//     },
+	//     "tfmt": {
+	//       "description": "The tfmt parameter specifies that the caption track should be returned in a specific format. If the parameter is not included in the request, the track is returned in its original format.",
+	//       "enum": [
+	//         "sbv",
+	//         "scc",
+	//         "srt",
+	//         "ttml",
+	//         "vtt"
+	//       ],
+	//       "enumDescriptions": [
+	//         "SubViewer subtitle.",
+	//         "Scenarist Closed Caption format.",
+	//         "SubRip subtitle.",
+	//         "Timed Text Markup Language caption.",
+	//         "Web Video Text Tracks caption."
+	//       ],
+	//       "location": "query",
+	//       "type": "string"
+	//     },
+	//     "tlang": {
+	//       "description": "The tlang parameter specifies that the API response should return a translation of the specified caption track. The parameter value is an ISO 639-1 two-letter language code that identifies the desired caption language. The translation is generated by using machine translation, such as Google Translate.",
+	//       "location": "query",
+	//       "type": "string"
+	//     }
+	//   },
+	//   "path": "captions/{id}",
+	//   "scopes": [
+	//     "https://www.googleapis.com/auth/youtube.force-ssl"
+	//   ],
+	//   "supportsMediaDownload": true
+	// }
+
+}
+
+// method id "youtube.captions.insert":
+
+type CaptionsInsertCall struct {
+	s             *Service
+	part          string
+	caption       *Caption
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
+	callback_     googleapi.ProgressUpdater
+}
+
+// Insert: Uploads a caption track.
+
+func (r *CaptionsService) Insert(part string, caption *Caption) *CaptionsInsertCall {
+	return &CaptionsInsertCall{
+		s:             r.s,
+		part:          part,
+		caption:       caption,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "captions",
+		context_:      googleapi.NoContext,
+	}
+}
+
+// DebugProjectIdOverride sets the optional parameter
+// "debugProjectIdOverride": The debugProjectIdOverride parameter should
+// be used for mimicking a request for a certain project ID.
+func (c *CaptionsInsertCall) DebugProjectIdOverride(debugProjectIdOverride int64) *CaptionsInsertCall {
+	c.params_.Set("debugProjectIdOverride", fmt.Sprintf("%v", debugProjectIdOverride))
+	return c
+}
+
+// OnBehalfOf sets the optional parameter "onBehalfOf": ID of the
+// Google+ Page for the channel that the request is be on behalf of
+func (c *CaptionsInsertCall) OnBehalfOf(onBehalfOf string) *CaptionsInsertCall {
+	c.params_.Set("onBehalfOf", fmt.Sprintf("%v", onBehalfOf))
+	return c
+}
+
+// Sync sets the optional parameter "sync": The sync parameter indicates
+// whether YouTube should automatically synchronize the caption file
+// with the audio track of the video. If you set the value to true,
+// YouTube will disregard any time codes that are in the uploaded
+// caption file and generate new time codes for the captions.
+//
+// You
+// should set the sync parameter to true if you are uploading a
+// transcript, which has no time codes, or if you suspect the time codes
+// in your file are incorrect and want YouTube to try to fix them.
+func (c *CaptionsInsertCall) Sync(sync bool) *CaptionsInsertCall {
+	c.params_.Set("sync", fmt.Sprintf("%v", sync))
+	return c
+}
+func (c *CaptionsInsertCall) Context(ctx context.Context) *CaptionsInsertCall {
+	c.context_ = ctx
+	return c
+}
+
+// MediaUpload takes a context and UploadCaller interface
+func (c *CaptionsInsertCall) Upload(ctx context.Context, u googleapi.UploadCaller) *CaptionsInsertCall {
+	c.caller_ = u
+	c.context_ = ctx
+	switch u.(type) {
+	case *googleapi.MediaUpload:
+		c.pathTemplate_ = "/upload/youtube/v3/captions"
+	case *googleapi.ResumableUpload:
+		c.pathTemplate_ = "/resumable/upload/youtube/v3/captions"
+	}
+	return c
+}
+
+// Media specifies the media to upload in a single chunk.
+// At most one of Media and ResumableMedia may be set.
+// The mime type type will be auto-detected unless r is a googleapi.ContentTyper as well.
+func (c *CaptionsInsertCall) Media(r io.Reader) *CaptionsInsertCall {
+	c.caller_ = &googleapi.MediaUpload{
+		Media: r,
+	}
+	c.pathTemplate_ = "/upload/youtube/v3/captions"
+	return c
+}
+
+// ResumableMedia specifies the media to upload in chunks and can be cancelled with ctx.
+// At most one of Media and ResumableMedia may be set.
+// mediaType identifies the MIME media type of the upload, such as "image/png".
+// If mediaType is "", it will be auto-detected.
+func (c *CaptionsInsertCall) ResumableMedia(ctx context.Context, r io.ReaderAt, size int64, mediaType string) *CaptionsInsertCall {
+	c.caller_ = &googleapi.ResumableUpload{
+		Media:         io.NewSectionReader(r, 0, size),
+		MediaType:     mediaType,
+		ContentLength: size,
+		Callback:      c.callback_,
+	}
+	c.pathTemplate_ = "/resumable/upload/youtube/v3/captions"
+	c.context_ = ctx
+	return c
+}
+
+// ProgressUpdater provides a callback function that will be called after every chunk.
+// It should be a low-latency function in order to not slow down the upload operation.
+// This should only be called when using ResumableMedia (as opposed to Media).
+func (c *CaptionsInsertCall) ProgressUpdater(pu googleapi.ProgressUpdater) *CaptionsInsertCall {
+	c.callback_ = pu
+	if rx, ok := c.caller_.(*googleapi.ResumableUpload); ok {
+		rx.Callback = pu
+	}
+	return c
+}
+
+// Fields allows partial responses to be retrieved.
+// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
+// for more information.
+func (c *CaptionsInsertCall) Fields(s ...googleapi.Field) *CaptionsInsertCall {
+	c.params_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+func (c *CaptionsInsertCall) Do() (*Caption, error) {
+	var returnValue *Caption
+	c.params_.Set("part", fmt.Sprintf("%v", c.part))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.caption,
+		Result:  &returnValue,
+	}
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
+	// {
+	//   "description": "Uploads a caption track.",
+	//   "httpMethod": "POST",
+	//   "id": "youtube.captions.insert",
+	//   "mediaUpload": {
+	//     "accept": [
+	//       "*/*",
+	//       "application/octet-stream",
+	//       "text/xml"
+	//     ],
+	//     "maxSize": "100MB",
+	//     "protocols": {
+	//       "resumable": {
+	//         "multipart": true,
+	//         "path": "/resumable/upload/youtube/v3/captions"
+	//       },
+	//       "simple": {
+	//         "multipart": true,
+	//         "path": "/upload/youtube/v3/captions"
+	//       }
+	//     }
+	//   },
+	//   "parameterOrder": [
+	//     "part"
+	//   ],
+	//   "parameters": {
+	//     "debugProjectIdOverride": {
+	//       "description": "The debugProjectIdOverride parameter should be used for mimicking a request for a certain project ID.",
+	//       "format": "int64",
+	//       "location": "query",
+	//       "type": "string"
+	//     },
+	//     "onBehalfOf": {
+	//       "description": "ID of the Google+ Page for the channel that the request is be on behalf of",
+	//       "location": "query",
+	//       "type": "string"
+	//     },
+	//     "part": {
+	//       "description": "The part parameter specifies the caption resource parts that the API response will include. Set the parameter value to snippet.",
+	//       "location": "query",
+	//       "required": true,
+	//       "type": "string"
+	//     },
+	//     "sync": {
+	//       "description": "The sync parameter indicates whether YouTube should automatically synchronize the caption file with the audio track of the video. If you set the value to true, YouTube will disregard any time codes that are in the uploaded caption file and generate new time codes for the captions.\n\nYou should set the sync parameter to true if you are uploading a transcript, which has no time codes, or if you suspect the time codes in your file are incorrect and want YouTube to try to fix them.",
+	//       "location": "query",
+	//       "type": "boolean"
+	//     }
+	//   },
+	//   "path": "captions",
+	//   "request": {
+	//     "$ref": "Caption"
+	//   },
+	//   "response": {
+	//     "$ref": "Caption"
+	//   },
+	//   "scopes": [
+	//     "https://www.googleapis.com/auth/youtube.force-ssl"
+	//   ],
+	//   "supportsMediaUpload": true
+	// }
+
+}
+
+// method id "youtube.captions.list":
+
+type CaptionsListCall struct {
+	s             *Service
+	part          string
+	videoId       string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
+}
+
+// List: Returns a list of caption tracks that are associated with a
+// specified video. Note that the API response does not contain the
+// actual captions and that the captions.download method provides the
+// ability to retrieve a caption track.
+
+func (r *CaptionsService) List(part string, videoId string) *CaptionsListCall {
+	return &CaptionsListCall{
+		s:             r.s,
+		part:          part,
+		videoId:       videoId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "captions",
+		context_:      googleapi.NoContext,
+	}
+}
+
+// DebugProjectIdOverride sets the optional parameter
+// "debugProjectIdOverride": The debugProjectIdOverride parameter should
+// be used for mimicking a request for a certain project ID.
+func (c *CaptionsListCall) DebugProjectIdOverride(debugProjectIdOverride int64) *CaptionsListCall {
+	c.params_.Set("debugProjectIdOverride", fmt.Sprintf("%v", debugProjectIdOverride))
+	return c
+}
+
+// Id sets the optional parameter "id": The id parameter specifies a
+// comma-separated list of IDs that identify the caption resources that
+// should be retrieved. Each ID must identify a caption track associated
+// with the specified video.
+func (c *CaptionsListCall) Id(id string) *CaptionsListCall {
+	c.params_.Set("id", fmt.Sprintf("%v", id))
+	return c
+}
+
+// OnBehalfOf sets the optional parameter "onBehalfOf": ID of the
+// Google+ Page for the channel that the request is on behalf of.
+func (c *CaptionsListCall) OnBehalfOf(onBehalfOf string) *CaptionsListCall {
+	c.params_.Set("onBehalfOf", fmt.Sprintf("%v", onBehalfOf))
+	return c
+}
+func (c *CaptionsListCall) Context(ctx context.Context) *CaptionsListCall {
+	c.context_ = ctx
+	return c
+}
+
+// Fields allows partial responses to be retrieved.
+// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
+// for more information.
+func (c *CaptionsListCall) Fields(s ...googleapi.Field) *CaptionsListCall {
+	c.params_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+func (c *CaptionsListCall) Do() (*CaptionListResponse, error) {
+	var returnValue *CaptionListResponse
+	c.params_.Set("part", fmt.Sprintf("%v", c.part))
+	c.params_.Set("videoId", fmt.Sprintf("%v", c.videoId))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
+	}
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
+	// {
+	//   "description": "Returns a list of caption tracks that are associated with a specified video. Note that the API response does not contain the actual captions and that the captions.download method provides the ability to retrieve a caption track.",
+	//   "httpMethod": "GET",
+	//   "id": "youtube.captions.list",
+	//   "parameterOrder": [
+	//     "part",
+	//     "videoId"
+	//   ],
+	//   "parameters": {
+	//     "debugProjectIdOverride": {
+	//       "description": "The debugProjectIdOverride parameter should be used for mimicking a request for a certain project ID.",
+	//       "format": "int64",
+	//       "location": "query",
+	//       "type": "string"
+	//     },
+	//     "id": {
+	//       "description": "The id parameter specifies a comma-separated list of IDs that identify the caption resources that should be retrieved. Each ID must identify a caption track associated with the specified video.",
+	//       "location": "query",
+	//       "type": "string"
+	//     },
+	//     "onBehalfOf": {
+	//       "description": "ID of the Google+ Page for the channel that the request is on behalf of.",
+	//       "location": "query",
+	//       "type": "string"
+	//     },
+	//     "part": {
+	//       "description": "The part parameter specifies a comma-separated list of one or more caption resource parts that the API response will include. The part names that you can include in the parameter value are id and snippet.",
+	//       "location": "query",
+	//       "required": true,
+	//       "type": "string"
+	//     },
+	//     "videoId": {
+	//       "description": "The videoId parameter specifies the YouTube video ID of the video for which the API should return caption tracks.",
+	//       "location": "query",
+	//       "required": true,
+	//       "type": "string"
+	//     }
+	//   },
+	//   "path": "captions",
+	//   "response": {
+	//     "$ref": "CaptionListResponse"
+	//   },
+	//   "scopes": [
+	//     "https://www.googleapis.com/auth/youtube.force-ssl"
+	//   ]
+	// }
+
+}
+
+// method id "youtube.captions.update":
+
+type CaptionsUpdateCall struct {
+	s             *Service
+	part          string
+	caption       *Caption
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
+	callback_     googleapi.ProgressUpdater
+}
+
+// Update: Updates a caption track. When updating a caption track, you
+// can change the track's draft status, upload a new caption file for
+// the track, or both.
+
+func (r *CaptionsService) Update(part string, caption *Caption) *CaptionsUpdateCall {
+	return &CaptionsUpdateCall{
+		s:             r.s,
+		part:          part,
+		caption:       caption,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "captions",
+		context_:      googleapi.NoContext,
+	}
+}
+
+// DebugProjectIdOverride sets the optional parameter
+// "debugProjectIdOverride": The debugProjectIdOverride parameter should
+// be used for mimicking a request for a certain project ID.
+func (c *CaptionsUpdateCall) DebugProjectIdOverride(debugProjectIdOverride int64) *CaptionsUpdateCall {
+	c.params_.Set("debugProjectIdOverride", fmt.Sprintf("%v", debugProjectIdOverride))
+	return c
+}
+
+// OnBehalfOf sets the optional parameter "onBehalfOf": ID of the
+// Google+ Page for the channel that the request is be on behalf of
+func (c *CaptionsUpdateCall) OnBehalfOf(onBehalfOf string) *CaptionsUpdateCall {
+	c.params_.Set("onBehalfOf", fmt.Sprintf("%v", onBehalfOf))
+	return c
+}
+
+// Sync sets the optional parameter "sync": Note: The API server only
+// processes the parameter value if the request contains an updated
+// caption file.
+//
+// The sync parameter indicates whether YouTube should
+// automatically synchronize the caption file with the audio track of
+// the video. If you set the value to true, YouTube will automatically
+// synchronize the caption track with the audio track.
+func (c *CaptionsUpdateCall) Sync(sync bool) *CaptionsUpdateCall {
+	c.params_.Set("sync", fmt.Sprintf("%v", sync))
+	return c
+}
+func (c *CaptionsUpdateCall) Context(ctx context.Context) *CaptionsUpdateCall {
+	c.context_ = ctx
+	return c
+}
+
+// MediaUpload takes a context and UploadCaller interface
+func (c *CaptionsUpdateCall) Upload(ctx context.Context, u googleapi.UploadCaller) *CaptionsUpdateCall {
+	c.caller_ = u
+	c.context_ = ctx
+	switch u.(type) {
+	case *googleapi.MediaUpload:
+		c.pathTemplate_ = "/upload/youtube/v3/captions"
+	case *googleapi.ResumableUpload:
+		c.pathTemplate_ = "/resumable/upload/youtube/v3/captions"
+	}
+	return c
+}
+
+// Media specifies the media to upload in a single chunk.
+// At most one of Media and ResumableMedia may be set.
+// The mime type type will be auto-detected unless r is a googleapi.ContentTyper as well.
+func (c *CaptionsUpdateCall) Media(r io.Reader) *CaptionsUpdateCall {
+	c.caller_ = &googleapi.MediaUpload{
+		Media: r,
+	}
+	c.pathTemplate_ = "/upload/youtube/v3/captions"
+	return c
+}
+
+// ResumableMedia specifies the media to upload in chunks and can be cancelled with ctx.
+// At most one of Media and ResumableMedia may be set.
+// mediaType identifies the MIME media type of the upload, such as "image/png".
+// If mediaType is "", it will be auto-detected.
+func (c *CaptionsUpdateCall) ResumableMedia(ctx context.Context, r io.ReaderAt, size int64, mediaType string) *CaptionsUpdateCall {
+	c.caller_ = &googleapi.ResumableUpload{
+		Media:         io.NewSectionReader(r, 0, size),
+		MediaType:     mediaType,
+		ContentLength: size,
+		Callback:      c.callback_,
+	}
+	c.pathTemplate_ = "/resumable/upload/youtube/v3/captions"
+	c.context_ = ctx
+	return c
+}
+
+// ProgressUpdater provides a callback function that will be called after every chunk.
+// It should be a low-latency function in order to not slow down the upload operation.
+// This should only be called when using ResumableMedia (as opposed to Media).
+func (c *CaptionsUpdateCall) ProgressUpdater(pu googleapi.ProgressUpdater) *CaptionsUpdateCall {
+	c.callback_ = pu
+	if rx, ok := c.caller_.(*googleapi.ResumableUpload); ok {
+		rx.Callback = pu
+	}
+	return c
+}
+
+// Fields allows partial responses to be retrieved.
+// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
+// for more information.
+func (c *CaptionsUpdateCall) Fields(s ...googleapi.Field) *CaptionsUpdateCall {
+	c.params_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+func (c *CaptionsUpdateCall) Do() (*Caption, error) {
+	var returnValue *Caption
+	c.params_.Set("part", fmt.Sprintf("%v", c.part))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.caption,
+		Result:  &returnValue,
+	}
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
+	// {
+	//   "description": "Updates a caption track. When updating a caption track, you can change the track's draft status, upload a new caption file for the track, or both.",
+	//   "httpMethod": "PUT",
+	//   "id": "youtube.captions.update",
+	//   "mediaUpload": {
+	//     "accept": [
+	//       "*/*",
+	//       "application/octet-stream",
+	//       "text/xml"
+	//     ],
+	//     "maxSize": "100MB",
+	//     "protocols": {
+	//       "resumable": {
+	//         "multipart": true,
+	//         "path": "/resumable/upload/youtube/v3/captions"
+	//       },
+	//       "simple": {
+	//         "multipart": true,
+	//         "path": "/upload/youtube/v3/captions"
+	//       }
+	//     }
+	//   },
+	//   "parameterOrder": [
+	//     "part"
+	//   ],
+	//   "parameters": {
+	//     "debugProjectIdOverride": {
+	//       "description": "The debugProjectIdOverride parameter should be used for mimicking a request for a certain project ID.",
+	//       "format": "int64",
+	//       "location": "query",
+	//       "type": "string"
+	//     },
+	//     "onBehalfOf": {
+	//       "description": "ID of the Google+ Page for the channel that the request is be on behalf of",
+	//       "location": "query",
+	//       "type": "string"
+	//     },
+	//     "part": {
+	//       "description": "The part parameter serves two purposes in this operation. It identifies the properties that the write operation will set as well as the properties that the API response will include. Set the property value to snippet if you are updating the track's draft status. Otherwise, set the property value to id.",
+	//       "location": "query",
+	//       "required": true,
+	//       "type": "string"
+	//     },
+	//     "sync": {
+	//       "description": "Note: The API server only processes the parameter value if the request contains an updated caption file.\n\nThe sync parameter indicates whether YouTube should automatically synchronize the caption file with the audio track of the video. If you set the value to true, YouTube will automatically synchronize the caption track with the audio track.",
+	//       "location": "query",
+	//       "type": "boolean"
+	//     }
+	//   },
+	//   "path": "captions",
+	//   "request": {
+	//     "$ref": "Caption"
+	//   },
+	//   "response": {
+	//     "$ref": "Caption"
+	//   },
+	//   "scopes": [
+	//     "https://www.googleapis.com/auth/youtube.force-ssl"
+	//   ],
+	//   "supportsMediaUpload": true
+	// }
+
+}
+
 // method id "youtube.channelBanners.insert":
 
 type ChannelBannersInsertCall struct {
 	s                     *Service
 	channelbannerresource *ChannelBannerResource
-	opt_                  map[string]interface{}
-	media_                io.Reader
-	resumable_            googleapi.SizeReaderAt
-	mediaType_            string
-	ctx_                  context.Context
-	protocol_             string
+	caller_               googleapi.Caller
+	params_               url.Values
+	pathTemplate_         string
+	context_              context.Context
+	callback_             googleapi.ProgressUpdater
 }
 
 // Insert: Uploads a channel banner image to YouTube. This method
@@ -3527,10 +4570,16 @@ type ChannelBannersInsertCall struct {
 // Call the channels.update method to update the channel's branding
 // settings. Set the brandingSettings.image.bannerExternalUrl property's
 // value to the URL obtained in step 2.
+
 func (r *ChannelBannersService) Insert(channelbannerresource *ChannelBannerResource) *ChannelBannersInsertCall {
-	c := &ChannelBannersInsertCall{s: r.s, opt_: make(map[string]interface{})}
-	c.channelbannerresource = channelbannerresource
-	return c
+	return &ChannelBannersInsertCall{
+		s: r.s,
+		channelbannerresource: channelbannerresource,
+		caller_:               googleapi.JSONCall{},
+		params_:               make(map[string][]string),
+		pathTemplate_:         "channelBanners/insert",
+		context_:              googleapi.NoContext,
+	}
 }
 
 // OnBehalfOfContentOwner sets the optional parameter
@@ -3548,15 +4597,35 @@ func (r *ChannelBannersService) Insert(channelbannerresource *ChannelBannerResou
 // CMS account that the user authenticates with must be linked to the
 // specified YouTube content owner.
 func (c *ChannelBannersInsertCall) OnBehalfOfContentOwner(onBehalfOfContentOwner string) *ChannelBannersInsertCall {
-	c.opt_["onBehalfOfContentOwner"] = onBehalfOfContentOwner
+	c.params_.Set("onBehalfOfContentOwner", fmt.Sprintf("%v", onBehalfOfContentOwner))
+	return c
+}
+func (c *ChannelBannersInsertCall) Context(ctx context.Context) *ChannelBannersInsertCall {
+	c.context_ = ctx
+	return c
+}
+
+// MediaUpload takes a context and UploadCaller interface
+func (c *ChannelBannersInsertCall) Upload(ctx context.Context, u googleapi.UploadCaller) *ChannelBannersInsertCall {
+	c.caller_ = u
+	c.context_ = ctx
+	switch u.(type) {
+	case *googleapi.MediaUpload:
+		c.pathTemplate_ = "/upload/youtube/v3/channelBanners/insert"
+	case *googleapi.ResumableUpload:
+		c.pathTemplate_ = "/resumable/upload/youtube/v3/channelBanners/insert"
+	}
 	return c
 }
 
 // Media specifies the media to upload in a single chunk.
 // At most one of Media and ResumableMedia may be set.
+// The mime type type will be auto-detected unless r is a googleapi.ContentTyper as well.
 func (c *ChannelBannersInsertCall) Media(r io.Reader) *ChannelBannersInsertCall {
-	c.media_ = r
-	c.protocol_ = "multipart"
+	c.caller_ = &googleapi.MediaUpload{
+		Media: r,
+	}
+	c.pathTemplate_ = "/upload/youtube/v3/channelBanners/insert"
 	return c
 }
 
@@ -3565,10 +4634,14 @@ func (c *ChannelBannersInsertCall) Media(r io.Reader) *ChannelBannersInsertCall 
 // mediaType identifies the MIME media type of the upload, such as "image/png".
 // If mediaType is "", it will be auto-detected.
 func (c *ChannelBannersInsertCall) ResumableMedia(ctx context.Context, r io.ReaderAt, size int64, mediaType string) *ChannelBannersInsertCall {
-	c.ctx_ = ctx
-	c.resumable_ = io.NewSectionReader(r, 0, size)
-	c.mediaType_ = mediaType
-	c.protocol_ = "resumable"
+	c.caller_ = &googleapi.ResumableUpload{
+		Media:         io.NewSectionReader(r, 0, size),
+		MediaType:     mediaType,
+		ContentLength: size,
+		Callback:      c.callback_,
+	}
+	c.pathTemplate_ = "/resumable/upload/youtube/v3/channelBanners/insert"
+	c.context_ = ctx
 	return c
 }
 
@@ -3576,7 +4649,10 @@ func (c *ChannelBannersInsertCall) ResumableMedia(ctx context.Context, r io.Read
 // It should be a low-latency function in order to not slow down the upload operation.
 // This should only be called when using ResumableMedia (as opposed to Media).
 func (c *ChannelBannersInsertCall) ProgressUpdater(pu googleapi.ProgressUpdater) *ChannelBannersInsertCall {
-	c.opt_["progressUpdater"] = pu
+	c.callback_ = pu
+	if rx, ok := c.caller_.(*googleapi.ResumableUpload); ok {
+		rx.Callback = pu
+	}
 	return c
 }
 
@@ -3584,87 +4660,22 @@ func (c *ChannelBannersInsertCall) ProgressUpdater(pu googleapi.ProgressUpdater)
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ChannelBannersInsertCall) Fields(s ...googleapi.Field) *ChannelBannersInsertCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ChannelBannersInsertCall) Do() (*ChannelBannerResource, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.channelbannerresource)
-	if err != nil {
-		return nil, err
+	var returnValue *ChannelBannerResource
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.channelbannerresource,
+		Result:  &returnValue,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["onBehalfOfContentOwner"]; ok {
-		params.Set("onBehalfOfContentOwner", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "channelBanners/insert")
-	var progressUpdater_ googleapi.ProgressUpdater
-	if v, ok := c.opt_["progressUpdater"]; ok {
-		if pu, ok := v.(googleapi.ProgressUpdater); ok {
-			progressUpdater_ = pu
-		}
-	}
-	if c.media_ != nil || c.resumable_ != nil {
-		urls = strings.Replace(urls, "https://www.googleapis.com/", "https://www.googleapis.com/upload/", 1)
-		params.Set("uploadType", c.protocol_)
-	}
-	urls += "?" + params.Encode()
-	if c.protocol_ != "resumable" {
-		var cancel func()
-		cancel, _ = googleapi.ConditionallyIncludeMedia(c.media_, &body, &ctype)
-		if cancel != nil {
-			defer cancel()
-		}
-	}
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	if c.protocol_ == "resumable" {
-		req.ContentLength = 0
-		if c.mediaType_ == "" {
-			c.mediaType_ = googleapi.DetectMediaType(c.resumable_)
-		}
-		req.Header.Set("X-Upload-Content-Type", c.mediaType_)
-		req.Body = nil
-	} else {
-		req.Header.Set("Content-Type", ctype)
-	}
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	if c.protocol_ == "resumable" {
-		loc := res.Header.Get("Location")
-		rx := &googleapi.ResumableUpload{
-			Client:        c.s.client,
-			UserAgent:     c.s.userAgent(),
-			URI:           loc,
-			Media:         c.resumable_,
-			MediaType:     c.mediaType_,
-			ContentLength: c.resumable_.Size(),
-			Callback:      progressUpdater_,
-		}
-		res, err = rx.Upload(c.ctx_)
-		if err != nil {
-			return nil, err
-		}
-		defer res.Body.Close()
-	}
-	var ret *ChannelBannerResource
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Uploads a channel banner image to YouTube. This method represents the first two steps in a three-step process to update the banner image for a channel:\n\n- Call the channelBanners.insert method to upload the binary image data to YouTube. The image must have a 16:9 aspect ratio and be at least 2120x1192 pixels.\n- Extract the url property's value from the response that the API returns for step 1.\n- Call the channels.update method to update the channel's branding settings. Set the brandingSettings.image.bannerExternalUrl property's value to the URL obtained in step 2.",
 	//   "httpMethod": "POST",
@@ -3714,16 +4725,25 @@ func (c *ChannelBannersInsertCall) Do() (*ChannelBannerResource, error) {
 // method id "youtube.channelSections.delete":
 
 type ChannelSectionsDeleteCall struct {
-	s    *Service
-	id   string
-	opt_ map[string]interface{}
+	s             *Service
+	id            string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Delete: Deletes a channelSection.
+
 func (r *ChannelSectionsService) Delete(id string) *ChannelSectionsDeleteCall {
-	c := &ChannelSectionsDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.id = id
-	return c
+	return &ChannelSectionsDeleteCall{
+		s:             r.s,
+		id:            id,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "channelSections",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // OnBehalfOfContentOwner sets the optional parameter
@@ -3741,43 +4761,24 @@ func (r *ChannelSectionsService) Delete(id string) *ChannelSectionsDeleteCall {
 // CMS account that the user authenticates with must be linked to the
 // specified YouTube content owner.
 func (c *ChannelSectionsDeleteCall) OnBehalfOfContentOwner(onBehalfOfContentOwner string) *ChannelSectionsDeleteCall {
-	c.opt_["onBehalfOfContentOwner"] = onBehalfOfContentOwner
+	c.params_.Set("onBehalfOfContentOwner", fmt.Sprintf("%v", onBehalfOfContentOwner))
 	return c
 }
-
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *ChannelSectionsDeleteCall) Fields(s ...googleapi.Field) *ChannelSectionsDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (c *ChannelSectionsDeleteCall) Context(ctx context.Context) *ChannelSectionsDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *ChannelSectionsDeleteCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("id", fmt.Sprintf("%v", c.id))
-	if v, ok := c.opt_["onBehalfOfContentOwner"]; ok {
-		params.Set("onBehalfOfContentOwner", fmt.Sprintf("%v", v))
+	c.params_.Set("id", fmt.Sprintf("%v", c.id))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
 	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "channelSections")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Deletes a channelSection.",
 	//   "httpMethod": "DELETE",
@@ -3814,15 +4815,24 @@ type ChannelSectionsInsertCall struct {
 	s              *Service
 	part           string
 	channelsection *ChannelSection
-	opt_           map[string]interface{}
+	caller_        googleapi.Caller
+	params_        url.Values
+	pathTemplate_  string
+	context_       context.Context
 }
 
 // Insert: Adds a channelSection for the authenticated user's channel.
+
 func (r *ChannelSectionsService) Insert(part string, channelsection *ChannelSection) *ChannelSectionsInsertCall {
-	c := &ChannelSectionsInsertCall{s: r.s, opt_: make(map[string]interface{})}
-	c.part = part
-	c.channelsection = channelsection
-	return c
+	return &ChannelSectionsInsertCall{
+		s:              r.s,
+		part:           part,
+		channelsection: channelsection,
+		caller_:        googleapi.JSONCall{},
+		params_:        make(map[string][]string),
+		pathTemplate_:  "channelSections",
+		context_:       googleapi.NoContext,
+	}
 }
 
 // OnBehalfOfContentOwner sets the optional parameter
@@ -3840,7 +4850,7 @@ func (r *ChannelSectionsService) Insert(part string, channelsection *ChannelSect
 // CMS account that the user authenticates with must be linked to the
 // specified YouTube content owner.
 func (c *ChannelSectionsInsertCall) OnBehalfOfContentOwner(onBehalfOfContentOwner string) *ChannelSectionsInsertCall {
-	c.opt_["onBehalfOfContentOwner"] = onBehalfOfContentOwner
+	c.params_.Set("onBehalfOfContentOwner", fmt.Sprintf("%v", onBehalfOfContentOwner))
 	return c
 }
 
@@ -3868,7 +4878,11 @@ func (c *ChannelSectionsInsertCall) OnBehalfOfContentOwner(onBehalfOfContentOwne
 // parameter value, without having to provide authentication credentials
 // for each separate channel.
 func (c *ChannelSectionsInsertCall) OnBehalfOfContentOwnerChannel(onBehalfOfContentOwnerChannel string) *ChannelSectionsInsertCall {
-	c.opt_["onBehalfOfContentOwnerChannel"] = onBehalfOfContentOwnerChannel
+	c.params_.Set("onBehalfOfContentOwnerChannel", fmt.Sprintf("%v", onBehalfOfContentOwnerChannel))
+	return c
+}
+func (c *ChannelSectionsInsertCall) Context(ctx context.Context) *ChannelSectionsInsertCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -3876,48 +4890,23 @@ func (c *ChannelSectionsInsertCall) OnBehalfOfContentOwnerChannel(onBehalfOfCont
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ChannelSectionsInsertCall) Fields(s ...googleapi.Field) *ChannelSectionsInsertCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ChannelSectionsInsertCall) Do() (*ChannelSection, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.channelsection)
-	if err != nil {
-		return nil, err
+	var returnValue *ChannelSection
+	c.params_.Set("part", fmt.Sprintf("%v", c.part))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.channelsection,
+		Result:  &returnValue,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("part", fmt.Sprintf("%v", c.part))
-	if v, ok := c.opt_["onBehalfOfContentOwner"]; ok {
-		params.Set("onBehalfOfContentOwner", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["onBehalfOfContentOwnerChannel"]; ok {
-		params.Set("onBehalfOfContentOwnerChannel", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "channelSections")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ChannelSection
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Adds a channelSection for the authenticated user's channel.",
 	//   "httpMethod": "POST",
@@ -3962,24 +4951,46 @@ func (c *ChannelSectionsInsertCall) Do() (*ChannelSection, error) {
 // method id "youtube.channelSections.list":
 
 type ChannelSectionsListCall struct {
-	s    *Service
-	part string
-	opt_ map[string]interface{}
+	s             *Service
+	part          string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Returns channelSection resources that match the API request
 // criteria.
+
 func (r *ChannelSectionsService) List(part string) *ChannelSectionsListCall {
-	c := &ChannelSectionsListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.part = part
-	return c
+	return &ChannelSectionsListCall{
+		s:             r.s,
+		part:          part,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "channelSections",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // ChannelId sets the optional parameter "channelId": The channelId
 // parameter specifies a YouTube channel ID. The API will only return
 // that channel's channelSections.
 func (c *ChannelSectionsListCall) ChannelId(channelId string) *ChannelSectionsListCall {
-	c.opt_["channelId"] = channelId
+	c.params_.Set("channelId", fmt.Sprintf("%v", channelId))
+	return c
+}
+
+// Hl sets the optional parameter "hl": The hl parameter indicates that
+// the snippet.localized property values in the returned channelSection
+// resources should be in the specified language if localized values for
+// that language are available. For example, if the API request
+// specifies hl=de, the snippet.localized properties in the API response
+// will contain German titles if German titles are available. Channel
+// owners can provide localized channel section titles using either the
+// channelSections.insert or channelSections.update method.
+func (c *ChannelSectionsListCall) Hl(hl string) *ChannelSectionsListCall {
+	c.params_.Set("hl", fmt.Sprintf("%v", hl))
 	return c
 }
 
@@ -3988,7 +4999,7 @@ func (c *ChannelSectionsListCall) ChannelId(channelId string) *ChannelSectionsLi
 // resource(s) that are being retrieved. In a channelSection resource,
 // the id property specifies the YouTube channelSection ID.
 func (c *ChannelSectionsListCall) Id(id string) *ChannelSectionsListCall {
-	c.opt_["id"] = id
+	c.params_.Set("id", fmt.Sprintf("%v", id))
 	return c
 }
 
@@ -3996,7 +5007,7 @@ func (c *ChannelSectionsListCall) Id(id string) *ChannelSectionsListCall {
 // to true to retrieve a feed of the authenticated user's
 // channelSections.
 func (c *ChannelSectionsListCall) Mine(mine bool) *ChannelSectionsListCall {
-	c.opt_["mine"] = mine
+	c.params_.Set("mine", fmt.Sprintf("%v", mine))
 	return c
 }
 
@@ -4015,7 +5026,11 @@ func (c *ChannelSectionsListCall) Mine(mine bool) *ChannelSectionsListCall {
 // CMS account that the user authenticates with must be linked to the
 // specified YouTube content owner.
 func (c *ChannelSectionsListCall) OnBehalfOfContentOwner(onBehalfOfContentOwner string) *ChannelSectionsListCall {
-	c.opt_["onBehalfOfContentOwner"] = onBehalfOfContentOwner
+	c.params_.Set("onBehalfOfContentOwner", fmt.Sprintf("%v", onBehalfOfContentOwner))
+	return c
+}
+func (c *ChannelSectionsListCall) Context(ctx context.Context) *ChannelSectionsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -4023,48 +5038,22 @@ func (c *ChannelSectionsListCall) OnBehalfOfContentOwner(onBehalfOfContentOwner 
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ChannelSectionsListCall) Fields(s ...googleapi.Field) *ChannelSectionsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ChannelSectionsListCall) Do() (*ChannelSectionListResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("part", fmt.Sprintf("%v", c.part))
-	if v, ok := c.opt_["channelId"]; ok {
-		params.Set("channelId", fmt.Sprintf("%v", v))
+	var returnValue *ChannelSectionListResponse
+	c.params_.Set("part", fmt.Sprintf("%v", c.part))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	if v, ok := c.opt_["id"]; ok {
-		params.Set("id", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["mine"]; ok {
-		params.Set("mine", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["onBehalfOfContentOwner"]; ok {
-		params.Set("onBehalfOfContentOwner", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "channelSections")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ChannelSectionListResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Returns channelSection resources that match the API request criteria.",
 	//   "httpMethod": "GET",
@@ -4075,6 +5064,11 @@ func (c *ChannelSectionsListCall) Do() (*ChannelSectionListResponse, error) {
 	//   "parameters": {
 	//     "channelId": {
 	//       "description": "The channelId parameter specifies a YouTube channel ID. The API will only return that channel's channelSections.",
+	//       "location": "query",
+	//       "type": "string"
+	//     },
+	//     "hl": {
+	//       "description": "The hl parameter indicates that the snippet.localized property values in the returned channelSection resources should be in the specified language if localized values for that language are available. For example, if the API request specifies hl=de, the snippet.localized properties in the API response will contain German titles if German titles are available. Channel owners can provide localized channel section titles using either the channelSections.insert or channelSections.update method.",
 	//       "location": "query",
 	//       "type": "string"
 	//     },
@@ -4120,15 +5114,24 @@ type ChannelSectionsUpdateCall struct {
 	s              *Service
 	part           string
 	channelsection *ChannelSection
-	opt_           map[string]interface{}
+	caller_        googleapi.Caller
+	params_        url.Values
+	pathTemplate_  string
+	context_       context.Context
 }
 
 // Update: Update a channelSection.
+
 func (r *ChannelSectionsService) Update(part string, channelsection *ChannelSection) *ChannelSectionsUpdateCall {
-	c := &ChannelSectionsUpdateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.part = part
-	c.channelsection = channelsection
-	return c
+	return &ChannelSectionsUpdateCall{
+		s:              r.s,
+		part:           part,
+		channelsection: channelsection,
+		caller_:        googleapi.JSONCall{},
+		params_:        make(map[string][]string),
+		pathTemplate_:  "channelSections",
+		context_:       googleapi.NoContext,
+	}
 }
 
 // OnBehalfOfContentOwner sets the optional parameter
@@ -4146,7 +5149,11 @@ func (r *ChannelSectionsService) Update(part string, channelsection *ChannelSect
 // CMS account that the user authenticates with must be linked to the
 // specified YouTube content owner.
 func (c *ChannelSectionsUpdateCall) OnBehalfOfContentOwner(onBehalfOfContentOwner string) *ChannelSectionsUpdateCall {
-	c.opt_["onBehalfOfContentOwner"] = onBehalfOfContentOwner
+	c.params_.Set("onBehalfOfContentOwner", fmt.Sprintf("%v", onBehalfOfContentOwner))
+	return c
+}
+func (c *ChannelSectionsUpdateCall) Context(ctx context.Context) *ChannelSectionsUpdateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -4154,45 +5161,23 @@ func (c *ChannelSectionsUpdateCall) OnBehalfOfContentOwner(onBehalfOfContentOwne
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ChannelSectionsUpdateCall) Fields(s ...googleapi.Field) *ChannelSectionsUpdateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ChannelSectionsUpdateCall) Do() (*ChannelSection, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.channelsection)
-	if err != nil {
-		return nil, err
+	var returnValue *ChannelSection
+	c.params_.Set("part", fmt.Sprintf("%v", c.part))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.channelsection,
+		Result:  &returnValue,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("part", fmt.Sprintf("%v", c.part))
-	if v, ok := c.opt_["onBehalfOfContentOwner"]; ok {
-		params.Set("onBehalfOfContentOwner", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "channelSections")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ChannelSection
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Update a channelSection.",
 	//   "httpMethod": "PUT",
@@ -4232,24 +5217,33 @@ func (c *ChannelSectionsUpdateCall) Do() (*ChannelSection, error) {
 // method id "youtube.channels.list":
 
 type ChannelsListCall struct {
-	s    *Service
-	part string
-	opt_ map[string]interface{}
+	s             *Service
+	part          string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Returns a collection of zero or more channel resources that
 // match the request criteria.
+
 func (r *ChannelsService) List(part string) *ChannelsListCall {
-	c := &ChannelsListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.part = part
-	return c
+	return &ChannelsListCall{
+		s:             r.s,
+		part:          part,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "channels",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // CategoryId sets the optional parameter "categoryId": The categoryId
 // parameter specifies a YouTube guide category, thereby requesting
 // YouTube channels associated with that category.
 func (c *ChannelsListCall) CategoryId(categoryId string) *ChannelsListCall {
-	c.opt_["categoryId"] = categoryId
+	c.params_.Set("categoryId", fmt.Sprintf("%v", categoryId))
 	return c
 }
 
@@ -4257,7 +5251,15 @@ func (c *ChannelsListCall) CategoryId(categoryId string) *ChannelsListCall {
 // forUsername parameter specifies a YouTube username, thereby
 // requesting the channel associated with that username.
 func (c *ChannelsListCall) ForUsername(forUsername string) *ChannelsListCall {
-	c.opt_["forUsername"] = forUsername
+	c.params_.Set("forUsername", fmt.Sprintf("%v", forUsername))
+	return c
+}
+
+// Hl sets the optional parameter "hl": The hl parameter should be used
+// for filter out the properties that are not in the given language.
+// Used for the brandingSettings part.
+func (c *ChannelsListCall) Hl(hl string) *ChannelsListCall {
+	c.params_.Set("hl", fmt.Sprintf("%v", hl))
 	return c
 }
 
@@ -4266,7 +5268,7 @@ func (c *ChannelsListCall) ForUsername(forUsername string) *ChannelsListCall {
 // that are being retrieved. In a channel resource, the id property
 // specifies the channel's YouTube channel ID.
 func (c *ChannelsListCall) Id(id string) *ChannelsListCall {
-	c.opt_["id"] = id
+	c.params_.Set("id", fmt.Sprintf("%v", id))
 	return c
 }
 
@@ -4277,7 +5279,7 @@ func (c *ChannelsListCall) Id(id string) *ChannelsListCall {
 // linked to the specified content owner and onBehalfOfContentOwner must
 // be provided.
 func (c *ChannelsListCall) ManagedByMe(managedByMe bool) *ChannelsListCall {
-	c.opt_["managedByMe"] = managedByMe
+	c.params_.Set("managedByMe", fmt.Sprintf("%v", managedByMe))
 	return c
 }
 
@@ -4285,7 +5287,7 @@ func (c *ChannelsListCall) ManagedByMe(managedByMe bool) *ChannelsListCall {
 // parameter specifies the maximum number of items that should be
 // returned in the result set.
 func (c *ChannelsListCall) MaxResults(maxResults int64) *ChannelsListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
@@ -4293,7 +5295,7 @@ func (c *ChannelsListCall) MaxResults(maxResults int64) *ChannelsListCall {
 // to true to instruct the API to only return channels owned by the
 // authenticated user.
 func (c *ChannelsListCall) Mine(mine bool) *ChannelsListCall {
-	c.opt_["mine"] = mine
+	c.params_.Set("mine", fmt.Sprintf("%v", mine))
 	return c
 }
 
@@ -4301,7 +5303,7 @@ func (c *ChannelsListCall) Mine(mine bool) *ChannelsListCall {
 // parameter's value to true to retrieve a list of channels that
 // subscribed to the authenticated user's channel.
 func (c *ChannelsListCall) MySubscribers(mySubscribers bool) *ChannelsListCall {
-	c.opt_["mySubscribers"] = mySubscribers
+	c.params_.Set("mySubscribers", fmt.Sprintf("%v", mySubscribers))
 	return c
 }
 
@@ -4316,7 +5318,7 @@ func (c *ChannelsListCall) MySubscribers(mySubscribers bool) *ChannelsListCall {
 // channel. The actual CMS account that the user authenticates with
 // needs to be linked to the specified YouTube content owner.
 func (c *ChannelsListCall) OnBehalfOfContentOwner(onBehalfOfContentOwner string) *ChannelsListCall {
-	c.opt_["onBehalfOfContentOwner"] = onBehalfOfContentOwner
+	c.params_.Set("onBehalfOfContentOwner", fmt.Sprintf("%v", onBehalfOfContentOwner))
 	return c
 }
 
@@ -4325,7 +5327,11 @@ func (c *ChannelsListCall) OnBehalfOfContentOwner(onBehalfOfContentOwner string)
 // returned. In an API response, the nextPageToken and prevPageToken
 // properties identify other pages that could be retrieved.
 func (c *ChannelsListCall) PageToken(pageToken string) *ChannelsListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
+	return c
+}
+func (c *ChannelsListCall) Context(ctx context.Context) *ChannelsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -4333,63 +5339,22 @@ func (c *ChannelsListCall) PageToken(pageToken string) *ChannelsListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ChannelsListCall) Fields(s ...googleapi.Field) *ChannelsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ChannelsListCall) Do() (*ChannelListResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("part", fmt.Sprintf("%v", c.part))
-	if v, ok := c.opt_["categoryId"]; ok {
-		params.Set("categoryId", fmt.Sprintf("%v", v))
+	var returnValue *ChannelListResponse
+	c.params_.Set("part", fmt.Sprintf("%v", c.part))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	if v, ok := c.opt_["forUsername"]; ok {
-		params.Set("forUsername", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["id"]; ok {
-		params.Set("id", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["managedByMe"]; ok {
-		params.Set("managedByMe", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["mine"]; ok {
-		params.Set("mine", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["mySubscribers"]; ok {
-		params.Set("mySubscribers", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["onBehalfOfContentOwner"]; ok {
-		params.Set("onBehalfOfContentOwner", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "channels")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ChannelListResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Returns a collection of zero or more channel resources that match the request criteria.",
 	//   "httpMethod": "GET",
@@ -4405,6 +5370,11 @@ func (c *ChannelsListCall) Do() (*ChannelListResponse, error) {
 	//     },
 	//     "forUsername": {
 	//       "description": "The forUsername parameter specifies a YouTube username, thereby requesting the channel associated with that username.",
+	//       "location": "query",
+	//       "type": "string"
+	//     },
+	//     "hl": {
+	//       "description": "The hl parameter should be used for filter out the properties that are not in the given language. Used for the brandingSettings part.",
 	//       "location": "query",
 	//       "type": "string"
 	//     },
@@ -4472,18 +5442,27 @@ func (c *ChannelsListCall) Do() (*ChannelListResponse, error) {
 // method id "youtube.channels.update":
 
 type ChannelsUpdateCall struct {
-	s       *Service
-	part    string
-	channel *Channel
-	opt_    map[string]interface{}
+	s             *Service
+	part          string
+	channel       *Channel
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Update: Updates a channel's metadata.
+
 func (r *ChannelsService) Update(part string, channel *Channel) *ChannelsUpdateCall {
-	c := &ChannelsUpdateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.part = part
-	c.channel = channel
-	return c
+	return &ChannelsUpdateCall{
+		s:             r.s,
+		part:          part,
+		channel:       channel,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "channels",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // OnBehalfOfContentOwner sets the optional parameter
@@ -4497,7 +5476,11 @@ func (r *ChannelsService) Update(part string, channel *Channel) *ChannelsUpdateC
 // channel. The actual CMS account that the user authenticates with
 // needs to be linked to the specified YouTube content owner.
 func (c *ChannelsUpdateCall) OnBehalfOfContentOwner(onBehalfOfContentOwner string) *ChannelsUpdateCall {
-	c.opt_["onBehalfOfContentOwner"] = onBehalfOfContentOwner
+	c.params_.Set("onBehalfOfContentOwner", fmt.Sprintf("%v", onBehalfOfContentOwner))
+	return c
+}
+func (c *ChannelsUpdateCall) Context(ctx context.Context) *ChannelsUpdateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -4505,45 +5488,23 @@ func (c *ChannelsUpdateCall) OnBehalfOfContentOwner(onBehalfOfContentOwner strin
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ChannelsUpdateCall) Fields(s ...googleapi.Field) *ChannelsUpdateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ChannelsUpdateCall) Do() (*Channel, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.channel)
-	if err != nil {
-		return nil, err
+	var returnValue *Channel
+	c.params_.Set("part", fmt.Sprintf("%v", c.part))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.channel,
+		Result:  &returnValue,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("part", fmt.Sprintf("%v", c.part))
-	if v, ok := c.opt_["onBehalfOfContentOwner"]; ok {
-		params.Set("onBehalfOfContentOwner", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "channels")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Channel
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates a channel's metadata.",
 	//   "httpMethod": "PUT",
@@ -4580,26 +5541,992 @@ func (c *ChannelsUpdateCall) Do() (*Channel, error) {
 
 }
 
+// method id "youtube.commentThreads.insert":
+
+type CommentThreadsInsertCall struct {
+	s             *Service
+	part          string
+	commentthread *CommentThread
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
+}
+
+// Insert: Creates a new comment thread and top level comment.
+
+func (r *CommentThreadsService) Insert(part string, commentthread *CommentThread) *CommentThreadsInsertCall {
+	return &CommentThreadsInsertCall{
+		s:             r.s,
+		part:          part,
+		commentthread: commentthread,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "commentThreads",
+		context_:      googleapi.NoContext,
+	}
+}
+
+// ShareOnGooglePlus sets the optional parameter "shareOnGooglePlus":
+// The shareOnGooglePlus determines whether this thread should also be
+// posted on Google+.
+func (c *CommentThreadsInsertCall) ShareOnGooglePlus(shareOnGooglePlus bool) *CommentThreadsInsertCall {
+	c.params_.Set("shareOnGooglePlus", fmt.Sprintf("%v", shareOnGooglePlus))
+	return c
+}
+func (c *CommentThreadsInsertCall) Context(ctx context.Context) *CommentThreadsInsertCall {
+	c.context_ = ctx
+	return c
+}
+
+// Fields allows partial responses to be retrieved.
+// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
+// for more information.
+func (c *CommentThreadsInsertCall) Fields(s ...googleapi.Field) *CommentThreadsInsertCall {
+	c.params_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+func (c *CommentThreadsInsertCall) Do() (*CommentThread, error) {
+	var returnValue *CommentThread
+	c.params_.Set("part", fmt.Sprintf("%v", c.part))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.commentthread,
+		Result:  &returnValue,
+	}
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
+	// {
+	//   "description": "Creates a new comment thread and top level comment.",
+	//   "httpMethod": "POST",
+	//   "id": "youtube.commentThreads.insert",
+	//   "parameterOrder": [
+	//     "part"
+	//   ],
+	//   "parameters": {
+	//     "part": {
+	//       "description": "The part parameter serves two purposes in this operation. It identifies the properties that the write operation will set as well as the properties that the API response will include.\n\nThe part names that you can include in the parameter value are id and snippet. However only snippet contains properties that can be set.",
+	//       "location": "query",
+	//       "required": true,
+	//       "type": "string"
+	//     },
+	//     "shareOnGooglePlus": {
+	//       "default": "false",
+	//       "description": "The shareOnGooglePlus determines whether this thread should also be posted on Google+.",
+	//       "location": "query",
+	//       "type": "boolean"
+	//     }
+	//   },
+	//   "path": "commentThreads",
+	//   "request": {
+	//     "$ref": "CommentThread"
+	//   },
+	//   "response": {
+	//     "$ref": "CommentThread"
+	//   },
+	//   "scopes": [
+	//     "https://www.googleapis.com/auth/youtube.force-ssl"
+	//   ]
+	// }
+
+}
+
+// method id "youtube.commentThreads.list":
+
+type CommentThreadsListCall struct {
+	s             *Service
+	part          string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
+}
+
+// List: Returns a list of comment threads that match the API request
+// parameters.
+
+func (r *CommentThreadsService) List(part string) *CommentThreadsListCall {
+	return &CommentThreadsListCall{
+		s:             r.s,
+		part:          part,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "commentThreads",
+		context_:      googleapi.NoContext,
+	}
+}
+
+// AllThreadsRelatedToChannelId sets the optional parameter
+// "allThreadsRelatedToChannelId": The allThreadsRelatedToChannelId
+// parameter instructs the API to return the comment threads of all
+// videos of the channel and the channel comments as well.
+func (c *CommentThreadsListCall) AllThreadsRelatedToChannelId(allThreadsRelatedToChannelId string) *CommentThreadsListCall {
+	c.params_.Set("allThreadsRelatedToChannelId", fmt.Sprintf("%v", allThreadsRelatedToChannelId))
+	return c
+}
+
+// ChannelId sets the optional parameter "channelId": The channelId
+// parameter instructs the API to return the comment threads for all the
+// channel comments (not including comments left on videos).
+func (c *CommentThreadsListCall) ChannelId(channelId string) *CommentThreadsListCall {
+	c.params_.Set("channelId", fmt.Sprintf("%v", channelId))
+	return c
+}
+
+// Id sets the optional parameter "id": The id parameter specifies a
+// comma-separated list of comment thread IDs for the resources that
+// should be retrieved.
+func (c *CommentThreadsListCall) Id(id string) *CommentThreadsListCall {
+	c.params_.Set("id", fmt.Sprintf("%v", id))
+	return c
+}
+
+// MaxResults sets the optional parameter "maxResults": The maxResults
+// parameter specifies the maximum number of items that should be
+// returned in the result set.
+//
+// Note: This parameter is not supported
+// for use in conjunction with the id parameter.
+func (c *CommentThreadsListCall) MaxResults(maxResults int64) *CommentThreadsListCall {
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
+	return c
+}
+
+// ModerationStatus sets the optional parameter "moderationStatus": Set
+// this parameter to limit the returned comment threads to a particular
+// moderation state.
+//
+// Note: This parameter is not supported for use in
+// conjunction with the id parameter.
+func (c *CommentThreadsListCall) ModerationStatus(moderationStatus string) *CommentThreadsListCall {
+	c.params_.Set("moderationStatus", fmt.Sprintf("%v", moderationStatus))
+	return c
+}
+
+// PageToken sets the optional parameter "pageToken": The pageToken
+// parameter identifies a specific page in the result set that should be
+// returned. In an API response, the nextPageToken property identifies
+// the next page of the result that can be retrieved.
+//
+// Note: This
+// parameter is not supported for use in conjunction with the id
+// parameter.
+func (c *CommentThreadsListCall) PageToken(pageToken string) *CommentThreadsListCall {
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
+	return c
+}
+
+// SearchTerms sets the optional parameter "searchTerms": The
+// searchTerms parameter instructs the API to limit the returned
+// comments to those which contain the specified search terms.
+//
+// Note:
+// This parameter is not supported for use in conjunction with the id
+// parameter.
+func (c *CommentThreadsListCall) SearchTerms(searchTerms string) *CommentThreadsListCall {
+	c.params_.Set("searchTerms", fmt.Sprintf("%v", searchTerms))
+	return c
+}
+
+// TextFormat sets the optional parameter "textFormat": Set this
+// parameter's value to html or plainText to instruct the API to return
+// the comments left by users in html formatted or in plain text.
+func (c *CommentThreadsListCall) TextFormat(textFormat string) *CommentThreadsListCall {
+	c.params_.Set("textFormat", fmt.Sprintf("%v", textFormat))
+	return c
+}
+
+// VideoId sets the optional parameter "videoId": The videoId parameter
+// instructs the API to return the comment threads for the video
+// specified by the video id.
+func (c *CommentThreadsListCall) VideoId(videoId string) *CommentThreadsListCall {
+	c.params_.Set("videoId", fmt.Sprintf("%v", videoId))
+	return c
+}
+func (c *CommentThreadsListCall) Context(ctx context.Context) *CommentThreadsListCall {
+	c.context_ = ctx
+	return c
+}
+
+// Fields allows partial responses to be retrieved.
+// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
+// for more information.
+func (c *CommentThreadsListCall) Fields(s ...googleapi.Field) *CommentThreadsListCall {
+	c.params_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+func (c *CommentThreadsListCall) Do() (*CommentThreadListResponse, error) {
+	var returnValue *CommentThreadListResponse
+	c.params_.Set("part", fmt.Sprintf("%v", c.part))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
+	}
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
+	// {
+	//   "description": "Returns a list of comment threads that match the API request parameters.",
+	//   "httpMethod": "GET",
+	//   "id": "youtube.commentThreads.list",
+	//   "parameterOrder": [
+	//     "part"
+	//   ],
+	//   "parameters": {
+	//     "allThreadsRelatedToChannelId": {
+	//       "description": "The allThreadsRelatedToChannelId parameter instructs the API to return the comment threads of all videos of the channel and the channel comments as well.",
+	//       "location": "query",
+	//       "type": "string"
+	//     },
+	//     "channelId": {
+	//       "description": "The channelId parameter instructs the API to return the comment threads for all the channel comments (not including comments left on videos).",
+	//       "location": "query",
+	//       "type": "string"
+	//     },
+	//     "id": {
+	//       "description": "The id parameter specifies a comma-separated list of comment thread IDs for the resources that should be retrieved.",
+	//       "location": "query",
+	//       "type": "string"
+	//     },
+	//     "maxResults": {
+	//       "default": "20",
+	//       "description": "The maxResults parameter specifies the maximum number of items that should be returned in the result set.\n\nNote: This parameter is not supported for use in conjunction with the id parameter.",
+	//       "format": "uint32",
+	//       "location": "query",
+	//       "maximum": "100",
+	//       "minimum": "1",
+	//       "type": "integer"
+	//     },
+	//     "moderationStatus": {
+	//       "default": "published",
+	//       "description": "Set this parameter to limit the returned comment threads to a particular moderation state.\n\nNote: This parameter is not supported for use in conjunction with the id parameter.",
+	//       "enum": [
+	//         "heldForReview",
+	//         "likelySpam",
+	//         "published"
+	//       ],
+	//       "enumDescriptions": [
+	//         "Returns only comment threads awaiting review by a moderator.",
+	//         "Returns only comment threads classified as likely being spam.",
+	//         "Returns only published comment threads."
+	//       ],
+	//       "location": "query",
+	//       "type": "string"
+	//     },
+	//     "pageToken": {
+	//       "description": "The pageToken parameter identifies a specific page in the result set that should be returned. In an API response, the nextPageToken property identifies the next page of the result that can be retrieved.\n\nNote: This parameter is not supported for use in conjunction with the id parameter.",
+	//       "location": "query",
+	//       "type": "string"
+	//     },
+	//     "part": {
+	//       "description": "The part parameter specifies the commentThread resource parts that the API response will include. Supported values are id, snippet and replies.",
+	//       "location": "query",
+	//       "required": true,
+	//       "type": "string"
+	//     },
+	//     "searchTerms": {
+	//       "description": "The searchTerms parameter instructs the API to limit the returned comments to those which contain the specified search terms.\n\nNote: This parameter is not supported for use in conjunction with the id parameter.",
+	//       "location": "query",
+	//       "type": "string"
+	//     },
+	//     "textFormat": {
+	//       "default": "FORMAT_HTML",
+	//       "description": "Set this parameter's value to html or plainText to instruct the API to return the comments left by users in html formatted or in plain text.",
+	//       "enum": [
+	//         "html",
+	//         "plainText"
+	//       ],
+	//       "enumDescriptions": [
+	//         "Returns the comments in HTML format.",
+	//         "Returns the comments in plain text format."
+	//       ],
+	//       "location": "query",
+	//       "type": "string"
+	//     },
+	//     "videoId": {
+	//       "description": "The videoId parameter instructs the API to return the comment threads for the video specified by the video id.",
+	//       "location": "query",
+	//       "type": "string"
+	//     }
+	//   },
+	//   "path": "commentThreads",
+	//   "response": {
+	//     "$ref": "CommentThreadListResponse"
+	//   },
+	//   "scopes": [
+	//     "https://www.googleapis.com/auth/youtube.force-ssl"
+	//   ]
+	// }
+
+}
+
+// method id "youtube.commentThreads.update":
+
+type CommentThreadsUpdateCall struct {
+	s             *Service
+	part          string
+	commentthread *CommentThread
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
+}
+
+// Update: Modifies an existing comment.
+
+func (r *CommentThreadsService) Update(part string, commentthread *CommentThread) *CommentThreadsUpdateCall {
+	return &CommentThreadsUpdateCall{
+		s:             r.s,
+		part:          part,
+		commentthread: commentthread,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "commentThreads",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *CommentThreadsUpdateCall) Context(ctx context.Context) *CommentThreadsUpdateCall {
+	c.context_ = ctx
+	return c
+}
+
+// Fields allows partial responses to be retrieved.
+// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
+// for more information.
+func (c *CommentThreadsUpdateCall) Fields(s ...googleapi.Field) *CommentThreadsUpdateCall {
+	c.params_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+func (c *CommentThreadsUpdateCall) Do() (*CommentThread, error) {
+	var returnValue *CommentThread
+	c.params_.Set("part", fmt.Sprintf("%v", c.part))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.commentthread,
+		Result:  &returnValue,
+	}
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
+	// {
+	//   "description": "Modifies an existing comment.",
+	//   "httpMethod": "PUT",
+	//   "id": "youtube.commentThreads.update",
+	//   "parameterOrder": [
+	//     "part"
+	//   ],
+	//   "parameters": {
+	//     "part": {
+	//       "description": "The part parameter serves two purposes in this operation. It identifies the properties that the write operation will set as well as the properties that the API response will include.\n\nThe part names that you can include in the parameter value are id, snippet and replies. However only snippet contains properties that can be updated.",
+	//       "location": "query",
+	//       "required": true,
+	//       "type": "string"
+	//     }
+	//   },
+	//   "path": "commentThreads",
+	//   "request": {
+	//     "$ref": "CommentThread"
+	//   },
+	//   "response": {
+	//     "$ref": "CommentThread"
+	//   },
+	//   "scopes": [
+	//     "https://www.googleapis.com/auth/youtube.force-ssl"
+	//   ]
+	// }
+
+}
+
+// method id "youtube.comments.delete":
+
+type CommentsDeleteCall struct {
+	s             *Service
+	id            string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
+}
+
+// Delete: Deletes a comment.
+
+func (r *CommentsService) Delete(id string) *CommentsDeleteCall {
+	return &CommentsDeleteCall{
+		s:             r.s,
+		id:            id,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "comments",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *CommentsDeleteCall) Context(ctx context.Context) *CommentsDeleteCall {
+	c.context_ = ctx
+	return c
+}
+
+func (c *CommentsDeleteCall) Do() error {
+	c.params_.Set("id", fmt.Sprintf("%v", c.id))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
+	}
+
+	return c.caller_.Do(c.context_, c.s.client, call)
+	// {
+	//   "description": "Deletes a comment.",
+	//   "httpMethod": "DELETE",
+	//   "id": "youtube.comments.delete",
+	//   "parameterOrder": [
+	//     "id"
+	//   ],
+	//   "parameters": {
+	//     "id": {
+	//       "description": "The id parameter specifies the comment ID for the resource that should be deleted.",
+	//       "location": "query",
+	//       "required": true,
+	//       "type": "string"
+	//     }
+	//   },
+	//   "path": "comments",
+	//   "scopes": [
+	//     "https://www.googleapis.com/auth/youtube.force-ssl"
+	//   ]
+	// }
+
+}
+
+// method id "youtube.comments.insert":
+
+type CommentsInsertCall struct {
+	s             *Service
+	part          string
+	comment       *Comment
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
+}
+
+// Insert: Creates a new comment.
+//
+// Note: to create a top level comment
+// it is also necessary to create a comment thread. Both are
+// accomplished through the commentThreads resource.
+
+func (r *CommentsService) Insert(part string, comment *Comment) *CommentsInsertCall {
+	return &CommentsInsertCall{
+		s:             r.s,
+		part:          part,
+		comment:       comment,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "comments",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *CommentsInsertCall) Context(ctx context.Context) *CommentsInsertCall {
+	c.context_ = ctx
+	return c
+}
+
+// Fields allows partial responses to be retrieved.
+// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
+// for more information.
+func (c *CommentsInsertCall) Fields(s ...googleapi.Field) *CommentsInsertCall {
+	c.params_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+func (c *CommentsInsertCall) Do() (*Comment, error) {
+	var returnValue *Comment
+	c.params_.Set("part", fmt.Sprintf("%v", c.part))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.comment,
+		Result:  &returnValue,
+	}
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
+	// {
+	//   "description": "Creates a new comment.\n\nNote: to create a top level comment it is also necessary to create a comment thread. Both are accomplished through the commentThreads resource.",
+	//   "httpMethod": "POST",
+	//   "id": "youtube.comments.insert",
+	//   "parameterOrder": [
+	//     "part"
+	//   ],
+	//   "parameters": {
+	//     "part": {
+	//       "description": "The part parameter serves two purposes in this operation. It identifies the properties that the write operation will set as well as the properties that the API response will include.\n\nThe part names that you can include in the parameter value are id and snippet. However only snippet contains properties that can be set.",
+	//       "location": "query",
+	//       "required": true,
+	//       "type": "string"
+	//     }
+	//   },
+	//   "path": "comments",
+	//   "request": {
+	//     "$ref": "Comment"
+	//   },
+	//   "response": {
+	//     "$ref": "Comment"
+	//   },
+	//   "scopes": [
+	//     "https://www.googleapis.com/auth/youtube.force-ssl"
+	//   ]
+	// }
+
+}
+
+// method id "youtube.comments.list":
+
+type CommentsListCall struct {
+	s             *Service
+	part          string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
+}
+
+// List: Returns a list of comments that match the API request
+// parameters.
+
+func (r *CommentsService) List(part string) *CommentsListCall {
+	return &CommentsListCall{
+		s:             r.s,
+		part:          part,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "comments",
+		context_:      googleapi.NoContext,
+	}
+}
+
+// Id sets the optional parameter "id": The id parameter specifies a
+// comma-separated list of comment IDs for the resources that should be
+// retrieved.
+func (c *CommentsListCall) Id(id string) *CommentsListCall {
+	c.params_.Set("id", fmt.Sprintf("%v", id))
+	return c
+}
+
+// MaxResults sets the optional parameter "maxResults": The maxResults
+// parameter specifies the maximum number of items that should be
+// returned in the result set.
+//
+// Note: This parameter is not supported
+// for use in conjunction with the id parameter.
+func (c *CommentsListCall) MaxResults(maxResults int64) *CommentsListCall {
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
+	return c
+}
+
+// PageToken sets the optional parameter "pageToken": The pageToken
+// parameter identifies a specific page in the result set that should be
+// returned. In an API response, the nextPageToken property identifies
+// the next page of the result that can be retrieved.
+//
+// Note: This
+// parameter is not supported for use in conjunction with the id
+// parameter.
+func (c *CommentsListCall) PageToken(pageToken string) *CommentsListCall {
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
+	return c
+}
+
+// ParentId sets the optional parameter "parentId": The parentId
+// parameter specifies the ID of the comment for which replies should be
+// retrieved.
+//
+// Note: Currently YouTube features only one level of
+// replies (ie replies to top level comments). However replies to
+// replies may be supported in the future.
+func (c *CommentsListCall) ParentId(parentId string) *CommentsListCall {
+	c.params_.Set("parentId", fmt.Sprintf("%v", parentId))
+	return c
+}
+
+// TextFormat sets the optional parameter "textFormat": Set this
+// parameter's value to html or plainText to instruct the API to return
+// the comments left by users formatted as HTML or as plain text.
+func (c *CommentsListCall) TextFormat(textFormat string) *CommentsListCall {
+	c.params_.Set("textFormat", fmt.Sprintf("%v", textFormat))
+	return c
+}
+func (c *CommentsListCall) Context(ctx context.Context) *CommentsListCall {
+	c.context_ = ctx
+	return c
+}
+
+// Fields allows partial responses to be retrieved.
+// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
+// for more information.
+func (c *CommentsListCall) Fields(s ...googleapi.Field) *CommentsListCall {
+	c.params_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+func (c *CommentsListCall) Do() (*CommentListResponse, error) {
+	var returnValue *CommentListResponse
+	c.params_.Set("part", fmt.Sprintf("%v", c.part))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
+	}
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
+	// {
+	//   "description": "Returns a list of comments that match the API request parameters.",
+	//   "httpMethod": "GET",
+	//   "id": "youtube.comments.list",
+	//   "parameterOrder": [
+	//     "part"
+	//   ],
+	//   "parameters": {
+	//     "id": {
+	//       "description": "The id parameter specifies a comma-separated list of comment IDs for the resources that should be retrieved.",
+	//       "location": "query",
+	//       "type": "string"
+	//     },
+	//     "maxResults": {
+	//       "default": "20",
+	//       "description": "The maxResults parameter specifies the maximum number of items that should be returned in the result set.\n\nNote: This parameter is not supported for use in conjunction with the id parameter.",
+	//       "format": "uint32",
+	//       "location": "query",
+	//       "maximum": "100",
+	//       "minimum": "1",
+	//       "type": "integer"
+	//     },
+	//     "pageToken": {
+	//       "description": "The pageToken parameter identifies a specific page in the result set that should be returned. In an API response, the nextPageToken property identifies the next page of the result that can be retrieved.\n\nNote: This parameter is not supported for use in conjunction with the id parameter.",
+	//       "location": "query",
+	//       "type": "string"
+	//     },
+	//     "parentId": {
+	//       "description": "The parentId parameter specifies the ID of the comment for which replies should be retrieved.\n\nNote: Currently YouTube features only one level of replies (ie replies to top level comments). However replies to replies may be supported in the future.",
+	//       "location": "query",
+	//       "type": "string"
+	//     },
+	//     "part": {
+	//       "description": "The part parameter specifies the comment resource parts that the API response will include. Supported values are id and snippet.",
+	//       "location": "query",
+	//       "required": true,
+	//       "type": "string"
+	//     },
+	//     "textFormat": {
+	//       "default": "FORMAT_HTML",
+	//       "description": "Set this parameter's value to html or plainText to instruct the API to return the comments left by users formatted as HTML or as plain text.",
+	//       "enum": [
+	//         "html",
+	//         "plainText"
+	//       ],
+	//       "enumDescriptions": [
+	//         "Returns the comments in HTML format.",
+	//         "Returns the comments in plain text format."
+	//       ],
+	//       "location": "query",
+	//       "type": "string"
+	//     }
+	//   },
+	//   "path": "comments",
+	//   "response": {
+	//     "$ref": "CommentListResponse"
+	//   },
+	//   "scopes": [
+	//     "https://www.googleapis.com/auth/youtube.force-ssl"
+	//   ]
+	// }
+
+}
+
+// method id "youtube.comments.markAsSpam":
+
+type CommentsMarkAsSpamCall struct {
+	s             *Service
+	id            string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
+}
+
+// MarkAsSpam: Expresses the caller's opinion that a comment is spam.
+
+func (r *CommentsService) MarkAsSpam(id string) *CommentsMarkAsSpamCall {
+	return &CommentsMarkAsSpamCall{
+		s:             r.s,
+		id:            id,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "comments/markAsSpam",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *CommentsMarkAsSpamCall) Context(ctx context.Context) *CommentsMarkAsSpamCall {
+	c.context_ = ctx
+	return c
+}
+
+func (c *CommentsMarkAsSpamCall) Do() error {
+	c.params_.Set("id", fmt.Sprintf("%v", c.id))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "POST",
+		URL:    u,
+		Params: c.params_,
+	}
+
+	return c.caller_.Do(c.context_, c.s.client, call)
+	// {
+	//   "description": "Expresses the caller's opinion that a comment is spam.",
+	//   "httpMethod": "POST",
+	//   "id": "youtube.comments.markAsSpam",
+	//   "parameterOrder": [
+	//     "id"
+	//   ],
+	//   "parameters": {
+	//     "id": {
+	//       "description": "The id parameter specifies a comma-separated list of IDs of comments which should get flagged as spam.",
+	//       "location": "query",
+	//       "required": true,
+	//       "type": "string"
+	//     }
+	//   },
+	//   "path": "comments/markAsSpam",
+	//   "scopes": [
+	//     "https://www.googleapis.com/auth/youtube.force-ssl"
+	//   ]
+	// }
+
+}
+
+// method id "youtube.comments.setModerationStatus":
+
+type CommentsSetModerationStatusCall struct {
+	s                *Service
+	id               string
+	moderationStatus string
+	caller_          googleapi.Caller
+	params_          url.Values
+	pathTemplate_    string
+	context_         context.Context
+}
+
+// SetModerationStatus: Sets the moderation status of one or more
+// comments.
+
+func (r *CommentsService) SetModerationStatus(id string, moderationStatus string) *CommentsSetModerationStatusCall {
+	return &CommentsSetModerationStatusCall{
+		s:                r.s,
+		id:               id,
+		moderationStatus: moderationStatus,
+		caller_:          googleapi.JSONCall{},
+		params_:          make(map[string][]string),
+		pathTemplate_:    "comments/setModerationStatus",
+		context_:         googleapi.NoContext,
+	}
+}
+
+// BanAuthor sets the optional parameter "banAuthor": The banAuthor
+// paramter, if set to true, adds the author of the comment to the ban
+// list. This means all future comments of the author will
+// autmomatically be rejected.
+//
+// Note: This parameter is only valid in
+// combination with moderationStatus 'rejected'.
+func (c *CommentsSetModerationStatusCall) BanAuthor(banAuthor bool) *CommentsSetModerationStatusCall {
+	c.params_.Set("banAuthor", fmt.Sprintf("%v", banAuthor))
+	return c
+}
+func (c *CommentsSetModerationStatusCall) Context(ctx context.Context) *CommentsSetModerationStatusCall {
+	c.context_ = ctx
+	return c
+}
+
+func (c *CommentsSetModerationStatusCall) Do() error {
+	c.params_.Set("id", fmt.Sprintf("%v", c.id))
+	c.params_.Set("moderationStatus", fmt.Sprintf("%v", c.moderationStatus))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "POST",
+		URL:    u,
+		Params: c.params_,
+	}
+
+	return c.caller_.Do(c.context_, c.s.client, call)
+	// {
+	//   "description": "Sets the moderation status of one or more comments.",
+	//   "httpMethod": "POST",
+	//   "id": "youtube.comments.setModerationStatus",
+	//   "parameterOrder": [
+	//     "id",
+	//     "moderationStatus"
+	//   ],
+	//   "parameters": {
+	//     "banAuthor": {
+	//       "default": "false",
+	//       "description": "The banAuthor paramter, if set to true, adds the author of the comment to the ban list. This means all future comments of the author will autmomatically be rejected.\n\nNote: This parameter is only valid in combination with moderationStatus 'rejected'.",
+	//       "location": "query",
+	//       "type": "boolean"
+	//     },
+	//     "id": {
+	//       "description": "The id parameter specifies a comma-separated list of IDs of comments whose moderation status should be updated.",
+	//       "location": "query",
+	//       "required": true,
+	//       "type": "string"
+	//     },
+	//     "moderationStatus": {
+	//       "description": "Determines the new moderation status of the specified comments.",
+	//       "enum": [
+	//         "heldForReview",
+	//         "published",
+	//         "rejected"
+	//       ],
+	//       "enumDescriptions": [
+	//         "Marks a comment as awaiting review by a moderator.",
+	//         "Clears a comment for public display.",
+	//         "Rejects a comment as not fit for display.\n\nNote: currently there is no way to list or otherwise discover a rejected comment. However it is possible to change its moderation status as long as its ID is still known.\n\nNote: Currently, if you reject a comment you effectively also hide all its replies as there is no longer any way to discover them. This may change in the future."
+	//       ],
+	//       "location": "query",
+	//       "required": true,
+	//       "type": "string"
+	//     }
+	//   },
+	//   "path": "comments/setModerationStatus",
+	//   "scopes": [
+	//     "https://www.googleapis.com/auth/youtube.force-ssl"
+	//   ]
+	// }
+
+}
+
+// method id "youtube.comments.update":
+
+type CommentsUpdateCall struct {
+	s             *Service
+	part          string
+	comment       *Comment
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
+}
+
+// Update: Modifies an existing comment.
+
+func (r *CommentsService) Update(part string, comment *Comment) *CommentsUpdateCall {
+	return &CommentsUpdateCall{
+		s:             r.s,
+		part:          part,
+		comment:       comment,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "comments",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *CommentsUpdateCall) Context(ctx context.Context) *CommentsUpdateCall {
+	c.context_ = ctx
+	return c
+}
+
+// Fields allows partial responses to be retrieved.
+// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
+// for more information.
+func (c *CommentsUpdateCall) Fields(s ...googleapi.Field) *CommentsUpdateCall {
+	c.params_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+func (c *CommentsUpdateCall) Do() (*Comment, error) {
+	var returnValue *Comment
+	c.params_.Set("part", fmt.Sprintf("%v", c.part))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.comment,
+		Result:  &returnValue,
+	}
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
+	// {
+	//   "description": "Modifies an existing comment.",
+	//   "httpMethod": "PUT",
+	//   "id": "youtube.comments.update",
+	//   "parameterOrder": [
+	//     "part"
+	//   ],
+	//   "parameters": {
+	//     "part": {
+	//       "description": "The part parameter serves two purposes in this operation. It identifies the properties that the write operation will set as well as the properties that the API response will include.\n\nThe part names that you can include in the parameter value are id and snippet. However only snippet contains properties that can be updated.",
+	//       "location": "query",
+	//       "required": true,
+	//       "type": "string"
+	//     }
+	//   },
+	//   "path": "comments",
+	//   "request": {
+	//     "$ref": "Comment"
+	//   },
+	//   "response": {
+	//     "$ref": "Comment"
+	//   },
+	//   "scopes": [
+	//     "https://www.googleapis.com/auth/youtube.force-ssl"
+	//   ]
+	// }
+
+}
+
 // method id "youtube.guideCategories.list":
 
 type GuideCategoriesListCall struct {
-	s    *Service
-	part string
-	opt_ map[string]interface{}
+	s             *Service
+	part          string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Returns a list of categories that can be associated with
 // YouTube channels.
+
 func (r *GuideCategoriesService) List(part string) *GuideCategoriesListCall {
-	c := &GuideCategoriesListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.part = part
-	return c
+	return &GuideCategoriesListCall{
+		s:             r.s,
+		part:          part,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "guideCategories",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Hl sets the optional parameter "hl": The hl parameter specifies the
 // language that will be used for text values in the API response.
 func (c *GuideCategoriesListCall) Hl(hl string) *GuideCategoriesListCall {
-	c.opt_["hl"] = hl
+	c.params_.Set("hl", fmt.Sprintf("%v", hl))
 	return c
 }
 
@@ -4608,7 +6535,7 @@ func (c *GuideCategoriesListCall) Hl(hl string) *GuideCategoriesListCall {
 // resource(s) that are being retrieved. In a guideCategory resource,
 // the id property specifies the YouTube channel category ID.
 func (c *GuideCategoriesListCall) Id(id string) *GuideCategoriesListCall {
-	c.opt_["id"] = id
+	c.params_.Set("id", fmt.Sprintf("%v", id))
 	return c
 }
 
@@ -4617,7 +6544,11 @@ func (c *GuideCategoriesListCall) Id(id string) *GuideCategoriesListCall {
 // available in the specified country. The parameter value is an ISO
 // 3166-1 alpha-2 country code.
 func (c *GuideCategoriesListCall) RegionCode(regionCode string) *GuideCategoriesListCall {
-	c.opt_["regionCode"] = regionCode
+	c.params_.Set("regionCode", fmt.Sprintf("%v", regionCode))
+	return c
+}
+func (c *GuideCategoriesListCall) Context(ctx context.Context) *GuideCategoriesListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -4625,45 +6556,22 @@ func (c *GuideCategoriesListCall) RegionCode(regionCode string) *GuideCategories
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *GuideCategoriesListCall) Fields(s ...googleapi.Field) *GuideCategoriesListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *GuideCategoriesListCall) Do() (*GuideCategoryListResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("part", fmt.Sprintf("%v", c.part))
-	if v, ok := c.opt_["hl"]; ok {
-		params.Set("hl", fmt.Sprintf("%v", v))
+	var returnValue *GuideCategoryListResponse
+	c.params_.Set("part", fmt.Sprintf("%v", c.part))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	if v, ok := c.opt_["id"]; ok {
-		params.Set("id", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["regionCode"]; ok {
-		params.Set("regionCode", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "guideCategories")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *GuideCategoryListResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Returns a list of categories that can be associated with YouTube channels.",
 	//   "httpMethod": "GET",
@@ -4712,22 +6620,35 @@ func (c *GuideCategoriesListCall) Do() (*GuideCategoryListResponse, error) {
 // method id "youtube.i18nLanguages.list":
 
 type I18nLanguagesListCall struct {
-	s    *Service
-	part string
-	opt_ map[string]interface{}
+	s             *Service
+	part          string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Returns a list of supported languages.
+
 func (r *I18nLanguagesService) List(part string) *I18nLanguagesListCall {
-	c := &I18nLanguagesListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.part = part
-	return c
+	return &I18nLanguagesListCall{
+		s:             r.s,
+		part:          part,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "i18nLanguages",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Hl sets the optional parameter "hl": The hl parameter specifies the
 // language that should be used for text values in the API response.
 func (c *I18nLanguagesListCall) Hl(hl string) *I18nLanguagesListCall {
-	c.opt_["hl"] = hl
+	c.params_.Set("hl", fmt.Sprintf("%v", hl))
+	return c
+}
+func (c *I18nLanguagesListCall) Context(ctx context.Context) *I18nLanguagesListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -4735,39 +6656,22 @@ func (c *I18nLanguagesListCall) Hl(hl string) *I18nLanguagesListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *I18nLanguagesListCall) Fields(s ...googleapi.Field) *I18nLanguagesListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *I18nLanguagesListCall) Do() (*I18nLanguageListResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("part", fmt.Sprintf("%v", c.part))
-	if v, ok := c.opt_["hl"]; ok {
-		params.Set("hl", fmt.Sprintf("%v", v))
+	var returnValue *I18nLanguageListResponse
+	c.params_.Set("part", fmt.Sprintf("%v", c.part))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "i18nLanguages")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *I18nLanguageListResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Returns a list of supported languages.",
 	//   "httpMethod": "GET",
@@ -4806,22 +6710,35 @@ func (c *I18nLanguagesListCall) Do() (*I18nLanguageListResponse, error) {
 // method id "youtube.i18nRegions.list":
 
 type I18nRegionsListCall struct {
-	s    *Service
-	part string
-	opt_ map[string]interface{}
+	s             *Service
+	part          string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Returns a list of supported regions.
+
 func (r *I18nRegionsService) List(part string) *I18nRegionsListCall {
-	c := &I18nRegionsListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.part = part
-	return c
+	return &I18nRegionsListCall{
+		s:             r.s,
+		part:          part,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "i18nRegions",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Hl sets the optional parameter "hl": The hl parameter specifies the
 // language that should be used for text values in the API response.
 func (c *I18nRegionsListCall) Hl(hl string) *I18nRegionsListCall {
-	c.opt_["hl"] = hl
+	c.params_.Set("hl", fmt.Sprintf("%v", hl))
+	return c
+}
+func (c *I18nRegionsListCall) Context(ctx context.Context) *I18nRegionsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -4829,39 +6746,22 @@ func (c *I18nRegionsListCall) Hl(hl string) *I18nRegionsListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *I18nRegionsListCall) Fields(s ...googleapi.Field) *I18nRegionsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *I18nRegionsListCall) Do() (*I18nRegionListResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("part", fmt.Sprintf("%v", c.part))
-	if v, ok := c.opt_["hl"]; ok {
-		params.Set("hl", fmt.Sprintf("%v", v))
+	var returnValue *I18nRegionListResponse
+	c.params_.Set("part", fmt.Sprintf("%v", c.part))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "i18nRegions")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *I18nRegionListResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Returns a list of supported regions.",
 	//   "httpMethod": "GET",
@@ -4900,20 +6800,29 @@ func (c *I18nRegionsListCall) Do() (*I18nRegionListResponse, error) {
 // method id "youtube.liveBroadcasts.bind":
 
 type LiveBroadcastsBindCall struct {
-	s    *Service
-	id   string
-	part string
-	opt_ map[string]interface{}
+	s             *Service
+	id            string
+	part          string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Bind: Binds a YouTube broadcast to a stream or removes an existing
 // binding between a broadcast and a stream. A broadcast can only be
 // bound to one video stream.
+
 func (r *LiveBroadcastsService) Bind(id string, part string) *LiveBroadcastsBindCall {
-	c := &LiveBroadcastsBindCall{s: r.s, opt_: make(map[string]interface{})}
-	c.id = id
-	c.part = part
-	return c
+	return &LiveBroadcastsBindCall{
+		s:             r.s,
+		id:            id,
+		part:          part,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "liveBroadcasts/bind",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // OnBehalfOfContentOwner sets the optional parameter
@@ -4931,7 +6840,7 @@ func (r *LiveBroadcastsService) Bind(id string, part string) *LiveBroadcastsBind
 // CMS account that the user authenticates with must be linked to the
 // specified YouTube content owner.
 func (c *LiveBroadcastsBindCall) OnBehalfOfContentOwner(onBehalfOfContentOwner string) *LiveBroadcastsBindCall {
-	c.opt_["onBehalfOfContentOwner"] = onBehalfOfContentOwner
+	c.params_.Set("onBehalfOfContentOwner", fmt.Sprintf("%v", onBehalfOfContentOwner))
 	return c
 }
 
@@ -4959,7 +6868,7 @@ func (c *LiveBroadcastsBindCall) OnBehalfOfContentOwner(onBehalfOfContentOwner s
 // parameter value, without having to provide authentication credentials
 // for each separate channel.
 func (c *LiveBroadcastsBindCall) OnBehalfOfContentOwnerChannel(onBehalfOfContentOwnerChannel string) *LiveBroadcastsBindCall {
-	c.opt_["onBehalfOfContentOwnerChannel"] = onBehalfOfContentOwnerChannel
+	c.params_.Set("onBehalfOfContentOwnerChannel", fmt.Sprintf("%v", onBehalfOfContentOwnerChannel))
 	return c
 }
 
@@ -4968,7 +6877,11 @@ func (c *LiveBroadcastsBindCall) OnBehalfOfContentOwnerChannel(onBehalfOfContent
 // bound to a broadcast. If this parameter is omitted, the API will
 // remove any existing binding between the broadcast and a video stream.
 func (c *LiveBroadcastsBindCall) StreamId(streamId string) *LiveBroadcastsBindCall {
-	c.opt_["streamId"] = streamId
+	c.params_.Set("streamId", fmt.Sprintf("%v", streamId))
+	return c
+}
+func (c *LiveBroadcastsBindCall) Context(ctx context.Context) *LiveBroadcastsBindCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -4976,46 +6889,23 @@ func (c *LiveBroadcastsBindCall) StreamId(streamId string) *LiveBroadcastsBindCa
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *LiveBroadcastsBindCall) Fields(s ...googleapi.Field) *LiveBroadcastsBindCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *LiveBroadcastsBindCall) Do() (*LiveBroadcast, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("id", fmt.Sprintf("%v", c.id))
-	params.Set("part", fmt.Sprintf("%v", c.part))
-	if v, ok := c.opt_["onBehalfOfContentOwner"]; ok {
-		params.Set("onBehalfOfContentOwner", fmt.Sprintf("%v", v))
+	var returnValue *LiveBroadcast
+	c.params_.Set("id", fmt.Sprintf("%v", c.id))
+	c.params_.Set("part", fmt.Sprintf("%v", c.part))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "POST",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	if v, ok := c.opt_["onBehalfOfContentOwnerChannel"]; ok {
-		params.Set("onBehalfOfContentOwnerChannel", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["streamId"]; ok {
-		params.Set("streamId", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "liveBroadcasts/bind")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *LiveBroadcast
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Binds a YouTube broadcast to a stream or removes an existing binding between a broadcast and a stream. A broadcast can only be bound to one video stream.",
 	//   "httpMethod": "POST",
@@ -5068,26 +6958,35 @@ func (c *LiveBroadcastsBindCall) Do() (*LiveBroadcast, error) {
 // method id "youtube.liveBroadcasts.control":
 
 type LiveBroadcastsControlCall struct {
-	s    *Service
-	id   string
-	part string
-	opt_ map[string]interface{}
+	s             *Service
+	id            string
+	part          string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Control: Controls the settings for a slate that can be displayed in
 // the broadcast stream.
+
 func (r *LiveBroadcastsService) Control(id string, part string) *LiveBroadcastsControlCall {
-	c := &LiveBroadcastsControlCall{s: r.s, opt_: make(map[string]interface{})}
-	c.id = id
-	c.part = part
-	return c
+	return &LiveBroadcastsControlCall{
+		s:             r.s,
+		id:            id,
+		part:          part,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "liveBroadcasts/control",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // DisplaySlate sets the optional parameter "displaySlate": The
 // displaySlate parameter specifies whether the slate is being enabled
 // or disabled.
 func (c *LiveBroadcastsControlCall) DisplaySlate(displaySlate bool) *LiveBroadcastsControlCall {
-	c.opt_["displaySlate"] = displaySlate
+	c.params_.Set("displaySlate", fmt.Sprintf("%v", displaySlate))
 	return c
 }
 
@@ -5108,7 +7007,7 @@ func (c *LiveBroadcastsControlCall) DisplaySlate(displaySlate bool) *LiveBroadca
 // only specify a value for this parameter if your broadcast stream is
 // delayed.
 func (c *LiveBroadcastsControlCall) OffsetTimeMs(offsetTimeMs uint64) *LiveBroadcastsControlCall {
-	c.opt_["offsetTimeMs"] = offsetTimeMs
+	c.params_.Set("offsetTimeMs", fmt.Sprintf("%v", offsetTimeMs))
 	return c
 }
 
@@ -5127,7 +7026,7 @@ func (c *LiveBroadcastsControlCall) OffsetTimeMs(offsetTimeMs uint64) *LiveBroad
 // CMS account that the user authenticates with must be linked to the
 // specified YouTube content owner.
 func (c *LiveBroadcastsControlCall) OnBehalfOfContentOwner(onBehalfOfContentOwner string) *LiveBroadcastsControlCall {
-	c.opt_["onBehalfOfContentOwner"] = onBehalfOfContentOwner
+	c.params_.Set("onBehalfOfContentOwner", fmt.Sprintf("%v", onBehalfOfContentOwner))
 	return c
 }
 
@@ -5155,7 +7054,7 @@ func (c *LiveBroadcastsControlCall) OnBehalfOfContentOwner(onBehalfOfContentOwne
 // parameter value, without having to provide authentication credentials
 // for each separate channel.
 func (c *LiveBroadcastsControlCall) OnBehalfOfContentOwnerChannel(onBehalfOfContentOwnerChannel string) *LiveBroadcastsControlCall {
-	c.opt_["onBehalfOfContentOwnerChannel"] = onBehalfOfContentOwnerChannel
+	c.params_.Set("onBehalfOfContentOwnerChannel", fmt.Sprintf("%v", onBehalfOfContentOwnerChannel))
 	return c
 }
 
@@ -5164,7 +7063,11 @@ func (c *LiveBroadcastsControlCall) OnBehalfOfContentOwnerChannel(onBehalfOfCont
 // change will occur. The value is specified in ISO 8601
 // (YYYY-MM-DDThh:mm:ss.sssZ) format.
 func (c *LiveBroadcastsControlCall) Walltime(walltime string) *LiveBroadcastsControlCall {
-	c.opt_["walltime"] = walltime
+	c.params_.Set("walltime", fmt.Sprintf("%v", walltime))
+	return c
+}
+func (c *LiveBroadcastsControlCall) Context(ctx context.Context) *LiveBroadcastsControlCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -5172,52 +7075,23 @@ func (c *LiveBroadcastsControlCall) Walltime(walltime string) *LiveBroadcastsCon
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *LiveBroadcastsControlCall) Fields(s ...googleapi.Field) *LiveBroadcastsControlCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *LiveBroadcastsControlCall) Do() (*LiveBroadcast, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("id", fmt.Sprintf("%v", c.id))
-	params.Set("part", fmt.Sprintf("%v", c.part))
-	if v, ok := c.opt_["displaySlate"]; ok {
-		params.Set("displaySlate", fmt.Sprintf("%v", v))
+	var returnValue *LiveBroadcast
+	c.params_.Set("id", fmt.Sprintf("%v", c.id))
+	c.params_.Set("part", fmt.Sprintf("%v", c.part))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "POST",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	if v, ok := c.opt_["offsetTimeMs"]; ok {
-		params.Set("offsetTimeMs", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["onBehalfOfContentOwner"]; ok {
-		params.Set("onBehalfOfContentOwner", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["onBehalfOfContentOwnerChannel"]; ok {
-		params.Set("onBehalfOfContentOwnerChannel", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["walltime"]; ok {
-		params.Set("walltime", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "liveBroadcasts/control")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *LiveBroadcast
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Controls the settings for a slate that can be displayed in the broadcast stream.",
 	//   "httpMethod": "POST",
@@ -5282,16 +7156,25 @@ func (c *LiveBroadcastsControlCall) Do() (*LiveBroadcast, error) {
 // method id "youtube.liveBroadcasts.delete":
 
 type LiveBroadcastsDeleteCall struct {
-	s    *Service
-	id   string
-	opt_ map[string]interface{}
+	s             *Service
+	id            string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Delete: Deletes a broadcast.
+
 func (r *LiveBroadcastsService) Delete(id string) *LiveBroadcastsDeleteCall {
-	c := &LiveBroadcastsDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.id = id
-	return c
+	return &LiveBroadcastsDeleteCall{
+		s:             r.s,
+		id:            id,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "liveBroadcasts",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // OnBehalfOfContentOwner sets the optional parameter
@@ -5309,7 +7192,7 @@ func (r *LiveBroadcastsService) Delete(id string) *LiveBroadcastsDeleteCall {
 // CMS account that the user authenticates with must be linked to the
 // specified YouTube content owner.
 func (c *LiveBroadcastsDeleteCall) OnBehalfOfContentOwner(onBehalfOfContentOwner string) *LiveBroadcastsDeleteCall {
-	c.opt_["onBehalfOfContentOwner"] = onBehalfOfContentOwner
+	c.params_.Set("onBehalfOfContentOwner", fmt.Sprintf("%v", onBehalfOfContentOwner))
 	return c
 }
 
@@ -5337,46 +7220,24 @@ func (c *LiveBroadcastsDeleteCall) OnBehalfOfContentOwner(onBehalfOfContentOwner
 // parameter value, without having to provide authentication credentials
 // for each separate channel.
 func (c *LiveBroadcastsDeleteCall) OnBehalfOfContentOwnerChannel(onBehalfOfContentOwnerChannel string) *LiveBroadcastsDeleteCall {
-	c.opt_["onBehalfOfContentOwnerChannel"] = onBehalfOfContentOwnerChannel
+	c.params_.Set("onBehalfOfContentOwnerChannel", fmt.Sprintf("%v", onBehalfOfContentOwnerChannel))
 	return c
 }
-
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *LiveBroadcastsDeleteCall) Fields(s ...googleapi.Field) *LiveBroadcastsDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (c *LiveBroadcastsDeleteCall) Context(ctx context.Context) *LiveBroadcastsDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *LiveBroadcastsDeleteCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("id", fmt.Sprintf("%v", c.id))
-	if v, ok := c.opt_["onBehalfOfContentOwner"]; ok {
-		params.Set("onBehalfOfContentOwner", fmt.Sprintf("%v", v))
+	c.params_.Set("id", fmt.Sprintf("%v", c.id))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
 	}
-	if v, ok := c.opt_["onBehalfOfContentOwnerChannel"]; ok {
-		params.Set("onBehalfOfContentOwnerChannel", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "liveBroadcasts")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Deletes a broadcast.",
 	//   "httpMethod": "DELETE",
@@ -5417,15 +7278,24 @@ type LiveBroadcastsInsertCall struct {
 	s             *Service
 	part          string
 	livebroadcast *LiveBroadcast
-	opt_          map[string]interface{}
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Insert: Creates a broadcast.
+
 func (r *LiveBroadcastsService) Insert(part string, livebroadcast *LiveBroadcast) *LiveBroadcastsInsertCall {
-	c := &LiveBroadcastsInsertCall{s: r.s, opt_: make(map[string]interface{})}
-	c.part = part
-	c.livebroadcast = livebroadcast
-	return c
+	return &LiveBroadcastsInsertCall{
+		s:             r.s,
+		part:          part,
+		livebroadcast: livebroadcast,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "liveBroadcasts",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // OnBehalfOfContentOwner sets the optional parameter
@@ -5443,7 +7313,7 @@ func (r *LiveBroadcastsService) Insert(part string, livebroadcast *LiveBroadcast
 // CMS account that the user authenticates with must be linked to the
 // specified YouTube content owner.
 func (c *LiveBroadcastsInsertCall) OnBehalfOfContentOwner(onBehalfOfContentOwner string) *LiveBroadcastsInsertCall {
-	c.opt_["onBehalfOfContentOwner"] = onBehalfOfContentOwner
+	c.params_.Set("onBehalfOfContentOwner", fmt.Sprintf("%v", onBehalfOfContentOwner))
 	return c
 }
 
@@ -5471,7 +7341,11 @@ func (c *LiveBroadcastsInsertCall) OnBehalfOfContentOwner(onBehalfOfContentOwner
 // parameter value, without having to provide authentication credentials
 // for each separate channel.
 func (c *LiveBroadcastsInsertCall) OnBehalfOfContentOwnerChannel(onBehalfOfContentOwnerChannel string) *LiveBroadcastsInsertCall {
-	c.opt_["onBehalfOfContentOwnerChannel"] = onBehalfOfContentOwnerChannel
+	c.params_.Set("onBehalfOfContentOwnerChannel", fmt.Sprintf("%v", onBehalfOfContentOwnerChannel))
+	return c
+}
+func (c *LiveBroadcastsInsertCall) Context(ctx context.Context) *LiveBroadcastsInsertCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -5479,48 +7353,23 @@ func (c *LiveBroadcastsInsertCall) OnBehalfOfContentOwnerChannel(onBehalfOfConte
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *LiveBroadcastsInsertCall) Fields(s ...googleapi.Field) *LiveBroadcastsInsertCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *LiveBroadcastsInsertCall) Do() (*LiveBroadcast, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.livebroadcast)
-	if err != nil {
-		return nil, err
+	var returnValue *LiveBroadcast
+	c.params_.Set("part", fmt.Sprintf("%v", c.part))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.livebroadcast,
+		Result:  &returnValue,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("part", fmt.Sprintf("%v", c.part))
-	if v, ok := c.opt_["onBehalfOfContentOwner"]; ok {
-		params.Set("onBehalfOfContentOwner", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["onBehalfOfContentOwnerChannel"]; ok {
-		params.Set("onBehalfOfContentOwnerChannel", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "liveBroadcasts")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *LiveBroadcast
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Creates a broadcast.",
 	//   "httpMethod": "POST",
@@ -5564,24 +7413,33 @@ func (c *LiveBroadcastsInsertCall) Do() (*LiveBroadcast, error) {
 // method id "youtube.liveBroadcasts.list":
 
 type LiveBroadcastsListCall struct {
-	s    *Service
-	part string
-	opt_ map[string]interface{}
+	s             *Service
+	part          string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Returns a list of YouTube broadcasts that match the API request
 // parameters.
+
 func (r *LiveBroadcastsService) List(part string) *LiveBroadcastsListCall {
-	c := &LiveBroadcastsListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.part = part
-	return c
+	return &LiveBroadcastsListCall{
+		s:             r.s,
+		part:          part,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "liveBroadcasts",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // BroadcastStatus sets the optional parameter "broadcastStatus": The
 // broadcastStatus parameter filters the API response to only include
 // broadcasts with the specified status.
 func (c *LiveBroadcastsListCall) BroadcastStatus(broadcastStatus string) *LiveBroadcastsListCall {
-	c.opt_["broadcastStatus"] = broadcastStatus
+	c.params_.Set("broadcastStatus", fmt.Sprintf("%v", broadcastStatus))
 	return c
 }
 
@@ -5590,7 +7448,7 @@ func (c *LiveBroadcastsListCall) BroadcastStatus(broadcastStatus string) *LiveBr
 // broadcasts being retrieved. In a liveBroadcast resource, the id
 // property specifies the broadcast's ID.
 func (c *LiveBroadcastsListCall) Id(id string) *LiveBroadcastsListCall {
-	c.opt_["id"] = id
+	c.params_.Set("id", fmt.Sprintf("%v", id))
 	return c
 }
 
@@ -5598,7 +7456,7 @@ func (c *LiveBroadcastsListCall) Id(id string) *LiveBroadcastsListCall {
 // parameter specifies the maximum number of items that should be
 // returned in the result set.
 func (c *LiveBroadcastsListCall) MaxResults(maxResults int64) *LiveBroadcastsListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
@@ -5607,7 +7465,7 @@ func (c *LiveBroadcastsListCall) MaxResults(maxResults int64) *LiveBroadcastsLis
 // authenticated user. Set the parameter value to true to only retrieve
 // your own broadcasts.
 func (c *LiveBroadcastsListCall) Mine(mine bool) *LiveBroadcastsListCall {
-	c.opt_["mine"] = mine
+	c.params_.Set("mine", fmt.Sprintf("%v", mine))
 	return c
 }
 
@@ -5626,7 +7484,7 @@ func (c *LiveBroadcastsListCall) Mine(mine bool) *LiveBroadcastsListCall {
 // CMS account that the user authenticates with must be linked to the
 // specified YouTube content owner.
 func (c *LiveBroadcastsListCall) OnBehalfOfContentOwner(onBehalfOfContentOwner string) *LiveBroadcastsListCall {
-	c.opt_["onBehalfOfContentOwner"] = onBehalfOfContentOwner
+	c.params_.Set("onBehalfOfContentOwner", fmt.Sprintf("%v", onBehalfOfContentOwner))
 	return c
 }
 
@@ -5654,7 +7512,7 @@ func (c *LiveBroadcastsListCall) OnBehalfOfContentOwner(onBehalfOfContentOwner s
 // parameter value, without having to provide authentication credentials
 // for each separate channel.
 func (c *LiveBroadcastsListCall) OnBehalfOfContentOwnerChannel(onBehalfOfContentOwnerChannel string) *LiveBroadcastsListCall {
-	c.opt_["onBehalfOfContentOwnerChannel"] = onBehalfOfContentOwnerChannel
+	c.params_.Set("onBehalfOfContentOwnerChannel", fmt.Sprintf("%v", onBehalfOfContentOwnerChannel))
 	return c
 }
 
@@ -5663,7 +7521,11 @@ func (c *LiveBroadcastsListCall) OnBehalfOfContentOwnerChannel(onBehalfOfContent
 // returned. In an API response, the nextPageToken and prevPageToken
 // properties identify other pages that could be retrieved.
 func (c *LiveBroadcastsListCall) PageToken(pageToken string) *LiveBroadcastsListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
+	return c
+}
+func (c *LiveBroadcastsListCall) Context(ctx context.Context) *LiveBroadcastsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -5671,57 +7533,22 @@ func (c *LiveBroadcastsListCall) PageToken(pageToken string) *LiveBroadcastsList
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *LiveBroadcastsListCall) Fields(s ...googleapi.Field) *LiveBroadcastsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *LiveBroadcastsListCall) Do() (*LiveBroadcastListResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("part", fmt.Sprintf("%v", c.part))
-	if v, ok := c.opt_["broadcastStatus"]; ok {
-		params.Set("broadcastStatus", fmt.Sprintf("%v", v))
+	var returnValue *LiveBroadcastListResponse
+	c.params_.Set("part", fmt.Sprintf("%v", c.part))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	if v, ok := c.opt_["id"]; ok {
-		params.Set("id", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["mine"]; ok {
-		params.Set("mine", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["onBehalfOfContentOwner"]; ok {
-		params.Set("onBehalfOfContentOwner", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["onBehalfOfContentOwnerChannel"]; ok {
-		params.Set("onBehalfOfContentOwnerChannel", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "liveBroadcasts")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *LiveBroadcastListResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Returns a list of YouTube broadcasts that match the API request parameters.",
 	//   "httpMethod": "GET",
@@ -5808,7 +7635,10 @@ type LiveBroadcastsTransitionCall struct {
 	broadcastStatus string
 	id              string
 	part            string
-	opt_            map[string]interface{}
+	caller_         googleapi.Caller
+	params_         url.Values
+	pathTemplate_   string
+	context_        context.Context
 }
 
 // Transition: Changes the status of a YouTube live broadcast and
@@ -5818,12 +7648,18 @@ type LiveBroadcastsTransitionCall struct {
 // this method, you should confirm that the value of the
 // status.streamStatus property for the stream bound to your broadcast
 // is active.
+
 func (r *LiveBroadcastsService) Transition(broadcastStatus string, id string, part string) *LiveBroadcastsTransitionCall {
-	c := &LiveBroadcastsTransitionCall{s: r.s, opt_: make(map[string]interface{})}
-	c.broadcastStatus = broadcastStatus
-	c.id = id
-	c.part = part
-	return c
+	return &LiveBroadcastsTransitionCall{
+		s:               r.s,
+		broadcastStatus: broadcastStatus,
+		id:              id,
+		part:            part,
+		caller_:         googleapi.JSONCall{},
+		params_:         make(map[string][]string),
+		pathTemplate_:   "liveBroadcasts/transition",
+		context_:        googleapi.NoContext,
+	}
 }
 
 // OnBehalfOfContentOwner sets the optional parameter
@@ -5841,7 +7677,7 @@ func (r *LiveBroadcastsService) Transition(broadcastStatus string, id string, pa
 // CMS account that the user authenticates with must be linked to the
 // specified YouTube content owner.
 func (c *LiveBroadcastsTransitionCall) OnBehalfOfContentOwner(onBehalfOfContentOwner string) *LiveBroadcastsTransitionCall {
-	c.opt_["onBehalfOfContentOwner"] = onBehalfOfContentOwner
+	c.params_.Set("onBehalfOfContentOwner", fmt.Sprintf("%v", onBehalfOfContentOwner))
 	return c
 }
 
@@ -5869,7 +7705,11 @@ func (c *LiveBroadcastsTransitionCall) OnBehalfOfContentOwner(onBehalfOfContentO
 // parameter value, without having to provide authentication credentials
 // for each separate channel.
 func (c *LiveBroadcastsTransitionCall) OnBehalfOfContentOwnerChannel(onBehalfOfContentOwnerChannel string) *LiveBroadcastsTransitionCall {
-	c.opt_["onBehalfOfContentOwnerChannel"] = onBehalfOfContentOwnerChannel
+	c.params_.Set("onBehalfOfContentOwnerChannel", fmt.Sprintf("%v", onBehalfOfContentOwnerChannel))
+	return c
+}
+func (c *LiveBroadcastsTransitionCall) Context(ctx context.Context) *LiveBroadcastsTransitionCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -5877,44 +7717,24 @@ func (c *LiveBroadcastsTransitionCall) OnBehalfOfContentOwnerChannel(onBehalfOfC
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *LiveBroadcastsTransitionCall) Fields(s ...googleapi.Field) *LiveBroadcastsTransitionCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *LiveBroadcastsTransitionCall) Do() (*LiveBroadcast, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("broadcastStatus", fmt.Sprintf("%v", c.broadcastStatus))
-	params.Set("id", fmt.Sprintf("%v", c.id))
-	params.Set("part", fmt.Sprintf("%v", c.part))
-	if v, ok := c.opt_["onBehalfOfContentOwner"]; ok {
-		params.Set("onBehalfOfContentOwner", fmt.Sprintf("%v", v))
+	var returnValue *LiveBroadcast
+	c.params_.Set("broadcastStatus", fmt.Sprintf("%v", c.broadcastStatus))
+	c.params_.Set("id", fmt.Sprintf("%v", c.id))
+	c.params_.Set("part", fmt.Sprintf("%v", c.part))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "POST",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	if v, ok := c.opt_["onBehalfOfContentOwnerChannel"]; ok {
-		params.Set("onBehalfOfContentOwnerChannel", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "liveBroadcasts/transition")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *LiveBroadcast
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Changes the status of a YouTube live broadcast and initiates any processes associated with the new status. For example, when you transition a broadcast's status to testing, YouTube starts to transmit video to that broadcast's monitor stream. Before calling this method, you should confirm that the value of the status.streamStatus property for the stream bound to your broadcast is active.",
 	//   "httpMethod": "POST",
@@ -5982,17 +7802,26 @@ type LiveBroadcastsUpdateCall struct {
 	s             *Service
 	part          string
 	livebroadcast *LiveBroadcast
-	opt_          map[string]interface{}
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Update: Updates a broadcast. For example, you could modify the
 // broadcast settings defined in the liveBroadcast resource's
 // contentDetails object.
+
 func (r *LiveBroadcastsService) Update(part string, livebroadcast *LiveBroadcast) *LiveBroadcastsUpdateCall {
-	c := &LiveBroadcastsUpdateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.part = part
-	c.livebroadcast = livebroadcast
-	return c
+	return &LiveBroadcastsUpdateCall{
+		s:             r.s,
+		part:          part,
+		livebroadcast: livebroadcast,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "liveBroadcasts",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // OnBehalfOfContentOwner sets the optional parameter
@@ -6010,7 +7839,7 @@ func (r *LiveBroadcastsService) Update(part string, livebroadcast *LiveBroadcast
 // CMS account that the user authenticates with must be linked to the
 // specified YouTube content owner.
 func (c *LiveBroadcastsUpdateCall) OnBehalfOfContentOwner(onBehalfOfContentOwner string) *LiveBroadcastsUpdateCall {
-	c.opt_["onBehalfOfContentOwner"] = onBehalfOfContentOwner
+	c.params_.Set("onBehalfOfContentOwner", fmt.Sprintf("%v", onBehalfOfContentOwner))
 	return c
 }
 
@@ -6038,7 +7867,11 @@ func (c *LiveBroadcastsUpdateCall) OnBehalfOfContentOwner(onBehalfOfContentOwner
 // parameter value, without having to provide authentication credentials
 // for each separate channel.
 func (c *LiveBroadcastsUpdateCall) OnBehalfOfContentOwnerChannel(onBehalfOfContentOwnerChannel string) *LiveBroadcastsUpdateCall {
-	c.opt_["onBehalfOfContentOwnerChannel"] = onBehalfOfContentOwnerChannel
+	c.params_.Set("onBehalfOfContentOwnerChannel", fmt.Sprintf("%v", onBehalfOfContentOwnerChannel))
+	return c
+}
+func (c *LiveBroadcastsUpdateCall) Context(ctx context.Context) *LiveBroadcastsUpdateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -6046,48 +7879,23 @@ func (c *LiveBroadcastsUpdateCall) OnBehalfOfContentOwnerChannel(onBehalfOfConte
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *LiveBroadcastsUpdateCall) Fields(s ...googleapi.Field) *LiveBroadcastsUpdateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *LiveBroadcastsUpdateCall) Do() (*LiveBroadcast, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.livebroadcast)
-	if err != nil {
-		return nil, err
+	var returnValue *LiveBroadcast
+	c.params_.Set("part", fmt.Sprintf("%v", c.part))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.livebroadcast,
+		Result:  &returnValue,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("part", fmt.Sprintf("%v", c.part))
-	if v, ok := c.opt_["onBehalfOfContentOwner"]; ok {
-		params.Set("onBehalfOfContentOwner", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["onBehalfOfContentOwnerChannel"]; ok {
-		params.Set("onBehalfOfContentOwnerChannel", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "liveBroadcasts")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *LiveBroadcast
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates a broadcast. For example, you could modify the broadcast settings defined in the liveBroadcast resource's contentDetails object.",
 	//   "httpMethod": "PUT",
@@ -6131,16 +7939,25 @@ func (c *LiveBroadcastsUpdateCall) Do() (*LiveBroadcast, error) {
 // method id "youtube.liveStreams.delete":
 
 type LiveStreamsDeleteCall struct {
-	s    *Service
-	id   string
-	opt_ map[string]interface{}
+	s             *Service
+	id            string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Delete: Deletes a video stream.
+
 func (r *LiveStreamsService) Delete(id string) *LiveStreamsDeleteCall {
-	c := &LiveStreamsDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.id = id
-	return c
+	return &LiveStreamsDeleteCall{
+		s:             r.s,
+		id:            id,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "liveStreams",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // OnBehalfOfContentOwner sets the optional parameter
@@ -6158,7 +7975,7 @@ func (r *LiveStreamsService) Delete(id string) *LiveStreamsDeleteCall {
 // CMS account that the user authenticates with must be linked to the
 // specified YouTube content owner.
 func (c *LiveStreamsDeleteCall) OnBehalfOfContentOwner(onBehalfOfContentOwner string) *LiveStreamsDeleteCall {
-	c.opt_["onBehalfOfContentOwner"] = onBehalfOfContentOwner
+	c.params_.Set("onBehalfOfContentOwner", fmt.Sprintf("%v", onBehalfOfContentOwner))
 	return c
 }
 
@@ -6186,46 +8003,24 @@ func (c *LiveStreamsDeleteCall) OnBehalfOfContentOwner(onBehalfOfContentOwner st
 // parameter value, without having to provide authentication credentials
 // for each separate channel.
 func (c *LiveStreamsDeleteCall) OnBehalfOfContentOwnerChannel(onBehalfOfContentOwnerChannel string) *LiveStreamsDeleteCall {
-	c.opt_["onBehalfOfContentOwnerChannel"] = onBehalfOfContentOwnerChannel
+	c.params_.Set("onBehalfOfContentOwnerChannel", fmt.Sprintf("%v", onBehalfOfContentOwnerChannel))
 	return c
 }
-
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *LiveStreamsDeleteCall) Fields(s ...googleapi.Field) *LiveStreamsDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (c *LiveStreamsDeleteCall) Context(ctx context.Context) *LiveStreamsDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *LiveStreamsDeleteCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("id", fmt.Sprintf("%v", c.id))
-	if v, ok := c.opt_["onBehalfOfContentOwner"]; ok {
-		params.Set("onBehalfOfContentOwner", fmt.Sprintf("%v", v))
+	c.params_.Set("id", fmt.Sprintf("%v", c.id))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
 	}
-	if v, ok := c.opt_["onBehalfOfContentOwnerChannel"]; ok {
-		params.Set("onBehalfOfContentOwnerChannel", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "liveStreams")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Deletes a video stream.",
 	//   "httpMethod": "DELETE",
@@ -6263,20 +8058,29 @@ func (c *LiveStreamsDeleteCall) Do() error {
 // method id "youtube.liveStreams.insert":
 
 type LiveStreamsInsertCall struct {
-	s          *Service
-	part       string
-	livestream *LiveStream
-	opt_       map[string]interface{}
+	s             *Service
+	part          string
+	livestream    *LiveStream
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Insert: Creates a video stream. The stream enables you to send your
 // video to YouTube, which can then broadcast the video to your
 // audience.
+
 func (r *LiveStreamsService) Insert(part string, livestream *LiveStream) *LiveStreamsInsertCall {
-	c := &LiveStreamsInsertCall{s: r.s, opt_: make(map[string]interface{})}
-	c.part = part
-	c.livestream = livestream
-	return c
+	return &LiveStreamsInsertCall{
+		s:             r.s,
+		part:          part,
+		livestream:    livestream,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "liveStreams",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // OnBehalfOfContentOwner sets the optional parameter
@@ -6294,7 +8098,7 @@ func (r *LiveStreamsService) Insert(part string, livestream *LiveStream) *LiveSt
 // CMS account that the user authenticates with must be linked to the
 // specified YouTube content owner.
 func (c *LiveStreamsInsertCall) OnBehalfOfContentOwner(onBehalfOfContentOwner string) *LiveStreamsInsertCall {
-	c.opt_["onBehalfOfContentOwner"] = onBehalfOfContentOwner
+	c.params_.Set("onBehalfOfContentOwner", fmt.Sprintf("%v", onBehalfOfContentOwner))
 	return c
 }
 
@@ -6322,7 +8126,11 @@ func (c *LiveStreamsInsertCall) OnBehalfOfContentOwner(onBehalfOfContentOwner st
 // parameter value, without having to provide authentication credentials
 // for each separate channel.
 func (c *LiveStreamsInsertCall) OnBehalfOfContentOwnerChannel(onBehalfOfContentOwnerChannel string) *LiveStreamsInsertCall {
-	c.opt_["onBehalfOfContentOwnerChannel"] = onBehalfOfContentOwnerChannel
+	c.params_.Set("onBehalfOfContentOwnerChannel", fmt.Sprintf("%v", onBehalfOfContentOwnerChannel))
+	return c
+}
+func (c *LiveStreamsInsertCall) Context(ctx context.Context) *LiveStreamsInsertCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -6330,48 +8138,23 @@ func (c *LiveStreamsInsertCall) OnBehalfOfContentOwnerChannel(onBehalfOfContentO
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *LiveStreamsInsertCall) Fields(s ...googleapi.Field) *LiveStreamsInsertCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *LiveStreamsInsertCall) Do() (*LiveStream, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.livestream)
-	if err != nil {
-		return nil, err
+	var returnValue *LiveStream
+	c.params_.Set("part", fmt.Sprintf("%v", c.part))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.livestream,
+		Result:  &returnValue,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("part", fmt.Sprintf("%v", c.part))
-	if v, ok := c.opt_["onBehalfOfContentOwner"]; ok {
-		params.Set("onBehalfOfContentOwner", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["onBehalfOfContentOwnerChannel"]; ok {
-		params.Set("onBehalfOfContentOwnerChannel", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "liveStreams")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *LiveStream
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Creates a video stream. The stream enables you to send your video to YouTube, which can then broadcast the video to your audience.",
 	//   "httpMethod": "POST",
@@ -6415,17 +8198,26 @@ func (c *LiveStreamsInsertCall) Do() (*LiveStream, error) {
 // method id "youtube.liveStreams.list":
 
 type LiveStreamsListCall struct {
-	s    *Service
-	part string
-	opt_ map[string]interface{}
+	s             *Service
+	part          string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Returns a list of video streams that match the API request
 // parameters.
+
 func (r *LiveStreamsService) List(part string) *LiveStreamsListCall {
-	c := &LiveStreamsListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.part = part
-	return c
+	return &LiveStreamsListCall{
+		s:             r.s,
+		part:          part,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "liveStreams",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Id sets the optional parameter "id": The id parameter specifies a
@@ -6433,7 +8225,7 @@ func (r *LiveStreamsService) List(part string) *LiveStreamsListCall {
 // being retrieved. In a liveStream resource, the id property specifies
 // the stream's ID.
 func (c *LiveStreamsListCall) Id(id string) *LiveStreamsListCall {
-	c.opt_["id"] = id
+	c.params_.Set("id", fmt.Sprintf("%v", id))
 	return c
 }
 
@@ -6442,7 +8234,7 @@ func (c *LiveStreamsListCall) Id(id string) *LiveStreamsListCall {
 // returned in the result set. Acceptable values are 0 to 50, inclusive.
 // The default value is 5.
 func (c *LiveStreamsListCall) MaxResults(maxResults int64) *LiveStreamsListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
@@ -6451,7 +8243,7 @@ func (c *LiveStreamsListCall) MaxResults(maxResults int64) *LiveStreamsListCall 
 // authenticated user. Set the parameter value to true to only retrieve
 // your own streams.
 func (c *LiveStreamsListCall) Mine(mine bool) *LiveStreamsListCall {
-	c.opt_["mine"] = mine
+	c.params_.Set("mine", fmt.Sprintf("%v", mine))
 	return c
 }
 
@@ -6470,7 +8262,7 @@ func (c *LiveStreamsListCall) Mine(mine bool) *LiveStreamsListCall {
 // CMS account that the user authenticates with must be linked to the
 // specified YouTube content owner.
 func (c *LiveStreamsListCall) OnBehalfOfContentOwner(onBehalfOfContentOwner string) *LiveStreamsListCall {
-	c.opt_["onBehalfOfContentOwner"] = onBehalfOfContentOwner
+	c.params_.Set("onBehalfOfContentOwner", fmt.Sprintf("%v", onBehalfOfContentOwner))
 	return c
 }
 
@@ -6498,7 +8290,7 @@ func (c *LiveStreamsListCall) OnBehalfOfContentOwner(onBehalfOfContentOwner stri
 // parameter value, without having to provide authentication credentials
 // for each separate channel.
 func (c *LiveStreamsListCall) OnBehalfOfContentOwnerChannel(onBehalfOfContentOwnerChannel string) *LiveStreamsListCall {
-	c.opt_["onBehalfOfContentOwnerChannel"] = onBehalfOfContentOwnerChannel
+	c.params_.Set("onBehalfOfContentOwnerChannel", fmt.Sprintf("%v", onBehalfOfContentOwnerChannel))
 	return c
 }
 
@@ -6507,7 +8299,11 @@ func (c *LiveStreamsListCall) OnBehalfOfContentOwnerChannel(onBehalfOfContentOwn
 // returned. In an API response, the nextPageToken and prevPageToken
 // properties identify other pages that could be retrieved.
 func (c *LiveStreamsListCall) PageToken(pageToken string) *LiveStreamsListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
+	return c
+}
+func (c *LiveStreamsListCall) Context(ctx context.Context) *LiveStreamsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -6515,54 +8311,22 @@ func (c *LiveStreamsListCall) PageToken(pageToken string) *LiveStreamsListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *LiveStreamsListCall) Fields(s ...googleapi.Field) *LiveStreamsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *LiveStreamsListCall) Do() (*LiveStreamListResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("part", fmt.Sprintf("%v", c.part))
-	if v, ok := c.opt_["id"]; ok {
-		params.Set("id", fmt.Sprintf("%v", v))
+	var returnValue *LiveStreamListResponse
+	c.params_.Set("part", fmt.Sprintf("%v", c.part))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["mine"]; ok {
-		params.Set("mine", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["onBehalfOfContentOwner"]; ok {
-		params.Set("onBehalfOfContentOwner", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["onBehalfOfContentOwnerChannel"]; ok {
-		params.Set("onBehalfOfContentOwnerChannel", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "liveStreams")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *LiveStreamListResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Returns a list of video streams that match the API request parameters.",
 	//   "httpMethod": "GET",
@@ -6628,20 +8392,29 @@ func (c *LiveStreamsListCall) Do() (*LiveStreamListResponse, error) {
 // method id "youtube.liveStreams.update":
 
 type LiveStreamsUpdateCall struct {
-	s          *Service
-	part       string
-	livestream *LiveStream
-	opt_       map[string]interface{}
+	s             *Service
+	part          string
+	livestream    *LiveStream
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Update: Updates a video stream. If the properties that you want to
 // change cannot be updated, then you need to create a new stream with
 // the proper settings.
+
 func (r *LiveStreamsService) Update(part string, livestream *LiveStream) *LiveStreamsUpdateCall {
-	c := &LiveStreamsUpdateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.part = part
-	c.livestream = livestream
-	return c
+	return &LiveStreamsUpdateCall{
+		s:             r.s,
+		part:          part,
+		livestream:    livestream,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "liveStreams",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // OnBehalfOfContentOwner sets the optional parameter
@@ -6659,7 +8432,7 @@ func (r *LiveStreamsService) Update(part string, livestream *LiveStream) *LiveSt
 // CMS account that the user authenticates with must be linked to the
 // specified YouTube content owner.
 func (c *LiveStreamsUpdateCall) OnBehalfOfContentOwner(onBehalfOfContentOwner string) *LiveStreamsUpdateCall {
-	c.opt_["onBehalfOfContentOwner"] = onBehalfOfContentOwner
+	c.params_.Set("onBehalfOfContentOwner", fmt.Sprintf("%v", onBehalfOfContentOwner))
 	return c
 }
 
@@ -6687,7 +8460,11 @@ func (c *LiveStreamsUpdateCall) OnBehalfOfContentOwner(onBehalfOfContentOwner st
 // parameter value, without having to provide authentication credentials
 // for each separate channel.
 func (c *LiveStreamsUpdateCall) OnBehalfOfContentOwnerChannel(onBehalfOfContentOwnerChannel string) *LiveStreamsUpdateCall {
-	c.opt_["onBehalfOfContentOwnerChannel"] = onBehalfOfContentOwnerChannel
+	c.params_.Set("onBehalfOfContentOwnerChannel", fmt.Sprintf("%v", onBehalfOfContentOwnerChannel))
+	return c
+}
+func (c *LiveStreamsUpdateCall) Context(ctx context.Context) *LiveStreamsUpdateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -6695,48 +8472,23 @@ func (c *LiveStreamsUpdateCall) OnBehalfOfContentOwnerChannel(onBehalfOfContentO
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *LiveStreamsUpdateCall) Fields(s ...googleapi.Field) *LiveStreamsUpdateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *LiveStreamsUpdateCall) Do() (*LiveStream, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.livestream)
-	if err != nil {
-		return nil, err
+	var returnValue *LiveStream
+	c.params_.Set("part", fmt.Sprintf("%v", c.part))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.livestream,
+		Result:  &returnValue,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("part", fmt.Sprintf("%v", c.part))
-	if v, ok := c.opt_["onBehalfOfContentOwner"]; ok {
-		params.Set("onBehalfOfContentOwner", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["onBehalfOfContentOwnerChannel"]; ok {
-		params.Set("onBehalfOfContentOwnerChannel", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "liveStreams")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *LiveStream
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates a video stream. If the properties that you want to change cannot be updated, then you need to create a new stream with the proper settings.",
 	//   "httpMethod": "PUT",
@@ -6780,48 +8532,41 @@ func (c *LiveStreamsUpdateCall) Do() (*LiveStream, error) {
 // method id "youtube.playlistItems.delete":
 
 type PlaylistItemsDeleteCall struct {
-	s    *Service
-	id   string
-	opt_ map[string]interface{}
+	s             *Service
+	id            string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Delete: Deletes a playlist item.
-func (r *PlaylistItemsService) Delete(id string) *PlaylistItemsDeleteCall {
-	c := &PlaylistItemsDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.id = id
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *PlaylistItemsDeleteCall) Fields(s ...googleapi.Field) *PlaylistItemsDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *PlaylistItemsService) Delete(id string) *PlaylistItemsDeleteCall {
+	return &PlaylistItemsDeleteCall{
+		s:             r.s,
+		id:            id,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "playlistItems",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *PlaylistItemsDeleteCall) Context(ctx context.Context) *PlaylistItemsDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *PlaylistItemsDeleteCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("id", fmt.Sprintf("%v", c.id))
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
+	c.params_.Set("id", fmt.Sprintf("%v", c.id))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
 	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "playlistItems")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Deletes a playlist item.",
 	//   "httpMethod": "DELETE",
@@ -6850,18 +8595,27 @@ func (c *PlaylistItemsDeleteCall) Do() error {
 // method id "youtube.playlistItems.insert":
 
 type PlaylistItemsInsertCall struct {
-	s            *Service
-	part         string
-	playlistitem *PlaylistItem
-	opt_         map[string]interface{}
+	s             *Service
+	part          string
+	playlistitem  *PlaylistItem
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Insert: Adds a resource to a playlist.
+
 func (r *PlaylistItemsService) Insert(part string, playlistitem *PlaylistItem) *PlaylistItemsInsertCall {
-	c := &PlaylistItemsInsertCall{s: r.s, opt_: make(map[string]interface{})}
-	c.part = part
-	c.playlistitem = playlistitem
-	return c
+	return &PlaylistItemsInsertCall{
+		s:             r.s,
+		part:          part,
+		playlistitem:  playlistitem,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "playlistItems",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // OnBehalfOfContentOwner sets the optional parameter
@@ -6879,7 +8633,11 @@ func (r *PlaylistItemsService) Insert(part string, playlistitem *PlaylistItem) *
 // CMS account that the user authenticates with must be linked to the
 // specified YouTube content owner.
 func (c *PlaylistItemsInsertCall) OnBehalfOfContentOwner(onBehalfOfContentOwner string) *PlaylistItemsInsertCall {
-	c.opt_["onBehalfOfContentOwner"] = onBehalfOfContentOwner
+	c.params_.Set("onBehalfOfContentOwner", fmt.Sprintf("%v", onBehalfOfContentOwner))
+	return c
+}
+func (c *PlaylistItemsInsertCall) Context(ctx context.Context) *PlaylistItemsInsertCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -6887,45 +8645,23 @@ func (c *PlaylistItemsInsertCall) OnBehalfOfContentOwner(onBehalfOfContentOwner 
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *PlaylistItemsInsertCall) Fields(s ...googleapi.Field) *PlaylistItemsInsertCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *PlaylistItemsInsertCall) Do() (*PlaylistItem, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.playlistitem)
-	if err != nil {
-		return nil, err
+	var returnValue *PlaylistItem
+	c.params_.Set("part", fmt.Sprintf("%v", c.part))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.playlistitem,
+		Result:  &returnValue,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("part", fmt.Sprintf("%v", c.part))
-	if v, ok := c.opt_["onBehalfOfContentOwner"]; ok {
-		params.Set("onBehalfOfContentOwner", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "playlistItems")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *PlaylistItem
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Adds a resource to a playlist.",
 	//   "httpMethod": "POST",
@@ -6965,25 +8701,34 @@ func (c *PlaylistItemsInsertCall) Do() (*PlaylistItem, error) {
 // method id "youtube.playlistItems.list":
 
 type PlaylistItemsListCall struct {
-	s    *Service
-	part string
-	opt_ map[string]interface{}
+	s             *Service
+	part          string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Returns a collection of playlist items that match the API
 // request parameters. You can retrieve all of the playlist items in a
 // specified playlist or retrieve one or more playlist items by their
 // unique IDs.
+
 func (r *PlaylistItemsService) List(part string) *PlaylistItemsListCall {
-	c := &PlaylistItemsListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.part = part
-	return c
+	return &PlaylistItemsListCall{
+		s:             r.s,
+		part:          part,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "playlistItems",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Id sets the optional parameter "id": The id parameter specifies a
 // comma-separated list of one or more unique playlist item IDs.
 func (c *PlaylistItemsListCall) Id(id string) *PlaylistItemsListCall {
-	c.opt_["id"] = id
+	c.params_.Set("id", fmt.Sprintf("%v", id))
 	return c
 }
 
@@ -6991,7 +8736,7 @@ func (c *PlaylistItemsListCall) Id(id string) *PlaylistItemsListCall {
 // parameter specifies the maximum number of items that should be
 // returned in the result set.
 func (c *PlaylistItemsListCall) MaxResults(maxResults int64) *PlaylistItemsListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
@@ -7010,7 +8755,7 @@ func (c *PlaylistItemsListCall) MaxResults(maxResults int64) *PlaylistItemsListC
 // CMS account that the user authenticates with must be linked to the
 // specified YouTube content owner.
 func (c *PlaylistItemsListCall) OnBehalfOfContentOwner(onBehalfOfContentOwner string) *PlaylistItemsListCall {
-	c.opt_["onBehalfOfContentOwner"] = onBehalfOfContentOwner
+	c.params_.Set("onBehalfOfContentOwner", fmt.Sprintf("%v", onBehalfOfContentOwner))
 	return c
 }
 
@@ -7019,7 +8764,7 @@ func (c *PlaylistItemsListCall) OnBehalfOfContentOwner(onBehalfOfContentOwner st
 // returned. In an API response, the nextPageToken and prevPageToken
 // properties identify other pages that could be retrieved.
 func (c *PlaylistItemsListCall) PageToken(pageToken string) *PlaylistItemsListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
 	return c
 }
 
@@ -7029,7 +8774,7 @@ func (c *PlaylistItemsListCall) PageToken(pageToken string) *PlaylistItemsListCa
 // parameter, every request to retrieve playlist items must specify a
 // value for either the id parameter or the playlistId parameter.
 func (c *PlaylistItemsListCall) PlaylistId(playlistId string) *PlaylistItemsListCall {
-	c.opt_["playlistId"] = playlistId
+	c.params_.Set("playlistId", fmt.Sprintf("%v", playlistId))
 	return c
 }
 
@@ -7037,7 +8782,11 @@ func (c *PlaylistItemsListCall) PlaylistId(playlistId string) *PlaylistItemsList
 // specifies that the request should return only the playlist items that
 // contain the specified video.
 func (c *PlaylistItemsListCall) VideoId(videoId string) *PlaylistItemsListCall {
-	c.opt_["videoId"] = videoId
+	c.params_.Set("videoId", fmt.Sprintf("%v", videoId))
+	return c
+}
+func (c *PlaylistItemsListCall) Context(ctx context.Context) *PlaylistItemsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -7045,54 +8794,22 @@ func (c *PlaylistItemsListCall) VideoId(videoId string) *PlaylistItemsListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *PlaylistItemsListCall) Fields(s ...googleapi.Field) *PlaylistItemsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *PlaylistItemsListCall) Do() (*PlaylistItemListResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("part", fmt.Sprintf("%v", c.part))
-	if v, ok := c.opt_["id"]; ok {
-		params.Set("id", fmt.Sprintf("%v", v))
+	var returnValue *PlaylistItemListResponse
+	c.params_.Set("part", fmt.Sprintf("%v", c.part))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["onBehalfOfContentOwner"]; ok {
-		params.Set("onBehalfOfContentOwner", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["playlistId"]; ok {
-		params.Set("playlistId", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["videoId"]; ok {
-		params.Set("videoId", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "playlistItems")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *PlaylistItemListResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Returns a collection of playlist items that match the API request parameters. You can retrieve all of the playlist items in a specified playlist or retrieve one or more playlist items by their unique IDs.",
 	//   "httpMethod": "GET",
@@ -7160,18 +8877,31 @@ func (c *PlaylistItemsListCall) Do() (*PlaylistItemListResponse, error) {
 // method id "youtube.playlistItems.update":
 
 type PlaylistItemsUpdateCall struct {
-	s            *Service
-	part         string
-	playlistitem *PlaylistItem
-	opt_         map[string]interface{}
+	s             *Service
+	part          string
+	playlistitem  *PlaylistItem
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Update: Modifies a playlist item. For example, you could update the
 // item's position in the playlist.
+
 func (r *PlaylistItemsService) Update(part string, playlistitem *PlaylistItem) *PlaylistItemsUpdateCall {
-	c := &PlaylistItemsUpdateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.part = part
-	c.playlistitem = playlistitem
+	return &PlaylistItemsUpdateCall{
+		s:             r.s,
+		part:          part,
+		playlistitem:  playlistitem,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "playlistItems",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *PlaylistItemsUpdateCall) Context(ctx context.Context) *PlaylistItemsUpdateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -7179,42 +8909,23 @@ func (r *PlaylistItemsService) Update(part string, playlistitem *PlaylistItem) *
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *PlaylistItemsUpdateCall) Fields(s ...googleapi.Field) *PlaylistItemsUpdateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *PlaylistItemsUpdateCall) Do() (*PlaylistItem, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.playlistitem)
-	if err != nil {
-		return nil, err
+	var returnValue *PlaylistItem
+	c.params_.Set("part", fmt.Sprintf("%v", c.part))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.playlistitem,
+		Result:  &returnValue,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("part", fmt.Sprintf("%v", c.part))
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "playlistItems")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *PlaylistItem
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Modifies a playlist item. For example, you could update the item's position in the playlist.",
 	//   "httpMethod": "PUT",
@@ -7249,16 +8960,25 @@ func (c *PlaylistItemsUpdateCall) Do() (*PlaylistItem, error) {
 // method id "youtube.playlists.delete":
 
 type PlaylistsDeleteCall struct {
-	s    *Service
-	id   string
-	opt_ map[string]interface{}
+	s             *Service
+	id            string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Delete: Deletes a playlist.
+
 func (r *PlaylistsService) Delete(id string) *PlaylistsDeleteCall {
-	c := &PlaylistsDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.id = id
-	return c
+	return &PlaylistsDeleteCall{
+		s:             r.s,
+		id:            id,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "playlists",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // OnBehalfOfContentOwner sets the optional parameter
@@ -7276,43 +8996,24 @@ func (r *PlaylistsService) Delete(id string) *PlaylistsDeleteCall {
 // CMS account that the user authenticates with must be linked to the
 // specified YouTube content owner.
 func (c *PlaylistsDeleteCall) OnBehalfOfContentOwner(onBehalfOfContentOwner string) *PlaylistsDeleteCall {
-	c.opt_["onBehalfOfContentOwner"] = onBehalfOfContentOwner
+	c.params_.Set("onBehalfOfContentOwner", fmt.Sprintf("%v", onBehalfOfContentOwner))
 	return c
 }
-
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *PlaylistsDeleteCall) Fields(s ...googleapi.Field) *PlaylistsDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (c *PlaylistsDeleteCall) Context(ctx context.Context) *PlaylistsDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *PlaylistsDeleteCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("id", fmt.Sprintf("%v", c.id))
-	if v, ok := c.opt_["onBehalfOfContentOwner"]; ok {
-		params.Set("onBehalfOfContentOwner", fmt.Sprintf("%v", v))
+	c.params_.Set("id", fmt.Sprintf("%v", c.id))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
 	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "playlists")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Deletes a playlist.",
 	//   "httpMethod": "DELETE",
@@ -7346,18 +9047,27 @@ func (c *PlaylistsDeleteCall) Do() error {
 // method id "youtube.playlists.insert":
 
 type PlaylistsInsertCall struct {
-	s        *Service
-	part     string
-	playlist *Playlist
-	opt_     map[string]interface{}
+	s             *Service
+	part          string
+	playlist      *Playlist
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Insert: Creates a playlist.
+
 func (r *PlaylistsService) Insert(part string, playlist *Playlist) *PlaylistsInsertCall {
-	c := &PlaylistsInsertCall{s: r.s, opt_: make(map[string]interface{})}
-	c.part = part
-	c.playlist = playlist
-	return c
+	return &PlaylistsInsertCall{
+		s:             r.s,
+		part:          part,
+		playlist:      playlist,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "playlists",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // OnBehalfOfContentOwner sets the optional parameter
@@ -7375,7 +9085,7 @@ func (r *PlaylistsService) Insert(part string, playlist *Playlist) *PlaylistsIns
 // CMS account that the user authenticates with must be linked to the
 // specified YouTube content owner.
 func (c *PlaylistsInsertCall) OnBehalfOfContentOwner(onBehalfOfContentOwner string) *PlaylistsInsertCall {
-	c.opt_["onBehalfOfContentOwner"] = onBehalfOfContentOwner
+	c.params_.Set("onBehalfOfContentOwner", fmt.Sprintf("%v", onBehalfOfContentOwner))
 	return c
 }
 
@@ -7403,7 +9113,11 @@ func (c *PlaylistsInsertCall) OnBehalfOfContentOwner(onBehalfOfContentOwner stri
 // parameter value, without having to provide authentication credentials
 // for each separate channel.
 func (c *PlaylistsInsertCall) OnBehalfOfContentOwnerChannel(onBehalfOfContentOwnerChannel string) *PlaylistsInsertCall {
-	c.opt_["onBehalfOfContentOwnerChannel"] = onBehalfOfContentOwnerChannel
+	c.params_.Set("onBehalfOfContentOwnerChannel", fmt.Sprintf("%v", onBehalfOfContentOwnerChannel))
+	return c
+}
+func (c *PlaylistsInsertCall) Context(ctx context.Context) *PlaylistsInsertCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -7411,48 +9125,23 @@ func (c *PlaylistsInsertCall) OnBehalfOfContentOwnerChannel(onBehalfOfContentOwn
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *PlaylistsInsertCall) Fields(s ...googleapi.Field) *PlaylistsInsertCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *PlaylistsInsertCall) Do() (*Playlist, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.playlist)
-	if err != nil {
-		return nil, err
+	var returnValue *Playlist
+	c.params_.Set("part", fmt.Sprintf("%v", c.part))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.playlist,
+		Result:  &returnValue,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("part", fmt.Sprintf("%v", c.part))
-	if v, ok := c.opt_["onBehalfOfContentOwner"]; ok {
-		params.Set("onBehalfOfContentOwner", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["onBehalfOfContentOwnerChannel"]; ok {
-		params.Set("onBehalfOfContentOwnerChannel", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "playlists")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Playlist
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Creates a playlist.",
 	//   "httpMethod": "POST",
@@ -7497,26 +9186,43 @@ func (c *PlaylistsInsertCall) Do() (*Playlist, error) {
 // method id "youtube.playlists.list":
 
 type PlaylistsListCall struct {
-	s    *Service
-	part string
-	opt_ map[string]interface{}
+	s             *Service
+	part          string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Returns a collection of playlists that match the API request
 // parameters. For example, you can retrieve all playlists that the
 // authenticated user owns, or you can retrieve one or more playlists by
 // their unique IDs.
+
 func (r *PlaylistsService) List(part string) *PlaylistsListCall {
-	c := &PlaylistsListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.part = part
-	return c
+	return &PlaylistsListCall{
+		s:             r.s,
+		part:          part,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "playlists",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // ChannelId sets the optional parameter "channelId": This value
 // indicates that the API should only return the specified channel's
 // playlists.
 func (c *PlaylistsListCall) ChannelId(channelId string) *PlaylistsListCall {
-	c.opt_["channelId"] = channelId
+	c.params_.Set("channelId", fmt.Sprintf("%v", channelId))
+	return c
+}
+
+// Hl sets the optional parameter "hl": The hl parameter should be used
+// for filter out the properties that are not in the given language.
+// Used for the snippet part.
+func (c *PlaylistsListCall) Hl(hl string) *PlaylistsListCall {
+	c.params_.Set("hl", fmt.Sprintf("%v", hl))
 	return c
 }
 
@@ -7525,7 +9231,7 @@ func (c *PlaylistsListCall) ChannelId(channelId string) *PlaylistsListCall {
 // resource(s) that are being retrieved. In a playlist resource, the id
 // property specifies the playlist's YouTube playlist ID.
 func (c *PlaylistsListCall) Id(id string) *PlaylistsListCall {
-	c.opt_["id"] = id
+	c.params_.Set("id", fmt.Sprintf("%v", id))
 	return c
 }
 
@@ -7533,7 +9239,7 @@ func (c *PlaylistsListCall) Id(id string) *PlaylistsListCall {
 // parameter specifies the maximum number of items that should be
 // returned in the result set.
 func (c *PlaylistsListCall) MaxResults(maxResults int64) *PlaylistsListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
@@ -7541,7 +9247,7 @@ func (c *PlaylistsListCall) MaxResults(maxResults int64) *PlaylistsListCall {
 // to true to instruct the API to only return playlists owned by the
 // authenticated user.
 func (c *PlaylistsListCall) Mine(mine bool) *PlaylistsListCall {
-	c.opt_["mine"] = mine
+	c.params_.Set("mine", fmt.Sprintf("%v", mine))
 	return c
 }
 
@@ -7560,7 +9266,7 @@ func (c *PlaylistsListCall) Mine(mine bool) *PlaylistsListCall {
 // CMS account that the user authenticates with must be linked to the
 // specified YouTube content owner.
 func (c *PlaylistsListCall) OnBehalfOfContentOwner(onBehalfOfContentOwner string) *PlaylistsListCall {
-	c.opt_["onBehalfOfContentOwner"] = onBehalfOfContentOwner
+	c.params_.Set("onBehalfOfContentOwner", fmt.Sprintf("%v", onBehalfOfContentOwner))
 	return c
 }
 
@@ -7588,7 +9294,7 @@ func (c *PlaylistsListCall) OnBehalfOfContentOwner(onBehalfOfContentOwner string
 // parameter value, without having to provide authentication credentials
 // for each separate channel.
 func (c *PlaylistsListCall) OnBehalfOfContentOwnerChannel(onBehalfOfContentOwnerChannel string) *PlaylistsListCall {
-	c.opt_["onBehalfOfContentOwnerChannel"] = onBehalfOfContentOwnerChannel
+	c.params_.Set("onBehalfOfContentOwnerChannel", fmt.Sprintf("%v", onBehalfOfContentOwnerChannel))
 	return c
 }
 
@@ -7597,7 +9303,11 @@ func (c *PlaylistsListCall) OnBehalfOfContentOwnerChannel(onBehalfOfContentOwner
 // returned. In an API response, the nextPageToken and prevPageToken
 // properties identify other pages that could be retrieved.
 func (c *PlaylistsListCall) PageToken(pageToken string) *PlaylistsListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
+	return c
+}
+func (c *PlaylistsListCall) Context(ctx context.Context) *PlaylistsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -7605,57 +9315,22 @@ func (c *PlaylistsListCall) PageToken(pageToken string) *PlaylistsListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *PlaylistsListCall) Fields(s ...googleapi.Field) *PlaylistsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *PlaylistsListCall) Do() (*PlaylistListResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("part", fmt.Sprintf("%v", c.part))
-	if v, ok := c.opt_["channelId"]; ok {
-		params.Set("channelId", fmt.Sprintf("%v", v))
+	var returnValue *PlaylistListResponse
+	c.params_.Set("part", fmt.Sprintf("%v", c.part))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	if v, ok := c.opt_["id"]; ok {
-		params.Set("id", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["mine"]; ok {
-		params.Set("mine", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["onBehalfOfContentOwner"]; ok {
-		params.Set("onBehalfOfContentOwner", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["onBehalfOfContentOwnerChannel"]; ok {
-		params.Set("onBehalfOfContentOwnerChannel", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "playlists")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *PlaylistListResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Returns a collection of playlists that match the API request parameters. For example, you can retrieve all playlists that the authenticated user owns, or you can retrieve one or more playlists by their unique IDs.",
 	//   "httpMethod": "GET",
@@ -7666,6 +9341,11 @@ func (c *PlaylistsListCall) Do() (*PlaylistListResponse, error) {
 	//   "parameters": {
 	//     "channelId": {
 	//       "description": "This value indicates that the API should only return the specified channel's playlists.",
+	//       "location": "query",
+	//       "type": "string"
+	//     },
+	//     "hl": {
+	//       "description": "The hl parameter should be used for filter out the properties that are not in the given language. Used for the snippet part.",
 	//       "location": "query",
 	//       "type": "string"
 	//     },
@@ -7727,19 +9407,28 @@ func (c *PlaylistsListCall) Do() (*PlaylistListResponse, error) {
 // method id "youtube.playlists.update":
 
 type PlaylistsUpdateCall struct {
-	s        *Service
-	part     string
-	playlist *Playlist
-	opt_     map[string]interface{}
+	s             *Service
+	part          string
+	playlist      *Playlist
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Update: Modifies a playlist. For example, you could change a
 // playlist's title, description, or privacy status.
+
 func (r *PlaylistsService) Update(part string, playlist *Playlist) *PlaylistsUpdateCall {
-	c := &PlaylistsUpdateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.part = part
-	c.playlist = playlist
-	return c
+	return &PlaylistsUpdateCall{
+		s:             r.s,
+		part:          part,
+		playlist:      playlist,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "playlists",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // OnBehalfOfContentOwner sets the optional parameter
@@ -7757,7 +9446,11 @@ func (r *PlaylistsService) Update(part string, playlist *Playlist) *PlaylistsUpd
 // CMS account that the user authenticates with must be linked to the
 // specified YouTube content owner.
 func (c *PlaylistsUpdateCall) OnBehalfOfContentOwner(onBehalfOfContentOwner string) *PlaylistsUpdateCall {
-	c.opt_["onBehalfOfContentOwner"] = onBehalfOfContentOwner
+	c.params_.Set("onBehalfOfContentOwner", fmt.Sprintf("%v", onBehalfOfContentOwner))
+	return c
+}
+func (c *PlaylistsUpdateCall) Context(ctx context.Context) *PlaylistsUpdateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -7765,45 +9458,23 @@ func (c *PlaylistsUpdateCall) OnBehalfOfContentOwner(onBehalfOfContentOwner stri
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *PlaylistsUpdateCall) Fields(s ...googleapi.Field) *PlaylistsUpdateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *PlaylistsUpdateCall) Do() (*Playlist, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.playlist)
-	if err != nil {
-		return nil, err
+	var returnValue *Playlist
+	c.params_.Set("part", fmt.Sprintf("%v", c.part))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.playlist,
+		Result:  &returnValue,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("part", fmt.Sprintf("%v", c.part))
-	if v, ok := c.opt_["onBehalfOfContentOwner"]; ok {
-		params.Set("onBehalfOfContentOwner", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "playlists")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Playlist
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Modifies a playlist. For example, you could change a playlist's title, description, or privacy status.",
 	//   "httpMethod": "PUT",
@@ -7843,9 +9514,12 @@ func (c *PlaylistsUpdateCall) Do() (*Playlist, error) {
 // method id "youtube.search.list":
 
 type SearchListCall struct {
-	s    *Service
-	part string
-	opt_ map[string]interface{}
+	s             *Service
+	part          string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Returns a collection of search results that match the query
@@ -7853,17 +9527,23 @@ type SearchListCall struct {
 // set identifies matching video, channel, and playlist resources, but
 // you can also configure queries to only retrieve a specific type of
 // resource.
+
 func (r *SearchService) List(part string) *SearchListCall {
-	c := &SearchListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.part = part
-	return c
+	return &SearchListCall{
+		s:             r.s,
+		part:          part,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "search",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // ChannelId sets the optional parameter "channelId": The channelId
 // parameter indicates that the API response should only contain
 // resources created by the channel
 func (c *SearchListCall) ChannelId(channelId string) *SearchListCall {
-	c.opt_["channelId"] = channelId
+	c.params_.Set("channelId", fmt.Sprintf("%v", channelId))
 	return c
 }
 
@@ -7871,14 +9551,14 @@ func (c *SearchListCall) ChannelId(channelId string) *SearchListCall {
 // channelType parameter lets you restrict a search to a particular type
 // of channel.
 func (c *SearchListCall) ChannelType(channelType string) *SearchListCall {
-	c.opt_["channelType"] = channelType
+	c.params_.Set("channelType", fmt.Sprintf("%v", channelType))
 	return c
 }
 
 // EventType sets the optional parameter "eventType": The eventType
 // parameter restricts a search to broadcast events.
 func (c *SearchListCall) EventType(eventType string) *SearchListCall {
-	c.opt_["eventType"] = eventType
+	c.params_.Set("eventType", fmt.Sprintf("%v", eventType))
 	return c
 }
 
@@ -7892,7 +9572,19 @@ func (c *SearchListCall) EventType(eventType string) *SearchListCall {
 // using a CMS account linked to the specified content owner and
 // onBehalfOfContentOwner must be provided.
 func (c *SearchListCall) ForContentOwner(forContentOwner bool) *SearchListCall {
-	c.opt_["forContentOwner"] = forContentOwner
+	c.params_.Set("forContentOwner", fmt.Sprintf("%v", forContentOwner))
+	return c
+}
+
+// ForDeveloper sets the optional parameter "forDeveloper": The
+// forDeveloper parameter restricts the search to only retrieve videos
+// uploaded via the developer's application or website. The API server
+// uses the request's authorization credentials to identify the
+// developer. Therefore, a developer can restrict results to videos
+// uploaded through the developer's own app or website but not to videos
+// uploaded through other apps or sites.
+func (c *SearchListCall) ForDeveloper(forDeveloper bool) *SearchListCall {
+	c.params_.Set("forDeveloper", fmt.Sprintf("%v", forDeveloper))
 	return c
 }
 
@@ -7901,7 +9593,7 @@ func (c *SearchListCall) ForContentOwner(forContentOwner bool) *SearchListCall {
 // authenticated user. If you set this parameter to true, then the type
 // parameter's value must also be set to video.
 func (c *SearchListCall) ForMine(forMine bool) *SearchListCall {
-	c.opt_["forMine"] = forMine
+	c.params_.Set("forMine", fmt.Sprintf("%v", forMine))
 	return c
 }
 
@@ -7911,7 +9603,7 @@ func (c *SearchListCall) ForMine(forMine bool) *SearchListCall {
 // specifies geographic latitude/longitude coordinates e.g.
 // (37.42307,-122.08427)
 func (c *SearchListCall) Location(location string) *SearchListCall {
-	c.opt_["location"] = location
+	c.params_.Set("location", fmt.Sprintf("%v", location))
 	return c
 }
 
@@ -7925,7 +9617,7 @@ func (c *SearchListCall) Location(location string) *SearchListCall {
 // 10000ft, and 0.75mi. The API does not support locationRadius
 // parameter values larger than 1000 kilometers.
 func (c *SearchListCall) LocationRadius(locationRadius string) *SearchListCall {
-	c.opt_["locationRadius"] = locationRadius
+	c.params_.Set("locationRadius", fmt.Sprintf("%v", locationRadius))
 	return c
 }
 
@@ -7933,7 +9625,7 @@ func (c *SearchListCall) LocationRadius(locationRadius string) *SearchListCall {
 // parameter specifies the maximum number of items that should be
 // returned in the result set.
 func (c *SearchListCall) MaxResults(maxResults int64) *SearchListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
@@ -7952,7 +9644,7 @@ func (c *SearchListCall) MaxResults(maxResults int64) *SearchListCall {
 // CMS account that the user authenticates with must be linked to the
 // specified YouTube content owner.
 func (c *SearchListCall) OnBehalfOfContentOwner(onBehalfOfContentOwner string) *SearchListCall {
-	c.opt_["onBehalfOfContentOwner"] = onBehalfOfContentOwner
+	c.params_.Set("onBehalfOfContentOwner", fmt.Sprintf("%v", onBehalfOfContentOwner))
 	return c
 }
 
@@ -7960,7 +9652,7 @@ func (c *SearchListCall) OnBehalfOfContentOwner(onBehalfOfContentOwner string) *
 // specifies the method that will be used to order resources in the API
 // response.
 func (c *SearchListCall) Order(order string) *SearchListCall {
-	c.opt_["order"] = order
+	c.params_.Set("order", fmt.Sprintf("%v", order))
 	return c
 }
 
@@ -7969,7 +9661,7 @@ func (c *SearchListCall) Order(order string) *SearchListCall {
 // returned. In an API response, the nextPageToken and prevPageToken
 // properties identify other pages that could be retrieved.
 func (c *SearchListCall) PageToken(pageToken string) *SearchListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
 	return c
 }
 
@@ -7978,7 +9670,7 @@ func (c *SearchListCall) PageToken(pageToken string) *SearchListCall {
 // contain resources created after the specified time. The value is an
 // RFC 3339 formatted date-time value (1970-01-01T00:00:00Z).
 func (c *SearchListCall) PublishedAfter(publishedAfter string) *SearchListCall {
-	c.opt_["publishedAfter"] = publishedAfter
+	c.params_.Set("publishedAfter", fmt.Sprintf("%v", publishedAfter))
 	return c
 }
 
@@ -7987,14 +9679,14 @@ func (c *SearchListCall) PublishedAfter(publishedAfter string) *SearchListCall {
 // contain resources created before the specified time. The value is an
 // RFC 3339 formatted date-time value (1970-01-01T00:00:00Z).
 func (c *SearchListCall) PublishedBefore(publishedBefore string) *SearchListCall {
-	c.opt_["publishedBefore"] = publishedBefore
+	c.params_.Set("publishedBefore", fmt.Sprintf("%v", publishedBefore))
 	return c
 }
 
 // Q sets the optional parameter "q": The q parameter specifies the
 // query term to search for.
 func (c *SearchListCall) Q(q string) *SearchListCall {
-	c.opt_["q"] = q
+	c.params_.Set("q", fmt.Sprintf("%v", q))
 	return c
 }
 
@@ -8003,7 +9695,7 @@ func (c *SearchListCall) Q(q string) *SearchListCall {
 // specified country. The parameter value is an ISO 3166-1 alpha-2
 // country code.
 func (c *SearchListCall) RegionCode(regionCode string) *SearchListCall {
-	c.opt_["regionCode"] = regionCode
+	c.params_.Set("regionCode", fmt.Sprintf("%v", regionCode))
 	return c
 }
 
@@ -8013,7 +9705,7 @@ func (c *SearchListCall) RegionCode(regionCode string) *SearchListCall {
 // parameter value must be set to a YouTube video ID and, if you are
 // using this parameter, the type parameter must be set to video.
 func (c *SearchListCall) RelatedToVideoId(relatedToVideoId string) *SearchListCall {
-	c.opt_["relatedToVideoId"] = relatedToVideoId
+	c.params_.Set("relatedToVideoId", fmt.Sprintf("%v", relatedToVideoId))
 	return c
 }
 
@@ -8026,7 +9718,7 @@ func (c *SearchListCall) RelatedToVideoId(relatedToVideoId string) *SearchListCa
 // languages will still be returned if they are highly relevant to the
 // search query term.
 func (c *SearchListCall) RelevanceLanguage(relevanceLanguage string) *SearchListCall {
-	c.opt_["relevanceLanguage"] = relevanceLanguage
+	c.params_.Set("relevanceLanguage", fmt.Sprintf("%v", relevanceLanguage))
 	return c
 }
 
@@ -8034,7 +9726,7 @@ func (c *SearchListCall) RelevanceLanguage(relevanceLanguage string) *SearchList
 // parameter indicates whether the search results should include
 // restricted content as well as standard content.
 func (c *SearchListCall) SafeSearch(safeSearch string) *SearchListCall {
-	c.opt_["safeSearch"] = safeSearch
+	c.params_.Set("safeSearch", fmt.Sprintf("%v", safeSearch))
 	return c
 }
 
@@ -8043,7 +9735,7 @@ func (c *SearchListCall) SafeSearch(safeSearch string) *SearchListCall {
 // associated with the specified topic. The value identifies a Freebase
 // topic ID.
 func (c *SearchListCall) TopicId(topicId string) *SearchListCall {
-	c.opt_["topicId"] = topicId
+	c.params_.Set("topicId", fmt.Sprintf("%v", topicId))
 	return c
 }
 
@@ -8051,7 +9743,7 @@ func (c *SearchListCall) TopicId(topicId string) *SearchListCall {
 // a search query to only retrieve a particular type of resource. The
 // value is a comma-separated list of resource types.
 func (c *SearchListCall) Type(type_ string) *SearchListCall {
-	c.opt_["type"] = type_
+	c.params_.Set("type", fmt.Sprintf("%v", type_))
 	return c
 }
 
@@ -8059,7 +9751,7 @@ func (c *SearchListCall) Type(type_ string) *SearchListCall {
 // videoCaption parameter indicates whether the API should filter video
 // search results based on whether they have captions.
 func (c *SearchListCall) VideoCaption(videoCaption string) *SearchListCall {
-	c.opt_["videoCaption"] = videoCaption
+	c.params_.Set("videoCaption", fmt.Sprintf("%v", videoCaption))
 	return c
 }
 
@@ -8067,7 +9759,7 @@ func (c *SearchListCall) VideoCaption(videoCaption string) *SearchListCall {
 // videoCategoryId parameter filters video search results based on their
 // category.
 func (c *SearchListCall) VideoCategoryId(videoCategoryId string) *SearchListCall {
-	c.opt_["videoCategoryId"] = videoCategoryId
+	c.params_.Set("videoCategoryId", fmt.Sprintf("%v", videoCategoryId))
 	return c
 }
 
@@ -8077,7 +9769,7 @@ func (c *SearchListCall) VideoCategoryId(videoCategoryId string) *SearchListCall
 // videos are available for playback in at least 720p, though higher
 // resolutions, like 1080p, might also be available.
 func (c *SearchListCall) VideoDefinition(videoDefinition string) *SearchListCall {
-	c.opt_["videoDefinition"] = videoDefinition
+	c.params_.Set("videoDefinition", fmt.Sprintf("%v", videoDefinition))
 	return c
 }
 
@@ -8085,7 +9777,7 @@ func (c *SearchListCall) VideoDefinition(videoDefinition string) *SearchListCall
 // videoDimension parameter lets you restrict a search to only retrieve
 // 2D or 3D videos.
 func (c *SearchListCall) VideoDimension(videoDimension string) *SearchListCall {
-	c.opt_["videoDimension"] = videoDimension
+	c.params_.Set("videoDimension", fmt.Sprintf("%v", videoDimension))
 	return c
 }
 
@@ -8093,7 +9785,7 @@ func (c *SearchListCall) VideoDimension(videoDimension string) *SearchListCall {
 // videoDuration parameter filters video search results based on their
 // duration.
 func (c *SearchListCall) VideoDuration(videoDuration string) *SearchListCall {
-	c.opt_["videoDuration"] = videoDuration
+	c.params_.Set("videoDuration", fmt.Sprintf("%v", videoDuration))
 	return c
 }
 
@@ -8101,7 +9793,7 @@ func (c *SearchListCall) VideoDuration(videoDuration string) *SearchListCall {
 // videoEmbeddable parameter lets you to restrict a search to only
 // videos that can be embedded into a webpage.
 func (c *SearchListCall) VideoEmbeddable(videoEmbeddable string) *SearchListCall {
-	c.opt_["videoEmbeddable"] = videoEmbeddable
+	c.params_.Set("videoEmbeddable", fmt.Sprintf("%v", videoEmbeddable))
 	return c
 }
 
@@ -8111,7 +9803,7 @@ func (c *SearchListCall) VideoEmbeddable(videoEmbeddable string) *SearchListCall
 // attach either the Creative Commons license or the standard YouTube
 // license to each of their videos.
 func (c *SearchListCall) VideoLicense(videoLicense string) *SearchListCall {
-	c.opt_["videoLicense"] = videoLicense
+	c.params_.Set("videoLicense", fmt.Sprintf("%v", videoLicense))
 	return c
 }
 
@@ -8119,14 +9811,18 @@ func (c *SearchListCall) VideoLicense(videoLicense string) *SearchListCall {
 // videoSyndicated parameter lets you to restrict a search to only
 // videos that can be played outside youtube.com.
 func (c *SearchListCall) VideoSyndicated(videoSyndicated string) *SearchListCall {
-	c.opt_["videoSyndicated"] = videoSyndicated
+	c.params_.Set("videoSyndicated", fmt.Sprintf("%v", videoSyndicated))
 	return c
 }
 
 // VideoType sets the optional parameter "videoType": The videoType
 // parameter lets you restrict a search to a particular type of videos.
 func (c *SearchListCall) VideoType(videoType string) *SearchListCall {
-	c.opt_["videoType"] = videoType
+	c.params_.Set("videoType", fmt.Sprintf("%v", videoType))
+	return c
+}
+func (c *SearchListCall) Context(ctx context.Context) *SearchListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -8134,123 +9830,22 @@ func (c *SearchListCall) VideoType(videoType string) *SearchListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *SearchListCall) Fields(s ...googleapi.Field) *SearchListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *SearchListCall) Do() (*SearchListResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("part", fmt.Sprintf("%v", c.part))
-	if v, ok := c.opt_["channelId"]; ok {
-		params.Set("channelId", fmt.Sprintf("%v", v))
+	var returnValue *SearchListResponse
+	c.params_.Set("part", fmt.Sprintf("%v", c.part))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	if v, ok := c.opt_["channelType"]; ok {
-		params.Set("channelType", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["eventType"]; ok {
-		params.Set("eventType", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["forContentOwner"]; ok {
-		params.Set("forContentOwner", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["forMine"]; ok {
-		params.Set("forMine", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["location"]; ok {
-		params.Set("location", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["locationRadius"]; ok {
-		params.Set("locationRadius", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["onBehalfOfContentOwner"]; ok {
-		params.Set("onBehalfOfContentOwner", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["order"]; ok {
-		params.Set("order", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["publishedAfter"]; ok {
-		params.Set("publishedAfter", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["publishedBefore"]; ok {
-		params.Set("publishedBefore", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["q"]; ok {
-		params.Set("q", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["regionCode"]; ok {
-		params.Set("regionCode", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["relatedToVideoId"]; ok {
-		params.Set("relatedToVideoId", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["relevanceLanguage"]; ok {
-		params.Set("relevanceLanguage", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["safeSearch"]; ok {
-		params.Set("safeSearch", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["topicId"]; ok {
-		params.Set("topicId", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["type"]; ok {
-		params.Set("type", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["videoCaption"]; ok {
-		params.Set("videoCaption", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["videoCategoryId"]; ok {
-		params.Set("videoCategoryId", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["videoDefinition"]; ok {
-		params.Set("videoDefinition", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["videoDimension"]; ok {
-		params.Set("videoDimension", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["videoDuration"]; ok {
-		params.Set("videoDuration", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["videoEmbeddable"]; ok {
-		params.Set("videoEmbeddable", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["videoLicense"]; ok {
-		params.Set("videoLicense", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["videoSyndicated"]; ok {
-		params.Set("videoSyndicated", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["videoType"]; ok {
-		params.Set("videoType", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "search")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *SearchListResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Returns a collection of search results that match the query parameters specified in the API request. By default, a search result set identifies matching video, channel, and playlist resources, but you can also configure queries to only retrieve a specific type of resource.",
 	//   "httpMethod": "GET",
@@ -8294,6 +9889,11 @@ func (c *SearchListCall) Do() (*SearchListResponse, error) {
 	//     },
 	//     "forContentOwner": {
 	//       "description": "Note: This parameter is intended exclusively for YouTube content partners.\n\nThe forContentOwner parameter restricts the search to only retrieve resources owned by the content owner specified by the onBehalfOfContentOwner parameter. The user must be authenticated using a CMS account linked to the specified content owner and onBehalfOfContentOwner must be provided.",
+	//       "location": "query",
+	//       "type": "boolean"
+	//     },
+	//     "forDeveloper": {
+	//       "description": "The forDeveloper parameter restricts the search to only retrieve videos uploaded via the developer's application or website. The API server uses the request's authorization credentials to identify the developer. Therefore, a developer can restrict results to videos uploaded through the developer's own app or website but not to videos uploaded through other apps or sites.",
 	//       "location": "query",
 	//       "type": "boolean"
 	//     },
@@ -8558,48 +10158,41 @@ func (c *SearchListCall) Do() (*SearchListResponse, error) {
 // method id "youtube.subscriptions.delete":
 
 type SubscriptionsDeleteCall struct {
-	s    *Service
-	id   string
-	opt_ map[string]interface{}
+	s             *Service
+	id            string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Delete: Deletes a subscription.
-func (r *SubscriptionsService) Delete(id string) *SubscriptionsDeleteCall {
-	c := &SubscriptionsDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.id = id
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *SubscriptionsDeleteCall) Fields(s ...googleapi.Field) *SubscriptionsDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *SubscriptionsService) Delete(id string) *SubscriptionsDeleteCall {
+	return &SubscriptionsDeleteCall{
+		s:             r.s,
+		id:            id,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "subscriptions",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *SubscriptionsDeleteCall) Context(ctx context.Context) *SubscriptionsDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *SubscriptionsDeleteCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("id", fmt.Sprintf("%v", c.id))
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
+	c.params_.Set("id", fmt.Sprintf("%v", c.id))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
 	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "subscriptions")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Deletes a subscription.",
 	//   "httpMethod": "DELETE",
@@ -8628,17 +10221,30 @@ func (c *SubscriptionsDeleteCall) Do() error {
 // method id "youtube.subscriptions.insert":
 
 type SubscriptionsInsertCall struct {
-	s            *Service
-	part         string
-	subscription *Subscription
-	opt_         map[string]interface{}
+	s             *Service
+	part          string
+	subscription  *Subscription
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Insert: Adds a subscription for the authenticated user's channel.
+
 func (r *SubscriptionsService) Insert(part string, subscription *Subscription) *SubscriptionsInsertCall {
-	c := &SubscriptionsInsertCall{s: r.s, opt_: make(map[string]interface{})}
-	c.part = part
-	c.subscription = subscription
+	return &SubscriptionsInsertCall{
+		s:             r.s,
+		part:          part,
+		subscription:  subscription,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "subscriptions",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *SubscriptionsInsertCall) Context(ctx context.Context) *SubscriptionsInsertCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -8646,42 +10252,23 @@ func (r *SubscriptionsService) Insert(part string, subscription *Subscription) *
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *SubscriptionsInsertCall) Fields(s ...googleapi.Field) *SubscriptionsInsertCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *SubscriptionsInsertCall) Do() (*Subscription, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.subscription)
-	if err != nil {
-		return nil, err
+	var returnValue *Subscription
+	c.params_.Set("part", fmt.Sprintf("%v", c.part))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.subscription,
+		Result:  &returnValue,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("part", fmt.Sprintf("%v", c.part))
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "subscriptions")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Subscription
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Adds a subscription for the authenticated user's channel.",
 	//   "httpMethod": "POST",
@@ -8716,24 +10303,33 @@ func (c *SubscriptionsInsertCall) Do() (*Subscription, error) {
 // method id "youtube.subscriptions.list":
 
 type SubscriptionsListCall struct {
-	s    *Service
-	part string
-	opt_ map[string]interface{}
+	s             *Service
+	part          string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Returns subscription resources that match the API request
 // criteria.
+
 func (r *SubscriptionsService) List(part string) *SubscriptionsListCall {
-	c := &SubscriptionsListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.part = part
-	return c
+	return &SubscriptionsListCall{
+		s:             r.s,
+		part:          part,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "subscriptions",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // ChannelId sets the optional parameter "channelId": The channelId
 // parameter specifies a YouTube channel ID. The API will only return
 // that channel's subscriptions.
 func (c *SubscriptionsListCall) ChannelId(channelId string) *SubscriptionsListCall {
-	c.opt_["channelId"] = channelId
+	c.params_.Set("channelId", fmt.Sprintf("%v", channelId))
 	return c
 }
 
@@ -8742,7 +10338,7 @@ func (c *SubscriptionsListCall) ChannelId(channelId string) *SubscriptionsListCa
 // IDs. The API response will then only contain subscriptions matching
 // those channels.
 func (c *SubscriptionsListCall) ForChannelId(forChannelId string) *SubscriptionsListCall {
-	c.opt_["forChannelId"] = forChannelId
+	c.params_.Set("forChannelId", fmt.Sprintf("%v", forChannelId))
 	return c
 }
 
@@ -8751,7 +10347,7 @@ func (c *SubscriptionsListCall) ForChannelId(forChannelId string) *Subscriptions
 // resource(s) that are being retrieved. In a subscription resource, the
 // id property specifies the YouTube subscription ID.
 func (c *SubscriptionsListCall) Id(id string) *SubscriptionsListCall {
-	c.opt_["id"] = id
+	c.params_.Set("id", fmt.Sprintf("%v", id))
 	return c
 }
 
@@ -8759,14 +10355,14 @@ func (c *SubscriptionsListCall) Id(id string) *SubscriptionsListCall {
 // parameter specifies the maximum number of items that should be
 // returned in the result set.
 func (c *SubscriptionsListCall) MaxResults(maxResults int64) *SubscriptionsListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
 // Mine sets the optional parameter "mine": Set this parameter's value
 // to true to retrieve a feed of the authenticated user's subscriptions.
 func (c *SubscriptionsListCall) Mine(mine bool) *SubscriptionsListCall {
-	c.opt_["mine"] = mine
+	c.params_.Set("mine", fmt.Sprintf("%v", mine))
 	return c
 }
 
@@ -8774,7 +10370,7 @@ func (c *SubscriptionsListCall) Mine(mine bool) *SubscriptionsListCall {
 // parameter's value to true to retrieve a feed of the subscribers of
 // the authenticated user.
 func (c *SubscriptionsListCall) MySubscribers(mySubscribers bool) *SubscriptionsListCall {
-	c.opt_["mySubscribers"] = mySubscribers
+	c.params_.Set("mySubscribers", fmt.Sprintf("%v", mySubscribers))
 	return c
 }
 
@@ -8793,7 +10389,7 @@ func (c *SubscriptionsListCall) MySubscribers(mySubscribers bool) *Subscriptions
 // CMS account that the user authenticates with must be linked to the
 // specified YouTube content owner.
 func (c *SubscriptionsListCall) OnBehalfOfContentOwner(onBehalfOfContentOwner string) *SubscriptionsListCall {
-	c.opt_["onBehalfOfContentOwner"] = onBehalfOfContentOwner
+	c.params_.Set("onBehalfOfContentOwner", fmt.Sprintf("%v", onBehalfOfContentOwner))
 	return c
 }
 
@@ -8821,7 +10417,7 @@ func (c *SubscriptionsListCall) OnBehalfOfContentOwner(onBehalfOfContentOwner st
 // parameter value, without having to provide authentication credentials
 // for each separate channel.
 func (c *SubscriptionsListCall) OnBehalfOfContentOwnerChannel(onBehalfOfContentOwnerChannel string) *SubscriptionsListCall {
-	c.opt_["onBehalfOfContentOwnerChannel"] = onBehalfOfContentOwnerChannel
+	c.params_.Set("onBehalfOfContentOwnerChannel", fmt.Sprintf("%v", onBehalfOfContentOwnerChannel))
 	return c
 }
 
@@ -8829,7 +10425,7 @@ func (c *SubscriptionsListCall) OnBehalfOfContentOwnerChannel(onBehalfOfContentO
 // specifies the method that will be used to sort resources in the API
 // response.
 func (c *SubscriptionsListCall) Order(order string) *SubscriptionsListCall {
-	c.opt_["order"] = order
+	c.params_.Set("order", fmt.Sprintf("%v", order))
 	return c
 }
 
@@ -8838,7 +10434,11 @@ func (c *SubscriptionsListCall) Order(order string) *SubscriptionsListCall {
 // returned. In an API response, the nextPageToken and prevPageToken
 // properties identify other pages that could be retrieved.
 func (c *SubscriptionsListCall) PageToken(pageToken string) *SubscriptionsListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
+	return c
+}
+func (c *SubscriptionsListCall) Context(ctx context.Context) *SubscriptionsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -8846,66 +10446,22 @@ func (c *SubscriptionsListCall) PageToken(pageToken string) *SubscriptionsListCa
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *SubscriptionsListCall) Fields(s ...googleapi.Field) *SubscriptionsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *SubscriptionsListCall) Do() (*SubscriptionListResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("part", fmt.Sprintf("%v", c.part))
-	if v, ok := c.opt_["channelId"]; ok {
-		params.Set("channelId", fmt.Sprintf("%v", v))
+	var returnValue *SubscriptionListResponse
+	c.params_.Set("part", fmt.Sprintf("%v", c.part))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	if v, ok := c.opt_["forChannelId"]; ok {
-		params.Set("forChannelId", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["id"]; ok {
-		params.Set("id", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["mine"]; ok {
-		params.Set("mine", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["mySubscribers"]; ok {
-		params.Set("mySubscribers", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["onBehalfOfContentOwner"]; ok {
-		params.Set("onBehalfOfContentOwner", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["onBehalfOfContentOwnerChannel"]; ok {
-		params.Set("onBehalfOfContentOwnerChannel", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["order"]; ok {
-		params.Set("order", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "subscriptions")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *SubscriptionListResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Returns subscription resources that match the API request criteria.",
 	//   "httpMethod": "GET",
@@ -9003,22 +10559,27 @@ func (c *SubscriptionsListCall) Do() (*SubscriptionListResponse, error) {
 // method id "youtube.thumbnails.set":
 
 type ThumbnailsSetCall struct {
-	s          *Service
-	videoId    string
-	opt_       map[string]interface{}
-	media_     io.Reader
-	resumable_ googleapi.SizeReaderAt
-	mediaType_ string
-	ctx_       context.Context
-	protocol_  string
+	s             *Service
+	videoId       string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
+	callback_     googleapi.ProgressUpdater
 }
 
 // Set: Uploads a custom video thumbnail to YouTube and sets it for a
 // video.
+
 func (r *ThumbnailsService) Set(videoId string) *ThumbnailsSetCall {
-	c := &ThumbnailsSetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.videoId = videoId
-	return c
+	return &ThumbnailsSetCall{
+		s:             r.s,
+		videoId:       videoId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "thumbnails/set",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // OnBehalfOfContentOwner sets the optional parameter
@@ -9032,15 +10593,35 @@ func (r *ThumbnailsService) Set(videoId string) *ThumbnailsSetCall {
 // channel. The actual CMS account that the user authenticates with
 // needs to be linked to the specified YouTube content owner.
 func (c *ThumbnailsSetCall) OnBehalfOfContentOwner(onBehalfOfContentOwner string) *ThumbnailsSetCall {
-	c.opt_["onBehalfOfContentOwner"] = onBehalfOfContentOwner
+	c.params_.Set("onBehalfOfContentOwner", fmt.Sprintf("%v", onBehalfOfContentOwner))
+	return c
+}
+func (c *ThumbnailsSetCall) Context(ctx context.Context) *ThumbnailsSetCall {
+	c.context_ = ctx
+	return c
+}
+
+// MediaUpload takes a context and UploadCaller interface
+func (c *ThumbnailsSetCall) Upload(ctx context.Context, u googleapi.UploadCaller) *ThumbnailsSetCall {
+	c.caller_ = u
+	c.context_ = ctx
+	switch u.(type) {
+	case *googleapi.MediaUpload:
+		c.pathTemplate_ = "/upload/youtube/v3/thumbnails/set"
+	case *googleapi.ResumableUpload:
+		c.pathTemplate_ = "/resumable/upload/youtube/v3/thumbnails/set"
+	}
 	return c
 }
 
 // Media specifies the media to upload in a single chunk.
 // At most one of Media and ResumableMedia may be set.
+// The mime type type will be auto-detected unless r is a googleapi.ContentTyper as well.
 func (c *ThumbnailsSetCall) Media(r io.Reader) *ThumbnailsSetCall {
-	c.media_ = r
-	c.protocol_ = "multipart"
+	c.caller_ = &googleapi.MediaUpload{
+		Media: r,
+	}
+	c.pathTemplate_ = "/upload/youtube/v3/thumbnails/set"
 	return c
 }
 
@@ -9049,10 +10630,14 @@ func (c *ThumbnailsSetCall) Media(r io.Reader) *ThumbnailsSetCall {
 // mediaType identifies the MIME media type of the upload, such as "image/png".
 // If mediaType is "", it will be auto-detected.
 func (c *ThumbnailsSetCall) ResumableMedia(ctx context.Context, r io.ReaderAt, size int64, mediaType string) *ThumbnailsSetCall {
-	c.ctx_ = ctx
-	c.resumable_ = io.NewSectionReader(r, 0, size)
-	c.mediaType_ = mediaType
-	c.protocol_ = "resumable"
+	c.caller_ = &googleapi.ResumableUpload{
+		Media:         io.NewSectionReader(r, 0, size),
+		MediaType:     mediaType,
+		ContentLength: size,
+		Callback:      c.callback_,
+	}
+	c.pathTemplate_ = "/resumable/upload/youtube/v3/thumbnails/set"
+	c.context_ = ctx
 	return c
 }
 
@@ -9060,7 +10645,10 @@ func (c *ThumbnailsSetCall) ResumableMedia(ctx context.Context, r io.ReaderAt, s
 // It should be a low-latency function in order to not slow down the upload operation.
 // This should only be called when using ResumableMedia (as opposed to Media).
 func (c *ThumbnailsSetCall) ProgressUpdater(pu googleapi.ProgressUpdater) *ThumbnailsSetCall {
-	c.opt_["progressUpdater"] = pu
+	c.callback_ = pu
+	if rx, ok := c.caller_.(*googleapi.ResumableUpload); ok {
+		rx.Callback = pu
+	}
 	return c
 }
 
@@ -9068,85 +10656,22 @@ func (c *ThumbnailsSetCall) ProgressUpdater(pu googleapi.ProgressUpdater) *Thumb
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ThumbnailsSetCall) Fields(s ...googleapi.Field) *ThumbnailsSetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ThumbnailsSetCall) Do() (*ThumbnailSetResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("videoId", fmt.Sprintf("%v", c.videoId))
-	if v, ok := c.opt_["onBehalfOfContentOwner"]; ok {
-		params.Set("onBehalfOfContentOwner", fmt.Sprintf("%v", v))
+	var returnValue *ThumbnailSetResponse
+	c.params_.Set("videoId", fmt.Sprintf("%v", c.videoId))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "POST",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "thumbnails/set")
-	var progressUpdater_ googleapi.ProgressUpdater
-	if v, ok := c.opt_["progressUpdater"]; ok {
-		if pu, ok := v.(googleapi.ProgressUpdater); ok {
-			progressUpdater_ = pu
-		}
-	}
-	if c.media_ != nil || c.resumable_ != nil {
-		urls = strings.Replace(urls, "https://www.googleapis.com/", "https://www.googleapis.com/upload/", 1)
-		params.Set("uploadType", c.protocol_)
-	}
-	urls += "?" + params.Encode()
-	body = new(bytes.Buffer)
-	ctype := "application/json"
-	if c.protocol_ != "resumable" {
-		var cancel func()
-		cancel, _ = googleapi.ConditionallyIncludeMedia(c.media_, &body, &ctype)
-		if cancel != nil {
-			defer cancel()
-		}
-	}
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	if c.protocol_ == "resumable" {
-		req.ContentLength = 0
-		if c.mediaType_ == "" {
-			c.mediaType_ = googleapi.DetectMediaType(c.resumable_)
-		}
-		req.Header.Set("X-Upload-Content-Type", c.mediaType_)
-		req.Body = nil
-	} else {
-		req.Header.Set("Content-Type", ctype)
-	}
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	if c.protocol_ == "resumable" {
-		loc := res.Header.Get("Location")
-		rx := &googleapi.ResumableUpload{
-			Client:        c.s.client,
-			UserAgent:     c.s.userAgent(),
-			URI:           loc,
-			Media:         c.resumable_,
-			MediaType:     c.mediaType_,
-			ContentLength: c.resumable_.Size(),
-			Callback:      progressUpdater_,
-		}
-		res, err = rx.Upload(c.ctx_)
-		if err != nil {
-			return nil, err
-		}
-		defer res.Body.Close()
-	}
-	var ret *ThumbnailSetResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Uploads a custom video thumbnail to YouTube and sets it for a video.",
 	//   "httpMethod": "POST",
@@ -9203,23 +10728,32 @@ func (c *ThumbnailsSetCall) Do() (*ThumbnailSetResponse, error) {
 // method id "youtube.videoCategories.list":
 
 type VideoCategoriesListCall struct {
-	s    *Service
-	part string
-	opt_ map[string]interface{}
+	s             *Service
+	part          string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Returns a list of categories that can be associated with
 // YouTube videos.
+
 func (r *VideoCategoriesService) List(part string) *VideoCategoriesListCall {
-	c := &VideoCategoriesListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.part = part
-	return c
+	return &VideoCategoriesListCall{
+		s:             r.s,
+		part:          part,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "videoCategories",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Hl sets the optional parameter "hl": The hl parameter specifies the
 // language that should be used for text values in the API response.
 func (c *VideoCategoriesListCall) Hl(hl string) *VideoCategoriesListCall {
-	c.opt_["hl"] = hl
+	c.params_.Set("hl", fmt.Sprintf("%v", hl))
 	return c
 }
 
@@ -9227,7 +10761,7 @@ func (c *VideoCategoriesListCall) Hl(hl string) *VideoCategoriesListCall {
 // comma-separated list of video category IDs for the resources that you
 // are retrieving.
 func (c *VideoCategoriesListCall) Id(id string) *VideoCategoriesListCall {
-	c.opt_["id"] = id
+	c.params_.Set("id", fmt.Sprintf("%v", id))
 	return c
 }
 
@@ -9236,7 +10770,11 @@ func (c *VideoCategoriesListCall) Id(id string) *VideoCategoriesListCall {
 // available in the specified country. The parameter value is an ISO
 // 3166-1 alpha-2 country code.
 func (c *VideoCategoriesListCall) RegionCode(regionCode string) *VideoCategoriesListCall {
-	c.opt_["regionCode"] = regionCode
+	c.params_.Set("regionCode", fmt.Sprintf("%v", regionCode))
+	return c
+}
+func (c *VideoCategoriesListCall) Context(ctx context.Context) *VideoCategoriesListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -9244,45 +10782,22 @@ func (c *VideoCategoriesListCall) RegionCode(regionCode string) *VideoCategories
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *VideoCategoriesListCall) Fields(s ...googleapi.Field) *VideoCategoriesListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *VideoCategoriesListCall) Do() (*VideoCategoryListResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("part", fmt.Sprintf("%v", c.part))
-	if v, ok := c.opt_["hl"]; ok {
-		params.Set("hl", fmt.Sprintf("%v", v))
+	var returnValue *VideoCategoryListResponse
+	c.params_.Set("part", fmt.Sprintf("%v", c.part))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	if v, ok := c.opt_["id"]; ok {
-		params.Set("id", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["regionCode"]; ok {
-		params.Set("regionCode", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "videoCategories")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *VideoCategoryListResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Returns a list of categories that can be associated with YouTube videos.",
 	//   "httpMethod": "GET",
@@ -9331,16 +10846,25 @@ func (c *VideoCategoriesListCall) Do() (*VideoCategoryListResponse, error) {
 // method id "youtube.videos.delete":
 
 type VideosDeleteCall struct {
-	s    *Service
-	id   string
-	opt_ map[string]interface{}
+	s             *Service
+	id            string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Delete: Deletes a YouTube video.
+
 func (r *VideosService) Delete(id string) *VideosDeleteCall {
-	c := &VideosDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.id = id
-	return c
+	return &VideosDeleteCall{
+		s:             r.s,
+		id:            id,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "videos",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // OnBehalfOfContentOwner sets the optional parameter
@@ -9358,43 +10882,24 @@ func (r *VideosService) Delete(id string) *VideosDeleteCall {
 // actual CMS account that the user authenticates with must be linked to
 // the specified YouTube content owner.
 func (c *VideosDeleteCall) OnBehalfOfContentOwner(onBehalfOfContentOwner string) *VideosDeleteCall {
-	c.opt_["onBehalfOfContentOwner"] = onBehalfOfContentOwner
+	c.params_.Set("onBehalfOfContentOwner", fmt.Sprintf("%v", onBehalfOfContentOwner))
 	return c
 }
-
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *VideosDeleteCall) Fields(s ...googleapi.Field) *VideosDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (c *VideosDeleteCall) Context(ctx context.Context) *VideosDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *VideosDeleteCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("id", fmt.Sprintf("%v", c.id))
-	if v, ok := c.opt_["onBehalfOfContentOwner"]; ok {
-		params.Set("onBehalfOfContentOwner", fmt.Sprintf("%v", v))
+	c.params_.Set("id", fmt.Sprintf("%v", c.id))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
 	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "videos")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Deletes a YouTube video.",
 	//   "httpMethod": "DELETE",
@@ -9428,17 +10933,26 @@ func (c *VideosDeleteCall) Do() error {
 // method id "youtube.videos.getRating":
 
 type VideosGetRatingCall struct {
-	s    *Service
-	id   string
-	opt_ map[string]interface{}
+	s             *Service
+	id            string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // GetRating: Retrieves the ratings that the authorized user gave to a
 // list of specified videos.
+
 func (r *VideosService) GetRating(id string) *VideosGetRatingCall {
-	c := &VideosGetRatingCall{s: r.s, opt_: make(map[string]interface{})}
-	c.id = id
-	return c
+	return &VideosGetRatingCall{
+		s:             r.s,
+		id:            id,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "videos/getRating",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // OnBehalfOfContentOwner sets the optional parameter
@@ -9456,7 +10970,11 @@ func (r *VideosService) GetRating(id string) *VideosGetRatingCall {
 // CMS account that the user authenticates with must be linked to the
 // specified YouTube content owner.
 func (c *VideosGetRatingCall) OnBehalfOfContentOwner(onBehalfOfContentOwner string) *VideosGetRatingCall {
-	c.opt_["onBehalfOfContentOwner"] = onBehalfOfContentOwner
+	c.params_.Set("onBehalfOfContentOwner", fmt.Sprintf("%v", onBehalfOfContentOwner))
+	return c
+}
+func (c *VideosGetRatingCall) Context(ctx context.Context) *VideosGetRatingCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -9464,39 +10982,22 @@ func (c *VideosGetRatingCall) OnBehalfOfContentOwner(onBehalfOfContentOwner stri
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *VideosGetRatingCall) Fields(s ...googleapi.Field) *VideosGetRatingCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *VideosGetRatingCall) Do() (*VideoGetRatingResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("id", fmt.Sprintf("%v", c.id))
-	if v, ok := c.opt_["onBehalfOfContentOwner"]; ok {
-		params.Set("onBehalfOfContentOwner", fmt.Sprintf("%v", v))
+	var returnValue *VideoGetRatingResponse
+	c.params_.Set("id", fmt.Sprintf("%v", c.id))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "videos/getRating")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *VideoGetRatingResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves the ratings that the authorized user gave to a list of specified videos.",
 	//   "httpMethod": "GET",
@@ -9533,31 +11034,36 @@ func (c *VideosGetRatingCall) Do() (*VideoGetRatingResponse, error) {
 // method id "youtube.videos.insert":
 
 type VideosInsertCall struct {
-	s          *Service
-	part       string
-	video      *Video
-	opt_       map[string]interface{}
-	media_     io.Reader
-	resumable_ googleapi.SizeReaderAt
-	mediaType_ string
-	ctx_       context.Context
-	protocol_  string
+	s             *Service
+	part          string
+	video         *Video
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
+	callback_     googleapi.ProgressUpdater
 }
 
 // Insert: Uploads a video to YouTube and optionally sets the video's
 // metadata.
+
 func (r *VideosService) Insert(part string, video *Video) *VideosInsertCall {
-	c := &VideosInsertCall{s: r.s, opt_: make(map[string]interface{})}
-	c.part = part
-	c.video = video
-	return c
+	return &VideosInsertCall{
+		s:             r.s,
+		part:          part,
+		video:         video,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "videos",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // AutoLevels sets the optional parameter "autoLevels": The autoLevels
 // parameter indicates whether YouTube should automatically enhance the
 // video's lighting and color.
 func (c *VideosInsertCall) AutoLevels(autoLevels bool) *VideosInsertCall {
-	c.opt_["autoLevels"] = autoLevels
+	c.params_.Set("autoLevels", fmt.Sprintf("%v", autoLevels))
 	return c
 }
 
@@ -9565,7 +11071,7 @@ func (c *VideosInsertCall) AutoLevels(autoLevels bool) *VideosInsertCall {
 // The notifySubscribers parameter indicates whether YouTube should send
 // notification to subscribers about the inserted video.
 func (c *VideosInsertCall) NotifySubscribers(notifySubscribers bool) *VideosInsertCall {
-	c.opt_["notifySubscribers"] = notifySubscribers
+	c.params_.Set("notifySubscribers", fmt.Sprintf("%v", notifySubscribers))
 	return c
 }
 
@@ -9584,7 +11090,7 @@ func (c *VideosInsertCall) NotifySubscribers(notifySubscribers bool) *VideosInse
 // CMS account that the user authenticates with must be linked to the
 // specified YouTube content owner.
 func (c *VideosInsertCall) OnBehalfOfContentOwner(onBehalfOfContentOwner string) *VideosInsertCall {
-	c.opt_["onBehalfOfContentOwner"] = onBehalfOfContentOwner
+	c.params_.Set("onBehalfOfContentOwner", fmt.Sprintf("%v", onBehalfOfContentOwner))
 	return c
 }
 
@@ -9612,7 +11118,7 @@ func (c *VideosInsertCall) OnBehalfOfContentOwner(onBehalfOfContentOwner string)
 // parameter value, without having to provide authentication credentials
 // for each separate channel.
 func (c *VideosInsertCall) OnBehalfOfContentOwnerChannel(onBehalfOfContentOwnerChannel string) *VideosInsertCall {
-	c.opt_["onBehalfOfContentOwnerChannel"] = onBehalfOfContentOwnerChannel
+	c.params_.Set("onBehalfOfContentOwnerChannel", fmt.Sprintf("%v", onBehalfOfContentOwnerChannel))
 	return c
 }
 
@@ -9620,15 +11126,35 @@ func (c *VideosInsertCall) OnBehalfOfContentOwnerChannel(onBehalfOfContentOwnerC
 // parameter indicates whether YouTube should adjust the video to remove
 // shaky camera motions.
 func (c *VideosInsertCall) Stabilize(stabilize bool) *VideosInsertCall {
-	c.opt_["stabilize"] = stabilize
+	c.params_.Set("stabilize", fmt.Sprintf("%v", stabilize))
+	return c
+}
+func (c *VideosInsertCall) Context(ctx context.Context) *VideosInsertCall {
+	c.context_ = ctx
+	return c
+}
+
+// MediaUpload takes a context and UploadCaller interface
+func (c *VideosInsertCall) Upload(ctx context.Context, u googleapi.UploadCaller) *VideosInsertCall {
+	c.caller_ = u
+	c.context_ = ctx
+	switch u.(type) {
+	case *googleapi.MediaUpload:
+		c.pathTemplate_ = "/upload/youtube/v3/videos"
+	case *googleapi.ResumableUpload:
+		c.pathTemplate_ = "/resumable/upload/youtube/v3/videos"
+	}
 	return c
 }
 
 // Media specifies the media to upload in a single chunk.
 // At most one of Media and ResumableMedia may be set.
+// The mime type type will be auto-detected unless r is a googleapi.ContentTyper as well.
 func (c *VideosInsertCall) Media(r io.Reader) *VideosInsertCall {
-	c.media_ = r
-	c.protocol_ = "multipart"
+	c.caller_ = &googleapi.MediaUpload{
+		Media: r,
+	}
+	c.pathTemplate_ = "/upload/youtube/v3/videos"
 	return c
 }
 
@@ -9637,10 +11163,14 @@ func (c *VideosInsertCall) Media(r io.Reader) *VideosInsertCall {
 // mediaType identifies the MIME media type of the upload, such as "image/png".
 // If mediaType is "", it will be auto-detected.
 func (c *VideosInsertCall) ResumableMedia(ctx context.Context, r io.ReaderAt, size int64, mediaType string) *VideosInsertCall {
-	c.ctx_ = ctx
-	c.resumable_ = io.NewSectionReader(r, 0, size)
-	c.mediaType_ = mediaType
-	c.protocol_ = "resumable"
+	c.caller_ = &googleapi.ResumableUpload{
+		Media:         io.NewSectionReader(r, 0, size),
+		MediaType:     mediaType,
+		ContentLength: size,
+		Callback:      c.callback_,
+	}
+	c.pathTemplate_ = "/resumable/upload/youtube/v3/videos"
+	c.context_ = ctx
 	return c
 }
 
@@ -9648,7 +11178,10 @@ func (c *VideosInsertCall) ResumableMedia(ctx context.Context, r io.ReaderAt, si
 // It should be a low-latency function in order to not slow down the upload operation.
 // This should only be called when using ResumableMedia (as opposed to Media).
 func (c *VideosInsertCall) ProgressUpdater(pu googleapi.ProgressUpdater) *VideosInsertCall {
-	c.opt_["progressUpdater"] = pu
+	c.callback_ = pu
+	if rx, ok := c.caller_.(*googleapi.ResumableUpload); ok {
+		rx.Callback = pu
+	}
 	return c
 }
 
@@ -9656,100 +11189,23 @@ func (c *VideosInsertCall) ProgressUpdater(pu googleapi.ProgressUpdater) *Videos
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *VideosInsertCall) Fields(s ...googleapi.Field) *VideosInsertCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *VideosInsertCall) Do() (*Video, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.video)
-	if err != nil {
-		return nil, err
+	var returnValue *Video
+	c.params_.Set("part", fmt.Sprintf("%v", c.part))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.video,
+		Result:  &returnValue,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("part", fmt.Sprintf("%v", c.part))
-	if v, ok := c.opt_["autoLevels"]; ok {
-		params.Set("autoLevels", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["notifySubscribers"]; ok {
-		params.Set("notifySubscribers", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["onBehalfOfContentOwner"]; ok {
-		params.Set("onBehalfOfContentOwner", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["onBehalfOfContentOwnerChannel"]; ok {
-		params.Set("onBehalfOfContentOwnerChannel", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["stabilize"]; ok {
-		params.Set("stabilize", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "videos")
-	var progressUpdater_ googleapi.ProgressUpdater
-	if v, ok := c.opt_["progressUpdater"]; ok {
-		if pu, ok := v.(googleapi.ProgressUpdater); ok {
-			progressUpdater_ = pu
-		}
-	}
-	if c.media_ != nil || c.resumable_ != nil {
-		urls = strings.Replace(urls, "https://www.googleapis.com/", "https://www.googleapis.com/upload/", 1)
-		params.Set("uploadType", c.protocol_)
-	}
-	urls += "?" + params.Encode()
-	if c.protocol_ != "resumable" {
-		var cancel func()
-		cancel, _ = googleapi.ConditionallyIncludeMedia(c.media_, &body, &ctype)
-		if cancel != nil {
-			defer cancel()
-		}
-	}
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	if c.protocol_ == "resumable" {
-		req.ContentLength = 0
-		if c.mediaType_ == "" {
-			c.mediaType_ = googleapi.DetectMediaType(c.resumable_)
-		}
-		req.Header.Set("X-Upload-Content-Type", c.mediaType_)
-		req.Body = nil
-	} else {
-		req.Header.Set("Content-Type", ctype)
-	}
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	if c.protocol_ == "resumable" {
-		loc := res.Header.Get("Location")
-		rx := &googleapi.ResumableUpload{
-			Client:        c.s.client,
-			UserAgent:     c.s.userAgent(),
-			URI:           loc,
-			Media:         c.resumable_,
-			MediaType:     c.mediaType_,
-			ContentLength: c.resumable_.Size(),
-			Callback:      progressUpdater_,
-		}
-		res, err = rx.Upload(c.ctx_)
-		if err != nil {
-			return nil, err
-		}
-		defer res.Body.Close()
-	}
-	var ret *Video
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Uploads a video to YouTube and optionally sets the video's metadata.",
 	//   "httpMethod": "POST",
@@ -9829,22 +11285,31 @@ func (c *VideosInsertCall) Do() (*Video, error) {
 // method id "youtube.videos.list":
 
 type VideosListCall struct {
-	s    *Service
-	part string
-	opt_ map[string]interface{}
+	s             *Service
+	part          string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Returns a list of videos that match the API request parameters.
+
 func (r *VideosService) List(part string) *VideosListCall {
-	c := &VideosListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.part = part
-	return c
+	return &VideosListCall{
+		s:             r.s,
+		part:          part,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "videos",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Chart sets the optional parameter "chart": The chart parameter
 // identifies the chart that you want to retrieve.
 func (c *VideosListCall) Chart(chart string) *VideosListCall {
-	c.opt_["chart"] = chart
+	c.params_.Set("chart", fmt.Sprintf("%v", chart))
 	return c
 }
 
@@ -9857,7 +11322,7 @@ func (c *VideosListCall) Chart(chart string) *VideosListCall {
 // localization was returned by checking the value of the
 // snippet.localized.language property in the API response.
 func (c *VideosListCall) Hl(hl string) *VideosListCall {
-	c.opt_["hl"] = hl
+	c.params_.Set("hl", fmt.Sprintf("%v", hl))
 	return c
 }
 
@@ -9866,13 +11331,13 @@ func (c *VideosListCall) Hl(hl string) *VideosListCall {
 // that are being retrieved. In a video resource, the id property
 // specifies the video's ID.
 func (c *VideosListCall) Id(id string) *VideosListCall {
-	c.opt_["id"] = id
+	c.params_.Set("id", fmt.Sprintf("%v", id))
 	return c
 }
 
 // Locale sets the optional parameter "locale": DEPRECATED
 func (c *VideosListCall) Locale(locale string) *VideosListCall {
-	c.opt_["locale"] = locale
+	c.params_.Set("locale", fmt.Sprintf("%v", locale))
 	return c
 }
 
@@ -9884,7 +11349,7 @@ func (c *VideosListCall) Locale(locale string) *VideosListCall {
 // use in conjunction with the myRating parameter, but it is not
 // supported for use in conjunction with the id parameter.
 func (c *VideosListCall) MaxResults(maxResults int64) *VideosListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
@@ -9892,7 +11357,7 @@ func (c *VideosListCall) MaxResults(maxResults int64) *VideosListCall {
 // value to like or dislike to instruct the API to only return videos
 // liked or disliked by the authenticated user.
 func (c *VideosListCall) MyRating(myRating string) *VideosListCall {
-	c.opt_["myRating"] = myRating
+	c.params_.Set("myRating", fmt.Sprintf("%v", myRating))
 	return c
 }
 
@@ -9911,7 +11376,7 @@ func (c *VideosListCall) MyRating(myRating string) *VideosListCall {
 // CMS account that the user authenticates with must be linked to the
 // specified YouTube content owner.
 func (c *VideosListCall) OnBehalfOfContentOwner(onBehalfOfContentOwner string) *VideosListCall {
-	c.opt_["onBehalfOfContentOwner"] = onBehalfOfContentOwner
+	c.params_.Set("onBehalfOfContentOwner", fmt.Sprintf("%v", onBehalfOfContentOwner))
 	return c
 }
 
@@ -9925,7 +11390,7 @@ func (c *VideosListCall) OnBehalfOfContentOwner(onBehalfOfContentOwner string) *
 // parameter, but it is not supported for use in conjunction with the id
 // parameter.
 func (c *VideosListCall) PageToken(pageToken string) *VideosListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
 	return c
 }
 
@@ -9935,7 +11400,7 @@ func (c *VideosListCall) PageToken(pageToken string) *VideosListCall {
 // the chart parameter. The parameter value is an ISO 3166-1 alpha-2
 // country code.
 func (c *VideosListCall) RegionCode(regionCode string) *VideosListCall {
-	c.opt_["regionCode"] = regionCode
+	c.params_.Set("regionCode", fmt.Sprintf("%v", regionCode))
 	return c
 }
 
@@ -9945,7 +11410,11 @@ func (c *VideosListCall) RegionCode(regionCode string) *VideosListCall {
 // conjunction with the chart parameter. By default, charts are not
 // restricted to a particular category.
 func (c *VideosListCall) VideoCategoryId(videoCategoryId string) *VideosListCall {
-	c.opt_["videoCategoryId"] = videoCategoryId
+	c.params_.Set("videoCategoryId", fmt.Sprintf("%v", videoCategoryId))
+	return c
+}
+func (c *VideosListCall) Context(ctx context.Context) *VideosListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -9953,66 +11422,22 @@ func (c *VideosListCall) VideoCategoryId(videoCategoryId string) *VideosListCall
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *VideosListCall) Fields(s ...googleapi.Field) *VideosListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *VideosListCall) Do() (*VideoListResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("part", fmt.Sprintf("%v", c.part))
-	if v, ok := c.opt_["chart"]; ok {
-		params.Set("chart", fmt.Sprintf("%v", v))
+	var returnValue *VideoListResponse
+	c.params_.Set("part", fmt.Sprintf("%v", c.part))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	if v, ok := c.opt_["hl"]; ok {
-		params.Set("hl", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["id"]; ok {
-		params.Set("id", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["locale"]; ok {
-		params.Set("locale", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["myRating"]; ok {
-		params.Set("myRating", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["onBehalfOfContentOwner"]; ok {
-		params.Set("onBehalfOfContentOwner", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["regionCode"]; ok {
-		params.Set("regionCode", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["videoCategoryId"]; ok {
-		params.Set("videoCategoryId", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "videos")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *VideoListResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Returns a list of videos that match the API request parameters.",
 	//   "httpMethod": "GET",
@@ -10114,19 +11539,28 @@ func (c *VideosListCall) Do() (*VideoListResponse, error) {
 // method id "youtube.videos.rate":
 
 type VideosRateCall struct {
-	s      *Service
-	id     string
-	rating string
-	opt_   map[string]interface{}
+	s             *Service
+	id            string
+	rating        string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Rate: Add a like or dislike rating to a video or remove a rating from
 // a video.
+
 func (r *VideosService) Rate(id string, rating string) *VideosRateCall {
-	c := &VideosRateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.id = id
-	c.rating = rating
-	return c
+	return &VideosRateCall{
+		s:             r.s,
+		id:            id,
+		rating:        rating,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "videos/rate",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // OnBehalfOfContentOwner sets the optional parameter
@@ -10144,44 +11578,25 @@ func (r *VideosService) Rate(id string, rating string) *VideosRateCall {
 // CMS account that the user authenticates with must be linked to the
 // specified YouTube content owner.
 func (c *VideosRateCall) OnBehalfOfContentOwner(onBehalfOfContentOwner string) *VideosRateCall {
-	c.opt_["onBehalfOfContentOwner"] = onBehalfOfContentOwner
+	c.params_.Set("onBehalfOfContentOwner", fmt.Sprintf("%v", onBehalfOfContentOwner))
 	return c
 }
-
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *VideosRateCall) Fields(s ...googleapi.Field) *VideosRateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (c *VideosRateCall) Context(ctx context.Context) *VideosRateCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *VideosRateCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("id", fmt.Sprintf("%v", c.id))
-	params.Set("rating", fmt.Sprintf("%v", c.rating))
-	if v, ok := c.opt_["onBehalfOfContentOwner"]; ok {
-		params.Set("onBehalfOfContentOwner", fmt.Sprintf("%v", v))
+	c.params_.Set("id", fmt.Sprintf("%v", c.id))
+	c.params_.Set("rating", fmt.Sprintf("%v", c.rating))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "POST",
+		URL:    u,
+		Params: c.params_,
 	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "videos/rate")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Add a like or dislike rating to a video or remove a rating from a video.",
 	//   "httpMethod": "POST",
@@ -10232,18 +11647,27 @@ func (c *VideosRateCall) Do() error {
 // method id "youtube.videos.update":
 
 type VideosUpdateCall struct {
-	s     *Service
-	part  string
-	video *Video
-	opt_  map[string]interface{}
+	s             *Service
+	part          string
+	video         *Video
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Update: Updates a video's metadata.
+
 func (r *VideosService) Update(part string, video *Video) *VideosUpdateCall {
-	c := &VideosUpdateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.part = part
-	c.video = video
-	return c
+	return &VideosUpdateCall{
+		s:             r.s,
+		part:          part,
+		video:         video,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "videos",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // OnBehalfOfContentOwner sets the optional parameter
@@ -10261,7 +11685,11 @@ func (r *VideosService) Update(part string, video *Video) *VideosUpdateCall {
 // actual CMS account that the user authenticates with must be linked to
 // the specified YouTube content owner.
 func (c *VideosUpdateCall) OnBehalfOfContentOwner(onBehalfOfContentOwner string) *VideosUpdateCall {
-	c.opt_["onBehalfOfContentOwner"] = onBehalfOfContentOwner
+	c.params_.Set("onBehalfOfContentOwner", fmt.Sprintf("%v", onBehalfOfContentOwner))
+	return c
+}
+func (c *VideosUpdateCall) Context(ctx context.Context) *VideosUpdateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -10269,45 +11697,23 @@ func (c *VideosUpdateCall) OnBehalfOfContentOwner(onBehalfOfContentOwner string)
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *VideosUpdateCall) Fields(s ...googleapi.Field) *VideosUpdateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *VideosUpdateCall) Do() (*Video, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.video)
-	if err != nil {
-		return nil, err
+	var returnValue *Video
+	c.params_.Set("part", fmt.Sprintf("%v", c.part))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.video,
+		Result:  &returnValue,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("part", fmt.Sprintf("%v", c.part))
-	if v, ok := c.opt_["onBehalfOfContentOwner"]; ok {
-		params.Set("onBehalfOfContentOwner", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "videos")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Video
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates a video's metadata.",
 	//   "httpMethod": "PUT",
@@ -10350,20 +11756,25 @@ type WatermarksSetCall struct {
 	s               *Service
 	channelId       string
 	invideobranding *InvideoBranding
-	opt_            map[string]interface{}
-	media_          io.Reader
-	resumable_      googleapi.SizeReaderAt
-	mediaType_      string
-	ctx_            context.Context
-	protocol_       string
+	caller_         googleapi.Caller
+	params_         url.Values
+	pathTemplate_   string
+	context_        context.Context
+	callback_       googleapi.ProgressUpdater
 }
 
 // Set: Uploads a watermark image to YouTube and sets it for a channel.
+
 func (r *WatermarksService) Set(channelId string, invideobranding *InvideoBranding) *WatermarksSetCall {
-	c := &WatermarksSetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.channelId = channelId
-	c.invideobranding = invideobranding
-	return c
+	return &WatermarksSetCall{
+		s:               r.s,
+		channelId:       channelId,
+		invideobranding: invideobranding,
+		caller_:         googleapi.JSONCall{},
+		params_:         make(map[string][]string),
+		pathTemplate_:   "watermarks/set",
+		context_:        googleapi.NoContext,
+	}
 }
 
 // OnBehalfOfContentOwner sets the optional parameter
@@ -10377,15 +11788,35 @@ func (r *WatermarksService) Set(channelId string, invideobranding *InvideoBrandi
 // channel. The actual CMS account that the user authenticates with
 // needs to be linked to the specified YouTube content owner.
 func (c *WatermarksSetCall) OnBehalfOfContentOwner(onBehalfOfContentOwner string) *WatermarksSetCall {
-	c.opt_["onBehalfOfContentOwner"] = onBehalfOfContentOwner
+	c.params_.Set("onBehalfOfContentOwner", fmt.Sprintf("%v", onBehalfOfContentOwner))
+	return c
+}
+func (c *WatermarksSetCall) Context(ctx context.Context) *WatermarksSetCall {
+	c.context_ = ctx
+	return c
+}
+
+// MediaUpload takes a context and UploadCaller interface
+func (c *WatermarksSetCall) Upload(ctx context.Context, u googleapi.UploadCaller) *WatermarksSetCall {
+	c.caller_ = u
+	c.context_ = ctx
+	switch u.(type) {
+	case *googleapi.MediaUpload:
+		c.pathTemplate_ = "/upload/youtube/v3/watermarks/set"
+	case *googleapi.ResumableUpload:
+		c.pathTemplate_ = "/resumable/upload/youtube/v3/watermarks/set"
+	}
 	return c
 }
 
 // Media specifies the media to upload in a single chunk.
 // At most one of Media and ResumableMedia may be set.
+// The mime type type will be auto-detected unless r is a googleapi.ContentTyper as well.
 func (c *WatermarksSetCall) Media(r io.Reader) *WatermarksSetCall {
-	c.media_ = r
-	c.protocol_ = "multipart"
+	c.caller_ = &googleapi.MediaUpload{
+		Media: r,
+	}
+	c.pathTemplate_ = "/upload/youtube/v3/watermarks/set"
 	return c
 }
 
@@ -10394,10 +11825,14 @@ func (c *WatermarksSetCall) Media(r io.Reader) *WatermarksSetCall {
 // mediaType identifies the MIME media type of the upload, such as "image/png".
 // If mediaType is "", it will be auto-detected.
 func (c *WatermarksSetCall) ResumableMedia(ctx context.Context, r io.ReaderAt, size int64, mediaType string) *WatermarksSetCall {
-	c.ctx_ = ctx
-	c.resumable_ = io.NewSectionReader(r, 0, size)
-	c.mediaType_ = mediaType
-	c.protocol_ = "resumable"
+	c.caller_ = &googleapi.ResumableUpload{
+		Media:         io.NewSectionReader(r, 0, size),
+		MediaType:     mediaType,
+		ContentLength: size,
+		Callback:      c.callback_,
+	}
+	c.pathTemplate_ = "/resumable/upload/youtube/v3/watermarks/set"
+	c.context_ = ctx
 	return c
 }
 
@@ -10405,92 +11840,24 @@ func (c *WatermarksSetCall) ResumableMedia(ctx context.Context, r io.ReaderAt, s
 // It should be a low-latency function in order to not slow down the upload operation.
 // This should only be called when using ResumableMedia (as opposed to Media).
 func (c *WatermarksSetCall) ProgressUpdater(pu googleapi.ProgressUpdater) *WatermarksSetCall {
-	c.opt_["progressUpdater"] = pu
-	return c
-}
-
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *WatermarksSetCall) Fields(s ...googleapi.Field) *WatermarksSetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.callback_ = pu
+	if rx, ok := c.caller_.(*googleapi.ResumableUpload); ok {
+		rx.Callback = pu
+	}
 	return c
 }
 
 func (c *WatermarksSetCall) Do() error {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.invideobranding)
-	if err != nil {
-		return err
+	c.params_.Set("channelId", fmt.Sprintf("%v", c.channelId))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.invideobranding,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("channelId", fmt.Sprintf("%v", c.channelId))
-	if v, ok := c.opt_["onBehalfOfContentOwner"]; ok {
-		params.Set("onBehalfOfContentOwner", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "watermarks/set")
-	var progressUpdater_ googleapi.ProgressUpdater
-	if v, ok := c.opt_["progressUpdater"]; ok {
-		if pu, ok := v.(googleapi.ProgressUpdater); ok {
-			progressUpdater_ = pu
-		}
-	}
-	if c.media_ != nil || c.resumable_ != nil {
-		urls = strings.Replace(urls, "https://www.googleapis.com/", "https://www.googleapis.com/upload/", 1)
-		params.Set("uploadType", c.protocol_)
-	}
-	urls += "?" + params.Encode()
-	if c.protocol_ != "resumable" {
-		var cancel func()
-		cancel, _ = googleapi.ConditionallyIncludeMedia(c.media_, &body, &ctype)
-		if cancel != nil {
-			defer cancel()
-		}
-	}
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	if c.protocol_ == "resumable" {
-		req.ContentLength = 0
-		if c.mediaType_ == "" {
-			c.mediaType_ = googleapi.DetectMediaType(c.resumable_)
-		}
-		req.Header.Set("X-Upload-Content-Type", c.mediaType_)
-		req.Body = nil
-	} else {
-		req.Header.Set("Content-Type", ctype)
-	}
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	if c.protocol_ == "resumable" {
-		loc := res.Header.Get("Location")
-		rx := &googleapi.ResumableUpload{
-			Client:        c.s.client,
-			UserAgent:     c.s.userAgent(),
-			URI:           loc,
-			Media:         c.resumable_,
-			MediaType:     c.mediaType_,
-			ContentLength: c.resumable_.Size(),
-			Callback:      progressUpdater_,
-		}
-		res, err = rx.Upload(c.ctx_)
-		if err != nil {
-			return err
-		}
-		defer res.Body.Close()
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Uploads a watermark image to YouTube and sets it for a channel.",
 	//   "httpMethod": "POST",
@@ -10547,16 +11914,25 @@ func (c *WatermarksSetCall) Do() error {
 // method id "youtube.watermarks.unset":
 
 type WatermarksUnsetCall struct {
-	s         *Service
-	channelId string
-	opt_      map[string]interface{}
+	s             *Service
+	channelId     string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Unset: Deletes a watermark.
+
 func (r *WatermarksService) Unset(channelId string) *WatermarksUnsetCall {
-	c := &WatermarksUnsetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.channelId = channelId
-	return c
+	return &WatermarksUnsetCall{
+		s:             r.s,
+		channelId:     channelId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "watermarks/unset",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // OnBehalfOfContentOwner sets the optional parameter
@@ -10570,43 +11946,24 @@ func (r *WatermarksService) Unset(channelId string) *WatermarksUnsetCall {
 // channel. The actual CMS account that the user authenticates with
 // needs to be linked to the specified YouTube content owner.
 func (c *WatermarksUnsetCall) OnBehalfOfContentOwner(onBehalfOfContentOwner string) *WatermarksUnsetCall {
-	c.opt_["onBehalfOfContentOwner"] = onBehalfOfContentOwner
+	c.params_.Set("onBehalfOfContentOwner", fmt.Sprintf("%v", onBehalfOfContentOwner))
 	return c
 }
-
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *WatermarksUnsetCall) Fields(s ...googleapi.Field) *WatermarksUnsetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (c *WatermarksUnsetCall) Context(ctx context.Context) *WatermarksUnsetCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *WatermarksUnsetCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("channelId", fmt.Sprintf("%v", c.channelId))
-	if v, ok := c.opt_["onBehalfOfContentOwner"]; ok {
-		params.Set("onBehalfOfContentOwner", fmt.Sprintf("%v", v))
+	c.params_.Set("channelId", fmt.Sprintf("%v", c.channelId))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "POST",
+		URL:    u,
+		Params: c.params_,
 	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "watermarks/unset")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Deletes a watermark.",
 	//   "httpMethod": "POST",

@@ -4,18 +4,16 @@
 //
 // Usage example:
 //
-//   import "google.golang.org/api/replicapool/v1beta2"
+//   import "github.com/jfcote87/api2/replicapool/v1beta2"
 //   ...
 //   replicapoolService, err := replicapool.New(oauthHttpClient)
 package replicapool
 
 import (
-	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/jfcote87/api2/googleapi"
 	"golang.org/x/net/context"
-	"google.golang.org/api/googleapi"
 	"io"
 	"net/http"
 	"net/url"
@@ -25,10 +23,8 @@ import (
 
 // Always reference these packages, just in case the auto-generated code
 // below doesn't.
-var _ = bytes.NewBuffer
 var _ = strconv.Itoa
 var _ = fmt.Sprintf
-var _ = json.NewDecoder
 var _ = io.Copy
 var _ = url.Parse
 var _ = googleapi.Version
@@ -39,7 +35,8 @@ var _ = context.Background
 const apiId = "replicapool:v1beta2"
 const apiName = "replicapool"
 const apiVersion = "v1beta2"
-const basePath = "https://www.googleapis.com/replicapool/v1beta2/projects/"
+
+var baseURL *url.URL = &url.URL{Scheme: "https", Host: "www.googleapis.com", Path: "/replicapool/v1beta2/projects/"}
 
 // OAuth2 scopes used by this API.
 const (
@@ -57,27 +54,18 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
+	s := &Service{client: client}
 	s.InstanceGroupManagers = NewInstanceGroupManagersService(s)
 	s.ZoneOperations = NewZoneOperationsService(s)
 	return s, nil
 }
 
 type Service struct {
-	client    *http.Client
-	BasePath  string // API endpoint base URL
-	UserAgent string // optional additional User-Agent fragment
+	client *http.Client
 
 	InstanceGroupManagers *InstanceGroupManagersService
 
 	ZoneOperations *ZoneOperationsService
-}
-
-func (s *Service) userAgent() string {
-	if s.UserAgent == "" {
-		return googleapi.UserAgent
-	}
-	return googleapi.UserAgent + " " + s.UserAgent
 }
 
 func NewInstanceGroupManagersService(s *Service) *InstanceGroupManagersService {
@@ -377,18 +365,31 @@ type InstanceGroupManagersAbandonInstancesCall struct {
 	zone                                         string
 	instanceGroupManager                         string
 	instancegroupmanagersabandoninstancesrequest *InstanceGroupManagersAbandonInstancesRequest
-	opt_                                         map[string]interface{}
+	caller_                                      googleapi.Caller
+	params_                                      url.Values
+	pathTemplate_                                string
+	context_                                     context.Context
 }
 
 // AbandonInstances: Removes the specified instances from the managed
 // instance group, and from any target pools of which they were members,
 // without deleting the instances.
+
 func (r *InstanceGroupManagersService) AbandonInstances(project string, zone string, instanceGroupManager string, instancegroupmanagersabandoninstancesrequest *InstanceGroupManagersAbandonInstancesRequest) *InstanceGroupManagersAbandonInstancesCall {
-	c := &InstanceGroupManagersAbandonInstancesCall{s: r.s, opt_: make(map[string]interface{})}
-	c.project = project
-	c.zone = zone
-	c.instanceGroupManager = instanceGroupManager
-	c.instancegroupmanagersabandoninstancesrequest = instancegroupmanagersabandoninstancesrequest
+	return &InstanceGroupManagersAbandonInstancesCall{
+		s:                                            r.s,
+		project:                                      project,
+		zone:                                         zone,
+		instanceGroupManager:                         instanceGroupManager,
+		instancegroupmanagersabandoninstancesrequest: instancegroupmanagersabandoninstancesrequest,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{project}/zones/{zone}/instanceGroupManagers/{instanceGroupManager}/abandonInstances",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *InstanceGroupManagersAbandonInstancesCall) Context(ctx context.Context) *InstanceGroupManagersAbandonInstancesCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -396,45 +397,26 @@ func (r *InstanceGroupManagersService) AbandonInstances(project string, zone str
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *InstanceGroupManagersAbandonInstancesCall) Fields(s ...googleapi.Field) *InstanceGroupManagersAbandonInstancesCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *InstanceGroupManagersAbandonInstancesCall) Do() (*Operation, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.instancegroupmanagersabandoninstancesrequest)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{project}/zones/{zone}/instanceGroupManagers/{instanceGroupManager}/abandonInstances")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Operation
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"project":              c.project,
 		"zone":                 c.zone,
 		"instanceGroupManager": c.instanceGroupManager,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.instancegroupmanagersabandoninstancesrequest,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Operation
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Removes the specified instances from the managed instance group, and from any target pools of which they were members, without deleting the instances.",
 	//   "httpMethod": "POST",
@@ -489,18 +471,31 @@ type InstanceGroupManagersDeleteCall struct {
 	project              string
 	zone                 string
 	instanceGroupManager string
-	opt_                 map[string]interface{}
+	caller_              googleapi.Caller
+	params_              url.Values
+	pathTemplate_        string
+	context_             context.Context
 }
 
 // Delete: Deletes the instance group manager and all instances
 // contained within. If you'd like to delete the manager without
 // deleting the instances, you must first abandon the instances to
 // remove them from the group.
+
 func (r *InstanceGroupManagersService) Delete(project string, zone string, instanceGroupManager string) *InstanceGroupManagersDeleteCall {
-	c := &InstanceGroupManagersDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.project = project
-	c.zone = zone
-	c.instanceGroupManager = instanceGroupManager
+	return &InstanceGroupManagersDeleteCall{
+		s:                    r.s,
+		project:              project,
+		zone:                 zone,
+		instanceGroupManager: instanceGroupManager,
+		caller_:              googleapi.JSONCall{},
+		params_:              make(map[string][]string),
+		pathTemplate_:        "{project}/zones/{zone}/instanceGroupManagers/{instanceGroupManager}",
+		context_:             googleapi.NoContext,
+	}
+}
+func (c *InstanceGroupManagersDeleteCall) Context(ctx context.Context) *InstanceGroupManagersDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -508,39 +503,25 @@ func (r *InstanceGroupManagersService) Delete(project string, zone string, insta
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *InstanceGroupManagersDeleteCall) Fields(s ...googleapi.Field) *InstanceGroupManagersDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *InstanceGroupManagersDeleteCall) Do() (*Operation, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{project}/zones/{zone}/instanceGroupManagers/{instanceGroupManager}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Operation
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"project":              c.project,
 		"zone":                 c.zone,
 		"instanceGroupManager": c.instanceGroupManager,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Operation
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Deletes the instance group manager and all instances contained within. If you'd like to delete the manager without deleting the instances, you must first abandon the instances to remove them from the group.",
 	//   "httpMethod": "DELETE",
@@ -593,19 +574,32 @@ type InstanceGroupManagersDeleteInstancesCall struct {
 	zone                                        string
 	instanceGroupManager                        string
 	instancegroupmanagersdeleteinstancesrequest *InstanceGroupManagersDeleteInstancesRequest
-	opt_                                        map[string]interface{}
+	caller_                                     googleapi.Caller
+	params_                                     url.Values
+	pathTemplate_                               string
+	context_                                    context.Context
 }
 
 // DeleteInstances: Deletes the specified instances. The instances are
-// removed from the instance group and any target pools of which they
-// are a member, then deleted. The targetSize of the instance group
+// deleted, then removed from the instance group and any target pools of
+// which they were a member. The targetSize of the instance group
 // manager is reduced by the number of instances deleted.
+
 func (r *InstanceGroupManagersService) DeleteInstances(project string, zone string, instanceGroupManager string, instancegroupmanagersdeleteinstancesrequest *InstanceGroupManagersDeleteInstancesRequest) *InstanceGroupManagersDeleteInstancesCall {
-	c := &InstanceGroupManagersDeleteInstancesCall{s: r.s, opt_: make(map[string]interface{})}
-	c.project = project
-	c.zone = zone
-	c.instanceGroupManager = instanceGroupManager
-	c.instancegroupmanagersdeleteinstancesrequest = instancegroupmanagersdeleteinstancesrequest
+	return &InstanceGroupManagersDeleteInstancesCall{
+		s:                                           r.s,
+		project:                                     project,
+		zone:                                        zone,
+		instanceGroupManager:                        instanceGroupManager,
+		instancegroupmanagersdeleteinstancesrequest: instancegroupmanagersdeleteinstancesrequest,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{project}/zones/{zone}/instanceGroupManagers/{instanceGroupManager}/deleteInstances",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *InstanceGroupManagersDeleteInstancesCall) Context(ctx context.Context) *InstanceGroupManagersDeleteInstancesCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -613,47 +607,28 @@ func (r *InstanceGroupManagersService) DeleteInstances(project string, zone stri
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *InstanceGroupManagersDeleteInstancesCall) Fields(s ...googleapi.Field) *InstanceGroupManagersDeleteInstancesCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *InstanceGroupManagersDeleteInstancesCall) Do() (*Operation, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.instancegroupmanagersdeleteinstancesrequest)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{project}/zones/{zone}/instanceGroupManagers/{instanceGroupManager}/deleteInstances")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Operation
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"project":              c.project,
 		"zone":                 c.zone,
 		"instanceGroupManager": c.instanceGroupManager,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.instancegroupmanagersdeleteinstancesrequest,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Operation
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
-	//   "description": "Deletes the specified instances. The instances are removed from the instance group and any target pools of which they are a member, then deleted. The targetSize of the instance group manager is reduced by the number of instances deleted.",
+	//   "description": "Deletes the specified instances. The instances are deleted, then removed from the instance group and any target pools of which they were a member. The targetSize of the instance group manager is reduced by the number of instances deleted.",
 	//   "httpMethod": "POST",
 	//   "id": "replicapool.instanceGroupManagers.deleteInstances",
 	//   "parameterOrder": [
@@ -706,15 +681,28 @@ type InstanceGroupManagersGetCall struct {
 	project              string
 	zone                 string
 	instanceGroupManager string
-	opt_                 map[string]interface{}
+	caller_              googleapi.Caller
+	params_              url.Values
+	pathTemplate_        string
+	context_             context.Context
 }
 
 // Get: Returns the specified Instance Group Manager resource.
+
 func (r *InstanceGroupManagersService) Get(project string, zone string, instanceGroupManager string) *InstanceGroupManagersGetCall {
-	c := &InstanceGroupManagersGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.project = project
-	c.zone = zone
-	c.instanceGroupManager = instanceGroupManager
+	return &InstanceGroupManagersGetCall{
+		s:                    r.s,
+		project:              project,
+		zone:                 zone,
+		instanceGroupManager: instanceGroupManager,
+		caller_:              googleapi.JSONCall{},
+		params_:              make(map[string][]string),
+		pathTemplate_:        "{project}/zones/{zone}/instanceGroupManagers/{instanceGroupManager}",
+		context_:             googleapi.NoContext,
+	}
+}
+func (c *InstanceGroupManagersGetCall) Context(ctx context.Context) *InstanceGroupManagersGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -722,39 +710,25 @@ func (r *InstanceGroupManagersService) Get(project string, zone string, instance
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *InstanceGroupManagersGetCall) Fields(s ...googleapi.Field) *InstanceGroupManagersGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *InstanceGroupManagersGetCall) Do() (*InstanceGroupManager, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{project}/zones/{zone}/instanceGroupManagers/{instanceGroupManager}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *InstanceGroupManager
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"project":              c.project,
 		"zone":                 c.zone,
 		"instanceGroupManager": c.instanceGroupManager,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *InstanceGroupManager
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Returns the specified Instance Group Manager resource.",
 	//   "httpMethod": "GET",
@@ -808,17 +782,30 @@ type InstanceGroupManagersInsertCall struct {
 	zone                 string
 	size                 int64
 	instancegroupmanager *InstanceGroupManager
-	opt_                 map[string]interface{}
+	caller_              googleapi.Caller
+	params_              url.Values
+	pathTemplate_        string
+	context_             context.Context
 }
 
 // Insert: Creates an instance group manager, as well as the instance
 // group and the specified number of instances.
+
 func (r *InstanceGroupManagersService) Insert(project string, zone string, size int64, instancegroupmanager *InstanceGroupManager) *InstanceGroupManagersInsertCall {
-	c := &InstanceGroupManagersInsertCall{s: r.s, opt_: make(map[string]interface{})}
-	c.project = project
-	c.zone = zone
-	c.size = size
-	c.instancegroupmanager = instancegroupmanager
+	return &InstanceGroupManagersInsertCall{
+		s:                    r.s,
+		project:              project,
+		zone:                 zone,
+		size:                 size,
+		instancegroupmanager: instancegroupmanager,
+		caller_:              googleapi.JSONCall{},
+		params_:              make(map[string][]string),
+		pathTemplate_:        "{project}/zones/{zone}/instanceGroupManagers",
+		context_:             googleapi.NoContext,
+	}
+}
+func (c *InstanceGroupManagersInsertCall) Context(ctx context.Context) *InstanceGroupManagersInsertCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -826,45 +813,26 @@ func (r *InstanceGroupManagersService) Insert(project string, zone string, size 
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *InstanceGroupManagersInsertCall) Fields(s ...googleapi.Field) *InstanceGroupManagersInsertCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *InstanceGroupManagersInsertCall) Do() (*Operation, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.instancegroupmanager)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("size", fmt.Sprintf("%v", c.size))
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{project}/zones/{zone}/instanceGroupManagers")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Operation
+	c.params_.Set("size", fmt.Sprintf("%v", c.size))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"project": c.project,
 		"zone":    c.zone,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.instancegroupmanager,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Operation
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Creates an instance group manager, as well as the instance group and the specified number of instances.",
 	//   "httpMethod": "POST",
@@ -916,25 +884,34 @@ func (c *InstanceGroupManagersInsertCall) Do() (*Operation, error) {
 // method id "replicapool.instanceGroupManagers.list":
 
 type InstanceGroupManagersListCall struct {
-	s       *Service
-	project string
-	zone    string
-	opt_    map[string]interface{}
+	s             *Service
+	project       string
+	zone          string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Retrieves the list of Instance Group Manager resources
 // contained within the specified zone.
+
 func (r *InstanceGroupManagersService) List(project string, zone string) *InstanceGroupManagersListCall {
-	c := &InstanceGroupManagersListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.project = project
-	c.zone = zone
-	return c
+	return &InstanceGroupManagersListCall{
+		s:             r.s,
+		project:       project,
+		zone:          zone,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{project}/zones/{zone}/instanceGroupManagers",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Filter sets the optional parameter "filter": Filter expression for
 // filtering listed resources.
 func (c *InstanceGroupManagersListCall) Filter(filter string) *InstanceGroupManagersListCall {
-	c.opt_["filter"] = filter
+	c.params_.Set("filter", fmt.Sprintf("%v", filter))
 	return c
 }
 
@@ -942,7 +919,7 @@ func (c *InstanceGroupManagersListCall) Filter(filter string) *InstanceGroupMana
 // results to be returned. Maximum value is 500 and default value is
 // 500.
 func (c *InstanceGroupManagersListCall) MaxResults(maxResults int64) *InstanceGroupManagersListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
@@ -950,7 +927,11 @@ func (c *InstanceGroupManagersListCall) MaxResults(maxResults int64) *InstanceGr
 // previous list request truncated by maxResults. Used to continue a
 // previous list request.
 func (c *InstanceGroupManagersListCall) PageToken(pageToken string) *InstanceGroupManagersListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
+	return c
+}
+func (c *InstanceGroupManagersListCall) Context(ctx context.Context) *InstanceGroupManagersListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -958,47 +939,24 @@ func (c *InstanceGroupManagersListCall) PageToken(pageToken string) *InstanceGro
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *InstanceGroupManagersListCall) Fields(s ...googleapi.Field) *InstanceGroupManagersListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *InstanceGroupManagersListCall) Do() (*InstanceGroupManagerList, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["filter"]; ok {
-		params.Set("filter", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{project}/zones/{zone}/instanceGroupManagers")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *InstanceGroupManagerList
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"project": c.project,
 		"zone":    c.zone,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *InstanceGroupManagerList
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves the list of Instance Group Manager resources contained within the specified zone.",
 	//   "httpMethod": "GET",
@@ -1063,18 +1021,31 @@ type InstanceGroupManagersRecreateInstancesCall struct {
 	zone                                          string
 	instanceGroupManager                          string
 	instancegroupmanagersrecreateinstancesrequest *InstanceGroupManagersRecreateInstancesRequest
-	opt_                                          map[string]interface{}
+	caller_                                       googleapi.Caller
+	params_                                       url.Values
+	pathTemplate_                                 string
+	context_                                      context.Context
 }
 
 // RecreateInstances: Recreates the specified instances. The instances
 // are deleted, then recreated using the instance group manager's
 // current instance template.
+
 func (r *InstanceGroupManagersService) RecreateInstances(project string, zone string, instanceGroupManager string, instancegroupmanagersrecreateinstancesrequest *InstanceGroupManagersRecreateInstancesRequest) *InstanceGroupManagersRecreateInstancesCall {
-	c := &InstanceGroupManagersRecreateInstancesCall{s: r.s, opt_: make(map[string]interface{})}
-	c.project = project
-	c.zone = zone
-	c.instanceGroupManager = instanceGroupManager
-	c.instancegroupmanagersrecreateinstancesrequest = instancegroupmanagersrecreateinstancesrequest
+	return &InstanceGroupManagersRecreateInstancesCall{
+		s:                                             r.s,
+		project:                                       project,
+		zone:                                          zone,
+		instanceGroupManager:                          instanceGroupManager,
+		instancegroupmanagersrecreateinstancesrequest: instancegroupmanagersrecreateinstancesrequest,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{project}/zones/{zone}/instanceGroupManagers/{instanceGroupManager}/recreateInstances",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *InstanceGroupManagersRecreateInstancesCall) Context(ctx context.Context) *InstanceGroupManagersRecreateInstancesCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1082,45 +1053,26 @@ func (r *InstanceGroupManagersService) RecreateInstances(project string, zone st
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *InstanceGroupManagersRecreateInstancesCall) Fields(s ...googleapi.Field) *InstanceGroupManagersRecreateInstancesCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *InstanceGroupManagersRecreateInstancesCall) Do() (*Operation, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.instancegroupmanagersrecreateinstancesrequest)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{project}/zones/{zone}/instanceGroupManagers/{instanceGroupManager}/recreateInstances")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Operation
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"project":              c.project,
 		"zone":                 c.zone,
 		"instanceGroupManager": c.instanceGroupManager,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.instancegroupmanagersrecreateinstancesrequest,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Operation
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Recreates the specified instances. The instances are deleted, then recreated using the instance group manager's current instance template.",
 	//   "httpMethod": "POST",
@@ -1176,19 +1128,32 @@ type InstanceGroupManagersResizeCall struct {
 	zone                 string
 	instanceGroupManager string
 	size                 int64
-	opt_                 map[string]interface{}
+	caller_              googleapi.Caller
+	params_              url.Values
+	pathTemplate_        string
+	context_             context.Context
 }
 
 // Resize: Resizes the managed instance group up or down. If resized up,
 // new instances are created using the current instance template. If
 // resized down, instances are removed in the order outlined in Resizing
 // a managed instance group.
+
 func (r *InstanceGroupManagersService) Resize(project string, zone string, instanceGroupManager string, size int64) *InstanceGroupManagersResizeCall {
-	c := &InstanceGroupManagersResizeCall{s: r.s, opt_: make(map[string]interface{})}
-	c.project = project
-	c.zone = zone
-	c.instanceGroupManager = instanceGroupManager
-	c.size = size
+	return &InstanceGroupManagersResizeCall{
+		s:                    r.s,
+		project:              project,
+		zone:                 zone,
+		instanceGroupManager: instanceGroupManager,
+		size:                 size,
+		caller_:              googleapi.JSONCall{},
+		params_:              make(map[string][]string),
+		pathTemplate_:        "{project}/zones/{zone}/instanceGroupManagers/{instanceGroupManager}/resize",
+		context_:             googleapi.NoContext,
+	}
+}
+func (c *InstanceGroupManagersResizeCall) Context(ctx context.Context) *InstanceGroupManagersResizeCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1196,40 +1161,26 @@ func (r *InstanceGroupManagersService) Resize(project string, zone string, insta
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *InstanceGroupManagersResizeCall) Fields(s ...googleapi.Field) *InstanceGroupManagersResizeCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *InstanceGroupManagersResizeCall) Do() (*Operation, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("size", fmt.Sprintf("%v", c.size))
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{project}/zones/{zone}/instanceGroupManagers/{instanceGroupManager}/resize")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Operation
+	c.params_.Set("size", fmt.Sprintf("%v", c.size))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"project":              c.project,
 		"zone":                 c.zone,
 		"instanceGroupManager": c.instanceGroupManager,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "POST",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Operation
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Resizes the managed instance group up or down. If resized up, new instances are created using the current instance template. If resized down, instances are removed in the order outlined in Resizing a managed instance group.",
 	//   "httpMethod": "POST",
@@ -1291,17 +1242,30 @@ type InstanceGroupManagersSetInstanceTemplateCall struct {
 	zone                                            string
 	instanceGroupManager                            string
 	instancegroupmanagerssetinstancetemplaterequest *InstanceGroupManagersSetInstanceTemplateRequest
-	opt_                                            map[string]interface{}
+	caller_                                         googleapi.Caller
+	params_                                         url.Values
+	pathTemplate_                                   string
+	context_                                        context.Context
 }
 
 // SetInstanceTemplate: Sets the instance template to use when creating
 // new instances in this group. Existing instances are not affected.
+
 func (r *InstanceGroupManagersService) SetInstanceTemplate(project string, zone string, instanceGroupManager string, instancegroupmanagerssetinstancetemplaterequest *InstanceGroupManagersSetInstanceTemplateRequest) *InstanceGroupManagersSetInstanceTemplateCall {
-	c := &InstanceGroupManagersSetInstanceTemplateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.project = project
-	c.zone = zone
-	c.instanceGroupManager = instanceGroupManager
-	c.instancegroupmanagerssetinstancetemplaterequest = instancegroupmanagerssetinstancetemplaterequest
+	return &InstanceGroupManagersSetInstanceTemplateCall{
+		s:                                               r.s,
+		project:                                         project,
+		zone:                                            zone,
+		instanceGroupManager:                            instanceGroupManager,
+		instancegroupmanagerssetinstancetemplaterequest: instancegroupmanagerssetinstancetemplaterequest,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{project}/zones/{zone}/instanceGroupManagers/{instanceGroupManager}/setInstanceTemplate",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *InstanceGroupManagersSetInstanceTemplateCall) Context(ctx context.Context) *InstanceGroupManagersSetInstanceTemplateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1309,45 +1273,26 @@ func (r *InstanceGroupManagersService) SetInstanceTemplate(project string, zone 
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *InstanceGroupManagersSetInstanceTemplateCall) Fields(s ...googleapi.Field) *InstanceGroupManagersSetInstanceTemplateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *InstanceGroupManagersSetInstanceTemplateCall) Do() (*Operation, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.instancegroupmanagerssetinstancetemplaterequest)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{project}/zones/{zone}/instanceGroupManagers/{instanceGroupManager}/setInstanceTemplate")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Operation
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"project":              c.project,
 		"zone":                 c.zone,
 		"instanceGroupManager": c.instanceGroupManager,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.instancegroupmanagerssetinstancetemplaterequest,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Operation
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Sets the instance template to use when creating new instances in this group. Existing instances are not affected.",
 	//   "httpMethod": "POST",
@@ -1403,18 +1348,31 @@ type InstanceGroupManagersSetTargetPoolsCall struct {
 	zone                                       string
 	instanceGroupManager                       string
 	instancegroupmanagerssettargetpoolsrequest *InstanceGroupManagersSetTargetPoolsRequest
-	opt_                                       map[string]interface{}
+	caller_                                    googleapi.Caller
+	params_                                    url.Values
+	pathTemplate_                              string
+	context_                                   context.Context
 }
 
 // SetTargetPools: Modifies the target pools to which all new instances
 // in this group are assigned. Existing instances in the group are not
 // affected.
+
 func (r *InstanceGroupManagersService) SetTargetPools(project string, zone string, instanceGroupManager string, instancegroupmanagerssettargetpoolsrequest *InstanceGroupManagersSetTargetPoolsRequest) *InstanceGroupManagersSetTargetPoolsCall {
-	c := &InstanceGroupManagersSetTargetPoolsCall{s: r.s, opt_: make(map[string]interface{})}
-	c.project = project
-	c.zone = zone
-	c.instanceGroupManager = instanceGroupManager
-	c.instancegroupmanagerssettargetpoolsrequest = instancegroupmanagerssettargetpoolsrequest
+	return &InstanceGroupManagersSetTargetPoolsCall{
+		s:                                          r.s,
+		project:                                    project,
+		zone:                                       zone,
+		instanceGroupManager:                       instanceGroupManager,
+		instancegroupmanagerssettargetpoolsrequest: instancegroupmanagerssettargetpoolsrequest,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{project}/zones/{zone}/instanceGroupManagers/{instanceGroupManager}/setTargetPools",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *InstanceGroupManagersSetTargetPoolsCall) Context(ctx context.Context) *InstanceGroupManagersSetTargetPoolsCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1422,45 +1380,26 @@ func (r *InstanceGroupManagersService) SetTargetPools(project string, zone strin
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *InstanceGroupManagersSetTargetPoolsCall) Fields(s ...googleapi.Field) *InstanceGroupManagersSetTargetPoolsCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *InstanceGroupManagersSetTargetPoolsCall) Do() (*Operation, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.instancegroupmanagerssettargetpoolsrequest)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{project}/zones/{zone}/instanceGroupManagers/{instanceGroupManager}/setTargetPools")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Operation
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"project":              c.project,
 		"zone":                 c.zone,
 		"instanceGroupManager": c.instanceGroupManager,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.instancegroupmanagerssettargetpoolsrequest,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Operation
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Modifies the target pools to which all new instances in this group are assigned. Existing instances in the group are not affected.",
 	//   "httpMethod": "POST",
@@ -1511,19 +1450,32 @@ func (c *InstanceGroupManagersSetTargetPoolsCall) Do() (*Operation, error) {
 // method id "replicapool.zoneOperations.get":
 
 type ZoneOperationsGetCall struct {
-	s         *Service
-	project   string
-	zone      string
-	operation string
-	opt_      map[string]interface{}
+	s             *Service
+	project       string
+	zone          string
+	operation     string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Retrieves the specified zone-specific operation resource.
+
 func (r *ZoneOperationsService) Get(project string, zone string, operation string) *ZoneOperationsGetCall {
-	c := &ZoneOperationsGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.project = project
-	c.zone = zone
-	c.operation = operation
+	return &ZoneOperationsGetCall{
+		s:             r.s,
+		project:       project,
+		zone:          zone,
+		operation:     operation,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{project}/zones/{zone}/operations/{operation}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *ZoneOperationsGetCall) Context(ctx context.Context) *ZoneOperationsGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1531,39 +1483,25 @@ func (r *ZoneOperationsService) Get(project string, zone string, operation strin
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ZoneOperationsGetCall) Fields(s ...googleapi.Field) *ZoneOperationsGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ZoneOperationsGetCall) Do() (*Operation, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{project}/zones/{zone}/operations/{operation}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Operation
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"project":   c.project,
 		"zone":      c.zone,
 		"operation": c.operation,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Operation
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves the specified zone-specific operation resource.",
 	//   "httpMethod": "GET",
@@ -1611,25 +1549,34 @@ func (c *ZoneOperationsGetCall) Do() (*Operation, error) {
 // method id "replicapool.zoneOperations.list":
 
 type ZoneOperationsListCall struct {
-	s       *Service
-	project string
-	zone    string
-	opt_    map[string]interface{}
+	s             *Service
+	project       string
+	zone          string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Retrieves the list of operation resources contained within the
 // specified zone.
+
 func (r *ZoneOperationsService) List(project string, zone string) *ZoneOperationsListCall {
-	c := &ZoneOperationsListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.project = project
-	c.zone = zone
-	return c
+	return &ZoneOperationsListCall{
+		s:             r.s,
+		project:       project,
+		zone:          zone,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{project}/zones/{zone}/operations",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Filter sets the optional parameter "filter": Filter expression for
 // filtering listed resources.
 func (c *ZoneOperationsListCall) Filter(filter string) *ZoneOperationsListCall {
-	c.opt_["filter"] = filter
+	c.params_.Set("filter", fmt.Sprintf("%v", filter))
 	return c
 }
 
@@ -1637,7 +1584,7 @@ func (c *ZoneOperationsListCall) Filter(filter string) *ZoneOperationsListCall {
 // results to be returned. Maximum value is 500 and default value is
 // 500.
 func (c *ZoneOperationsListCall) MaxResults(maxResults int64) *ZoneOperationsListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
@@ -1645,7 +1592,11 @@ func (c *ZoneOperationsListCall) MaxResults(maxResults int64) *ZoneOperationsLis
 // previous list request truncated by maxResults. Used to continue a
 // previous list request.
 func (c *ZoneOperationsListCall) PageToken(pageToken string) *ZoneOperationsListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
+	return c
+}
+func (c *ZoneOperationsListCall) Context(ctx context.Context) *ZoneOperationsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1653,47 +1604,24 @@ func (c *ZoneOperationsListCall) PageToken(pageToken string) *ZoneOperationsList
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ZoneOperationsListCall) Fields(s ...googleapi.Field) *ZoneOperationsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ZoneOperationsListCall) Do() (*OperationList, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["filter"]; ok {
-		params.Set("filter", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{project}/zones/{zone}/operations")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *OperationList
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"project": c.project,
 		"zone":    c.zone,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *OperationList
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves the list of operation resources contained within the specified zone.",
 	//   "httpMethod": "GET",

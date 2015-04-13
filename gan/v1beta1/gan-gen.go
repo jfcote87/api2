@@ -4,18 +4,16 @@
 //
 // Usage example:
 //
-//   import "google.golang.org/api/gan/v1beta1"
+//   import "github.com/jfcote87/api2/gan/v1beta1"
 //   ...
 //   ganService, err := gan.New(oauthHttpClient)
 package gan
 
 import (
-	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/jfcote87/api2/googleapi"
 	"golang.org/x/net/context"
-	"google.golang.org/api/googleapi"
 	"io"
 	"net/http"
 	"net/url"
@@ -25,10 +23,8 @@ import (
 
 // Always reference these packages, just in case the auto-generated code
 // below doesn't.
-var _ = bytes.NewBuffer
 var _ = strconv.Itoa
 var _ = fmt.Sprintf
-var _ = json.NewDecoder
 var _ = io.Copy
 var _ = url.Parse
 var _ = googleapi.Version
@@ -39,13 +35,14 @@ var _ = context.Background
 const apiId = "gan:v1beta1"
 const apiName = "gan"
 const apiVersion = "v1beta1"
-const basePath = "https://www.googleapis.com/gan/v1beta1/"
+
+var baseURL *url.URL = &url.URL{Scheme: "https", Host: "www.googleapis.com", Path: "/gan/v1beta1/"}
 
 func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
+	s := &Service{client: client}
 	s.Advertisers = NewAdvertisersService(s)
 	s.CcOffers = NewCcOffersService(s)
 	s.Events = NewEventsService(s)
@@ -56,9 +53,7 @@ func New(client *http.Client) (*Service, error) {
 }
 
 type Service struct {
-	client    *http.Client
-	BasePath  string // API endpoint base URL
-	UserAgent string // optional additional User-Agent fragment
+	client *http.Client
 
 	Advertisers *AdvertisersService
 
@@ -71,13 +66,6 @@ type Service struct {
 	Publishers *PublishersService
 
 	Reports *ReportsService
-}
-
-func (s *Service) userAgent() string {
-	if s.UserAgent == "" {
-		return googleapi.UserAgent
-	}
-	return googleapi.UserAgent + " " + s.UserAgent
 }
 
 func NewAdvertisersService(s *Service) *AdvertisersService {
@@ -842,27 +830,40 @@ type Report struct {
 // method id "gan.advertisers.get":
 
 type AdvertisersGetCall struct {
-	s      *Service
-	role   string
-	roleId string
-	opt_   map[string]interface{}
+	s             *Service
+	role          string
+	roleId        string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Retrieves data about a single advertiser if that the requesting
 // advertiser/publisher has access to it. Only publishers can lookup
 // advertisers. Advertisers can request information about themselves by
 // omitting the advertiserId query parameter.
+
 func (r *AdvertisersService) Get(role string, roleId string) *AdvertisersGetCall {
-	c := &AdvertisersGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.role = role
-	c.roleId = roleId
-	return c
+	return &AdvertisersGetCall{
+		s:             r.s,
+		role:          role,
+		roleId:        roleId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{role}/{roleId}/advertiser",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // AdvertiserId sets the optional parameter "advertiserId": The ID of
 // the advertiser to look up.
 func (c *AdvertisersGetCall) AdvertiserId(advertiserId string) *AdvertisersGetCall {
-	c.opt_["advertiserId"] = advertiserId
+	c.params_.Set("advertiserId", fmt.Sprintf("%v", advertiserId))
+	return c
+}
+func (c *AdvertisersGetCall) Context(ctx context.Context) *AdvertisersGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -870,41 +871,24 @@ func (c *AdvertisersGetCall) AdvertiserId(advertiserId string) *AdvertisersGetCa
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AdvertisersGetCall) Fields(s ...googleapi.Field) *AdvertisersGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AdvertisersGetCall) Do() (*Advertiser, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["advertiserId"]; ok {
-		params.Set("advertiserId", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{role}/{roleId}/advertiser")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Advertiser
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"role":   c.role,
 		"roleId": c.roleId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Advertiser
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves data about a single advertiser if that the requesting advertiser/publisher has access to it. Only publishers can lookup advertisers. Advertisers can request information about themselves by omitting the advertiserId query parameter.",
 	//   "httpMethod": "GET",
@@ -951,19 +935,28 @@ func (c *AdvertisersGetCall) Do() (*Advertiser, error) {
 // method id "gan.advertisers.list":
 
 type AdvertisersListCall struct {
-	s      *Service
-	role   string
-	roleId string
-	opt_   map[string]interface{}
+	s             *Service
+	role          string
+	roleId        string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Retrieves data about all advertisers that the requesting
 // advertiser/publisher has access to.
+
 func (r *AdvertisersService) List(role string, roleId string) *AdvertisersListCall {
-	c := &AdvertisersListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.role = role
-	c.roleId = roleId
-	return c
+	return &AdvertisersListCall{
+		s:             r.s,
+		role:          role,
+		roleId:        roleId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{role}/{roleId}/advertisers",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // AdvertiserCategory sets the optional parameter "advertiserCategory":
@@ -973,14 +966,14 @@ func (r *AdvertisersService) List(role string, roleId string) *AdvertisersListCa
 // y?hl=en&answer=107581. Filters out all advertisers not in one of the
 // given advertiser categories.
 func (c *AdvertisersListCall) AdvertiserCategory(advertiserCategory string) *AdvertisersListCall {
-	c.opt_["advertiserCategory"] = advertiserCategory
+	c.params_.Set("advertiserCategory", fmt.Sprintf("%v", advertiserCategory))
 	return c
 }
 
 // MaxResults sets the optional parameter "maxResults": Max number of
 // items to return in this page.  Defaults to 20.
 func (c *AdvertisersListCall) MaxResults(maxResults int64) *AdvertisersListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
@@ -988,7 +981,7 @@ func (c *AdvertisersListCall) MaxResults(maxResults int64) *AdvertisersListCall 
 // Filters out all advertisers that have a ninety day EPC average lower
 // than the given value (inclusive). Min value: 0.0.
 func (c *AdvertisersListCall) MinNinetyDayEpc(minNinetyDayEpc float64) *AdvertisersListCall {
-	c.opt_["minNinetyDayEpc"] = minNinetyDayEpc
+	c.params_.Set("minNinetyDayEpc", fmt.Sprintf("%v", minNinetyDayEpc))
 	return c
 }
 
@@ -999,7 +992,7 @@ func (c *AdvertisersListCall) MinNinetyDayEpc(minNinetyDayEpc float64) *Advertis
 // the given quartile. For example if a 2 was given only advertisers
 // with a payout rank of 25 or higher would be included.
 func (c *AdvertisersListCall) MinPayoutRank(minPayoutRank int64) *AdvertisersListCall {
-	c.opt_["minPayoutRank"] = minPayoutRank
+	c.params_.Set("minPayoutRank", fmt.Sprintf("%v", minPayoutRank))
 	return c
 }
 
@@ -1007,14 +1000,14 @@ func (c *AdvertisersListCall) MinPayoutRank(minPayoutRank int64) *AdvertisersLis
 // out all advertisers that have a seven day EPC average lower than the
 // given value (inclusive). Min value: 0.0.
 func (c *AdvertisersListCall) MinSevenDayEpc(minSevenDayEpc float64) *AdvertisersListCall {
-	c.opt_["minSevenDayEpc"] = minSevenDayEpc
+	c.params_.Set("minSevenDayEpc", fmt.Sprintf("%v", minSevenDayEpc))
 	return c
 }
 
 // PageToken sets the optional parameter "pageToken": The value of
 // 'nextPageToken' from the previous page.
 func (c *AdvertisersListCall) PageToken(pageToken string) *AdvertisersListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
 	return c
 }
 
@@ -1022,7 +1015,11 @@ func (c *AdvertisersListCall) PageToken(pageToken string) *AdvertisersListCall {
 // Filters out all advertisers for which do not have the given
 // relationship status with the requesting publisher.
 func (c *AdvertisersListCall) RelationshipStatus(relationshipStatus string) *AdvertisersListCall {
-	c.opt_["relationshipStatus"] = relationshipStatus
+	c.params_.Set("relationshipStatus", fmt.Sprintf("%v", relationshipStatus))
+	return c
+}
+func (c *AdvertisersListCall) Context(ctx context.Context) *AdvertisersListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1030,59 +1027,24 @@ func (c *AdvertisersListCall) RelationshipStatus(relationshipStatus string) *Adv
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AdvertisersListCall) Fields(s ...googleapi.Field) *AdvertisersListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AdvertisersListCall) Do() (*Advertisers, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["advertiserCategory"]; ok {
-		params.Set("advertiserCategory", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["minNinetyDayEpc"]; ok {
-		params.Set("minNinetyDayEpc", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["minPayoutRank"]; ok {
-		params.Set("minPayoutRank", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["minSevenDayEpc"]; ok {
-		params.Set("minSevenDayEpc", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["relationshipStatus"]; ok {
-		params.Set("relationshipStatus", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{role}/{roleId}/advertisers")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Advertisers
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"role":   c.role,
 		"roleId": c.roleId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Advertisers
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves data about all advertisers that the requesting advertiser/publisher has access to.",
 	//   "httpMethod": "GET",
@@ -1181,30 +1143,43 @@ func (c *AdvertisersListCall) Do() (*Advertisers, error) {
 // method id "gan.ccOffers.list":
 
 type CcOffersListCall struct {
-	s         *Service
-	publisher string
-	opt_      map[string]interface{}
+	s             *Service
+	publisher     string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Retrieves credit card offers for the given publisher.
+
 func (r *CcOffersService) List(publisher string) *CcOffersListCall {
-	c := &CcOffersListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.publisher = publisher
-	return c
+	return &CcOffersListCall{
+		s:             r.s,
+		publisher:     publisher,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "publishers/{publisher}/ccOffers",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Advertiser sets the optional parameter "advertiser": The advertiser
 // ID of a card issuer whose offers to include. Optional, may be
 // repeated.
-func (c *CcOffersListCall) Advertiser(advertiser string) *CcOffersListCall {
-	c.opt_["advertiser"] = advertiser
+func (c *CcOffersListCall) Advertiser(advertiser ...string) *CcOffersListCall {
+	c.params_["advertiser"] = advertiser
 	return c
 }
 
 // Projection sets the optional parameter "projection": The set of
 // fields to return.
 func (c *CcOffersListCall) Projection(projection string) *CcOffersListCall {
-	c.opt_["projection"] = projection
+	c.params_.Set("projection", fmt.Sprintf("%v", projection))
+	return c
+}
+func (c *CcOffersListCall) Context(ctx context.Context) *CcOffersListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1212,43 +1187,23 @@ func (c *CcOffersListCall) Projection(projection string) *CcOffersListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *CcOffersListCall) Fields(s ...googleapi.Field) *CcOffersListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *CcOffersListCall) Do() (*CcOffers, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["advertiser"]; ok {
-		params.Set("advertiser", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["projection"]; ok {
-		params.Set("projection", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "publishers/{publisher}/ccOffers")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *CcOffers
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"publisher": c.publisher,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *CcOffers
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves credit card offers for the given publisher.",
 	//   "httpMethod": "GET",
@@ -1294,18 +1249,27 @@ func (c *CcOffersListCall) Do() (*CcOffers, error) {
 // method id "gan.events.list":
 
 type EventsListCall struct {
-	s      *Service
-	role   string
-	roleId string
-	opt_   map[string]interface{}
+	s             *Service
+	role          string
+	roleId        string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Retrieves event data for a given advertiser/publisher.
+
 func (r *EventsService) List(role string, roleId string) *EventsListCall {
-	c := &EventsListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.role = role
-	c.roleId = roleId
-	return c
+	return &EventsListCall{
+		s:             r.s,
+		role:          role,
+		roleId:        roleId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{role}/{roleId}/events",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // AdvertiserId sets the optional parameter "advertiserId": Caret(^)
@@ -1313,7 +1277,7 @@ func (r *EventsService) List(role string, roleId string) *EventsListCall {
 // reference one of the given advertiser IDs. Only used when under
 // publishers role.
 func (c *EventsListCall) AdvertiserId(advertiserId string) *EventsListCall {
-	c.opt_["advertiserId"] = advertiserId
+	c.params_.Set("advertiserId", fmt.Sprintf("%v", advertiserId))
 	return c
 }
 
@@ -1322,7 +1286,7 @@ func (c *EventsListCall) AdvertiserId(advertiserId string) *EventsListCall {
 // 'other', 'slotting_fee', 'monthly_minimum', 'tier_bonus', 'credit',
 // 'debit'.
 func (c *EventsListCall) ChargeType(chargeType string) *EventsListCall {
-	c.opt_["chargeType"] = chargeType
+	c.params_.Set("chargeType", fmt.Sprintf("%v", chargeType))
 	return c
 }
 
@@ -1330,7 +1294,7 @@ func (c *EventsListCall) ChargeType(chargeType string) *EventsListCall {
 // all events later than given date.  Defaults to 24 hours after
 // eventMin.
 func (c *EventsListCall) EventDateMax(eventDateMax string) *EventsListCall {
-	c.opt_["eventDateMax"] = eventDateMax
+	c.params_.Set("eventDateMax", fmt.Sprintf("%v", eventDateMax))
 	return c
 }
 
@@ -1338,7 +1302,7 @@ func (c *EventsListCall) EventDateMax(eventDateMax string) *EventsListCall {
 // all events earlier than given date.  Defaults to 24 hours from
 // current date/time.
 func (c *EventsListCall) EventDateMin(eventDateMin string) *EventsListCall {
-	c.opt_["eventDateMin"] = eventDateMin
+	c.params_.Set("eventDateMin", fmt.Sprintf("%v", eventDateMin))
 	return c
 }
 
@@ -1346,14 +1310,14 @@ func (c *EventsListCall) EventDateMin(eventDateMin string) *EventsListCall {
 // of link IDs. Filters out all events that do not reference one of the
 // given link IDs.
 func (c *EventsListCall) LinkId(linkId string) *EventsListCall {
-	c.opt_["linkId"] = linkId
+	c.params_.Set("linkId", fmt.Sprintf("%v", linkId))
 	return c
 }
 
 // MaxResults sets the optional parameter "maxResults": Max number of
 // offers to return in this page.  Defaults to 20.
 func (c *EventsListCall) MaxResults(maxResults int64) *EventsListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
@@ -1361,7 +1325,7 @@ func (c *EventsListCall) MaxResults(maxResults int64) *EventsListCall {
 // list of member IDs. Filters out all events that do not reference one
 // of the given member IDs.
 func (c *EventsListCall) MemberId(memberId string) *EventsListCall {
-	c.opt_["memberId"] = memberId
+	c.params_.Set("memberId", fmt.Sprintf("%v", memberId))
 	return c
 }
 
@@ -1369,7 +1333,7 @@ func (c *EventsListCall) MemberId(memberId string) *EventsListCall {
 // out all events modified later than given date.  Defaults to 24 hours
 // after modifyDateMin, if modifyDateMin is explicitly set.
 func (c *EventsListCall) ModifyDateMax(modifyDateMax string) *EventsListCall {
-	c.opt_["modifyDateMax"] = modifyDateMax
+	c.params_.Set("modifyDateMax", fmt.Sprintf("%v", modifyDateMax))
 	return c
 }
 
@@ -1378,7 +1342,7 @@ func (c *EventsListCall) ModifyDateMax(modifyDateMax string) *EventsListCall {
 // hours before the current modifyDateMax, if modifyDateMax is
 // explicitly set.
 func (c *EventsListCall) ModifyDateMin(modifyDateMin string) *EventsListCall {
-	c.opt_["modifyDateMin"] = modifyDateMin
+	c.params_.Set("modifyDateMin", fmt.Sprintf("%v", modifyDateMin))
 	return c
 }
 
@@ -1386,14 +1350,14 @@ func (c *EventsListCall) ModifyDateMin(modifyDateMin string) *EventsListCall {
 // list of order IDs. Filters out all events that do not reference one
 // of the given order IDs.
 func (c *EventsListCall) OrderId(orderId string) *EventsListCall {
-	c.opt_["orderId"] = orderId
+	c.params_.Set("orderId", fmt.Sprintf("%v", orderId))
 	return c
 }
 
 // PageToken sets the optional parameter "pageToken": The value of
 // 'nextPageToken' from the previous page.
 func (c *EventsListCall) PageToken(pageToken string) *EventsListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
 	return c
 }
 
@@ -1402,7 +1366,7 @@ func (c *EventsListCall) PageToken(pageToken string) *EventsListCall {
 // that do not reference a product in one of the given product
 // categories.
 func (c *EventsListCall) ProductCategory(productCategory string) *EventsListCall {
-	c.opt_["productCategory"] = productCategory
+	c.params_.Set("productCategory", fmt.Sprintf("%v", productCategory))
 	return c
 }
 
@@ -1411,7 +1375,7 @@ func (c *EventsListCall) ProductCategory(productCategory string) *EventsListCall
 // reference one of the given publishers IDs. Only used when under
 // advertiser role.
 func (c *EventsListCall) PublisherId(publisherId string) *EventsListCall {
-	c.opt_["publisherId"] = publisherId
+	c.params_.Set("publisherId", fmt.Sprintf("%v", publisherId))
 	return c
 }
 
@@ -1419,7 +1383,7 @@ func (c *EventsListCall) PublisherId(publisherId string) *EventsListCall {
 // SKUs. Filters out all events that do not reference one of the given
 // SKU.
 func (c *EventsListCall) Sku(sku string) *EventsListCall {
-	c.opt_["sku"] = sku
+	c.params_.Set("sku", fmt.Sprintf("%v", sku))
 	return c
 }
 
@@ -1427,7 +1391,7 @@ func (c *EventsListCall) Sku(sku string) *EventsListCall {
 // that do not have the given status. Valid values: 'active',
 // 'canceled'.
 func (c *EventsListCall) Status(status string) *EventsListCall {
-	c.opt_["status"] = status
+	c.params_.Set("status", fmt.Sprintf("%v", status))
 	return c
 }
 
@@ -1435,7 +1399,11 @@ func (c *EventsListCall) Status(status string) *EventsListCall {
 // are not of the given type. Valid values: 'action', 'transaction',
 // 'charge'.
 func (c *EventsListCall) Type(type_ string) *EventsListCall {
-	c.opt_["type"] = type_
+	c.params_.Set("type", fmt.Sprintf("%v", type_))
+	return c
+}
+func (c *EventsListCall) Context(ctx context.Context) *EventsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1443,86 +1411,24 @@ func (c *EventsListCall) Type(type_ string) *EventsListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *EventsListCall) Fields(s ...googleapi.Field) *EventsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *EventsListCall) Do() (*Events, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["advertiserId"]; ok {
-		params.Set("advertiserId", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["chargeType"]; ok {
-		params.Set("chargeType", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["eventDateMax"]; ok {
-		params.Set("eventDateMax", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["eventDateMin"]; ok {
-		params.Set("eventDateMin", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["linkId"]; ok {
-		params.Set("linkId", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["memberId"]; ok {
-		params.Set("memberId", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["modifyDateMax"]; ok {
-		params.Set("modifyDateMax", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["modifyDateMin"]; ok {
-		params.Set("modifyDateMin", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["orderId"]; ok {
-		params.Set("orderId", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["productCategory"]; ok {
-		params.Set("productCategory", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["publisherId"]; ok {
-		params.Set("publisherId", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["sku"]; ok {
-		params.Set("sku", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["status"]; ok {
-		params.Set("status", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["type"]; ok {
-		params.Set("type", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{role}/{roleId}/events")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Events
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"role":   c.role,
 		"roleId": c.roleId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Events
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves event data for a given advertiser/publisher.",
 	//   "httpMethod": "GET",
@@ -1681,22 +1587,35 @@ func (c *EventsListCall) Do() (*Events, error) {
 // method id "gan.links.get":
 
 type LinksGetCall struct {
-	s      *Service
-	role   string
-	roleId string
-	linkId int64
-	opt_   map[string]interface{}
+	s             *Service
+	role          string
+	roleId        string
+	linkId        int64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Retrieves data about a single link if the requesting
 // advertiser/publisher has access to it. Advertisers can look up their
 // own links. Publishers can look up visible links or links belonging to
 // advertisers they are in a relationship with.
+
 func (r *LinksService) Get(role string, roleId string, linkId int64) *LinksGetCall {
-	c := &LinksGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.role = role
-	c.roleId = roleId
-	c.linkId = linkId
+	return &LinksGetCall{
+		s:             r.s,
+		role:          role,
+		roleId:        roleId,
+		linkId:        linkId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{role}/{roleId}/link/{linkId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *LinksGetCall) Context(ctx context.Context) *LinksGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1704,39 +1623,25 @@ func (r *LinksService) Get(role string, roleId string, linkId int64) *LinksGetCa
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *LinksGetCall) Fields(s ...googleapi.Field) *LinksGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *LinksGetCall) Do() (*Link, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{role}/{roleId}/link/{linkId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Link
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"role":   c.role,
 		"roleId": c.roleId,
 		"linkId": strconv.FormatInt(c.linkId, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Link
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves data about a single link if the requesting advertiser/publisher has access to it. Advertisers can look up their own links. Publishers can look up visible links or links belonging to advertisers they are in a relationship with.",
 	//   "httpMethod": "GET",
@@ -1786,19 +1691,32 @@ func (c *LinksGetCall) Do() (*Link, error) {
 // method id "gan.links.insert":
 
 type LinksInsertCall struct {
-	s      *Service
-	role   string
-	roleId string
-	link   *Link
-	opt_   map[string]interface{}
+	s             *Service
+	role          string
+	roleId        string
+	link          *Link
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Insert: Inserts a new link.
+
 func (r *LinksService) Insert(role string, roleId string, link *Link) *LinksInsertCall {
-	c := &LinksInsertCall{s: r.s, opt_: make(map[string]interface{})}
-	c.role = role
-	c.roleId = roleId
-	c.link = link
+	return &LinksInsertCall{
+		s:             r.s,
+		role:          role,
+		roleId:        roleId,
+		link:          link,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{role}/{roleId}/link",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *LinksInsertCall) Context(ctx context.Context) *LinksInsertCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1806,44 +1724,25 @@ func (r *LinksService) Insert(role string, roleId string, link *Link) *LinksInse
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *LinksInsertCall) Fields(s ...googleapi.Field) *LinksInsertCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *LinksInsertCall) Do() (*Link, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.link)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{role}/{roleId}/link")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Link
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"role":   c.role,
 		"roleId": c.roleId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.link,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Link
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Inserts a new link.",
 	//   "httpMethod": "POST",
@@ -1888,87 +1787,98 @@ func (c *LinksInsertCall) Do() (*Link, error) {
 // method id "gan.links.list":
 
 type LinksListCall struct {
-	s      *Service
-	role   string
-	roleId string
-	opt_   map[string]interface{}
+	s             *Service
+	role          string
+	roleId        string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Retrieves all links that match the query parameters.
+
 func (r *LinksService) List(role string, roleId string) *LinksListCall {
-	c := &LinksListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.role = role
-	c.roleId = roleId
-	return c
+	return &LinksListCall{
+		s:             r.s,
+		role:          role,
+		roleId:        roleId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{role}/{roleId}/links",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // AdvertiserId sets the optional parameter "advertiserId": Limits the
 // resulting links to the ones belonging to the listed advertisers.
-func (c *LinksListCall) AdvertiserId(advertiserId int64) *LinksListCall {
-	c.opt_["advertiserId"] = advertiserId
+func (c *LinksListCall) AdvertiserId(advertiserId ...int64) *LinksListCall {
+	for _, v_ := range advertiserId {
+		c.params_.Add("advertiserId", fmt.Sprintf("%v", v_))
+	}
 	return c
 }
 
 // AssetSize sets the optional parameter "assetSize": The size of the
 // given asset.
-func (c *LinksListCall) AssetSize(assetSize string) *LinksListCall {
-	c.opt_["assetSize"] = assetSize
+func (c *LinksListCall) AssetSize(assetSize ...string) *LinksListCall {
+	c.params_["assetSize"] = assetSize
 	return c
 }
 
 // Authorship sets the optional parameter "authorship": The role of the
 // author of the link.
 func (c *LinksListCall) Authorship(authorship string) *LinksListCall {
-	c.opt_["authorship"] = authorship
+	c.params_.Set("authorship", fmt.Sprintf("%v", authorship))
 	return c
 }
 
 // CreateDateMax sets the optional parameter "createDateMax": The end of
 // the create date range.
 func (c *LinksListCall) CreateDateMax(createDateMax string) *LinksListCall {
-	c.opt_["createDateMax"] = createDateMax
+	c.params_.Set("createDateMax", fmt.Sprintf("%v", createDateMax))
 	return c
 }
 
 // CreateDateMin sets the optional parameter "createDateMin": The
 // beginning of the create date range.
 func (c *LinksListCall) CreateDateMin(createDateMin string) *LinksListCall {
-	c.opt_["createDateMin"] = createDateMin
+	c.params_.Set("createDateMin", fmt.Sprintf("%v", createDateMin))
 	return c
 }
 
 // LinkType sets the optional parameter "linkType": The type of the
 // link.
 func (c *LinksListCall) LinkType(linkType string) *LinksListCall {
-	c.opt_["linkType"] = linkType
+	c.params_.Set("linkType", fmt.Sprintf("%v", linkType))
 	return c
 }
 
 // MaxResults sets the optional parameter "maxResults": Max number of
 // items to return in this page.  Defaults to 20.
 func (c *LinksListCall) MaxResults(maxResults int64) *LinksListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
 // PageToken sets the optional parameter "pageToken": The value of
 // 'nextPageToken' from the previous page.
 func (c *LinksListCall) PageToken(pageToken string) *LinksListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
 	return c
 }
 
 // PromotionType sets the optional parameter "promotionType": The
 // promotion type.
-func (c *LinksListCall) PromotionType(promotionType string) *LinksListCall {
-	c.opt_["promotionType"] = promotionType
+func (c *LinksListCall) PromotionType(promotionType ...string) *LinksListCall {
+	c.params_["promotionType"] = promotionType
 	return c
 }
 
 // RelationshipStatus sets the optional parameter "relationshipStatus":
 // The status of the relationship.
 func (c *LinksListCall) RelationshipStatus(relationshipStatus string) *LinksListCall {
-	c.opt_["relationshipStatus"] = relationshipStatus
+	c.params_.Set("relationshipStatus", fmt.Sprintf("%v", relationshipStatus))
 	return c
 }
 
@@ -1976,21 +1886,25 @@ func (c *LinksListCall) RelationshipStatus(relationshipStatus string) *LinksList
 // text search across title and merchandising text, supports link id
 // search.
 func (c *LinksListCall) SearchText(searchText string) *LinksListCall {
-	c.opt_["searchText"] = searchText
+	c.params_.Set("searchText", fmt.Sprintf("%v", searchText))
 	return c
 }
 
 // StartDateMax sets the optional parameter "startDateMax": The end of
 // the start date range.
 func (c *LinksListCall) StartDateMax(startDateMax string) *LinksListCall {
-	c.opt_["startDateMax"] = startDateMax
+	c.params_.Set("startDateMax", fmt.Sprintf("%v", startDateMax))
 	return c
 }
 
 // StartDateMin sets the optional parameter "startDateMin": The
 // beginning of the start date range.
 func (c *LinksListCall) StartDateMin(startDateMin string) *LinksListCall {
-	c.opt_["startDateMin"] = startDateMin
+	c.params_.Set("startDateMin", fmt.Sprintf("%v", startDateMin))
+	return c
+}
+func (c *LinksListCall) Context(ctx context.Context) *LinksListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1998,77 +1912,24 @@ func (c *LinksListCall) StartDateMin(startDateMin string) *LinksListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *LinksListCall) Fields(s ...googleapi.Field) *LinksListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *LinksListCall) Do() (*Links, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["advertiserId"]; ok {
-		params.Set("advertiserId", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["assetSize"]; ok {
-		params.Set("assetSize", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["authorship"]; ok {
-		params.Set("authorship", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["createDateMax"]; ok {
-		params.Set("createDateMax", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["createDateMin"]; ok {
-		params.Set("createDateMin", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["linkType"]; ok {
-		params.Set("linkType", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["promotionType"]; ok {
-		params.Set("promotionType", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["relationshipStatus"]; ok {
-		params.Set("relationshipStatus", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["searchText"]; ok {
-		params.Set("searchText", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["startDateMax"]; ok {
-		params.Set("startDateMax", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["startDateMin"]; ok {
-		params.Set("startDateMin", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{role}/{roleId}/links")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Links
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"role":   c.role,
 		"roleId": c.roleId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Links
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves all links that match the query parameters.",
 	//   "httpMethod": "GET",
@@ -2220,27 +2081,40 @@ func (c *LinksListCall) Do() (*Links, error) {
 // method id "gan.publishers.get":
 
 type PublishersGetCall struct {
-	s      *Service
-	role   string
-	roleId string
-	opt_   map[string]interface{}
+	s             *Service
+	role          string
+	roleId        string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Retrieves data about a single advertiser if that the requesting
 // advertiser/publisher has access to it. Only advertisers can look up
 // publishers. Publishers can request information about themselves by
 // omitting the publisherId query parameter.
+
 func (r *PublishersService) Get(role string, roleId string) *PublishersGetCall {
-	c := &PublishersGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.role = role
-	c.roleId = roleId
-	return c
+	return &PublishersGetCall{
+		s:             r.s,
+		role:          role,
+		roleId:        roleId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{role}/{roleId}/publisher",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // PublisherId sets the optional parameter "publisherId": The ID of the
 // publisher to look up.
 func (c *PublishersGetCall) PublisherId(publisherId string) *PublishersGetCall {
-	c.opt_["publisherId"] = publisherId
+	c.params_.Set("publisherId", fmt.Sprintf("%v", publisherId))
+	return c
+}
+func (c *PublishersGetCall) Context(ctx context.Context) *PublishersGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2248,41 +2122,24 @@ func (c *PublishersGetCall) PublisherId(publisherId string) *PublishersGetCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *PublishersGetCall) Fields(s ...googleapi.Field) *PublishersGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *PublishersGetCall) Do() (*Publisher, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["publisherId"]; ok {
-		params.Set("publisherId", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{role}/{roleId}/publisher")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Publisher
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"role":   c.role,
 		"roleId": c.roleId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Publisher
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves data about a single advertiser if that the requesting advertiser/publisher has access to it. Only advertisers can look up publishers. Publishers can request information about themselves by omitting the publisherId query parameter.",
 	//   "httpMethod": "GET",
@@ -2329,25 +2186,34 @@ func (c *PublishersGetCall) Do() (*Publisher, error) {
 // method id "gan.publishers.list":
 
 type PublishersListCall struct {
-	s      *Service
-	role   string
-	roleId string
-	opt_   map[string]interface{}
+	s             *Service
+	role          string
+	roleId        string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Retrieves data about all publishers that the requesting
 // advertiser/publisher has access to.
+
 func (r *PublishersService) List(role string, roleId string) *PublishersListCall {
-	c := &PublishersListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.role = role
-	c.roleId = roleId
-	return c
+	return &PublishersListCall{
+		s:             r.s,
+		role:          role,
+		roleId:        roleId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{role}/{roleId}/publishers",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // MaxResults sets the optional parameter "maxResults": Max number of
 // items to return in this page.  Defaults to 20.
 func (c *PublishersListCall) MaxResults(maxResults int64) *PublishersListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
@@ -2355,7 +2221,7 @@ func (c *PublishersListCall) MaxResults(maxResults int64) *PublishersListCall {
 // Filters out all publishers that have a ninety day EPC average lower
 // than the given value (inclusive). Min value: 0.0.
 func (c *PublishersListCall) MinNinetyDayEpc(minNinetyDayEpc float64) *PublishersListCall {
-	c.opt_["minNinetyDayEpc"] = minNinetyDayEpc
+	c.params_.Set("minNinetyDayEpc", fmt.Sprintf("%v", minNinetyDayEpc))
 	return c
 }
 
@@ -2366,7 +2232,7 @@ func (c *PublishersListCall) MinNinetyDayEpc(minNinetyDayEpc float64) *Publisher
 // given quartile. For example if a 2 was given only publishers with a
 // payout rank of 25 or higher would be included.
 func (c *PublishersListCall) MinPayoutRank(minPayoutRank int64) *PublishersListCall {
-	c.opt_["minPayoutRank"] = minPayoutRank
+	c.params_.Set("minPayoutRank", fmt.Sprintf("%v", minPayoutRank))
 	return c
 }
 
@@ -2374,14 +2240,14 @@ func (c *PublishersListCall) MinPayoutRank(minPayoutRank int64) *PublishersListC
 // out all publishers that have a seven day EPC average lower than the
 // given value (inclusive). Min value 0.0.
 func (c *PublishersListCall) MinSevenDayEpc(minSevenDayEpc float64) *PublishersListCall {
-	c.opt_["minSevenDayEpc"] = minSevenDayEpc
+	c.params_.Set("minSevenDayEpc", fmt.Sprintf("%v", minSevenDayEpc))
 	return c
 }
 
 // PageToken sets the optional parameter "pageToken": The value of
 // 'nextPageToken' from the previous page.
 func (c *PublishersListCall) PageToken(pageToken string) *PublishersListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
 	return c
 }
 
@@ -2392,7 +2258,7 @@ func (c *PublishersListCall) PageToken(pageToken string) *PublishersListCall {
 // Filters out all publishers not in one of the given advertiser
 // categories.
 func (c *PublishersListCall) PublisherCategory(publisherCategory string) *PublishersListCall {
-	c.opt_["publisherCategory"] = publisherCategory
+	c.params_.Set("publisherCategory", fmt.Sprintf("%v", publisherCategory))
 	return c
 }
 
@@ -2400,7 +2266,11 @@ func (c *PublishersListCall) PublisherCategory(publisherCategory string) *Publis
 // Filters out all publishers for which do not have the given
 // relationship status with the requesting publisher.
 func (c *PublishersListCall) RelationshipStatus(relationshipStatus string) *PublishersListCall {
-	c.opt_["relationshipStatus"] = relationshipStatus
+	c.params_.Set("relationshipStatus", fmt.Sprintf("%v", relationshipStatus))
+	return c
+}
+func (c *PublishersListCall) Context(ctx context.Context) *PublishersListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2408,59 +2278,24 @@ func (c *PublishersListCall) RelationshipStatus(relationshipStatus string) *Publ
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *PublishersListCall) Fields(s ...googleapi.Field) *PublishersListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *PublishersListCall) Do() (*Publishers, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["minNinetyDayEpc"]; ok {
-		params.Set("minNinetyDayEpc", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["minPayoutRank"]; ok {
-		params.Set("minPayoutRank", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["minSevenDayEpc"]; ok {
-		params.Set("minSevenDayEpc", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["publisherCategory"]; ok {
-		params.Set("publisherCategory", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["relationshipStatus"]; ok {
-		params.Set("relationshipStatus", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{role}/{roleId}/publishers")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Publishers
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"role":   c.role,
 		"roleId": c.roleId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Publishers
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves data about all publishers that the requesting advertiser/publisher has access to.",
 	//   "httpMethod": "GET",
@@ -2559,33 +2394,42 @@ func (c *PublishersListCall) Do() (*Publishers, error) {
 // method id "gan.reports.get":
 
 type ReportsGetCall struct {
-	s          *Service
-	role       string
-	roleId     string
-	reportType string
-	opt_       map[string]interface{}
+	s             *Service
+	role          string
+	roleId        string
+	reportType    string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Retrieves a report of the specified type.
+
 func (r *ReportsService) Get(role string, roleId string, reportType string) *ReportsGetCall {
-	c := &ReportsGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.role = role
-	c.roleId = roleId
-	c.reportType = reportType
-	return c
+	return &ReportsGetCall{
+		s:             r.s,
+		role:          role,
+		roleId:        roleId,
+		reportType:    reportType,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{role}/{roleId}/report/{reportType}",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // AdvertiserId sets the optional parameter "advertiserId": The IDs of
 // the advertisers to look up, if applicable.
-func (c *ReportsGetCall) AdvertiserId(advertiserId string) *ReportsGetCall {
-	c.opt_["advertiserId"] = advertiserId
+func (c *ReportsGetCall) AdvertiserId(advertiserId ...string) *ReportsGetCall {
+	c.params_["advertiserId"] = advertiserId
 	return c
 }
 
 // CalculateTotals sets the optional parameter "calculateTotals":
 // Whether or not to calculate totals rows.
 func (c *ReportsGetCall) CalculateTotals(calculateTotals bool) *ReportsGetCall {
-	c.opt_["calculateTotals"] = calculateTotals
+	c.params_.Set("calculateTotals", fmt.Sprintf("%v", calculateTotals))
 	return c
 }
 
@@ -2593,7 +2437,7 @@ func (c *ReportsGetCall) CalculateTotals(calculateTotals bool) *ReportsGetCall {
 // (exclusive), in RFC 3339 format, for the report data to be returned.
 // Defaults to one day after startDate, if that is given, or today.
 func (c *ReportsGetCall) EndDate(endDate string) *ReportsGetCall {
-	c.opt_["endDate"] = endDate
+	c.params_.Set("endDate", fmt.Sprintf("%v", endDate))
 	return c
 }
 
@@ -2601,35 +2445,35 @@ func (c *ReportsGetCall) EndDate(endDate string) *ReportsGetCall {
 // events that are not of the given type. Valid values: 'action',
 // 'transaction', or 'charge'.
 func (c *ReportsGetCall) EventType(eventType string) *ReportsGetCall {
-	c.opt_["eventType"] = eventType
+	c.params_.Set("eventType", fmt.Sprintf("%v", eventType))
 	return c
 }
 
 // LinkId sets the optional parameter "linkId": Filters to capture one
 // of given link IDs.
-func (c *ReportsGetCall) LinkId(linkId string) *ReportsGetCall {
-	c.opt_["linkId"] = linkId
+func (c *ReportsGetCall) LinkId(linkId ...string) *ReportsGetCall {
+	c.params_["linkId"] = linkId
 	return c
 }
 
 // MaxResults sets the optional parameter "maxResults": Max number of
 // items to return in this page.  Defaults to return all results.
 func (c *ReportsGetCall) MaxResults(maxResults int64) *ReportsGetCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
 // OrderId sets the optional parameter "orderId": Filters to capture one
 // of the given order IDs.
-func (c *ReportsGetCall) OrderId(orderId string) *ReportsGetCall {
-	c.opt_["orderId"] = orderId
+func (c *ReportsGetCall) OrderId(orderId ...string) *ReportsGetCall {
+	c.params_["orderId"] = orderId
 	return c
 }
 
 // PublisherId sets the optional parameter "publisherId": The IDs of the
 // publishers to look up, if applicable.
-func (c *ReportsGetCall) PublisherId(publisherId string) *ReportsGetCall {
-	c.opt_["publisherId"] = publisherId
+func (c *ReportsGetCall) PublisherId(publisherId ...string) *ReportsGetCall {
+	c.params_["publisherId"] = publisherId
 	return c
 }
 
@@ -2637,14 +2481,14 @@ func (c *ReportsGetCall) PublisherId(publisherId string) *ReportsGetCall {
 // (inclusive), in RFC 3339 format, for the report data to be returned.
 // Defaults to one day before endDate, if that is given, or yesterday.
 func (c *ReportsGetCall) StartDate(startDate string) *ReportsGetCall {
-	c.opt_["startDate"] = startDate
+	c.params_.Set("startDate", fmt.Sprintf("%v", startDate))
 	return c
 }
 
 // StartIndex sets the optional parameter "startIndex": Offset on which
 // to return results when paging.
 func (c *ReportsGetCall) StartIndex(startIndex int64) *ReportsGetCall {
-	c.opt_["startIndex"] = startIndex
+	c.params_.Set("startIndex", fmt.Sprintf("%v", startIndex))
 	return c
 }
 
@@ -2652,7 +2496,11 @@ func (c *ReportsGetCall) StartIndex(startIndex int64) *ReportsGetCall {
 // that do not have the given status. Valid values: 'active',
 // 'canceled', or 'invalid'.
 func (c *ReportsGetCall) Status(status string) *ReportsGetCall {
-	c.opt_["status"] = status
+	c.params_.Set("status", fmt.Sprintf("%v", status))
+	return c
+}
+func (c *ReportsGetCall) Context(ctx context.Context) *ReportsGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2660,72 +2508,25 @@ func (c *ReportsGetCall) Status(status string) *ReportsGetCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ReportsGetCall) Fields(s ...googleapi.Field) *ReportsGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ReportsGetCall) Do() (*Report, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["advertiserId"]; ok {
-		params.Set("advertiserId", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["calculateTotals"]; ok {
-		params.Set("calculateTotals", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["endDate"]; ok {
-		params.Set("endDate", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["eventType"]; ok {
-		params.Set("eventType", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["linkId"]; ok {
-		params.Set("linkId", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["orderId"]; ok {
-		params.Set("orderId", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["publisherId"]; ok {
-		params.Set("publisherId", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["startDate"]; ok {
-		params.Set("startDate", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["startIndex"]; ok {
-		params.Set("startIndex", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["status"]; ok {
-		params.Set("status", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{role}/{roleId}/report/{reportType}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Report
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"role":       c.role,
 		"roleId":     c.roleId,
 		"reportType": c.reportType,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Report
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves a report of the specified type.",
 	//   "httpMethod": "GET",

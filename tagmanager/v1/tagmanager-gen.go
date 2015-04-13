@@ -4,18 +4,16 @@
 //
 // Usage example:
 //
-//   import "google.golang.org/api/tagmanager/v1"
+//   import "github.com/jfcote87/api2/tagmanager/v1"
 //   ...
 //   tagmanagerService, err := tagmanager.New(oauthHttpClient)
 package tagmanager
 
 import (
-	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/jfcote87/api2/googleapi"
 	"golang.org/x/net/context"
-	"google.golang.org/api/googleapi"
 	"io"
 	"net/http"
 	"net/url"
@@ -25,10 +23,8 @@ import (
 
 // Always reference these packages, just in case the auto-generated code
 // below doesn't.
-var _ = bytes.NewBuffer
 var _ = strconv.Itoa
 var _ = fmt.Sprintf
-var _ = json.NewDecoder
 var _ = io.Copy
 var _ = url.Parse
 var _ = googleapi.Version
@@ -39,7 +35,8 @@ var _ = context.Background
 const apiId = "tagmanager:v1"
 const apiName = "tagmanager"
 const apiVersion = "v1"
-const basePath = "https://www.googleapis.com/tagmanager/v1/"
+
+var baseURL *url.URL = &url.URL{Scheme: "https", Host: "www.googleapis.com", Path: "/tagmanager/v1/"}
 
 // OAuth2 scopes used by this API.
 const (
@@ -69,24 +66,15 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
+	s := &Service{client: client}
 	s.Accounts = NewAccountsService(s)
 	return s, nil
 }
 
 type Service struct {
-	client    *http.Client
-	BasePath  string // API endpoint base URL
-	UserAgent string // optional additional User-Agent fragment
+	client *http.Client
 
 	Accounts *AccountsService
-}
-
-func (s *Service) userAgent() string {
-	if s.UserAgent == "" {
-		return googleapi.UserAgent
-	}
-	return googleapi.UserAgent + " " + s.UserAgent
 }
 
 func NewAccountsService(s *Service) *AccountsService {
@@ -762,15 +750,28 @@ type Variable struct {
 // method id "tagmanager.accounts.get":
 
 type AccountsGetCall struct {
-	s         *Service
-	accountId string
-	opt_      map[string]interface{}
+	s             *Service
+	accountId     string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Gets a GTM Account.
+
 func (r *AccountsService) Get(accountId string) *AccountsGetCall {
-	c := &AccountsGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
+	return &AccountsGetCall{
+		s:             r.s,
+		accountId:     accountId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "accounts/{accountId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *AccountsGetCall) Context(ctx context.Context) *AccountsGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -778,37 +779,23 @@ func (r *AccountsService) Get(accountId string) *AccountsGetCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AccountsGetCall) Fields(s ...googleapi.Field) *AccountsGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AccountsGetCall) Do() (*Account, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "accounts/{accountId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Account
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId": c.accountId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Account
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Gets a GTM Account.",
 	//   "httpMethod": "GET",
@@ -840,13 +827,26 @@ func (c *AccountsGetCall) Do() (*Account, error) {
 // method id "tagmanager.accounts.list":
 
 type AccountsListCall struct {
-	s    *Service
-	opt_ map[string]interface{}
+	s             *Service
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Lists all GTM Accounts that a user has access to.
+
 func (r *AccountsService) List() *AccountsListCall {
-	c := &AccountsListCall{s: r.s, opt_: make(map[string]interface{})}
+	return &AccountsListCall{
+		s:             r.s,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "accounts",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *AccountsListCall) Context(ctx context.Context) *AccountsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -854,35 +854,21 @@ func (r *AccountsService) List() *AccountsListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AccountsListCall) Fields(s ...googleapi.Field) *AccountsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AccountsListCall) Do() (*ListAccountsResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
+	var returnValue *ListAccountsResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "accounts")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ListAccountsResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Lists all GTM Accounts that a user has access to.",
 	//   "httpMethod": "GET",
@@ -903,25 +889,38 @@ func (c *AccountsListCall) Do() (*ListAccountsResponse, error) {
 // method id "tagmanager.accounts.update":
 
 type AccountsUpdateCall struct {
-	s         *Service
-	accountId string
-	account   *Account
-	opt_      map[string]interface{}
+	s             *Service
+	accountId     string
+	account       *Account
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Update: Updates a GTM Account.
+
 func (r *AccountsService) Update(accountId string, account *Account) *AccountsUpdateCall {
-	c := &AccountsUpdateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.account = account
-	return c
+	return &AccountsUpdateCall{
+		s:             r.s,
+		accountId:     accountId,
+		account:       account,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "accounts/{accountId}",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Fingerprint sets the optional parameter "fingerprint": When provided,
 // this fingerprint must match the fingerprint of the account in
 // storage.
 func (c *AccountsUpdateCall) Fingerprint(fingerprint string) *AccountsUpdateCall {
-	c.opt_["fingerprint"] = fingerprint
+	c.params_.Set("fingerprint", fmt.Sprintf("%v", fingerprint))
+	return c
+}
+func (c *AccountsUpdateCall) Context(ctx context.Context) *AccountsUpdateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -929,46 +928,24 @@ func (c *AccountsUpdateCall) Fingerprint(fingerprint string) *AccountsUpdateCall
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AccountsUpdateCall) Fields(s ...googleapi.Field) *AccountsUpdateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AccountsUpdateCall) Do() (*Account, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.account)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fingerprint"]; ok {
-		params.Set("fingerprint", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "accounts/{accountId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Account
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId": c.accountId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.account,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Account
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates a GTM Account.",
 	//   "httpMethod": "PUT",
@@ -1006,17 +983,30 @@ func (c *AccountsUpdateCall) Do() (*Account, error) {
 // method id "tagmanager.accounts.containers.create":
 
 type AccountsContainersCreateCall struct {
-	s         *Service
-	accountId string
-	container *Container
-	opt_      map[string]interface{}
+	s             *Service
+	accountId     string
+	container     *Container
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Create: Creates a Container.
+
 func (r *AccountsContainersService) Create(accountId string, container *Container) *AccountsContainersCreateCall {
-	c := &AccountsContainersCreateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.container = container
+	return &AccountsContainersCreateCall{
+		s:             r.s,
+		accountId:     accountId,
+		container:     container,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "accounts/{accountId}/containers",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *AccountsContainersCreateCall) Context(ctx context.Context) *AccountsContainersCreateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1024,43 +1014,24 @@ func (r *AccountsContainersService) Create(accountId string, container *Containe
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AccountsContainersCreateCall) Fields(s ...googleapi.Field) *AccountsContainersCreateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AccountsContainersCreateCall) Do() (*Container, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.container)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "accounts/{accountId}/containers")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Container
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId": c.accountId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.container,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Container
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Creates a Container.",
 	//   "httpMethod": "POST",
@@ -1093,52 +1064,45 @@ func (c *AccountsContainersCreateCall) Do() (*Container, error) {
 // method id "tagmanager.accounts.containers.delete":
 
 type AccountsContainersDeleteCall struct {
-	s           *Service
-	accountId   string
-	containerId string
-	opt_        map[string]interface{}
+	s             *Service
+	accountId     string
+	containerId   string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Delete: Deletes a Container.
-func (r *AccountsContainersService) Delete(accountId string, containerId string) *AccountsContainersDeleteCall {
-	c := &AccountsContainersDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.containerId = containerId
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *AccountsContainersDeleteCall) Fields(s ...googleapi.Field) *AccountsContainersDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *AccountsContainersService) Delete(accountId string, containerId string) *AccountsContainersDeleteCall {
+	return &AccountsContainersDeleteCall{
+		s:             r.s,
+		accountId:     accountId,
+		containerId:   containerId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "accounts/{accountId}/containers/{containerId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *AccountsContainersDeleteCall) Context(ctx context.Context) *AccountsContainersDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *AccountsContainersDeleteCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "accounts/{accountId}/containers/{containerId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId":   c.accountId,
 		"containerId": c.containerId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Deletes a Container.",
 	//   "httpMethod": "DELETE",
@@ -1172,17 +1136,30 @@ func (c *AccountsContainersDeleteCall) Do() error {
 // method id "tagmanager.accounts.containers.get":
 
 type AccountsContainersGetCall struct {
-	s           *Service
-	accountId   string
-	containerId string
-	opt_        map[string]interface{}
+	s             *Service
+	accountId     string
+	containerId   string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Gets a Container.
+
 func (r *AccountsContainersService) Get(accountId string, containerId string) *AccountsContainersGetCall {
-	c := &AccountsContainersGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.containerId = containerId
+	return &AccountsContainersGetCall{
+		s:             r.s,
+		accountId:     accountId,
+		containerId:   containerId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "accounts/{accountId}/containers/{containerId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *AccountsContainersGetCall) Context(ctx context.Context) *AccountsContainersGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1190,38 +1167,24 @@ func (r *AccountsContainersService) Get(accountId string, containerId string) *A
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AccountsContainersGetCall) Fields(s ...googleapi.Field) *AccountsContainersGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AccountsContainersGetCall) Do() (*Container, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "accounts/{accountId}/containers/{containerId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Container
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId":   c.accountId,
 		"containerId": c.containerId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Container
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Gets a Container.",
 	//   "httpMethod": "GET",
@@ -1259,15 +1222,28 @@ func (c *AccountsContainersGetCall) Do() (*Container, error) {
 // method id "tagmanager.accounts.containers.list":
 
 type AccountsContainersListCall struct {
-	s         *Service
-	accountId string
-	opt_      map[string]interface{}
+	s             *Service
+	accountId     string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Lists all Containers that belongs to a GTM Account.
+
 func (r *AccountsContainersService) List(accountId string) *AccountsContainersListCall {
-	c := &AccountsContainersListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
+	return &AccountsContainersListCall{
+		s:             r.s,
+		accountId:     accountId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "accounts/{accountId}/containers",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *AccountsContainersListCall) Context(ctx context.Context) *AccountsContainersListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1275,37 +1251,23 @@ func (r *AccountsContainersService) List(accountId string) *AccountsContainersLi
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AccountsContainersListCall) Fields(s ...googleapi.Field) *AccountsContainersListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AccountsContainersListCall) Do() (*ListContainersResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "accounts/{accountId}/containers")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *ListContainersResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId": c.accountId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ListContainersResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Lists all Containers that belongs to a GTM Account.",
 	//   "httpMethod": "GET",
@@ -1336,27 +1298,40 @@ func (c *AccountsContainersListCall) Do() (*ListContainersResponse, error) {
 // method id "tagmanager.accounts.containers.update":
 
 type AccountsContainersUpdateCall struct {
-	s           *Service
-	accountId   string
-	containerId string
-	container   *Container
-	opt_        map[string]interface{}
+	s             *Service
+	accountId     string
+	containerId   string
+	container     *Container
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Update: Updates a Container.
+
 func (r *AccountsContainersService) Update(accountId string, containerId string, container *Container) *AccountsContainersUpdateCall {
-	c := &AccountsContainersUpdateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.containerId = containerId
-	c.container = container
-	return c
+	return &AccountsContainersUpdateCall{
+		s:             r.s,
+		accountId:     accountId,
+		containerId:   containerId,
+		container:     container,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "accounts/{accountId}/containers/{containerId}",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Fingerprint sets the optional parameter "fingerprint": When provided,
 // this fingerprint must match the fingerprint of the container in
 // storage.
 func (c *AccountsContainersUpdateCall) Fingerprint(fingerprint string) *AccountsContainersUpdateCall {
-	c.opt_["fingerprint"] = fingerprint
+	c.params_.Set("fingerprint", fmt.Sprintf("%v", fingerprint))
+	return c
+}
+func (c *AccountsContainersUpdateCall) Context(ctx context.Context) *AccountsContainersUpdateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1364,47 +1339,25 @@ func (c *AccountsContainersUpdateCall) Fingerprint(fingerprint string) *Accounts
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AccountsContainersUpdateCall) Fields(s ...googleapi.Field) *AccountsContainersUpdateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AccountsContainersUpdateCall) Do() (*Container, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.container)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fingerprint"]; ok {
-		params.Set("fingerprint", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "accounts/{accountId}/containers/{containerId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Container
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId":   c.accountId,
 		"containerId": c.containerId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.container,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Container
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates a Container.",
 	//   "httpMethod": "PUT",
@@ -1449,19 +1402,32 @@ func (c *AccountsContainersUpdateCall) Do() (*Container, error) {
 // method id "tagmanager.accounts.containers.macros.create":
 
 type AccountsContainersMacrosCreateCall struct {
-	s           *Service
-	accountId   string
-	containerId string
-	macro       *Macro
-	opt_        map[string]interface{}
+	s             *Service
+	accountId     string
+	containerId   string
+	macro         *Macro
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Create: Creates a GTM Macro.
+
 func (r *AccountsContainersMacrosService) Create(accountId string, containerId string, macro *Macro) *AccountsContainersMacrosCreateCall {
-	c := &AccountsContainersMacrosCreateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.containerId = containerId
-	c.macro = macro
+	return &AccountsContainersMacrosCreateCall{
+		s:             r.s,
+		accountId:     accountId,
+		containerId:   containerId,
+		macro:         macro,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "accounts/{accountId}/containers/{containerId}/macros",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *AccountsContainersMacrosCreateCall) Context(ctx context.Context) *AccountsContainersMacrosCreateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1469,44 +1435,25 @@ func (r *AccountsContainersMacrosService) Create(accountId string, containerId s
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AccountsContainersMacrosCreateCall) Fields(s ...googleapi.Field) *AccountsContainersMacrosCreateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AccountsContainersMacrosCreateCall) Do() (*Macro, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.macro)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "accounts/{accountId}/containers/{containerId}/macros")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Macro
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId":   c.accountId,
 		"containerId": c.containerId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.macro,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Macro
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Creates a GTM Macro.",
 	//   "httpMethod": "POST",
@@ -1546,55 +1493,48 @@ func (c *AccountsContainersMacrosCreateCall) Do() (*Macro, error) {
 // method id "tagmanager.accounts.containers.macros.delete":
 
 type AccountsContainersMacrosDeleteCall struct {
-	s           *Service
-	accountId   string
-	containerId string
-	macroId     string
-	opt_        map[string]interface{}
+	s             *Service
+	accountId     string
+	containerId   string
+	macroId       string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Delete: Deletes a GTM Macro.
-func (r *AccountsContainersMacrosService) Delete(accountId string, containerId string, macroId string) *AccountsContainersMacrosDeleteCall {
-	c := &AccountsContainersMacrosDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.containerId = containerId
-	c.macroId = macroId
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *AccountsContainersMacrosDeleteCall) Fields(s ...googleapi.Field) *AccountsContainersMacrosDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *AccountsContainersMacrosService) Delete(accountId string, containerId string, macroId string) *AccountsContainersMacrosDeleteCall {
+	return &AccountsContainersMacrosDeleteCall{
+		s:             r.s,
+		accountId:     accountId,
+		containerId:   containerId,
+		macroId:       macroId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "accounts/{accountId}/containers/{containerId}/macros/{macroId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *AccountsContainersMacrosDeleteCall) Context(ctx context.Context) *AccountsContainersMacrosDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *AccountsContainersMacrosDeleteCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "accounts/{accountId}/containers/{containerId}/macros/{macroId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId":   c.accountId,
 		"containerId": c.containerId,
 		"macroId":     c.macroId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Deletes a GTM Macro.",
 	//   "httpMethod": "DELETE",
@@ -1635,19 +1575,32 @@ func (c *AccountsContainersMacrosDeleteCall) Do() error {
 // method id "tagmanager.accounts.containers.macros.get":
 
 type AccountsContainersMacrosGetCall struct {
-	s           *Service
-	accountId   string
-	containerId string
-	macroId     string
-	opt_        map[string]interface{}
+	s             *Service
+	accountId     string
+	containerId   string
+	macroId       string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Gets a GTM Macro.
+
 func (r *AccountsContainersMacrosService) Get(accountId string, containerId string, macroId string) *AccountsContainersMacrosGetCall {
-	c := &AccountsContainersMacrosGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.containerId = containerId
-	c.macroId = macroId
+	return &AccountsContainersMacrosGetCall{
+		s:             r.s,
+		accountId:     accountId,
+		containerId:   containerId,
+		macroId:       macroId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "accounts/{accountId}/containers/{containerId}/macros/{macroId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *AccountsContainersMacrosGetCall) Context(ctx context.Context) *AccountsContainersMacrosGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1655,39 +1608,25 @@ func (r *AccountsContainersMacrosService) Get(accountId string, containerId stri
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AccountsContainersMacrosGetCall) Fields(s ...googleapi.Field) *AccountsContainersMacrosGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AccountsContainersMacrosGetCall) Do() (*Macro, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "accounts/{accountId}/containers/{containerId}/macros/{macroId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Macro
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId":   c.accountId,
 		"containerId": c.containerId,
 		"macroId":     c.macroId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Macro
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Gets a GTM Macro.",
 	//   "httpMethod": "GET",
@@ -1732,17 +1671,30 @@ func (c *AccountsContainersMacrosGetCall) Do() (*Macro, error) {
 // method id "tagmanager.accounts.containers.macros.list":
 
 type AccountsContainersMacrosListCall struct {
-	s           *Service
-	accountId   string
-	containerId string
-	opt_        map[string]interface{}
+	s             *Service
+	accountId     string
+	containerId   string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Lists all GTM Macros of a Container.
+
 func (r *AccountsContainersMacrosService) List(accountId string, containerId string) *AccountsContainersMacrosListCall {
-	c := &AccountsContainersMacrosListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.containerId = containerId
+	return &AccountsContainersMacrosListCall{
+		s:             r.s,
+		accountId:     accountId,
+		containerId:   containerId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "accounts/{accountId}/containers/{containerId}/macros",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *AccountsContainersMacrosListCall) Context(ctx context.Context) *AccountsContainersMacrosListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1750,38 +1702,24 @@ func (r *AccountsContainersMacrosService) List(accountId string, containerId str
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AccountsContainersMacrosListCall) Fields(s ...googleapi.Field) *AccountsContainersMacrosListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AccountsContainersMacrosListCall) Do() (*ListMacrosResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "accounts/{accountId}/containers/{containerId}/macros")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *ListMacrosResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId":   c.accountId,
 		"containerId": c.containerId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ListMacrosResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Lists all GTM Macros of a Container.",
 	//   "httpMethod": "GET",
@@ -1819,28 +1757,41 @@ func (c *AccountsContainersMacrosListCall) Do() (*ListMacrosResponse, error) {
 // method id "tagmanager.accounts.containers.macros.update":
 
 type AccountsContainersMacrosUpdateCall struct {
-	s           *Service
-	accountId   string
-	containerId string
-	macroId     string
-	macro       *Macro
-	opt_        map[string]interface{}
+	s             *Service
+	accountId     string
+	containerId   string
+	macroId       string
+	macro         *Macro
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Update: Updates a GTM Macro.
+
 func (r *AccountsContainersMacrosService) Update(accountId string, containerId string, macroId string, macro *Macro) *AccountsContainersMacrosUpdateCall {
-	c := &AccountsContainersMacrosUpdateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.containerId = containerId
-	c.macroId = macroId
-	c.macro = macro
-	return c
+	return &AccountsContainersMacrosUpdateCall{
+		s:             r.s,
+		accountId:     accountId,
+		containerId:   containerId,
+		macroId:       macroId,
+		macro:         macro,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "accounts/{accountId}/containers/{containerId}/macros/{macroId}",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Fingerprint sets the optional parameter "fingerprint": When provided,
 // this fingerprint must match the fingerprint of the macro in storage.
 func (c *AccountsContainersMacrosUpdateCall) Fingerprint(fingerprint string) *AccountsContainersMacrosUpdateCall {
-	c.opt_["fingerprint"] = fingerprint
+	c.params_.Set("fingerprint", fmt.Sprintf("%v", fingerprint))
+	return c
+}
+func (c *AccountsContainersMacrosUpdateCall) Context(ctx context.Context) *AccountsContainersMacrosUpdateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1848,48 +1799,26 @@ func (c *AccountsContainersMacrosUpdateCall) Fingerprint(fingerprint string) *Ac
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AccountsContainersMacrosUpdateCall) Fields(s ...googleapi.Field) *AccountsContainersMacrosUpdateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AccountsContainersMacrosUpdateCall) Do() (*Macro, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.macro)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fingerprint"]; ok {
-		params.Set("fingerprint", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "accounts/{accountId}/containers/{containerId}/macros/{macroId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Macro
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId":   c.accountId,
 		"containerId": c.containerId,
 		"macroId":     c.macroId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.macro,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Macro
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates a GTM Macro.",
 	//   "httpMethod": "PUT",
@@ -1941,19 +1870,32 @@ func (c *AccountsContainersMacrosUpdateCall) Do() (*Macro, error) {
 // method id "tagmanager.accounts.containers.rules.create":
 
 type AccountsContainersRulesCreateCall struct {
-	s           *Service
-	accountId   string
-	containerId string
-	rule        *Rule
-	opt_        map[string]interface{}
+	s             *Service
+	accountId     string
+	containerId   string
+	rule          *Rule
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Create: Creates a GTM Rule.
+
 func (r *AccountsContainersRulesService) Create(accountId string, containerId string, rule *Rule) *AccountsContainersRulesCreateCall {
-	c := &AccountsContainersRulesCreateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.containerId = containerId
-	c.rule = rule
+	return &AccountsContainersRulesCreateCall{
+		s:             r.s,
+		accountId:     accountId,
+		containerId:   containerId,
+		rule:          rule,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "accounts/{accountId}/containers/{containerId}/rules",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *AccountsContainersRulesCreateCall) Context(ctx context.Context) *AccountsContainersRulesCreateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1961,44 +1903,25 @@ func (r *AccountsContainersRulesService) Create(accountId string, containerId st
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AccountsContainersRulesCreateCall) Fields(s ...googleapi.Field) *AccountsContainersRulesCreateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AccountsContainersRulesCreateCall) Do() (*Rule, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.rule)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "accounts/{accountId}/containers/{containerId}/rules")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Rule
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId":   c.accountId,
 		"containerId": c.containerId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.rule,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Rule
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Creates a GTM Rule.",
 	//   "httpMethod": "POST",
@@ -2038,55 +1961,48 @@ func (c *AccountsContainersRulesCreateCall) Do() (*Rule, error) {
 // method id "tagmanager.accounts.containers.rules.delete":
 
 type AccountsContainersRulesDeleteCall struct {
-	s           *Service
-	accountId   string
-	containerId string
-	ruleId      string
-	opt_        map[string]interface{}
+	s             *Service
+	accountId     string
+	containerId   string
+	ruleId        string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Delete: Deletes a GTM Rule.
-func (r *AccountsContainersRulesService) Delete(accountId string, containerId string, ruleId string) *AccountsContainersRulesDeleteCall {
-	c := &AccountsContainersRulesDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.containerId = containerId
-	c.ruleId = ruleId
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *AccountsContainersRulesDeleteCall) Fields(s ...googleapi.Field) *AccountsContainersRulesDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *AccountsContainersRulesService) Delete(accountId string, containerId string, ruleId string) *AccountsContainersRulesDeleteCall {
+	return &AccountsContainersRulesDeleteCall{
+		s:             r.s,
+		accountId:     accountId,
+		containerId:   containerId,
+		ruleId:        ruleId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "accounts/{accountId}/containers/{containerId}/rules/{ruleId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *AccountsContainersRulesDeleteCall) Context(ctx context.Context) *AccountsContainersRulesDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *AccountsContainersRulesDeleteCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "accounts/{accountId}/containers/{containerId}/rules/{ruleId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId":   c.accountId,
 		"containerId": c.containerId,
 		"ruleId":      c.ruleId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Deletes a GTM Rule.",
 	//   "httpMethod": "DELETE",
@@ -2127,19 +2043,32 @@ func (c *AccountsContainersRulesDeleteCall) Do() error {
 // method id "tagmanager.accounts.containers.rules.get":
 
 type AccountsContainersRulesGetCall struct {
-	s           *Service
-	accountId   string
-	containerId string
-	ruleId      string
-	opt_        map[string]interface{}
+	s             *Service
+	accountId     string
+	containerId   string
+	ruleId        string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Gets a GTM Rule.
+
 func (r *AccountsContainersRulesService) Get(accountId string, containerId string, ruleId string) *AccountsContainersRulesGetCall {
-	c := &AccountsContainersRulesGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.containerId = containerId
-	c.ruleId = ruleId
+	return &AccountsContainersRulesGetCall{
+		s:             r.s,
+		accountId:     accountId,
+		containerId:   containerId,
+		ruleId:        ruleId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "accounts/{accountId}/containers/{containerId}/rules/{ruleId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *AccountsContainersRulesGetCall) Context(ctx context.Context) *AccountsContainersRulesGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2147,39 +2076,25 @@ func (r *AccountsContainersRulesService) Get(accountId string, containerId strin
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AccountsContainersRulesGetCall) Fields(s ...googleapi.Field) *AccountsContainersRulesGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AccountsContainersRulesGetCall) Do() (*Rule, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "accounts/{accountId}/containers/{containerId}/rules/{ruleId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Rule
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId":   c.accountId,
 		"containerId": c.containerId,
 		"ruleId":      c.ruleId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Rule
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Gets a GTM Rule.",
 	//   "httpMethod": "GET",
@@ -2224,17 +2139,30 @@ func (c *AccountsContainersRulesGetCall) Do() (*Rule, error) {
 // method id "tagmanager.accounts.containers.rules.list":
 
 type AccountsContainersRulesListCall struct {
-	s           *Service
-	accountId   string
-	containerId string
-	opt_        map[string]interface{}
+	s             *Service
+	accountId     string
+	containerId   string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Lists all GTM Rules of a Container.
+
 func (r *AccountsContainersRulesService) List(accountId string, containerId string) *AccountsContainersRulesListCall {
-	c := &AccountsContainersRulesListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.containerId = containerId
+	return &AccountsContainersRulesListCall{
+		s:             r.s,
+		accountId:     accountId,
+		containerId:   containerId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "accounts/{accountId}/containers/{containerId}/rules",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *AccountsContainersRulesListCall) Context(ctx context.Context) *AccountsContainersRulesListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2242,38 +2170,24 @@ func (r *AccountsContainersRulesService) List(accountId string, containerId stri
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AccountsContainersRulesListCall) Fields(s ...googleapi.Field) *AccountsContainersRulesListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AccountsContainersRulesListCall) Do() (*ListRulesResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "accounts/{accountId}/containers/{containerId}/rules")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *ListRulesResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId":   c.accountId,
 		"containerId": c.containerId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ListRulesResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Lists all GTM Rules of a Container.",
 	//   "httpMethod": "GET",
@@ -2311,28 +2225,41 @@ func (c *AccountsContainersRulesListCall) Do() (*ListRulesResponse, error) {
 // method id "tagmanager.accounts.containers.rules.update":
 
 type AccountsContainersRulesUpdateCall struct {
-	s           *Service
-	accountId   string
-	containerId string
-	ruleId      string
-	rule        *Rule
-	opt_        map[string]interface{}
+	s             *Service
+	accountId     string
+	containerId   string
+	ruleId        string
+	rule          *Rule
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Update: Updates a GTM Rule.
+
 func (r *AccountsContainersRulesService) Update(accountId string, containerId string, ruleId string, rule *Rule) *AccountsContainersRulesUpdateCall {
-	c := &AccountsContainersRulesUpdateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.containerId = containerId
-	c.ruleId = ruleId
-	c.rule = rule
-	return c
+	return &AccountsContainersRulesUpdateCall{
+		s:             r.s,
+		accountId:     accountId,
+		containerId:   containerId,
+		ruleId:        ruleId,
+		rule:          rule,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "accounts/{accountId}/containers/{containerId}/rules/{ruleId}",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Fingerprint sets the optional parameter "fingerprint": When provided,
 // this fingerprint must match the fingerprint of the rule in storage.
 func (c *AccountsContainersRulesUpdateCall) Fingerprint(fingerprint string) *AccountsContainersRulesUpdateCall {
-	c.opt_["fingerprint"] = fingerprint
+	c.params_.Set("fingerprint", fmt.Sprintf("%v", fingerprint))
+	return c
+}
+func (c *AccountsContainersRulesUpdateCall) Context(ctx context.Context) *AccountsContainersRulesUpdateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2340,48 +2267,26 @@ func (c *AccountsContainersRulesUpdateCall) Fingerprint(fingerprint string) *Acc
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AccountsContainersRulesUpdateCall) Fields(s ...googleapi.Field) *AccountsContainersRulesUpdateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AccountsContainersRulesUpdateCall) Do() (*Rule, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.rule)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fingerprint"]; ok {
-		params.Set("fingerprint", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "accounts/{accountId}/containers/{containerId}/rules/{ruleId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Rule
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId":   c.accountId,
 		"containerId": c.containerId,
 		"ruleId":      c.ruleId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.rule,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Rule
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates a GTM Rule.",
 	//   "httpMethod": "PUT",
@@ -2433,19 +2338,32 @@ func (c *AccountsContainersRulesUpdateCall) Do() (*Rule, error) {
 // method id "tagmanager.accounts.containers.tags.create":
 
 type AccountsContainersTagsCreateCall struct {
-	s           *Service
-	accountId   string
-	containerId string
-	tag         *Tag
-	opt_        map[string]interface{}
+	s             *Service
+	accountId     string
+	containerId   string
+	tag           *Tag
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Create: Creates a GTM Tag.
+
 func (r *AccountsContainersTagsService) Create(accountId string, containerId string, tag *Tag) *AccountsContainersTagsCreateCall {
-	c := &AccountsContainersTagsCreateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.containerId = containerId
-	c.tag = tag
+	return &AccountsContainersTagsCreateCall{
+		s:             r.s,
+		accountId:     accountId,
+		containerId:   containerId,
+		tag:           tag,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "accounts/{accountId}/containers/{containerId}/tags",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *AccountsContainersTagsCreateCall) Context(ctx context.Context) *AccountsContainersTagsCreateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2453,44 +2371,25 @@ func (r *AccountsContainersTagsService) Create(accountId string, containerId str
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AccountsContainersTagsCreateCall) Fields(s ...googleapi.Field) *AccountsContainersTagsCreateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AccountsContainersTagsCreateCall) Do() (*Tag, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.tag)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "accounts/{accountId}/containers/{containerId}/tags")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Tag
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId":   c.accountId,
 		"containerId": c.containerId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.tag,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Tag
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Creates a GTM Tag.",
 	//   "httpMethod": "POST",
@@ -2530,55 +2429,48 @@ func (c *AccountsContainersTagsCreateCall) Do() (*Tag, error) {
 // method id "tagmanager.accounts.containers.tags.delete":
 
 type AccountsContainersTagsDeleteCall struct {
-	s           *Service
-	accountId   string
-	containerId string
-	tagId       string
-	opt_        map[string]interface{}
+	s             *Service
+	accountId     string
+	containerId   string
+	tagId         string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Delete: Deletes a GTM Tag.
-func (r *AccountsContainersTagsService) Delete(accountId string, containerId string, tagId string) *AccountsContainersTagsDeleteCall {
-	c := &AccountsContainersTagsDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.containerId = containerId
-	c.tagId = tagId
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *AccountsContainersTagsDeleteCall) Fields(s ...googleapi.Field) *AccountsContainersTagsDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *AccountsContainersTagsService) Delete(accountId string, containerId string, tagId string) *AccountsContainersTagsDeleteCall {
+	return &AccountsContainersTagsDeleteCall{
+		s:             r.s,
+		accountId:     accountId,
+		containerId:   containerId,
+		tagId:         tagId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "accounts/{accountId}/containers/{containerId}/tags/{tagId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *AccountsContainersTagsDeleteCall) Context(ctx context.Context) *AccountsContainersTagsDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *AccountsContainersTagsDeleteCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "accounts/{accountId}/containers/{containerId}/tags/{tagId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId":   c.accountId,
 		"containerId": c.containerId,
 		"tagId":       c.tagId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Deletes a GTM Tag.",
 	//   "httpMethod": "DELETE",
@@ -2619,19 +2511,32 @@ func (c *AccountsContainersTagsDeleteCall) Do() error {
 // method id "tagmanager.accounts.containers.tags.get":
 
 type AccountsContainersTagsGetCall struct {
-	s           *Service
-	accountId   string
-	containerId string
-	tagId       string
-	opt_        map[string]interface{}
+	s             *Service
+	accountId     string
+	containerId   string
+	tagId         string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Gets a GTM Tag.
+
 func (r *AccountsContainersTagsService) Get(accountId string, containerId string, tagId string) *AccountsContainersTagsGetCall {
-	c := &AccountsContainersTagsGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.containerId = containerId
-	c.tagId = tagId
+	return &AccountsContainersTagsGetCall{
+		s:             r.s,
+		accountId:     accountId,
+		containerId:   containerId,
+		tagId:         tagId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "accounts/{accountId}/containers/{containerId}/tags/{tagId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *AccountsContainersTagsGetCall) Context(ctx context.Context) *AccountsContainersTagsGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2639,39 +2544,25 @@ func (r *AccountsContainersTagsService) Get(accountId string, containerId string
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AccountsContainersTagsGetCall) Fields(s ...googleapi.Field) *AccountsContainersTagsGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AccountsContainersTagsGetCall) Do() (*Tag, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "accounts/{accountId}/containers/{containerId}/tags/{tagId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Tag
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId":   c.accountId,
 		"containerId": c.containerId,
 		"tagId":       c.tagId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Tag
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Gets a GTM Tag.",
 	//   "httpMethod": "GET",
@@ -2716,17 +2607,30 @@ func (c *AccountsContainersTagsGetCall) Do() (*Tag, error) {
 // method id "tagmanager.accounts.containers.tags.list":
 
 type AccountsContainersTagsListCall struct {
-	s           *Service
-	accountId   string
-	containerId string
-	opt_        map[string]interface{}
+	s             *Service
+	accountId     string
+	containerId   string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Lists all GTM Tags of a Container.
+
 func (r *AccountsContainersTagsService) List(accountId string, containerId string) *AccountsContainersTagsListCall {
-	c := &AccountsContainersTagsListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.containerId = containerId
+	return &AccountsContainersTagsListCall{
+		s:             r.s,
+		accountId:     accountId,
+		containerId:   containerId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "accounts/{accountId}/containers/{containerId}/tags",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *AccountsContainersTagsListCall) Context(ctx context.Context) *AccountsContainersTagsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2734,38 +2638,24 @@ func (r *AccountsContainersTagsService) List(accountId string, containerId strin
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AccountsContainersTagsListCall) Fields(s ...googleapi.Field) *AccountsContainersTagsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AccountsContainersTagsListCall) Do() (*ListTagsResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "accounts/{accountId}/containers/{containerId}/tags")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *ListTagsResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId":   c.accountId,
 		"containerId": c.containerId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ListTagsResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Lists all GTM Tags of a Container.",
 	//   "httpMethod": "GET",
@@ -2803,28 +2693,41 @@ func (c *AccountsContainersTagsListCall) Do() (*ListTagsResponse, error) {
 // method id "tagmanager.accounts.containers.tags.update":
 
 type AccountsContainersTagsUpdateCall struct {
-	s           *Service
-	accountId   string
-	containerId string
-	tagId       string
-	tag         *Tag
-	opt_        map[string]interface{}
+	s             *Service
+	accountId     string
+	containerId   string
+	tagId         string
+	tag           *Tag
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Update: Updates a GTM Tag.
+
 func (r *AccountsContainersTagsService) Update(accountId string, containerId string, tagId string, tag *Tag) *AccountsContainersTagsUpdateCall {
-	c := &AccountsContainersTagsUpdateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.containerId = containerId
-	c.tagId = tagId
-	c.tag = tag
-	return c
+	return &AccountsContainersTagsUpdateCall{
+		s:             r.s,
+		accountId:     accountId,
+		containerId:   containerId,
+		tagId:         tagId,
+		tag:           tag,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "accounts/{accountId}/containers/{containerId}/tags/{tagId}",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Fingerprint sets the optional parameter "fingerprint": When provided,
 // this fingerprint must match the fingerprint of the tag in storage.
 func (c *AccountsContainersTagsUpdateCall) Fingerprint(fingerprint string) *AccountsContainersTagsUpdateCall {
-	c.opt_["fingerprint"] = fingerprint
+	c.params_.Set("fingerprint", fmt.Sprintf("%v", fingerprint))
+	return c
+}
+func (c *AccountsContainersTagsUpdateCall) Context(ctx context.Context) *AccountsContainersTagsUpdateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2832,48 +2735,26 @@ func (c *AccountsContainersTagsUpdateCall) Fingerprint(fingerprint string) *Acco
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AccountsContainersTagsUpdateCall) Fields(s ...googleapi.Field) *AccountsContainersTagsUpdateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AccountsContainersTagsUpdateCall) Do() (*Tag, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.tag)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fingerprint"]; ok {
-		params.Set("fingerprint", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "accounts/{accountId}/containers/{containerId}/tags/{tagId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Tag
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId":   c.accountId,
 		"containerId": c.containerId,
 		"tagId":       c.tagId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.tag,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Tag
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates a GTM Tag.",
 	//   "httpMethod": "PUT",
@@ -2925,19 +2806,32 @@ func (c *AccountsContainersTagsUpdateCall) Do() (*Tag, error) {
 // method id "tagmanager.accounts.containers.triggers.create":
 
 type AccountsContainersTriggersCreateCall struct {
-	s           *Service
-	accountId   string
-	containerId string
-	trigger     *Trigger
-	opt_        map[string]interface{}
+	s             *Service
+	accountId     string
+	containerId   string
+	trigger       *Trigger
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Create: Creates a GTM Trigger.
+
 func (r *AccountsContainersTriggersService) Create(accountId string, containerId string, trigger *Trigger) *AccountsContainersTriggersCreateCall {
-	c := &AccountsContainersTriggersCreateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.containerId = containerId
-	c.trigger = trigger
+	return &AccountsContainersTriggersCreateCall{
+		s:             r.s,
+		accountId:     accountId,
+		containerId:   containerId,
+		trigger:       trigger,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "accounts/{accountId}/containers/{containerId}/triggers",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *AccountsContainersTriggersCreateCall) Context(ctx context.Context) *AccountsContainersTriggersCreateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2945,44 +2839,25 @@ func (r *AccountsContainersTriggersService) Create(accountId string, containerId
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AccountsContainersTriggersCreateCall) Fields(s ...googleapi.Field) *AccountsContainersTriggersCreateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AccountsContainersTriggersCreateCall) Do() (*Trigger, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.trigger)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "accounts/{accountId}/containers/{containerId}/triggers")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Trigger
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId":   c.accountId,
 		"containerId": c.containerId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.trigger,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Trigger
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Creates a GTM Trigger.",
 	//   "httpMethod": "POST",
@@ -3022,55 +2897,48 @@ func (c *AccountsContainersTriggersCreateCall) Do() (*Trigger, error) {
 // method id "tagmanager.accounts.containers.triggers.delete":
 
 type AccountsContainersTriggersDeleteCall struct {
-	s           *Service
-	accountId   string
-	containerId string
-	triggerId   string
-	opt_        map[string]interface{}
+	s             *Service
+	accountId     string
+	containerId   string
+	triggerId     string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Delete: Deletes a GTM Trigger.
-func (r *AccountsContainersTriggersService) Delete(accountId string, containerId string, triggerId string) *AccountsContainersTriggersDeleteCall {
-	c := &AccountsContainersTriggersDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.containerId = containerId
-	c.triggerId = triggerId
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *AccountsContainersTriggersDeleteCall) Fields(s ...googleapi.Field) *AccountsContainersTriggersDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *AccountsContainersTriggersService) Delete(accountId string, containerId string, triggerId string) *AccountsContainersTriggersDeleteCall {
+	return &AccountsContainersTriggersDeleteCall{
+		s:             r.s,
+		accountId:     accountId,
+		containerId:   containerId,
+		triggerId:     triggerId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "accounts/{accountId}/containers/{containerId}/triggers/{triggerId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *AccountsContainersTriggersDeleteCall) Context(ctx context.Context) *AccountsContainersTriggersDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *AccountsContainersTriggersDeleteCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "accounts/{accountId}/containers/{containerId}/triggers/{triggerId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId":   c.accountId,
 		"containerId": c.containerId,
 		"triggerId":   c.triggerId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Deletes a GTM Trigger.",
 	//   "httpMethod": "DELETE",
@@ -3111,19 +2979,32 @@ func (c *AccountsContainersTriggersDeleteCall) Do() error {
 // method id "tagmanager.accounts.containers.triggers.get":
 
 type AccountsContainersTriggersGetCall struct {
-	s           *Service
-	accountId   string
-	containerId string
-	triggerId   string
-	opt_        map[string]interface{}
+	s             *Service
+	accountId     string
+	containerId   string
+	triggerId     string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Gets a GTM Trigger.
+
 func (r *AccountsContainersTriggersService) Get(accountId string, containerId string, triggerId string) *AccountsContainersTriggersGetCall {
-	c := &AccountsContainersTriggersGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.containerId = containerId
-	c.triggerId = triggerId
+	return &AccountsContainersTriggersGetCall{
+		s:             r.s,
+		accountId:     accountId,
+		containerId:   containerId,
+		triggerId:     triggerId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "accounts/{accountId}/containers/{containerId}/triggers/{triggerId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *AccountsContainersTriggersGetCall) Context(ctx context.Context) *AccountsContainersTriggersGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -3131,39 +3012,25 @@ func (r *AccountsContainersTriggersService) Get(accountId string, containerId st
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AccountsContainersTriggersGetCall) Fields(s ...googleapi.Field) *AccountsContainersTriggersGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AccountsContainersTriggersGetCall) Do() (*Trigger, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "accounts/{accountId}/containers/{containerId}/triggers/{triggerId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Trigger
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId":   c.accountId,
 		"containerId": c.containerId,
 		"triggerId":   c.triggerId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Trigger
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Gets a GTM Trigger.",
 	//   "httpMethod": "GET",
@@ -3208,17 +3075,30 @@ func (c *AccountsContainersTriggersGetCall) Do() (*Trigger, error) {
 // method id "tagmanager.accounts.containers.triggers.list":
 
 type AccountsContainersTriggersListCall struct {
-	s           *Service
-	accountId   string
-	containerId string
-	opt_        map[string]interface{}
+	s             *Service
+	accountId     string
+	containerId   string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Lists all GTM Triggers of a Container.
+
 func (r *AccountsContainersTriggersService) List(accountId string, containerId string) *AccountsContainersTriggersListCall {
-	c := &AccountsContainersTriggersListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.containerId = containerId
+	return &AccountsContainersTriggersListCall{
+		s:             r.s,
+		accountId:     accountId,
+		containerId:   containerId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "accounts/{accountId}/containers/{containerId}/triggers",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *AccountsContainersTriggersListCall) Context(ctx context.Context) *AccountsContainersTriggersListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -3226,38 +3106,24 @@ func (r *AccountsContainersTriggersService) List(accountId string, containerId s
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AccountsContainersTriggersListCall) Fields(s ...googleapi.Field) *AccountsContainersTriggersListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AccountsContainersTriggersListCall) Do() (*ListTriggersResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "accounts/{accountId}/containers/{containerId}/triggers")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *ListTriggersResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId":   c.accountId,
 		"containerId": c.containerId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ListTriggersResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Lists all GTM Triggers of a Container.",
 	//   "httpMethod": "GET",
@@ -3295,29 +3161,42 @@ func (c *AccountsContainersTriggersListCall) Do() (*ListTriggersResponse, error)
 // method id "tagmanager.accounts.containers.triggers.update":
 
 type AccountsContainersTriggersUpdateCall struct {
-	s           *Service
-	accountId   string
-	containerId string
-	triggerId   string
-	trigger     *Trigger
-	opt_        map[string]interface{}
+	s             *Service
+	accountId     string
+	containerId   string
+	triggerId     string
+	trigger       *Trigger
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Update: Updates a GTM Trigger.
+
 func (r *AccountsContainersTriggersService) Update(accountId string, containerId string, triggerId string, trigger *Trigger) *AccountsContainersTriggersUpdateCall {
-	c := &AccountsContainersTriggersUpdateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.containerId = containerId
-	c.triggerId = triggerId
-	c.trigger = trigger
-	return c
+	return &AccountsContainersTriggersUpdateCall{
+		s:             r.s,
+		accountId:     accountId,
+		containerId:   containerId,
+		triggerId:     triggerId,
+		trigger:       trigger,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "accounts/{accountId}/containers/{containerId}/triggers/{triggerId}",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Fingerprint sets the optional parameter "fingerprint": When provided,
 // this fingerprint must match the fingerprint of the trigger in
 // storage.
 func (c *AccountsContainersTriggersUpdateCall) Fingerprint(fingerprint string) *AccountsContainersTriggersUpdateCall {
-	c.opt_["fingerprint"] = fingerprint
+	c.params_.Set("fingerprint", fmt.Sprintf("%v", fingerprint))
+	return c
+}
+func (c *AccountsContainersTriggersUpdateCall) Context(ctx context.Context) *AccountsContainersTriggersUpdateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -3325,48 +3204,26 @@ func (c *AccountsContainersTriggersUpdateCall) Fingerprint(fingerprint string) *
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AccountsContainersTriggersUpdateCall) Fields(s ...googleapi.Field) *AccountsContainersTriggersUpdateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AccountsContainersTriggersUpdateCall) Do() (*Trigger, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.trigger)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fingerprint"]; ok {
-		params.Set("fingerprint", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "accounts/{accountId}/containers/{containerId}/triggers/{triggerId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Trigger
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId":   c.accountId,
 		"containerId": c.containerId,
 		"triggerId":   c.triggerId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.trigger,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Trigger
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates a GTM Trigger.",
 	//   "httpMethod": "PUT",
@@ -3418,19 +3275,32 @@ func (c *AccountsContainersTriggersUpdateCall) Do() (*Trigger, error) {
 // method id "tagmanager.accounts.containers.variables.create":
 
 type AccountsContainersVariablesCreateCall struct {
-	s           *Service
-	accountId   string
-	containerId string
-	variable    *Variable
-	opt_        map[string]interface{}
+	s             *Service
+	accountId     string
+	containerId   string
+	variable      *Variable
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Create: Creates a GTM Variable.
+
 func (r *AccountsContainersVariablesService) Create(accountId string, containerId string, variable *Variable) *AccountsContainersVariablesCreateCall {
-	c := &AccountsContainersVariablesCreateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.containerId = containerId
-	c.variable = variable
+	return &AccountsContainersVariablesCreateCall{
+		s:             r.s,
+		accountId:     accountId,
+		containerId:   containerId,
+		variable:      variable,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "accounts/{accountId}/containers/{containerId}/variables",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *AccountsContainersVariablesCreateCall) Context(ctx context.Context) *AccountsContainersVariablesCreateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -3438,44 +3308,25 @@ func (r *AccountsContainersVariablesService) Create(accountId string, containerI
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AccountsContainersVariablesCreateCall) Fields(s ...googleapi.Field) *AccountsContainersVariablesCreateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AccountsContainersVariablesCreateCall) Do() (*Variable, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.variable)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "accounts/{accountId}/containers/{containerId}/variables")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Variable
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId":   c.accountId,
 		"containerId": c.containerId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.variable,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Variable
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Creates a GTM Variable.",
 	//   "httpMethod": "POST",
@@ -3515,55 +3366,48 @@ func (c *AccountsContainersVariablesCreateCall) Do() (*Variable, error) {
 // method id "tagmanager.accounts.containers.variables.delete":
 
 type AccountsContainersVariablesDeleteCall struct {
-	s           *Service
-	accountId   string
-	containerId string
-	variableId  string
-	opt_        map[string]interface{}
+	s             *Service
+	accountId     string
+	containerId   string
+	variableId    string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Delete: Deletes a GTM Variable.
-func (r *AccountsContainersVariablesService) Delete(accountId string, containerId string, variableId string) *AccountsContainersVariablesDeleteCall {
-	c := &AccountsContainersVariablesDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.containerId = containerId
-	c.variableId = variableId
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *AccountsContainersVariablesDeleteCall) Fields(s ...googleapi.Field) *AccountsContainersVariablesDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *AccountsContainersVariablesService) Delete(accountId string, containerId string, variableId string) *AccountsContainersVariablesDeleteCall {
+	return &AccountsContainersVariablesDeleteCall{
+		s:             r.s,
+		accountId:     accountId,
+		containerId:   containerId,
+		variableId:    variableId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "accounts/{accountId}/containers/{containerId}/variables/{variableId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *AccountsContainersVariablesDeleteCall) Context(ctx context.Context) *AccountsContainersVariablesDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *AccountsContainersVariablesDeleteCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "accounts/{accountId}/containers/{containerId}/variables/{variableId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId":   c.accountId,
 		"containerId": c.containerId,
 		"variableId":  c.variableId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Deletes a GTM Variable.",
 	//   "httpMethod": "DELETE",
@@ -3604,19 +3448,32 @@ func (c *AccountsContainersVariablesDeleteCall) Do() error {
 // method id "tagmanager.accounts.containers.variables.get":
 
 type AccountsContainersVariablesGetCall struct {
-	s           *Service
-	accountId   string
-	containerId string
-	variableId  string
-	opt_        map[string]interface{}
+	s             *Service
+	accountId     string
+	containerId   string
+	variableId    string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Gets a GTM Variable.
+
 func (r *AccountsContainersVariablesService) Get(accountId string, containerId string, variableId string) *AccountsContainersVariablesGetCall {
-	c := &AccountsContainersVariablesGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.containerId = containerId
-	c.variableId = variableId
+	return &AccountsContainersVariablesGetCall{
+		s:             r.s,
+		accountId:     accountId,
+		containerId:   containerId,
+		variableId:    variableId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "accounts/{accountId}/containers/{containerId}/variables/{variableId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *AccountsContainersVariablesGetCall) Context(ctx context.Context) *AccountsContainersVariablesGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -3624,39 +3481,25 @@ func (r *AccountsContainersVariablesService) Get(accountId string, containerId s
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AccountsContainersVariablesGetCall) Fields(s ...googleapi.Field) *AccountsContainersVariablesGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AccountsContainersVariablesGetCall) Do() (*Variable, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "accounts/{accountId}/containers/{containerId}/variables/{variableId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Variable
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId":   c.accountId,
 		"containerId": c.containerId,
 		"variableId":  c.variableId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Variable
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Gets a GTM Variable.",
 	//   "httpMethod": "GET",
@@ -3701,17 +3544,30 @@ func (c *AccountsContainersVariablesGetCall) Do() (*Variable, error) {
 // method id "tagmanager.accounts.containers.variables.list":
 
 type AccountsContainersVariablesListCall struct {
-	s           *Service
-	accountId   string
-	containerId string
-	opt_        map[string]interface{}
+	s             *Service
+	accountId     string
+	containerId   string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Lists all GTM Variables of a Container.
+
 func (r *AccountsContainersVariablesService) List(accountId string, containerId string) *AccountsContainersVariablesListCall {
-	c := &AccountsContainersVariablesListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.containerId = containerId
+	return &AccountsContainersVariablesListCall{
+		s:             r.s,
+		accountId:     accountId,
+		containerId:   containerId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "accounts/{accountId}/containers/{containerId}/variables",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *AccountsContainersVariablesListCall) Context(ctx context.Context) *AccountsContainersVariablesListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -3719,38 +3575,24 @@ func (r *AccountsContainersVariablesService) List(accountId string, containerId 
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AccountsContainersVariablesListCall) Fields(s ...googleapi.Field) *AccountsContainersVariablesListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AccountsContainersVariablesListCall) Do() (*ListVariablesResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "accounts/{accountId}/containers/{containerId}/variables")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *ListVariablesResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId":   c.accountId,
 		"containerId": c.containerId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ListVariablesResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Lists all GTM Variables of a Container.",
 	//   "httpMethod": "GET",
@@ -3788,29 +3630,42 @@ func (c *AccountsContainersVariablesListCall) Do() (*ListVariablesResponse, erro
 // method id "tagmanager.accounts.containers.variables.update":
 
 type AccountsContainersVariablesUpdateCall struct {
-	s           *Service
-	accountId   string
-	containerId string
-	variableId  string
-	variable    *Variable
-	opt_        map[string]interface{}
+	s             *Service
+	accountId     string
+	containerId   string
+	variableId    string
+	variable      *Variable
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Update: Updates a GTM Variable.
+
 func (r *AccountsContainersVariablesService) Update(accountId string, containerId string, variableId string, variable *Variable) *AccountsContainersVariablesUpdateCall {
-	c := &AccountsContainersVariablesUpdateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.containerId = containerId
-	c.variableId = variableId
-	c.variable = variable
-	return c
+	return &AccountsContainersVariablesUpdateCall{
+		s:             r.s,
+		accountId:     accountId,
+		containerId:   containerId,
+		variableId:    variableId,
+		variable:      variable,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "accounts/{accountId}/containers/{containerId}/variables/{variableId}",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Fingerprint sets the optional parameter "fingerprint": When provided,
 // this fingerprint must match the fingerprint of the variable in
 // storage.
 func (c *AccountsContainersVariablesUpdateCall) Fingerprint(fingerprint string) *AccountsContainersVariablesUpdateCall {
-	c.opt_["fingerprint"] = fingerprint
+	c.params_.Set("fingerprint", fmt.Sprintf("%v", fingerprint))
+	return c
+}
+func (c *AccountsContainersVariablesUpdateCall) Context(ctx context.Context) *AccountsContainersVariablesUpdateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -3818,48 +3673,26 @@ func (c *AccountsContainersVariablesUpdateCall) Fingerprint(fingerprint string) 
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AccountsContainersVariablesUpdateCall) Fields(s ...googleapi.Field) *AccountsContainersVariablesUpdateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AccountsContainersVariablesUpdateCall) Do() (*Variable, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.variable)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fingerprint"]; ok {
-		params.Set("fingerprint", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "accounts/{accountId}/containers/{containerId}/variables/{variableId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Variable
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId":   c.accountId,
 		"containerId": c.containerId,
 		"variableId":  c.variableId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.variable,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Variable
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates a GTM Variable.",
 	//   "httpMethod": "PUT",
@@ -3915,15 +3748,28 @@ type AccountsContainersVersionsCreateCall struct {
 	accountId                                   string
 	containerId                                 string
 	createcontainerversionrequestversionoptions *CreateContainerVersionRequestVersionOptions
-	opt_                                        map[string]interface{}
+	caller_                                     googleapi.Caller
+	params_                                     url.Values
+	pathTemplate_                               string
+	context_                                    context.Context
 }
 
 // Create: Creates a Container Version.
+
 func (r *AccountsContainersVersionsService) Create(accountId string, containerId string, createcontainerversionrequestversionoptions *CreateContainerVersionRequestVersionOptions) *AccountsContainersVersionsCreateCall {
-	c := &AccountsContainersVersionsCreateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.containerId = containerId
-	c.createcontainerversionrequestversionoptions = createcontainerversionrequestversionoptions
+	return &AccountsContainersVersionsCreateCall{
+		s:                                           r.s,
+		accountId:                                   accountId,
+		containerId:                                 containerId,
+		createcontainerversionrequestversionoptions: createcontainerversionrequestversionoptions,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "accounts/{accountId}/containers/{containerId}/versions",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *AccountsContainersVersionsCreateCall) Context(ctx context.Context) *AccountsContainersVersionsCreateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -3931,44 +3777,25 @@ func (r *AccountsContainersVersionsService) Create(accountId string, containerId
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AccountsContainersVersionsCreateCall) Fields(s ...googleapi.Field) *AccountsContainersVersionsCreateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AccountsContainersVersionsCreateCall) Do() (*CreateContainerVersionResponse, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.createcontainerversionrequestversionoptions)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "accounts/{accountId}/containers/{containerId}/versions")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *CreateContainerVersionResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId":   c.accountId,
 		"containerId": c.containerId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.createcontainerversionrequestversionoptions,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *CreateContainerVersionResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Creates a Container Version.",
 	//   "httpMethod": "POST",
@@ -4012,51 +3839,44 @@ type AccountsContainersVersionsDeleteCall struct {
 	accountId          string
 	containerId        string
 	containerVersionId string
-	opt_               map[string]interface{}
+	caller_            googleapi.Caller
+	params_            url.Values
+	pathTemplate_      string
+	context_           context.Context
 }
 
 // Delete: Deletes a Container Version.
-func (r *AccountsContainersVersionsService) Delete(accountId string, containerId string, containerVersionId string) *AccountsContainersVersionsDeleteCall {
-	c := &AccountsContainersVersionsDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.containerId = containerId
-	c.containerVersionId = containerVersionId
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *AccountsContainersVersionsDeleteCall) Fields(s ...googleapi.Field) *AccountsContainersVersionsDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *AccountsContainersVersionsService) Delete(accountId string, containerId string, containerVersionId string) *AccountsContainersVersionsDeleteCall {
+	return &AccountsContainersVersionsDeleteCall{
+		s:                  r.s,
+		accountId:          accountId,
+		containerId:        containerId,
+		containerVersionId: containerVersionId,
+		caller_:            googleapi.JSONCall{},
+		params_:            make(map[string][]string),
+		pathTemplate_:      "accounts/{accountId}/containers/{containerId}/versions/{containerVersionId}",
+		context_:           googleapi.NoContext,
+	}
+}
+func (c *AccountsContainersVersionsDeleteCall) Context(ctx context.Context) *AccountsContainersVersionsDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *AccountsContainersVersionsDeleteCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "accounts/{accountId}/containers/{containerId}/versions/{containerVersionId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId":          c.accountId,
 		"containerId":        c.containerId,
 		"containerVersionId": c.containerVersionId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Deletes a Container Version.",
 	//   "httpMethod": "DELETE",
@@ -4101,15 +3921,28 @@ type AccountsContainersVersionsGetCall struct {
 	accountId          string
 	containerId        string
 	containerVersionId string
-	opt_               map[string]interface{}
+	caller_            googleapi.Caller
+	params_            url.Values
+	pathTemplate_      string
+	context_           context.Context
 }
 
 // Get: Gets a Container Version.
+
 func (r *AccountsContainersVersionsService) Get(accountId string, containerId string, containerVersionId string) *AccountsContainersVersionsGetCall {
-	c := &AccountsContainersVersionsGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.containerId = containerId
-	c.containerVersionId = containerVersionId
+	return &AccountsContainersVersionsGetCall{
+		s:                  r.s,
+		accountId:          accountId,
+		containerId:        containerId,
+		containerVersionId: containerVersionId,
+		caller_:            googleapi.JSONCall{},
+		params_:            make(map[string][]string),
+		pathTemplate_:      "accounts/{accountId}/containers/{containerId}/versions/{containerVersionId}",
+		context_:           googleapi.NoContext,
+	}
+}
+func (c *AccountsContainersVersionsGetCall) Context(ctx context.Context) *AccountsContainersVersionsGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -4117,39 +3950,25 @@ func (r *AccountsContainersVersionsService) Get(accountId string, containerId st
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AccountsContainersVersionsGetCall) Fields(s ...googleapi.Field) *AccountsContainersVersionsGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AccountsContainersVersionsGetCall) Do() (*ContainerVersion, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "accounts/{accountId}/containers/{containerId}/versions/{containerVersionId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *ContainerVersion
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId":          c.accountId,
 		"containerId":        c.containerId,
 		"containerVersionId": c.containerVersionId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ContainerVersion
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Gets a Container Version.",
 	//   "httpMethod": "GET",
@@ -4195,24 +4014,37 @@ func (c *AccountsContainersVersionsGetCall) Do() (*ContainerVersion, error) {
 // method id "tagmanager.accounts.containers.versions.list":
 
 type AccountsContainersVersionsListCall struct {
-	s           *Service
-	accountId   string
-	containerId string
-	opt_        map[string]interface{}
+	s             *Service
+	accountId     string
+	containerId   string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Lists all Container Versions of a GTM Container.
+
 func (r *AccountsContainersVersionsService) List(accountId string, containerId string) *AccountsContainersVersionsListCall {
-	c := &AccountsContainersVersionsListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.containerId = containerId
-	return c
+	return &AccountsContainersVersionsListCall{
+		s:             r.s,
+		accountId:     accountId,
+		containerId:   containerId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "accounts/{accountId}/containers/{containerId}/versions",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Headers sets the optional parameter "headers": Retrieve headers only
 // when true.
 func (c *AccountsContainersVersionsListCall) Headers(headers bool) *AccountsContainersVersionsListCall {
-	c.opt_["headers"] = headers
+	c.params_.Set("headers", fmt.Sprintf("%v", headers))
+	return c
+}
+func (c *AccountsContainersVersionsListCall) Context(ctx context.Context) *AccountsContainersVersionsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -4220,41 +4052,24 @@ func (c *AccountsContainersVersionsListCall) Headers(headers bool) *AccountsCont
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AccountsContainersVersionsListCall) Fields(s ...googleapi.Field) *AccountsContainersVersionsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AccountsContainersVersionsListCall) Do() (*ListContainerVersionsResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["headers"]; ok {
-		params.Set("headers", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "accounts/{accountId}/containers/{containerId}/versions")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *ListContainerVersionsResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId":   c.accountId,
 		"containerId": c.containerId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ListContainerVersionsResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Lists all Container Versions of a GTM Container.",
 	//   "httpMethod": "GET",
@@ -4303,23 +4118,36 @@ type AccountsContainersVersionsPublishCall struct {
 	accountId          string
 	containerId        string
 	containerVersionId string
-	opt_               map[string]interface{}
+	caller_            googleapi.Caller
+	params_            url.Values
+	pathTemplate_      string
+	context_           context.Context
 }
 
 // Publish: Publishes a Container Version.
+
 func (r *AccountsContainersVersionsService) Publish(accountId string, containerId string, containerVersionId string) *AccountsContainersVersionsPublishCall {
-	c := &AccountsContainersVersionsPublishCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.containerId = containerId
-	c.containerVersionId = containerVersionId
-	return c
+	return &AccountsContainersVersionsPublishCall{
+		s:                  r.s,
+		accountId:          accountId,
+		containerId:        containerId,
+		containerVersionId: containerVersionId,
+		caller_:            googleapi.JSONCall{},
+		params_:            make(map[string][]string),
+		pathTemplate_:      "accounts/{accountId}/containers/{containerId}/versions/{containerVersionId}/publish",
+		context_:           googleapi.NoContext,
+	}
 }
 
 // Fingerprint sets the optional parameter "fingerprint": When provided,
 // this fingerprint must match the fingerprint of the container version
 // in storage.
 func (c *AccountsContainersVersionsPublishCall) Fingerprint(fingerprint string) *AccountsContainersVersionsPublishCall {
-	c.opt_["fingerprint"] = fingerprint
+	c.params_.Set("fingerprint", fmt.Sprintf("%v", fingerprint))
+	return c
+}
+func (c *AccountsContainersVersionsPublishCall) Context(ctx context.Context) *AccountsContainersVersionsPublishCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -4327,42 +4155,25 @@ func (c *AccountsContainersVersionsPublishCall) Fingerprint(fingerprint string) 
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AccountsContainersVersionsPublishCall) Fields(s ...googleapi.Field) *AccountsContainersVersionsPublishCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AccountsContainersVersionsPublishCall) Do() (*PublishContainerVersionResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fingerprint"]; ok {
-		params.Set("fingerprint", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "accounts/{accountId}/containers/{containerId}/versions/{containerVersionId}/publish")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *PublishContainerVersionResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId":          c.accountId,
 		"containerId":        c.containerId,
 		"containerVersionId": c.containerVersionId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "POST",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *PublishContainerVersionResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Publishes a Container Version.",
 	//   "httpMethod": "POST",
@@ -4415,18 +4226,31 @@ type AccountsContainersVersionsRestoreCall struct {
 	accountId          string
 	containerId        string
 	containerVersionId string
-	opt_               map[string]interface{}
+	caller_            googleapi.Caller
+	params_            url.Values
+	pathTemplate_      string
+	context_           context.Context
 }
 
 // Restore: Restores a Container Version. This will overwrite the
 // container's current configuration (including its macros, rules and
 // tags). The operation will not have any effect on the version that is
 // being served (i.e. the published version).
+
 func (r *AccountsContainersVersionsService) Restore(accountId string, containerId string, containerVersionId string) *AccountsContainersVersionsRestoreCall {
-	c := &AccountsContainersVersionsRestoreCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.containerId = containerId
-	c.containerVersionId = containerVersionId
+	return &AccountsContainersVersionsRestoreCall{
+		s:                  r.s,
+		accountId:          accountId,
+		containerId:        containerId,
+		containerVersionId: containerVersionId,
+		caller_:            googleapi.JSONCall{},
+		params_:            make(map[string][]string),
+		pathTemplate_:      "accounts/{accountId}/containers/{containerId}/versions/{containerVersionId}/restore",
+		context_:           googleapi.NoContext,
+	}
+}
+func (c *AccountsContainersVersionsRestoreCall) Context(ctx context.Context) *AccountsContainersVersionsRestoreCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -4434,39 +4258,25 @@ func (r *AccountsContainersVersionsService) Restore(accountId string, containerI
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AccountsContainersVersionsRestoreCall) Fields(s ...googleapi.Field) *AccountsContainersVersionsRestoreCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AccountsContainersVersionsRestoreCall) Do() (*ContainerVersion, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "accounts/{accountId}/containers/{containerId}/versions/{containerVersionId}/restore")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *ContainerVersion
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId":          c.accountId,
 		"containerId":        c.containerId,
 		"containerVersionId": c.containerVersionId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "POST",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ContainerVersion
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Restores a Container Version. This will overwrite the container's current configuration (including its macros, rules and tags). The operation will not have any effect on the version that is being served (i.e. the published version).",
 	//   "httpMethod": "POST",
@@ -4514,15 +4324,28 @@ type AccountsContainersVersionsUndeleteCall struct {
 	accountId          string
 	containerId        string
 	containerVersionId string
-	opt_               map[string]interface{}
+	caller_            googleapi.Caller
+	params_            url.Values
+	pathTemplate_      string
+	context_           context.Context
 }
 
 // Undelete: Undeletes a Container Version.
+
 func (r *AccountsContainersVersionsService) Undelete(accountId string, containerId string, containerVersionId string) *AccountsContainersVersionsUndeleteCall {
-	c := &AccountsContainersVersionsUndeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.containerId = containerId
-	c.containerVersionId = containerVersionId
+	return &AccountsContainersVersionsUndeleteCall{
+		s:                  r.s,
+		accountId:          accountId,
+		containerId:        containerId,
+		containerVersionId: containerVersionId,
+		caller_:            googleapi.JSONCall{},
+		params_:            make(map[string][]string),
+		pathTemplate_:      "accounts/{accountId}/containers/{containerId}/versions/{containerVersionId}/undelete",
+		context_:           googleapi.NoContext,
+	}
+}
+func (c *AccountsContainersVersionsUndeleteCall) Context(ctx context.Context) *AccountsContainersVersionsUndeleteCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -4530,39 +4353,25 @@ func (r *AccountsContainersVersionsService) Undelete(accountId string, container
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AccountsContainersVersionsUndeleteCall) Fields(s ...googleapi.Field) *AccountsContainersVersionsUndeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AccountsContainersVersionsUndeleteCall) Do() (*ContainerVersion, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "accounts/{accountId}/containers/{containerId}/versions/{containerVersionId}/undelete")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *ContainerVersion
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId":          c.accountId,
 		"containerId":        c.containerId,
 		"containerVersionId": c.containerVersionId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "POST",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ContainerVersion
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Undeletes a Container Version.",
 	//   "httpMethod": "POST",
@@ -4611,24 +4420,37 @@ type AccountsContainersVersionsUpdateCall struct {
 	containerId        string
 	containerVersionId string
 	containerversion   *ContainerVersion
-	opt_               map[string]interface{}
+	caller_            googleapi.Caller
+	params_            url.Values
+	pathTemplate_      string
+	context_           context.Context
 }
 
 // Update: Updates a Container Version.
+
 func (r *AccountsContainersVersionsService) Update(accountId string, containerId string, containerVersionId string, containerversion *ContainerVersion) *AccountsContainersVersionsUpdateCall {
-	c := &AccountsContainersVersionsUpdateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.containerId = containerId
-	c.containerVersionId = containerVersionId
-	c.containerversion = containerversion
-	return c
+	return &AccountsContainersVersionsUpdateCall{
+		s:                  r.s,
+		accountId:          accountId,
+		containerId:        containerId,
+		containerVersionId: containerVersionId,
+		containerversion:   containerversion,
+		caller_:            googleapi.JSONCall{},
+		params_:            make(map[string][]string),
+		pathTemplate_:      "accounts/{accountId}/containers/{containerId}/versions/{containerVersionId}",
+		context_:           googleapi.NoContext,
+	}
 }
 
 // Fingerprint sets the optional parameter "fingerprint": When provided,
 // this fingerprint must match the fingerprint of the container version
 // in storage.
 func (c *AccountsContainersVersionsUpdateCall) Fingerprint(fingerprint string) *AccountsContainersVersionsUpdateCall {
-	c.opt_["fingerprint"] = fingerprint
+	c.params_.Set("fingerprint", fmt.Sprintf("%v", fingerprint))
+	return c
+}
+func (c *AccountsContainersVersionsUpdateCall) Context(ctx context.Context) *AccountsContainersVersionsUpdateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -4636,48 +4458,26 @@ func (c *AccountsContainersVersionsUpdateCall) Fingerprint(fingerprint string) *
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AccountsContainersVersionsUpdateCall) Fields(s ...googleapi.Field) *AccountsContainersVersionsUpdateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AccountsContainersVersionsUpdateCall) Do() (*ContainerVersion, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.containerversion)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fingerprint"]; ok {
-		params.Set("fingerprint", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "accounts/{accountId}/containers/{containerId}/versions/{containerVersionId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *ContainerVersion
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId":          c.accountId,
 		"containerId":        c.containerId,
 		"containerVersionId": c.containerVersionId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.containerversion,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ContainerVersion
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates a Container Version.",
 	//   "httpMethod": "PUT",
@@ -4729,17 +4529,30 @@ func (c *AccountsContainersVersionsUpdateCall) Do() (*ContainerVersion, error) {
 // method id "tagmanager.accounts.permissions.create":
 
 type AccountsPermissionsCreateCall struct {
-	s          *Service
-	accountId  string
-	useraccess *UserAccess
-	opt_       map[string]interface{}
+	s             *Service
+	accountId     string
+	useraccess    *UserAccess
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Create: Creates a user's Account & Container Permissions.
+
 func (r *AccountsPermissionsService) Create(accountId string, useraccess *UserAccess) *AccountsPermissionsCreateCall {
-	c := &AccountsPermissionsCreateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.useraccess = useraccess
+	return &AccountsPermissionsCreateCall{
+		s:             r.s,
+		accountId:     accountId,
+		useraccess:    useraccess,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "accounts/{accountId}/permissions",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *AccountsPermissionsCreateCall) Context(ctx context.Context) *AccountsPermissionsCreateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -4747,43 +4560,24 @@ func (r *AccountsPermissionsService) Create(accountId string, useraccess *UserAc
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AccountsPermissionsCreateCall) Fields(s ...googleapi.Field) *AccountsPermissionsCreateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AccountsPermissionsCreateCall) Do() (*UserAccess, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.useraccess)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "accounts/{accountId}/permissions")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *UserAccess
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId": c.accountId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.useraccess,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *UserAccess
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Creates a user's Account \u0026 Container Permissions.",
 	//   "httpMethod": "POST",
@@ -4816,53 +4610,46 @@ func (c *AccountsPermissionsCreateCall) Do() (*UserAccess, error) {
 // method id "tagmanager.accounts.permissions.delete":
 
 type AccountsPermissionsDeleteCall struct {
-	s            *Service
-	accountId    string
-	permissionId string
-	opt_         map[string]interface{}
+	s             *Service
+	accountId     string
+	permissionId  string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Delete: Removes a user from the account, revoking access to it and
 // all of its containers.
-func (r *AccountsPermissionsService) Delete(accountId string, permissionId string) *AccountsPermissionsDeleteCall {
-	c := &AccountsPermissionsDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.permissionId = permissionId
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *AccountsPermissionsDeleteCall) Fields(s ...googleapi.Field) *AccountsPermissionsDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *AccountsPermissionsService) Delete(accountId string, permissionId string) *AccountsPermissionsDeleteCall {
+	return &AccountsPermissionsDeleteCall{
+		s:             r.s,
+		accountId:     accountId,
+		permissionId:  permissionId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "accounts/{accountId}/permissions/{permissionId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *AccountsPermissionsDeleteCall) Context(ctx context.Context) *AccountsPermissionsDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *AccountsPermissionsDeleteCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "accounts/{accountId}/permissions/{permissionId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId":    c.accountId,
 		"permissionId": c.permissionId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Removes a user from the account, revoking access to it and all of its containers.",
 	//   "httpMethod": "DELETE",
@@ -4896,17 +4683,30 @@ func (c *AccountsPermissionsDeleteCall) Do() error {
 // method id "tagmanager.accounts.permissions.get":
 
 type AccountsPermissionsGetCall struct {
-	s            *Service
-	accountId    string
-	permissionId string
-	opt_         map[string]interface{}
+	s             *Service
+	accountId     string
+	permissionId  string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Gets a user's Account & Container Permissions.
+
 func (r *AccountsPermissionsService) Get(accountId string, permissionId string) *AccountsPermissionsGetCall {
-	c := &AccountsPermissionsGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.permissionId = permissionId
+	return &AccountsPermissionsGetCall{
+		s:             r.s,
+		accountId:     accountId,
+		permissionId:  permissionId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "accounts/{accountId}/permissions/{permissionId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *AccountsPermissionsGetCall) Context(ctx context.Context) *AccountsPermissionsGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -4914,38 +4714,24 @@ func (r *AccountsPermissionsService) Get(accountId string, permissionId string) 
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AccountsPermissionsGetCall) Fields(s ...googleapi.Field) *AccountsPermissionsGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AccountsPermissionsGetCall) Do() (*UserAccess, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "accounts/{accountId}/permissions/{permissionId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *UserAccess
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId":    c.accountId,
 		"permissionId": c.permissionId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *UserAccess
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Gets a user's Account \u0026 Container Permissions.",
 	//   "httpMethod": "GET",
@@ -4982,16 +4768,29 @@ func (c *AccountsPermissionsGetCall) Do() (*UserAccess, error) {
 // method id "tagmanager.accounts.permissions.list":
 
 type AccountsPermissionsListCall struct {
-	s         *Service
-	accountId string
-	opt_      map[string]interface{}
+	s             *Service
+	accountId     string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: List all users that have access to the account along with
 // Account and Container Permissions granted to each of them.
+
 func (r *AccountsPermissionsService) List(accountId string) *AccountsPermissionsListCall {
-	c := &AccountsPermissionsListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
+	return &AccountsPermissionsListCall{
+		s:             r.s,
+		accountId:     accountId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "accounts/{accountId}/permissions",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *AccountsPermissionsListCall) Context(ctx context.Context) *AccountsPermissionsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -4999,37 +4798,23 @@ func (r *AccountsPermissionsService) List(accountId string) *AccountsPermissions
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AccountsPermissionsListCall) Fields(s ...googleapi.Field) *AccountsPermissionsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AccountsPermissionsListCall) Do() (*ListAccountUsersResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "accounts/{accountId}/permissions")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *ListAccountUsersResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId": c.accountId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ListAccountUsersResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "List all users that have access to the account along with Account and Container Permissions granted to each of them.",
 	//   "httpMethod": "GET",
@@ -5059,19 +4844,32 @@ func (c *AccountsPermissionsListCall) Do() (*ListAccountUsersResponse, error) {
 // method id "tagmanager.accounts.permissions.update":
 
 type AccountsPermissionsUpdateCall struct {
-	s            *Service
-	accountId    string
-	permissionId string
-	useraccess   *UserAccess
-	opt_         map[string]interface{}
+	s             *Service
+	accountId     string
+	permissionId  string
+	useraccess    *UserAccess
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Update: Updates a user's Account & Container Permissions.
+
 func (r *AccountsPermissionsService) Update(accountId string, permissionId string, useraccess *UserAccess) *AccountsPermissionsUpdateCall {
-	c := &AccountsPermissionsUpdateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.permissionId = permissionId
-	c.useraccess = useraccess
+	return &AccountsPermissionsUpdateCall{
+		s:             r.s,
+		accountId:     accountId,
+		permissionId:  permissionId,
+		useraccess:    useraccess,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "accounts/{accountId}/permissions/{permissionId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *AccountsPermissionsUpdateCall) Context(ctx context.Context) *AccountsPermissionsUpdateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -5079,44 +4877,25 @@ func (r *AccountsPermissionsService) Update(accountId string, permissionId strin
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AccountsPermissionsUpdateCall) Fields(s ...googleapi.Field) *AccountsPermissionsUpdateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AccountsPermissionsUpdateCall) Do() (*UserAccess, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.useraccess)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "accounts/{accountId}/permissions/{permissionId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *UserAccess
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId":    c.accountId,
 		"permissionId": c.permissionId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.useraccess,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *UserAccess
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates a user's Account \u0026 Container Permissions.",
 	//   "httpMethod": "PUT",

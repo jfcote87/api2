@@ -4,18 +4,16 @@
 //
 // Usage example:
 //
-//   import "google.golang.org/api/groupsmigration/v1"
+//   import "github.com/jfcote87/api2/groupsmigration/v1"
 //   ...
 //   groupsmigrationService, err := groupsmigration.New(oauthHttpClient)
 package groupsmigration
 
 import (
-	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/jfcote87/api2/googleapi"
 	"golang.org/x/net/context"
-	"google.golang.org/api/googleapi"
 	"io"
 	"net/http"
 	"net/url"
@@ -25,10 +23,8 @@ import (
 
 // Always reference these packages, just in case the auto-generated code
 // below doesn't.
-var _ = bytes.NewBuffer
 var _ = strconv.Itoa
 var _ = fmt.Sprintf
-var _ = json.NewDecoder
 var _ = io.Copy
 var _ = url.Parse
 var _ = googleapi.Version
@@ -39,7 +35,8 @@ var _ = context.Background
 const apiId = "groupsmigration:v1"
 const apiName = "groupsmigration"
 const apiVersion = "v1"
-const basePath = "https://www.googleapis.com/groups/v1/groups/"
+
+var baseURL *url.URL = &url.URL{Scheme: "https", Host: "www.googleapis.com", Path: "/groups/v1/groups/"}
 
 // OAuth2 scopes used by this API.
 const (
@@ -51,24 +48,15 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
+	s := &Service{client: client}
 	s.Archive = NewArchiveService(s)
 	return s, nil
 }
 
 type Service struct {
-	client    *http.Client
-	BasePath  string // API endpoint base URL
-	UserAgent string // optional additional User-Agent fragment
+	client *http.Client
 
 	Archive *ArchiveService
-}
-
-func (s *Service) userAgent() string {
-	if s.UserAgent == "" {
-		return googleapi.UserAgent
-	}
-	return googleapi.UserAgent + " " + s.UserAgent
 }
 
 func NewArchiveService(s *Service) *ArchiveService {
@@ -91,28 +79,53 @@ type Groups struct {
 // method id "groupsmigration.archive.insert":
 
 type ArchiveInsertCall struct {
-	s          *Service
-	groupId    string
-	opt_       map[string]interface{}
-	media_     io.Reader
-	resumable_ googleapi.SizeReaderAt
-	mediaType_ string
-	ctx_       context.Context
-	protocol_  string
+	s             *Service
+	groupId       string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
+	callback_     googleapi.ProgressUpdater
 }
 
 // Insert: Inserts a new mail into the archive of the Google group.
+
 func (r *ArchiveService) Insert(groupId string) *ArchiveInsertCall {
-	c := &ArchiveInsertCall{s: r.s, opt_: make(map[string]interface{})}
-	c.groupId = groupId
+	return &ArchiveInsertCall{
+		s:             r.s,
+		groupId:       groupId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{groupId}/archive",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *ArchiveInsertCall) Context(ctx context.Context) *ArchiveInsertCall {
+	c.context_ = ctx
+	return c
+}
+
+// MediaUpload takes a context and UploadCaller interface
+func (c *ArchiveInsertCall) Upload(ctx context.Context, u googleapi.UploadCaller) *ArchiveInsertCall {
+	c.caller_ = u
+	c.context_ = ctx
+	switch u.(type) {
+	case *googleapi.MediaUpload:
+		c.pathTemplate_ = "/upload/groups/v1/groups/{groupId}/archive"
+	case *googleapi.ResumableUpload:
+		c.pathTemplate_ = "/resumable/upload/groups/v1/groups/{groupId}/archive"
+	}
 	return c
 }
 
 // Media specifies the media to upload in a single chunk.
 // At most one of Media and ResumableMedia may be set.
+// The mime type type will be auto-detected unless r is a googleapi.ContentTyper as well.
 func (c *ArchiveInsertCall) Media(r io.Reader) *ArchiveInsertCall {
-	c.media_ = r
-	c.protocol_ = "multipart"
+	c.caller_ = &googleapi.MediaUpload{
+		Media: r,
+	}
+	c.pathTemplate_ = "/upload/groups/v1/groups/{groupId}/archive"
 	return c
 }
 
@@ -121,10 +134,14 @@ func (c *ArchiveInsertCall) Media(r io.Reader) *ArchiveInsertCall {
 // mediaType identifies the MIME media type of the upload, such as "image/png".
 // If mediaType is "", it will be auto-detected.
 func (c *ArchiveInsertCall) ResumableMedia(ctx context.Context, r io.ReaderAt, size int64, mediaType string) *ArchiveInsertCall {
-	c.ctx_ = ctx
-	c.resumable_ = io.NewSectionReader(r, 0, size)
-	c.mediaType_ = mediaType
-	c.protocol_ = "resumable"
+	c.caller_ = &googleapi.ResumableUpload{
+		Media:         io.NewSectionReader(r, 0, size),
+		MediaType:     mediaType,
+		ContentLength: size,
+		Callback:      c.callback_,
+	}
+	c.pathTemplate_ = "/resumable/upload/groups/v1/groups/{groupId}/archive"
+	c.context_ = ctx
 	return c
 }
 
@@ -132,7 +149,10 @@ func (c *ArchiveInsertCall) ResumableMedia(ctx context.Context, r io.ReaderAt, s
 // It should be a low-latency function in order to not slow down the upload operation.
 // This should only be called when using ResumableMedia (as opposed to Media).
 func (c *ArchiveInsertCall) ProgressUpdater(pu googleapi.ProgressUpdater) *ArchiveInsertCall {
-	c.opt_["progressUpdater"] = pu
+	c.callback_ = pu
+	if rx, ok := c.caller_.(*googleapi.ResumableUpload); ok {
+		rx.Callback = pu
+	}
 	return c
 }
 
@@ -140,83 +160,23 @@ func (c *ArchiveInsertCall) ProgressUpdater(pu googleapi.ProgressUpdater) *Archi
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ArchiveInsertCall) Fields(s ...googleapi.Field) *ArchiveInsertCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ArchiveInsertCall) Do() (*Groups, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{groupId}/archive")
-	var progressUpdater_ googleapi.ProgressUpdater
-	if v, ok := c.opt_["progressUpdater"]; ok {
-		if pu, ok := v.(googleapi.ProgressUpdater); ok {
-			progressUpdater_ = pu
-		}
-	}
-	if c.media_ != nil || c.resumable_ != nil {
-		urls = strings.Replace(urls, "https://www.googleapis.com/", "https://www.googleapis.com/upload/", 1)
-		params.Set("uploadType", c.protocol_)
-	}
-	urls += "?" + params.Encode()
-	body = new(bytes.Buffer)
-	ctype := "application/json"
-	if c.protocol_ != "resumable" {
-		var cancel func()
-		cancel, _ = googleapi.ConditionallyIncludeMedia(c.media_, &body, &ctype)
-		if cancel != nil {
-			defer cancel()
-		}
-	}
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Groups
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"groupId": c.groupId,
 	})
-	if c.protocol_ == "resumable" {
-		req.ContentLength = 0
-		if c.mediaType_ == "" {
-			c.mediaType_ = googleapi.DetectMediaType(c.resumable_)
-		}
-		req.Header.Set("X-Upload-Content-Type", c.mediaType_)
-		req.Body = nil
-	} else {
-		req.Header.Set("Content-Type", ctype)
+	call := &googleapi.Call{
+		Method: "POST",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	if c.protocol_ == "resumable" {
-		loc := res.Header.Get("Location")
-		rx := &googleapi.ResumableUpload{
-			Client:        c.s.client,
-			UserAgent:     c.s.userAgent(),
-			URI:           loc,
-			Media:         c.resumable_,
-			MediaType:     c.mediaType_,
-			ContentLength: c.resumable_.Size(),
-			Callback:      progressUpdater_,
-		}
-		res, err = rx.Upload(c.ctx_)
-		if err != nil {
-			return nil, err
-		}
-		defer res.Body.Close()
-	}
-	var ret *Groups
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Inserts a new mail into the archive of the Google group.",
 	//   "httpMethod": "POST",

@@ -4,18 +4,16 @@
 //
 // Usage example:
 //
-//   import "google.golang.org/api/adexchangebuyer/v1.2"
+//   import "github.com/jfcote87/api2/adexchangebuyer/v1.2"
 //   ...
 //   adexchangebuyerService, err := adexchangebuyer.New(oauthHttpClient)
 package adexchangebuyer
 
 import (
-	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/jfcote87/api2/googleapi"
 	"golang.org/x/net/context"
-	"google.golang.org/api/googleapi"
 	"io"
 	"net/http"
 	"net/url"
@@ -25,10 +23,8 @@ import (
 
 // Always reference these packages, just in case the auto-generated code
 // below doesn't.
-var _ = bytes.NewBuffer
 var _ = strconv.Itoa
 var _ = fmt.Sprintf
-var _ = json.NewDecoder
 var _ = io.Copy
 var _ = url.Parse
 var _ = googleapi.Version
@@ -39,7 +35,8 @@ var _ = context.Background
 const apiId = "adexchangebuyer:v1.2"
 const apiName = "adexchangebuyer"
 const apiVersion = "v1.2"
-const basePath = "https://www.googleapis.com/adexchangebuyer/v1.2/"
+
+var baseURL *url.URL = &url.URL{Scheme: "https", Host: "www.googleapis.com", Path: "/adexchangebuyer/v1.2/"}
 
 // OAuth2 scopes used by this API.
 const (
@@ -51,27 +48,18 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
+	s := &Service{client: client}
 	s.Accounts = NewAccountsService(s)
 	s.Creatives = NewCreativesService(s)
 	return s, nil
 }
 
 type Service struct {
-	client    *http.Client
-	BasePath  string // API endpoint base URL
-	UserAgent string // optional additional User-Agent fragment
+	client *http.Client
 
 	Accounts *AccountsService
 
 	Creatives *CreativesService
-}
-
-func (s *Service) userAgent() string {
-	if s.UserAgent == "" {
-		return googleapi.UserAgent
-	}
-	return googleapi.UserAgent + " " + s.UserAgent
 }
 
 func NewAccountsService(s *Service) *AccountsService {
@@ -194,6 +182,10 @@ type Creative struct {
 	// requests.
 	DisapprovalReasons []*CreativeDisapprovalReasons `json:"disapprovalReasons,omitempty"`
 
+	// FilteringReasons: The filtering reasons for the creative. Read-only.
+	// This field should not be set in requests.
+	FilteringReasons *CreativeFilteringReasons `json:"filteringReasons,omitempty"`
+
 	// Height: Ad height.
 	Height int64 `json:"height,omitempty"`
 
@@ -244,6 +236,26 @@ type CreativeDisapprovalReasons struct {
 	Reason string `json:"reason,omitempty"`
 }
 
+type CreativeFilteringReasons struct {
+	// Date: The date in ISO 8601 format for the data. The data is collected
+	// from 00:00:00 to 23:59:59 in PST.
+	Date string `json:"date,omitempty"`
+
+	// Reasons: The filtering reasons.
+	Reasons []*CreativeFilteringReasonsReasons `json:"reasons,omitempty"`
+}
+
+type CreativeFilteringReasonsReasons struct {
+	// FilteringCount: The number of times the creative was filtered for the
+	// status. The count is aggregated across all publishers on the
+	// exchange.
+	FilteringCount int64 `json:"filteringCount,omitempty,string"`
+
+	// FilteringStatus: The filtering status code. Please refer to the
+	// creative-status-codes.txt file for different statuses.
+	FilteringStatus int64 `json:"filteringStatus,omitempty"`
+}
+
 type CreativesList struct {
 	// Items: A list of creatives.
 	Items []*Creative `json:"items,omitempty"`
@@ -260,15 +272,28 @@ type CreativesList struct {
 // method id "adexchangebuyer.accounts.get":
 
 type AccountsGetCall struct {
-	s    *Service
-	id   int64
-	opt_ map[string]interface{}
+	s             *Service
+	id            int64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Gets one account by ID.
+
 func (r *AccountsService) Get(id int64) *AccountsGetCall {
-	c := &AccountsGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.id = id
+	return &AccountsGetCall{
+		s:             r.s,
+		id:            id,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "accounts/{id}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *AccountsGetCall) Context(ctx context.Context) *AccountsGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -276,37 +301,23 @@ func (r *AccountsService) Get(id int64) *AccountsGetCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AccountsGetCall) Fields(s ...googleapi.Field) *AccountsGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AccountsGetCall) Do() (*Account, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "accounts/{id}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Account
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"id": strconv.FormatInt(c.id, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Account
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Gets one account by ID.",
 	//   "httpMethod": "GET",
@@ -337,13 +348,26 @@ func (c *AccountsGetCall) Do() (*Account, error) {
 // method id "adexchangebuyer.accounts.list":
 
 type AccountsListCall struct {
-	s    *Service
-	opt_ map[string]interface{}
+	s             *Service
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Retrieves the authenticated user's list of accounts.
+
 func (r *AccountsService) List() *AccountsListCall {
-	c := &AccountsListCall{s: r.s, opt_: make(map[string]interface{})}
+	return &AccountsListCall{
+		s:             r.s,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "accounts",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *AccountsListCall) Context(ctx context.Context) *AccountsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -351,35 +375,21 @@ func (r *AccountsService) List() *AccountsListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AccountsListCall) Fields(s ...googleapi.Field) *AccountsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AccountsListCall) Do() (*AccountsList, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
+	var returnValue *AccountsList
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "accounts")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *AccountsList
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves the authenticated user's list of accounts.",
 	//   "httpMethod": "GET",
@@ -398,18 +408,31 @@ func (c *AccountsListCall) Do() (*AccountsList, error) {
 // method id "adexchangebuyer.accounts.patch":
 
 type AccountsPatchCall struct {
-	s       *Service
-	id      int64
-	account *Account
-	opt_    map[string]interface{}
+	s             *Service
+	id            int64
+	account       *Account
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Patch: Updates an existing account. This method supports patch
 // semantics.
+
 func (r *AccountsService) Patch(id int64, account *Account) *AccountsPatchCall {
-	c := &AccountsPatchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.id = id
-	c.account = account
+	return &AccountsPatchCall{
+		s:             r.s,
+		id:            id,
+		account:       account,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "accounts/{id}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *AccountsPatchCall) Context(ctx context.Context) *AccountsPatchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -417,43 +440,24 @@ func (r *AccountsService) Patch(id int64, account *Account) *AccountsPatchCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AccountsPatchCall) Fields(s ...googleapi.Field) *AccountsPatchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AccountsPatchCall) Do() (*Account, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.account)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "accounts/{id}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PATCH", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Account
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"id": strconv.FormatInt(c.id, 10),
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PATCH",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.account,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Account
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates an existing account. This method supports patch semantics.",
 	//   "httpMethod": "PATCH",
@@ -487,17 +491,30 @@ func (c *AccountsPatchCall) Do() (*Account, error) {
 // method id "adexchangebuyer.accounts.update":
 
 type AccountsUpdateCall struct {
-	s       *Service
-	id      int64
-	account *Account
-	opt_    map[string]interface{}
+	s             *Service
+	id            int64
+	account       *Account
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Update: Updates an existing account.
+
 func (r *AccountsService) Update(id int64, account *Account) *AccountsUpdateCall {
-	c := &AccountsUpdateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.id = id
-	c.account = account
+	return &AccountsUpdateCall{
+		s:             r.s,
+		id:            id,
+		account:       account,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "accounts/{id}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *AccountsUpdateCall) Context(ctx context.Context) *AccountsUpdateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -505,43 +522,24 @@ func (r *AccountsService) Update(id int64, account *Account) *AccountsUpdateCall
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AccountsUpdateCall) Fields(s ...googleapi.Field) *AccountsUpdateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AccountsUpdateCall) Do() (*Account, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.account)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "accounts/{id}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Account
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"id": strconv.FormatInt(c.id, 10),
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.account,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Account
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates an existing account.",
 	//   "httpMethod": "PUT",
@@ -578,15 +576,28 @@ type CreativesGetCall struct {
 	s               *Service
 	accountId       int64
 	buyerCreativeId string
-	opt_            map[string]interface{}
+	caller_         googleapi.Caller
+	params_         url.Values
+	pathTemplate_   string
+	context_        context.Context
 }
 
 // Get: Gets the status for a single creative. A creative will be
 // available 30-40 minutes after submission.
+
 func (r *CreativesService) Get(accountId int64, buyerCreativeId string) *CreativesGetCall {
-	c := &CreativesGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.buyerCreativeId = buyerCreativeId
+	return &CreativesGetCall{
+		s:               r.s,
+		accountId:       accountId,
+		buyerCreativeId: buyerCreativeId,
+		caller_:         googleapi.JSONCall{},
+		params_:         make(map[string][]string),
+		pathTemplate_:   "creatives/{accountId}/{buyerCreativeId}",
+		context_:        googleapi.NoContext,
+	}
+}
+func (c *CreativesGetCall) Context(ctx context.Context) *CreativesGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -594,38 +605,24 @@ func (r *CreativesService) Get(accountId int64, buyerCreativeId string) *Creativ
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *CreativesGetCall) Fields(s ...googleapi.Field) *CreativesGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *CreativesGetCall) Do() (*Creative, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "creatives/{accountId}/{buyerCreativeId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Creative
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId":       strconv.FormatInt(c.accountId, 10),
 		"buyerCreativeId": c.buyerCreativeId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Creative
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Gets the status for a single creative. A creative will be available 30-40 minutes after submission.",
 	//   "httpMethod": "GET",
@@ -663,15 +660,28 @@ func (c *CreativesGetCall) Do() (*Creative, error) {
 // method id "adexchangebuyer.creatives.insert":
 
 type CreativesInsertCall struct {
-	s        *Service
-	creative *Creative
-	opt_     map[string]interface{}
+	s             *Service
+	creative      *Creative
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Insert: Submit a new creative.
+
 func (r *CreativesService) Insert(creative *Creative) *CreativesInsertCall {
-	c := &CreativesInsertCall{s: r.s, opt_: make(map[string]interface{})}
-	c.creative = creative
+	return &CreativesInsertCall{
+		s:             r.s,
+		creative:      creative,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "creatives",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *CreativesInsertCall) Context(ctx context.Context) *CreativesInsertCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -679,41 +689,22 @@ func (r *CreativesService) Insert(creative *Creative) *CreativesInsertCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *CreativesInsertCall) Fields(s ...googleapi.Field) *CreativesInsertCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *CreativesInsertCall) Do() (*Creative, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.creative)
-	if err != nil {
-		return nil, err
+	var returnValue *Creative
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.creative,
+		Result:  &returnValue,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "creatives")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Creative
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Submit a new creative.",
 	//   "httpMethod": "POST",
@@ -735,22 +726,31 @@ func (c *CreativesInsertCall) Do() (*Creative, error) {
 // method id "adexchangebuyer.creatives.list":
 
 type CreativesListCall struct {
-	s    *Service
-	opt_ map[string]interface{}
+	s             *Service
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Retrieves a list of the authenticated user's active creatives.
 // A creative will be available 30-40 minutes after submission.
+
 func (r *CreativesService) List() *CreativesListCall {
-	c := &CreativesListCall{s: r.s, opt_: make(map[string]interface{})}
-	return c
+	return &CreativesListCall{
+		s:             r.s,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "creatives",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // MaxResults sets the optional parameter "maxResults": Maximum number
 // of entries returned on one result page. If not set, the default is
 // 100.
 func (c *CreativesListCall) MaxResults(maxResults int64) *CreativesListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
@@ -759,14 +759,18 @@ func (c *CreativesListCall) MaxResults(maxResults int64) *CreativesListCall {
 // set this parameter to the value of "nextPageToken" from the previous
 // response.
 func (c *CreativesListCall) PageToken(pageToken string) *CreativesListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
 	return c
 }
 
 // StatusFilter sets the optional parameter "statusFilter": When
 // specified, only creatives having the given status are returned.
 func (c *CreativesListCall) StatusFilter(statusFilter string) *CreativesListCall {
-	c.opt_["statusFilter"] = statusFilter
+	c.params_.Set("statusFilter", fmt.Sprintf("%v", statusFilter))
+	return c
+}
+func (c *CreativesListCall) Context(ctx context.Context) *CreativesListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -774,44 +778,21 @@ func (c *CreativesListCall) StatusFilter(statusFilter string) *CreativesListCall
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *CreativesListCall) Fields(s ...googleapi.Field) *CreativesListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *CreativesListCall) Do() (*CreativesList, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
+	var returnValue *CreativesList
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["statusFilter"]; ok {
-		params.Set("statusFilter", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "creatives")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *CreativesList
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves a list of the authenticated user's active creatives. A creative will be available 30-40 minutes after submission.",
 	//   "httpMethod": "GET",

@@ -4,18 +4,16 @@
 //
 // Usage example:
 //
-//   import "google.golang.org/api/books/v1"
+//   import "github.com/jfcote87/api2/books/v1"
 //   ...
 //   booksService, err := books.New(oauthHttpClient)
 package books
 
 import (
-	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/jfcote87/api2/googleapi"
 	"golang.org/x/net/context"
-	"google.golang.org/api/googleapi"
 	"io"
 	"net/http"
 	"net/url"
@@ -25,10 +23,8 @@ import (
 
 // Always reference these packages, just in case the auto-generated code
 // below doesn't.
-var _ = bytes.NewBuffer
 var _ = strconv.Itoa
 var _ = fmt.Sprintf
-var _ = json.NewDecoder
 var _ = io.Copy
 var _ = url.Parse
 var _ = googleapi.Version
@@ -39,7 +35,8 @@ var _ = context.Background
 const apiId = "books:v1"
 const apiName = "books"
 const apiVersion = "v1"
-const basePath = "https://www.googleapis.com/books/v1/"
+
+var baseURL *url.URL = &url.URL{Scheme: "https", Host: "www.googleapis.com", Path: "/books/v1/"}
 
 // OAuth2 scopes used by this API.
 const (
@@ -51,7 +48,7 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
+	s := &Service{client: client}
 	s.Bookshelves = NewBookshelvesService(s)
 	s.Cloudloading = NewCloudloadingService(s)
 	s.Dictionary = NewDictionaryService(s)
@@ -65,9 +62,7 @@ func New(client *http.Client) (*Service, error) {
 }
 
 type Service struct {
-	client    *http.Client
-	BasePath  string // API endpoint base URL
-	UserAgent string // optional additional User-Agent fragment
+	client *http.Client
 
 	Bookshelves *BookshelvesService
 
@@ -86,13 +81,6 @@ type Service struct {
 	Promooffer *PromoofferService
 
 	Volumes *VolumesService
-}
-
-func (s *Service) userAgent() string {
-	if s.UserAgent == "" {
-		return googleapi.UserAgent
-	}
-	return googleapi.UserAgent + " " + s.UserAgent
 }
 
 func NewBookshelvesService(s *Service) *BookshelvesService {
@@ -1650,25 +1638,38 @@ type Volumes struct {
 // method id "books.bookshelves.get":
 
 type BookshelvesGetCall struct {
-	s      *Service
-	userId string
-	shelf  string
-	opt_   map[string]interface{}
+	s             *Service
+	userId        string
+	shelf         string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Retrieves metadata for a specific bookshelf for the specified
 // user.
+
 func (r *BookshelvesService) Get(userId string, shelf string) *BookshelvesGetCall {
-	c := &BookshelvesGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.userId = userId
-	c.shelf = shelf
-	return c
+	return &BookshelvesGetCall{
+		s:             r.s,
+		userId:        userId,
+		shelf:         shelf,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "users/{userId}/bookshelves/{shelf}",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Source sets the optional parameter "source": String to identify the
 // originator of this request.
 func (c *BookshelvesGetCall) Source(source string) *BookshelvesGetCall {
-	c.opt_["source"] = source
+	c.params_.Set("source", fmt.Sprintf("%v", source))
+	return c
+}
+func (c *BookshelvesGetCall) Context(ctx context.Context) *BookshelvesGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1676,41 +1677,24 @@ func (c *BookshelvesGetCall) Source(source string) *BookshelvesGetCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *BookshelvesGetCall) Fields(s ...googleapi.Field) *BookshelvesGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *BookshelvesGetCall) Do() (*Bookshelf, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["source"]; ok {
-		params.Set("source", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "users/{userId}/bookshelves/{shelf}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Bookshelf
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"userId": c.userId,
 		"shelf":  c.shelf,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Bookshelf
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves metadata for a specific bookshelf for the specified user.",
 	//   "httpMethod": "GET",
@@ -1752,22 +1736,35 @@ func (c *BookshelvesGetCall) Do() (*Bookshelf, error) {
 // method id "books.bookshelves.list":
 
 type BookshelvesListCall struct {
-	s      *Service
-	userId string
-	opt_   map[string]interface{}
+	s             *Service
+	userId        string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Retrieves a list of public bookshelves for the specified user.
+
 func (r *BookshelvesService) List(userId string) *BookshelvesListCall {
-	c := &BookshelvesListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.userId = userId
-	return c
+	return &BookshelvesListCall{
+		s:             r.s,
+		userId:        userId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "users/{userId}/bookshelves",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Source sets the optional parameter "source": String to identify the
 // originator of this request.
 func (c *BookshelvesListCall) Source(source string) *BookshelvesListCall {
-	c.opt_["source"] = source
+	c.params_.Set("source", fmt.Sprintf("%v", source))
+	return c
+}
+func (c *BookshelvesListCall) Context(ctx context.Context) *BookshelvesListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1775,40 +1772,23 @@ func (c *BookshelvesListCall) Source(source string) *BookshelvesListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *BookshelvesListCall) Fields(s ...googleapi.Field) *BookshelvesListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *BookshelvesListCall) Do() (*Bookshelves, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["source"]; ok {
-		params.Set("source", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "users/{userId}/bookshelves")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Bookshelves
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"userId": c.userId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Bookshelves
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves a list of public bookshelves for the specified user.",
 	//   "httpMethod": "GET",
@@ -1843,46 +1823,59 @@ func (c *BookshelvesListCall) Do() (*Bookshelves, error) {
 // method id "books.bookshelves.volumes.list":
 
 type BookshelvesVolumesListCall struct {
-	s      *Service
-	userId string
-	shelf  string
-	opt_   map[string]interface{}
+	s             *Service
+	userId        string
+	shelf         string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Retrieves volumes in a specific bookshelf for the specified
 // user.
+
 func (r *BookshelvesVolumesService) List(userId string, shelf string) *BookshelvesVolumesListCall {
-	c := &BookshelvesVolumesListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.userId = userId
-	c.shelf = shelf
-	return c
+	return &BookshelvesVolumesListCall{
+		s:             r.s,
+		userId:        userId,
+		shelf:         shelf,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "users/{userId}/bookshelves/{shelf}/volumes",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // MaxResults sets the optional parameter "maxResults": Maximum number
 // of results to return
 func (c *BookshelvesVolumesListCall) MaxResults(maxResults int64) *BookshelvesVolumesListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
 // ShowPreorders sets the optional parameter "showPreorders": Set to
 // true to show pre-ordered books. Defaults to false.
 func (c *BookshelvesVolumesListCall) ShowPreorders(showPreorders bool) *BookshelvesVolumesListCall {
-	c.opt_["showPreorders"] = showPreorders
+	c.params_.Set("showPreorders", fmt.Sprintf("%v", showPreorders))
 	return c
 }
 
 // Source sets the optional parameter "source": String to identify the
 // originator of this request.
 func (c *BookshelvesVolumesListCall) Source(source string) *BookshelvesVolumesListCall {
-	c.opt_["source"] = source
+	c.params_.Set("source", fmt.Sprintf("%v", source))
 	return c
 }
 
 // StartIndex sets the optional parameter "startIndex": Index of the
 // first element to return (starts at 0)
 func (c *BookshelvesVolumesListCall) StartIndex(startIndex int64) *BookshelvesVolumesListCall {
-	c.opt_["startIndex"] = startIndex
+	c.params_.Set("startIndex", fmt.Sprintf("%v", startIndex))
+	return c
+}
+func (c *BookshelvesVolumesListCall) Context(ctx context.Context) *BookshelvesVolumesListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1890,50 +1883,24 @@ func (c *BookshelvesVolumesListCall) StartIndex(startIndex int64) *BookshelvesVo
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *BookshelvesVolumesListCall) Fields(s ...googleapi.Field) *BookshelvesVolumesListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *BookshelvesVolumesListCall) Do() (*Volumes, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["showPreorders"]; ok {
-		params.Set("showPreorders", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["source"]; ok {
-		params.Set("source", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["startIndex"]; ok {
-		params.Set("startIndex", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "users/{userId}/bookshelves/{shelf}/volumes")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Volumes
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"userId": c.userId,
 		"shelf":  c.shelf,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Volumes
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves volumes in a specific bookshelf for the specified user.",
 	//   "httpMethod": "GET",
@@ -1994,41 +1961,54 @@ func (c *BookshelvesVolumesListCall) Do() (*Volumes, error) {
 // method id "books.cloudloading.addBook":
 
 type CloudloadingAddBookCall struct {
-	s    *Service
-	opt_ map[string]interface{}
+	s             *Service
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // AddBook:
+
 func (r *CloudloadingService) AddBook() *CloudloadingAddBookCall {
-	c := &CloudloadingAddBookCall{s: r.s, opt_: make(map[string]interface{})}
-	return c
+	return &CloudloadingAddBookCall{
+		s:             r.s,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "cloudloading/addBook",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Drive_document_id sets the optional parameter "drive_document_id": A
 // drive document id. The upload_client_token must not be set.
 func (c *CloudloadingAddBookCall) Drive_document_id(drive_document_id string) *CloudloadingAddBookCall {
-	c.opt_["drive_document_id"] = drive_document_id
+	c.params_.Set("drive_document_id", fmt.Sprintf("%v", drive_document_id))
 	return c
 }
 
 // Mime_type sets the optional parameter "mime_type": The document MIME
 // type. It can be set only if the drive_document_id is set.
 func (c *CloudloadingAddBookCall) Mime_type(mime_type string) *CloudloadingAddBookCall {
-	c.opt_["mime_type"] = mime_type
+	c.params_.Set("mime_type", fmt.Sprintf("%v", mime_type))
 	return c
 }
 
 // Name sets the optional parameter "name": The document name. It can be
 // set only if the drive_document_id is set.
 func (c *CloudloadingAddBookCall) Name(name string) *CloudloadingAddBookCall {
-	c.opt_["name"] = name
+	c.params_.Set("name", fmt.Sprintf("%v", name))
 	return c
 }
 
 // Upload_client_token sets the optional parameter
 // "upload_client_token":
 func (c *CloudloadingAddBookCall) Upload_client_token(upload_client_token string) *CloudloadingAddBookCall {
-	c.opt_["upload_client_token"] = upload_client_token
+	c.params_.Set("upload_client_token", fmt.Sprintf("%v", upload_client_token))
+	return c
+}
+func (c *CloudloadingAddBookCall) Context(ctx context.Context) *CloudloadingAddBookCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2036,47 +2016,21 @@ func (c *CloudloadingAddBookCall) Upload_client_token(upload_client_token string
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *CloudloadingAddBookCall) Fields(s ...googleapi.Field) *CloudloadingAddBookCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *CloudloadingAddBookCall) Do() (*BooksCloudloadingResource, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["drive_document_id"]; ok {
-		params.Set("drive_document_id", fmt.Sprintf("%v", v))
+	var returnValue *BooksCloudloadingResource
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "POST",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	if v, ok := c.opt_["mime_type"]; ok {
-		params.Set("mime_type", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["name"]; ok {
-		params.Set("name", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["upload_client_token"]; ok {
-		params.Set("upload_client_token", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "cloudloading/addBook")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *BooksCloudloadingResource
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "",
 	//   "httpMethod": "POST",
@@ -2116,48 +2070,41 @@ func (c *CloudloadingAddBookCall) Do() (*BooksCloudloadingResource, error) {
 // method id "books.cloudloading.deleteBook":
 
 type CloudloadingDeleteBookCall struct {
-	s        *Service
-	volumeId string
-	opt_     map[string]interface{}
+	s             *Service
+	volumeId      string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // DeleteBook: Remove the book and its contents
-func (r *CloudloadingService) DeleteBook(volumeId string) *CloudloadingDeleteBookCall {
-	c := &CloudloadingDeleteBookCall{s: r.s, opt_: make(map[string]interface{})}
-	c.volumeId = volumeId
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *CloudloadingDeleteBookCall) Fields(s ...googleapi.Field) *CloudloadingDeleteBookCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *CloudloadingService) DeleteBook(volumeId string) *CloudloadingDeleteBookCall {
+	return &CloudloadingDeleteBookCall{
+		s:             r.s,
+		volumeId:      volumeId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "cloudloading/deleteBook",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *CloudloadingDeleteBookCall) Context(ctx context.Context) *CloudloadingDeleteBookCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *CloudloadingDeleteBookCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("volumeId", fmt.Sprintf("%v", c.volumeId))
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
+	c.params_.Set("volumeId", fmt.Sprintf("%v", c.volumeId))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "POST",
+		URL:    u,
+		Params: c.params_,
 	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "cloudloading/deleteBook")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Remove the book and its contents",
 	//   "httpMethod": "POST",
@@ -2186,13 +2133,26 @@ func (c *CloudloadingDeleteBookCall) Do() error {
 type CloudloadingUpdateBookCall struct {
 	s                         *Service
 	bookscloudloadingresource *BooksCloudloadingResource
-	opt_                      map[string]interface{}
+	caller_                   googleapi.Caller
+	params_                   url.Values
+	pathTemplate_             string
+	context_                  context.Context
 }
 
 // UpdateBook:
+
 func (r *CloudloadingService) UpdateBook(bookscloudloadingresource *BooksCloudloadingResource) *CloudloadingUpdateBookCall {
-	c := &CloudloadingUpdateBookCall{s: r.s, opt_: make(map[string]interface{})}
-	c.bookscloudloadingresource = bookscloudloadingresource
+	return &CloudloadingUpdateBookCall{
+		s: r.s,
+		bookscloudloadingresource: bookscloudloadingresource,
+		caller_:                   googleapi.JSONCall{},
+		params_:                   make(map[string][]string),
+		pathTemplate_:             "cloudloading/updateBook",
+		context_:                  googleapi.NoContext,
+	}
+}
+func (c *CloudloadingUpdateBookCall) Context(ctx context.Context) *CloudloadingUpdateBookCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2200,41 +2160,22 @@ func (r *CloudloadingService) UpdateBook(bookscloudloadingresource *BooksCloudlo
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *CloudloadingUpdateBookCall) Fields(s ...googleapi.Field) *CloudloadingUpdateBookCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *CloudloadingUpdateBookCall) Do() (*BooksCloudloadingResource, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.bookscloudloadingresource)
-	if err != nil {
-		return nil, err
+	var returnValue *BooksCloudloadingResource
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.bookscloudloadingresource,
+		Result:  &returnValue,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "cloudloading/updateBook")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *BooksCloudloadingResource
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "",
 	//   "httpMethod": "POST",
@@ -2256,16 +2197,29 @@ func (c *CloudloadingUpdateBookCall) Do() (*BooksCloudloadingResource, error) {
 // method id "books.dictionary.listOfflineMetadata":
 
 type DictionaryListOfflineMetadataCall struct {
-	s       *Service
-	cpksver string
-	opt_    map[string]interface{}
+	s             *Service
+	cpksver       string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // ListOfflineMetadata: Returns a list of offline dictionary meatadata
 // available
+
 func (r *DictionaryService) ListOfflineMetadata(cpksver string) *DictionaryListOfflineMetadataCall {
-	c := &DictionaryListOfflineMetadataCall{s: r.s, opt_: make(map[string]interface{})}
-	c.cpksver = cpksver
+	return &DictionaryListOfflineMetadataCall{
+		s:             r.s,
+		cpksver:       cpksver,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "dictionary/listOfflineMetadata",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *DictionaryListOfflineMetadataCall) Context(ctx context.Context) *DictionaryListOfflineMetadataCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2273,36 +2227,22 @@ func (r *DictionaryService) ListOfflineMetadata(cpksver string) *DictionaryListO
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *DictionaryListOfflineMetadataCall) Fields(s ...googleapi.Field) *DictionaryListOfflineMetadataCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *DictionaryListOfflineMetadataCall) Do() (*Metadata, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("cpksver", fmt.Sprintf("%v", c.cpksver))
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
+	var returnValue *Metadata
+	c.params_.Set("cpksver", fmt.Sprintf("%v", c.cpksver))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "dictionary/listOfflineMetadata")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Metadata
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Returns a list of offline dictionary meatadata available",
 	//   "httpMethod": "GET",
@@ -2332,31 +2272,44 @@ func (c *DictionaryListOfflineMetadataCall) Do() (*Metadata, error) {
 // method id "books.layers.get":
 
 type LayersGetCall struct {
-	s         *Service
-	volumeId  string
-	summaryId string
-	opt_      map[string]interface{}
+	s             *Service
+	volumeId      string
+	summaryId     string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Gets the layer summary for a volume.
+
 func (r *LayersService) Get(volumeId string, summaryId string) *LayersGetCall {
-	c := &LayersGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.volumeId = volumeId
-	c.summaryId = summaryId
-	return c
+	return &LayersGetCall{
+		s:             r.s,
+		volumeId:      volumeId,
+		summaryId:     summaryId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "volumes/{volumeId}/layersummary/{summaryId}",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // ContentVersion sets the optional parameter "contentVersion": The
 // content version for the requested volume.
 func (c *LayersGetCall) ContentVersion(contentVersion string) *LayersGetCall {
-	c.opt_["contentVersion"] = contentVersion
+	c.params_.Set("contentVersion", fmt.Sprintf("%v", contentVersion))
 	return c
 }
 
 // Source sets the optional parameter "source": String to identify the
 // originator of this request.
 func (c *LayersGetCall) Source(source string) *LayersGetCall {
-	c.opt_["source"] = source
+	c.params_.Set("source", fmt.Sprintf("%v", source))
+	return c
+}
+func (c *LayersGetCall) Context(ctx context.Context) *LayersGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2364,44 +2317,24 @@ func (c *LayersGetCall) Source(source string) *LayersGetCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *LayersGetCall) Fields(s ...googleapi.Field) *LayersGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *LayersGetCall) Do() (*Layersummary, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["contentVersion"]; ok {
-		params.Set("contentVersion", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["source"]; ok {
-		params.Set("source", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "volumes/{volumeId}/layersummary/{summaryId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Layersummary
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"volumeId":  c.volumeId,
 		"summaryId": c.summaryId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Layersummary
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Gets the layer summary for a volume.",
 	//   "httpMethod": "GET",
@@ -2448,43 +2381,56 @@ func (c *LayersGetCall) Do() (*Layersummary, error) {
 // method id "books.layers.list":
 
 type LayersListCall struct {
-	s        *Service
-	volumeId string
-	opt_     map[string]interface{}
+	s             *Service
+	volumeId      string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: List the layer summaries for a volume.
+
 func (r *LayersService) List(volumeId string) *LayersListCall {
-	c := &LayersListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.volumeId = volumeId
-	return c
+	return &LayersListCall{
+		s:             r.s,
+		volumeId:      volumeId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "volumes/{volumeId}/layersummary",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // ContentVersion sets the optional parameter "contentVersion": The
 // content version for the requested volume.
 func (c *LayersListCall) ContentVersion(contentVersion string) *LayersListCall {
-	c.opt_["contentVersion"] = contentVersion
+	c.params_.Set("contentVersion", fmt.Sprintf("%v", contentVersion))
 	return c
 }
 
 // MaxResults sets the optional parameter "maxResults": Maximum number
 // of results to return
 func (c *LayersListCall) MaxResults(maxResults int64) *LayersListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
 // PageToken sets the optional parameter "pageToken": The value of the
 // nextToken from the previous page.
 func (c *LayersListCall) PageToken(pageToken string) *LayersListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
 	return c
 }
 
 // Source sets the optional parameter "source": String to identify the
 // originator of this request.
 func (c *LayersListCall) Source(source string) *LayersListCall {
-	c.opt_["source"] = source
+	c.params_.Set("source", fmt.Sprintf("%v", source))
+	return c
+}
+func (c *LayersListCall) Context(ctx context.Context) *LayersListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2492,49 +2438,23 @@ func (c *LayersListCall) Source(source string) *LayersListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *LayersListCall) Fields(s ...googleapi.Field) *LayersListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *LayersListCall) Do() (*Layersummaries, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["contentVersion"]; ok {
-		params.Set("contentVersion", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["source"]; ok {
-		params.Set("source", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "volumes/{volumeId}/layersummary")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Layersummaries
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"volumeId": c.volumeId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Layersummaries
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "List the layer summaries for a volume.",
 	//   "httpMethod": "GET",
@@ -2592,31 +2512,40 @@ type LayersAnnotationDataGetCall struct {
 	layerId          string
 	annotationDataId string
 	contentVersion   string
-	opt_             map[string]interface{}
+	caller_          googleapi.Caller
+	params_          url.Values
+	pathTemplate_    string
+	context_         context.Context
 }
 
 // Get: Gets the annotation data.
+
 func (r *LayersAnnotationDataService) Get(volumeId string, layerId string, annotationDataId string, contentVersion string) *LayersAnnotationDataGetCall {
-	c := &LayersAnnotationDataGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.volumeId = volumeId
-	c.layerId = layerId
-	c.annotationDataId = annotationDataId
-	c.contentVersion = contentVersion
-	return c
+	return &LayersAnnotationDataGetCall{
+		s:                r.s,
+		volumeId:         volumeId,
+		layerId:          layerId,
+		annotationDataId: annotationDataId,
+		contentVersion:   contentVersion,
+		caller_:          googleapi.JSONCall{},
+		params_:          make(map[string][]string),
+		pathTemplate_:    "volumes/{volumeId}/layers/{layerId}/data/{annotationDataId}",
+		context_:         googleapi.NoContext,
+	}
 }
 
 // AllowWebDefinitions sets the optional parameter
 // "allowWebDefinitions": For the dictionary layer. Whether or not to
 // allow web definitions.
 func (c *LayersAnnotationDataGetCall) AllowWebDefinitions(allowWebDefinitions bool) *LayersAnnotationDataGetCall {
-	c.opt_["allowWebDefinitions"] = allowWebDefinitions
+	c.params_.Set("allowWebDefinitions", fmt.Sprintf("%v", allowWebDefinitions))
 	return c
 }
 
 // H sets the optional parameter "h": The requested pixel height for any
 // images. If height is provided width must also be provided.
 func (c *LayersAnnotationDataGetCall) H(h int64) *LayersAnnotationDataGetCall {
-	c.opt_["h"] = h
+	c.params_.Set("h", fmt.Sprintf("%v", h))
 	return c
 }
 
@@ -2624,28 +2553,32 @@ func (c *LayersAnnotationDataGetCall) H(h int64) *LayersAnnotationDataGetCall {
 // for the data. ISO-639-1 language and ISO-3166-1 country code. Ex:
 // 'en_US'.
 func (c *LayersAnnotationDataGetCall) Locale(locale string) *LayersAnnotationDataGetCall {
-	c.opt_["locale"] = locale
+	c.params_.Set("locale", fmt.Sprintf("%v", locale))
 	return c
 }
 
 // Scale sets the optional parameter "scale": The requested scale for
 // the image.
 func (c *LayersAnnotationDataGetCall) Scale(scale int64) *LayersAnnotationDataGetCall {
-	c.opt_["scale"] = scale
+	c.params_.Set("scale", fmt.Sprintf("%v", scale))
 	return c
 }
 
 // Source sets the optional parameter "source": String to identify the
 // originator of this request.
 func (c *LayersAnnotationDataGetCall) Source(source string) *LayersAnnotationDataGetCall {
-	c.opt_["source"] = source
+	c.params_.Set("source", fmt.Sprintf("%v", source))
 	return c
 }
 
 // W sets the optional parameter "w": The requested pixel width for any
 // images. If width is provided height must also be provided.
 func (c *LayersAnnotationDataGetCall) W(w int64) *LayersAnnotationDataGetCall {
-	c.opt_["w"] = w
+	c.params_.Set("w", fmt.Sprintf("%v", w))
+	return c
+}
+func (c *LayersAnnotationDataGetCall) Context(ctx context.Context) *LayersAnnotationDataGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2653,58 +2586,26 @@ func (c *LayersAnnotationDataGetCall) W(w int64) *LayersAnnotationDataGetCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *LayersAnnotationDataGetCall) Fields(s ...googleapi.Field) *LayersAnnotationDataGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *LayersAnnotationDataGetCall) Do() (*Annotationdata, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("contentVersion", fmt.Sprintf("%v", c.contentVersion))
-	if v, ok := c.opt_["allowWebDefinitions"]; ok {
-		params.Set("allowWebDefinitions", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["h"]; ok {
-		params.Set("h", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["locale"]; ok {
-		params.Set("locale", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["scale"]; ok {
-		params.Set("scale", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["source"]; ok {
-		params.Set("source", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["w"]; ok {
-		params.Set("w", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "volumes/{volumeId}/layers/{layerId}/data/{annotationDataId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Annotationdata
+	c.params_.Set("contentVersion", fmt.Sprintf("%v", c.contentVersion))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"volumeId":         c.volumeId,
 		"layerId":          c.layerId,
 		"annotationDataId": c.annotationDataId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Annotationdata
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Gets the annotation data.",
 	//   "httpMethod": "GET",
@@ -2793,30 +2694,39 @@ type LayersAnnotationDataListCall struct {
 	volumeId       string
 	layerId        string
 	contentVersion string
-	opt_           map[string]interface{}
+	caller_        googleapi.Caller
+	params_        url.Values
+	pathTemplate_  string
+	context_       context.Context
 }
 
 // List: Gets the annotation data for a volume and layer.
+
 func (r *LayersAnnotationDataService) List(volumeId string, layerId string, contentVersion string) *LayersAnnotationDataListCall {
-	c := &LayersAnnotationDataListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.volumeId = volumeId
-	c.layerId = layerId
-	c.contentVersion = contentVersion
-	return c
+	return &LayersAnnotationDataListCall{
+		s:              r.s,
+		volumeId:       volumeId,
+		layerId:        layerId,
+		contentVersion: contentVersion,
+		caller_:        googleapi.JSONCall{},
+		params_:        make(map[string][]string),
+		pathTemplate_:  "volumes/{volumeId}/layers/{layerId}/data",
+		context_:       googleapi.NoContext,
+	}
 }
 
 // AnnotationDataId sets the optional parameter "annotationDataId": The
 // list of Annotation Data Ids to retrieve. Pagination is ignored if
 // this is set.
-func (c *LayersAnnotationDataListCall) AnnotationDataId(annotationDataId string) *LayersAnnotationDataListCall {
-	c.opt_["annotationDataId"] = annotationDataId
+func (c *LayersAnnotationDataListCall) AnnotationDataId(annotationDataId ...string) *LayersAnnotationDataListCall {
+	c.params_["annotationDataId"] = annotationDataId
 	return c
 }
 
 // H sets the optional parameter "h": The requested pixel height for any
 // images. If height is provided width must also be provided.
 func (c *LayersAnnotationDataListCall) H(h int64) *LayersAnnotationDataListCall {
-	c.opt_["h"] = h
+	c.params_.Set("h", fmt.Sprintf("%v", h))
 	return c
 }
 
@@ -2824,35 +2734,35 @@ func (c *LayersAnnotationDataListCall) H(h int64) *LayersAnnotationDataListCall 
 // for the data. ISO-639-1 language and ISO-3166-1 country code. Ex:
 // 'en_US'.
 func (c *LayersAnnotationDataListCall) Locale(locale string) *LayersAnnotationDataListCall {
-	c.opt_["locale"] = locale
+	c.params_.Set("locale", fmt.Sprintf("%v", locale))
 	return c
 }
 
 // MaxResults sets the optional parameter "maxResults": Maximum number
 // of results to return
 func (c *LayersAnnotationDataListCall) MaxResults(maxResults int64) *LayersAnnotationDataListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
 // PageToken sets the optional parameter "pageToken": The value of the
 // nextToken from the previous page.
 func (c *LayersAnnotationDataListCall) PageToken(pageToken string) *LayersAnnotationDataListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
 	return c
 }
 
 // Scale sets the optional parameter "scale": The requested scale for
 // the image.
 func (c *LayersAnnotationDataListCall) Scale(scale int64) *LayersAnnotationDataListCall {
-	c.opt_["scale"] = scale
+	c.params_.Set("scale", fmt.Sprintf("%v", scale))
 	return c
 }
 
 // Source sets the optional parameter "source": String to identify the
 // originator of this request.
 func (c *LayersAnnotationDataListCall) Source(source string) *LayersAnnotationDataListCall {
-	c.opt_["source"] = source
+	c.params_.Set("source", fmt.Sprintf("%v", source))
 	return c
 }
 
@@ -2860,7 +2770,7 @@ func (c *LayersAnnotationDataListCall) Source(source string) *LayersAnnotationDa
 // timestamp to restrict to items updated prior to this timestamp
 // (exclusive).
 func (c *LayersAnnotationDataListCall) UpdatedMax(updatedMax string) *LayersAnnotationDataListCall {
-	c.opt_["updatedMax"] = updatedMax
+	c.params_.Set("updatedMax", fmt.Sprintf("%v", updatedMax))
 	return c
 }
 
@@ -2868,14 +2778,18 @@ func (c *LayersAnnotationDataListCall) UpdatedMax(updatedMax string) *LayersAnno
 // timestamp to restrict to items updated since this timestamp
 // (inclusive).
 func (c *LayersAnnotationDataListCall) UpdatedMin(updatedMin string) *LayersAnnotationDataListCall {
-	c.opt_["updatedMin"] = updatedMin
+	c.params_.Set("updatedMin", fmt.Sprintf("%v", updatedMin))
 	return c
 }
 
 // W sets the optional parameter "w": The requested pixel width for any
 // images. If width is provided height must also be provided.
 func (c *LayersAnnotationDataListCall) W(w int64) *LayersAnnotationDataListCall {
-	c.opt_["w"] = w
+	c.params_.Set("w", fmt.Sprintf("%v", w))
+	return c
+}
+func (c *LayersAnnotationDataListCall) Context(ctx context.Context) *LayersAnnotationDataListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2883,69 +2797,25 @@ func (c *LayersAnnotationDataListCall) W(w int64) *LayersAnnotationDataListCall 
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *LayersAnnotationDataListCall) Fields(s ...googleapi.Field) *LayersAnnotationDataListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *LayersAnnotationDataListCall) Do() (*Annotationsdata, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("contentVersion", fmt.Sprintf("%v", c.contentVersion))
-	if v, ok := c.opt_["annotationDataId"]; ok {
-		params.Set("annotationDataId", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["h"]; ok {
-		params.Set("h", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["locale"]; ok {
-		params.Set("locale", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["scale"]; ok {
-		params.Set("scale", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["source"]; ok {
-		params.Set("source", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["updatedMax"]; ok {
-		params.Set("updatedMax", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["updatedMin"]; ok {
-		params.Set("updatedMin", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["w"]; ok {
-		params.Set("w", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "volumes/{volumeId}/layers/{layerId}/data")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Annotationsdata
+	c.params_.Set("contentVersion", fmt.Sprintf("%v", c.contentVersion))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"volumeId": c.volumeId,
 		"layerId":  c.layerId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Annotationsdata
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Gets the annotation data for a volume and layer.",
 	//   "httpMethod": "GET",
@@ -3047,34 +2917,47 @@ func (c *LayersAnnotationDataListCall) Do() (*Annotationsdata, error) {
 // method id "books.layers.volumeAnnotations.get":
 
 type LayersVolumeAnnotationsGetCall struct {
-	s            *Service
-	volumeId     string
-	layerId      string
-	annotationId string
-	opt_         map[string]interface{}
+	s             *Service
+	volumeId      string
+	layerId       string
+	annotationId  string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Gets the volume annotation.
+
 func (r *LayersVolumeAnnotationsService) Get(volumeId string, layerId string, annotationId string) *LayersVolumeAnnotationsGetCall {
-	c := &LayersVolumeAnnotationsGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.volumeId = volumeId
-	c.layerId = layerId
-	c.annotationId = annotationId
-	return c
+	return &LayersVolumeAnnotationsGetCall{
+		s:             r.s,
+		volumeId:      volumeId,
+		layerId:       layerId,
+		annotationId:  annotationId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "volumes/{volumeId}/layers/{layerId}/annotations/{annotationId}",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Locale sets the optional parameter "locale": The locale information
 // for the data. ISO-639-1 language and ISO-3166-1 country code. Ex:
 // 'en_US'.
 func (c *LayersVolumeAnnotationsGetCall) Locale(locale string) *LayersVolumeAnnotationsGetCall {
-	c.opt_["locale"] = locale
+	c.params_.Set("locale", fmt.Sprintf("%v", locale))
 	return c
 }
 
 // Source sets the optional parameter "source": String to identify the
 // originator of this request.
 func (c *LayersVolumeAnnotationsGetCall) Source(source string) *LayersVolumeAnnotationsGetCall {
-	c.opt_["source"] = source
+	c.params_.Set("source", fmt.Sprintf("%v", source))
+	return c
+}
+func (c *LayersVolumeAnnotationsGetCall) Context(ctx context.Context) *LayersVolumeAnnotationsGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -3082,45 +2965,25 @@ func (c *LayersVolumeAnnotationsGetCall) Source(source string) *LayersVolumeAnno
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *LayersVolumeAnnotationsGetCall) Fields(s ...googleapi.Field) *LayersVolumeAnnotationsGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *LayersVolumeAnnotationsGetCall) Do() (*Volumeannotation, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["locale"]; ok {
-		params.Set("locale", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["source"]; ok {
-		params.Set("source", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "volumes/{volumeId}/layers/{layerId}/annotations/{annotationId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Volumeannotation
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"volumeId":     c.volumeId,
 		"layerId":      c.layerId,
 		"annotationId": c.annotationId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Volumeannotation
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Gets the volume annotation.",
 	//   "httpMethod": "GET",
@@ -3178,29 +3041,38 @@ type LayersVolumeAnnotationsListCall struct {
 	volumeId       string
 	layerId        string
 	contentVersion string
-	opt_           map[string]interface{}
+	caller_        googleapi.Caller
+	params_        url.Values
+	pathTemplate_  string
+	context_       context.Context
 }
 
 // List: Gets the volume annotations for a volume and layer.
+
 func (r *LayersVolumeAnnotationsService) List(volumeId string, layerId string, contentVersion string) *LayersVolumeAnnotationsListCall {
-	c := &LayersVolumeAnnotationsListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.volumeId = volumeId
-	c.layerId = layerId
-	c.contentVersion = contentVersion
-	return c
+	return &LayersVolumeAnnotationsListCall{
+		s:              r.s,
+		volumeId:       volumeId,
+		layerId:        layerId,
+		contentVersion: contentVersion,
+		caller_:        googleapi.JSONCall{},
+		params_:        make(map[string][]string),
+		pathTemplate_:  "volumes/{volumeId}/layers/{layerId}",
+		context_:       googleapi.NoContext,
+	}
 }
 
 // EndOffset sets the optional parameter "endOffset": The end offset to
 // end retrieving data from.
 func (c *LayersVolumeAnnotationsListCall) EndOffset(endOffset string) *LayersVolumeAnnotationsListCall {
-	c.opt_["endOffset"] = endOffset
+	c.params_.Set("endOffset", fmt.Sprintf("%v", endOffset))
 	return c
 }
 
 // EndPosition sets the optional parameter "endPosition": The end
 // position to end retrieving data from.
 func (c *LayersVolumeAnnotationsListCall) EndPosition(endPosition string) *LayersVolumeAnnotationsListCall {
-	c.opt_["endPosition"] = endPosition
+	c.params_.Set("endPosition", fmt.Sprintf("%v", endPosition))
 	return c
 }
 
@@ -3208,21 +3080,21 @@ func (c *LayersVolumeAnnotationsListCall) EndPosition(endPosition string) *Layer
 // for the data. ISO-639-1 language and ISO-3166-1 country code. Ex:
 // 'en_US'.
 func (c *LayersVolumeAnnotationsListCall) Locale(locale string) *LayersVolumeAnnotationsListCall {
-	c.opt_["locale"] = locale
+	c.params_.Set("locale", fmt.Sprintf("%v", locale))
 	return c
 }
 
 // MaxResults sets the optional parameter "maxResults": Maximum number
 // of results to return
 func (c *LayersVolumeAnnotationsListCall) MaxResults(maxResults int64) *LayersVolumeAnnotationsListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
 // PageToken sets the optional parameter "pageToken": The value of the
 // nextToken from the previous page.
 func (c *LayersVolumeAnnotationsListCall) PageToken(pageToken string) *LayersVolumeAnnotationsListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
 	return c
 }
 
@@ -3230,28 +3102,28 @@ func (c *LayersVolumeAnnotationsListCall) PageToken(pageToken string) *LayersVol
 // return deleted annotations. updatedMin must be in the request to use
 // this. Defaults to false.
 func (c *LayersVolumeAnnotationsListCall) ShowDeleted(showDeleted bool) *LayersVolumeAnnotationsListCall {
-	c.opt_["showDeleted"] = showDeleted
+	c.params_.Set("showDeleted", fmt.Sprintf("%v", showDeleted))
 	return c
 }
 
 // Source sets the optional parameter "source": String to identify the
 // originator of this request.
 func (c *LayersVolumeAnnotationsListCall) Source(source string) *LayersVolumeAnnotationsListCall {
-	c.opt_["source"] = source
+	c.params_.Set("source", fmt.Sprintf("%v", source))
 	return c
 }
 
 // StartOffset sets the optional parameter "startOffset": The start
 // offset to start retrieving data from.
 func (c *LayersVolumeAnnotationsListCall) StartOffset(startOffset string) *LayersVolumeAnnotationsListCall {
-	c.opt_["startOffset"] = startOffset
+	c.params_.Set("startOffset", fmt.Sprintf("%v", startOffset))
 	return c
 }
 
 // StartPosition sets the optional parameter "startPosition": The start
 // position to start retrieving data from.
 func (c *LayersVolumeAnnotationsListCall) StartPosition(startPosition string) *LayersVolumeAnnotationsListCall {
-	c.opt_["startPosition"] = startPosition
+	c.params_.Set("startPosition", fmt.Sprintf("%v", startPosition))
 	return c
 }
 
@@ -3259,7 +3131,7 @@ func (c *LayersVolumeAnnotationsListCall) StartPosition(startPosition string) *L
 // timestamp to restrict to items updated prior to this timestamp
 // (exclusive).
 func (c *LayersVolumeAnnotationsListCall) UpdatedMax(updatedMax string) *LayersVolumeAnnotationsListCall {
-	c.opt_["updatedMax"] = updatedMax
+	c.params_.Set("updatedMax", fmt.Sprintf("%v", updatedMax))
 	return c
 }
 
@@ -3267,7 +3139,7 @@ func (c *LayersVolumeAnnotationsListCall) UpdatedMax(updatedMax string) *LayersV
 // timestamp to restrict to items updated since this timestamp
 // (inclusive).
 func (c *LayersVolumeAnnotationsListCall) UpdatedMin(updatedMin string) *LayersVolumeAnnotationsListCall {
-	c.opt_["updatedMin"] = updatedMin
+	c.params_.Set("updatedMin", fmt.Sprintf("%v", updatedMin))
 	return c
 }
 
@@ -3275,7 +3147,11 @@ func (c *LayersVolumeAnnotationsListCall) UpdatedMin(updatedMin string) *LayersV
 // "volumeAnnotationsVersion": The version of the volume annotations
 // that you are requesting.
 func (c *LayersVolumeAnnotationsListCall) VolumeAnnotationsVersion(volumeAnnotationsVersion string) *LayersVolumeAnnotationsListCall {
-	c.opt_["volumeAnnotationsVersion"] = volumeAnnotationsVersion
+	c.params_.Set("volumeAnnotationsVersion", fmt.Sprintf("%v", volumeAnnotationsVersion))
+	return c
+}
+func (c *LayersVolumeAnnotationsListCall) Context(ctx context.Context) *LayersVolumeAnnotationsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -3283,75 +3159,25 @@ func (c *LayersVolumeAnnotationsListCall) VolumeAnnotationsVersion(volumeAnnotat
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *LayersVolumeAnnotationsListCall) Fields(s ...googleapi.Field) *LayersVolumeAnnotationsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *LayersVolumeAnnotationsListCall) Do() (*Volumeannotations, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("contentVersion", fmt.Sprintf("%v", c.contentVersion))
-	if v, ok := c.opt_["endOffset"]; ok {
-		params.Set("endOffset", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["endPosition"]; ok {
-		params.Set("endPosition", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["locale"]; ok {
-		params.Set("locale", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["showDeleted"]; ok {
-		params.Set("showDeleted", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["source"]; ok {
-		params.Set("source", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["startOffset"]; ok {
-		params.Set("startOffset", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["startPosition"]; ok {
-		params.Set("startPosition", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["updatedMax"]; ok {
-		params.Set("updatedMax", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["updatedMin"]; ok {
-		params.Set("updatedMin", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["volumeAnnotationsVersion"]; ok {
-		params.Set("volumeAnnotationsVersion", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "volumes/{volumeId}/layers/{layerId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Volumeannotations
+	c.params_.Set("contentVersion", fmt.Sprintf("%v", c.contentVersion))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"volumeId": c.volumeId,
 		"layerId":  c.layerId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Volumeannotations
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Gets the volume annotations for a volume and layer.",
 	//   "httpMethod": "GET",
@@ -3458,13 +3284,26 @@ func (c *LayersVolumeAnnotationsListCall) Do() (*Volumeannotations, error) {
 // method id "books.myconfig.getUserSettings":
 
 type MyconfigGetUserSettingsCall struct {
-	s    *Service
-	opt_ map[string]interface{}
+	s             *Service
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // GetUserSettings: Gets the current settings for the user.
+
 func (r *MyconfigService) GetUserSettings() *MyconfigGetUserSettingsCall {
-	c := &MyconfigGetUserSettingsCall{s: r.s, opt_: make(map[string]interface{})}
+	return &MyconfigGetUserSettingsCall{
+		s:             r.s,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "myconfig/getUserSettings",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *MyconfigGetUserSettingsCall) Context(ctx context.Context) *MyconfigGetUserSettingsCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -3472,35 +3311,21 @@ func (r *MyconfigService) GetUserSettings() *MyconfigGetUserSettingsCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *MyconfigGetUserSettingsCall) Fields(s ...googleapi.Field) *MyconfigGetUserSettingsCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *MyconfigGetUserSettingsCall) Do() (*Usersettings, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
+	var returnValue *Usersettings
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "myconfig/getUserSettings")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Usersettings
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Gets the current settings for the user.",
 	//   "httpMethod": "GET",
@@ -3519,31 +3344,44 @@ func (c *MyconfigGetUserSettingsCall) Do() (*Usersettings, error) {
 // method id "books.myconfig.releaseDownloadAccess":
 
 type MyconfigReleaseDownloadAccessCall struct {
-	s         *Service
-	volumeIds []string
-	cpksver   string
-	opt_      map[string]interface{}
+	s             *Service
+	volumeIds     []string
+	cpksver       string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // ReleaseDownloadAccess: Release downloaded content access restriction.
+
 func (r *MyconfigService) ReleaseDownloadAccess(volumeIds []string, cpksver string) *MyconfigReleaseDownloadAccessCall {
-	c := &MyconfigReleaseDownloadAccessCall{s: r.s, opt_: make(map[string]interface{})}
-	c.volumeIds = volumeIds
-	c.cpksver = cpksver
-	return c
+	return &MyconfigReleaseDownloadAccessCall{
+		s:             r.s,
+		volumeIds:     volumeIds,
+		cpksver:       cpksver,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "myconfig/releaseDownloadAccess",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Locale sets the optional parameter "locale": ISO-639-1, ISO-3166-1
 // codes for message localization, i.e. en_US.
 func (c *MyconfigReleaseDownloadAccessCall) Locale(locale string) *MyconfigReleaseDownloadAccessCall {
-	c.opt_["locale"] = locale
+	c.params_.Set("locale", fmt.Sprintf("%v", locale))
 	return c
 }
 
 // Source sets the optional parameter "source": String to identify the
 // originator of this request.
 func (c *MyconfigReleaseDownloadAccessCall) Source(source string) *MyconfigReleaseDownloadAccessCall {
-	c.opt_["source"] = source
+	c.params_.Set("source", fmt.Sprintf("%v", source))
+	return c
+}
+func (c *MyconfigReleaseDownloadAccessCall) Context(ctx context.Context) *MyconfigReleaseDownloadAccessCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -3551,45 +3389,26 @@ func (c *MyconfigReleaseDownloadAccessCall) Source(source string) *MyconfigRelea
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *MyconfigReleaseDownloadAccessCall) Fields(s ...googleapi.Field) *MyconfigReleaseDownloadAccessCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *MyconfigReleaseDownloadAccessCall) Do() (*DownloadAccesses, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("cpksver", fmt.Sprintf("%v", c.cpksver))
+	var returnValue *DownloadAccesses
+	c.params_.Set("cpksver", fmt.Sprintf("%v", c.cpksver))
+	c.params_.Del("volumeIds")
 	for _, v := range c.volumeIds {
-		params.Add("volumeIds", fmt.Sprintf("%v", v))
+		c.params_.Add("volumeIds", fmt.Sprintf("%v", v))
 	}
-	if v, ok := c.opt_["locale"]; ok {
-		params.Set("locale", fmt.Sprintf("%v", v))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "POST",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	if v, ok := c.opt_["source"]; ok {
-		params.Set("source", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "myconfig/releaseDownloadAccess")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *DownloadAccesses
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Release downloaded content access restriction.",
 	//   "httpMethod": "POST",
@@ -3637,35 +3456,48 @@ func (c *MyconfigReleaseDownloadAccessCall) Do() (*DownloadAccesses, error) {
 // method id "books.myconfig.requestAccess":
 
 type MyconfigRequestAccessCall struct {
-	s        *Service
-	source   string
-	volumeId string
-	nonce    string
-	cpksver  string
-	opt_     map[string]interface{}
+	s             *Service
+	source        string
+	volumeId      string
+	nonce         string
+	cpksver       string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // RequestAccess: Request concurrent and download access restrictions.
+
 func (r *MyconfigService) RequestAccess(source string, volumeId string, nonce string, cpksver string) *MyconfigRequestAccessCall {
-	c := &MyconfigRequestAccessCall{s: r.s, opt_: make(map[string]interface{})}
-	c.source = source
-	c.volumeId = volumeId
-	c.nonce = nonce
-	c.cpksver = cpksver
-	return c
+	return &MyconfigRequestAccessCall{
+		s:             r.s,
+		source:        source,
+		volumeId:      volumeId,
+		nonce:         nonce,
+		cpksver:       cpksver,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "myconfig/requestAccess",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // LicenseTypes sets the optional parameter "licenseTypes": The type of
 // access license to request. If not specified, the default is BOTH.
 func (c *MyconfigRequestAccessCall) LicenseTypes(licenseTypes string) *MyconfigRequestAccessCall {
-	c.opt_["licenseTypes"] = licenseTypes
+	c.params_.Set("licenseTypes", fmt.Sprintf("%v", licenseTypes))
 	return c
 }
 
 // Locale sets the optional parameter "locale": ISO-639-1, ISO-3166-1
 // codes for message localization, i.e. en_US.
 func (c *MyconfigRequestAccessCall) Locale(locale string) *MyconfigRequestAccessCall {
-	c.opt_["locale"] = locale
+	c.params_.Set("locale", fmt.Sprintf("%v", locale))
+	return c
+}
+func (c *MyconfigRequestAccessCall) Context(ctx context.Context) *MyconfigRequestAccessCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -3673,45 +3505,25 @@ func (c *MyconfigRequestAccessCall) Locale(locale string) *MyconfigRequestAccess
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *MyconfigRequestAccessCall) Fields(s ...googleapi.Field) *MyconfigRequestAccessCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *MyconfigRequestAccessCall) Do() (*RequestAccess, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("cpksver", fmt.Sprintf("%v", c.cpksver))
-	params.Set("nonce", fmt.Sprintf("%v", c.nonce))
-	params.Set("source", fmt.Sprintf("%v", c.source))
-	params.Set("volumeId", fmt.Sprintf("%v", c.volumeId))
-	if v, ok := c.opt_["licenseTypes"]; ok {
-		params.Set("licenseTypes", fmt.Sprintf("%v", v))
+	var returnValue *RequestAccess
+	c.params_.Set("cpksver", fmt.Sprintf("%v", c.cpksver))
+	c.params_.Set("nonce", fmt.Sprintf("%v", c.nonce))
+	c.params_.Set("source", fmt.Sprintf("%v", c.source))
+	c.params_.Set("volumeId", fmt.Sprintf("%v", c.volumeId))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "POST",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	if v, ok := c.opt_["locale"]; ok {
-		params.Set("locale", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "myconfig/requestAccess")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *RequestAccess
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Request concurrent and download access restrictions.",
 	//   "httpMethod": "POST",
@@ -3782,48 +3594,61 @@ func (c *MyconfigRequestAccessCall) Do() (*RequestAccess, error) {
 // method id "books.myconfig.syncVolumeLicenses":
 
 type MyconfigSyncVolumeLicensesCall struct {
-	s       *Service
-	source  string
-	nonce   string
-	cpksver string
-	opt_    map[string]interface{}
+	s             *Service
+	source        string
+	nonce         string
+	cpksver       string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // SyncVolumeLicenses: Request downloaded content access for specified
 // volumes on the My eBooks shelf.
+
 func (r *MyconfigService) SyncVolumeLicenses(source string, nonce string, cpksver string) *MyconfigSyncVolumeLicensesCall {
-	c := &MyconfigSyncVolumeLicensesCall{s: r.s, opt_: make(map[string]interface{})}
-	c.source = source
-	c.nonce = nonce
-	c.cpksver = cpksver
-	return c
+	return &MyconfigSyncVolumeLicensesCall{
+		s:             r.s,
+		source:        source,
+		nonce:         nonce,
+		cpksver:       cpksver,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "myconfig/syncVolumeLicenses",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Features sets the optional parameter "features": List of features
 // supported by the client, i.e., 'RENTALS'
-func (c *MyconfigSyncVolumeLicensesCall) Features(features string) *MyconfigSyncVolumeLicensesCall {
-	c.opt_["features"] = features
+func (c *MyconfigSyncVolumeLicensesCall) Features(features ...string) *MyconfigSyncVolumeLicensesCall {
+	c.params_["features"] = features
 	return c
 }
 
 // Locale sets the optional parameter "locale": ISO-639-1, ISO-3166-1
 // codes for message localization, i.e. en_US.
 func (c *MyconfigSyncVolumeLicensesCall) Locale(locale string) *MyconfigSyncVolumeLicensesCall {
-	c.opt_["locale"] = locale
+	c.params_.Set("locale", fmt.Sprintf("%v", locale))
 	return c
 }
 
 // ShowPreorders sets the optional parameter "showPreorders": Set to
 // true to show pre-ordered books. Defaults to false.
 func (c *MyconfigSyncVolumeLicensesCall) ShowPreorders(showPreorders bool) *MyconfigSyncVolumeLicensesCall {
-	c.opt_["showPreorders"] = showPreorders
+	c.params_.Set("showPreorders", fmt.Sprintf("%v", showPreorders))
 	return c
 }
 
 // VolumeIds sets the optional parameter "volumeIds": The volume(s) to
 // request download restrictions for.
-func (c *MyconfigSyncVolumeLicensesCall) VolumeIds(volumeIds string) *MyconfigSyncVolumeLicensesCall {
-	c.opt_["volumeIds"] = volumeIds
+func (c *MyconfigSyncVolumeLicensesCall) VolumeIds(volumeIds ...string) *MyconfigSyncVolumeLicensesCall {
+	c.params_["volumeIds"] = volumeIds
+	return c
+}
+func (c *MyconfigSyncVolumeLicensesCall) Context(ctx context.Context) *MyconfigSyncVolumeLicensesCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -3831,50 +3656,24 @@ func (c *MyconfigSyncVolumeLicensesCall) VolumeIds(volumeIds string) *MyconfigSy
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *MyconfigSyncVolumeLicensesCall) Fields(s ...googleapi.Field) *MyconfigSyncVolumeLicensesCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *MyconfigSyncVolumeLicensesCall) Do() (*Volumes, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("cpksver", fmt.Sprintf("%v", c.cpksver))
-	params.Set("nonce", fmt.Sprintf("%v", c.nonce))
-	params.Set("source", fmt.Sprintf("%v", c.source))
-	if v, ok := c.opt_["features"]; ok {
-		params.Set("features", fmt.Sprintf("%v", v))
+	var returnValue *Volumes
+	c.params_.Set("cpksver", fmt.Sprintf("%v", c.cpksver))
+	c.params_.Set("nonce", fmt.Sprintf("%v", c.nonce))
+	c.params_.Set("source", fmt.Sprintf("%v", c.source))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "POST",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	if v, ok := c.opt_["locale"]; ok {
-		params.Set("locale", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["showPreorders"]; ok {
-		params.Set("showPreorders", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["volumeIds"]; ok {
-		params.Set("volumeIds", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "myconfig/syncVolumeLicenses")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Volumes
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Request downloaded content access for specified volumes on the My eBooks shelf.",
 	//   "httpMethod": "POST",
@@ -3946,16 +3745,29 @@ func (c *MyconfigSyncVolumeLicensesCall) Do() (*Volumes, error) {
 // method id "books.myconfig.updateUserSettings":
 
 type MyconfigUpdateUserSettingsCall struct {
-	s            *Service
-	usersettings *Usersettings
-	opt_         map[string]interface{}
+	s             *Service
+	usersettings  *Usersettings
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // UpdateUserSettings: Sets the settings for the user. Unspecified
 // sub-objects will retain the existing value.
+
 func (r *MyconfigService) UpdateUserSettings(usersettings *Usersettings) *MyconfigUpdateUserSettingsCall {
-	c := &MyconfigUpdateUserSettingsCall{s: r.s, opt_: make(map[string]interface{})}
-	c.usersettings = usersettings
+	return &MyconfigUpdateUserSettingsCall{
+		s:             r.s,
+		usersettings:  usersettings,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "myconfig/updateUserSettings",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *MyconfigUpdateUserSettingsCall) Context(ctx context.Context) *MyconfigUpdateUserSettingsCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -3963,41 +3775,22 @@ func (r *MyconfigService) UpdateUserSettings(usersettings *Usersettings) *Myconf
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *MyconfigUpdateUserSettingsCall) Fields(s ...googleapi.Field) *MyconfigUpdateUserSettingsCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *MyconfigUpdateUserSettingsCall) Do() (*Usersettings, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.usersettings)
-	if err != nil {
-		return nil, err
+	var returnValue *Usersettings
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.usersettings,
+		Result:  &returnValue,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "myconfig/updateUserSettings")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Usersettings
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Sets the settings for the user. Unspecified sub-objects will retain the existing value.",
 	//   "httpMethod": "POST",
@@ -4019,59 +3812,49 @@ func (c *MyconfigUpdateUserSettingsCall) Do() (*Usersettings, error) {
 // method id "books.mylibrary.annotations.delete":
 
 type MylibraryAnnotationsDeleteCall struct {
-	s            *Service
-	annotationId string
-	opt_         map[string]interface{}
+	s             *Service
+	annotationId  string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Delete: Deletes an annotation.
+
 func (r *MylibraryAnnotationsService) Delete(annotationId string) *MylibraryAnnotationsDeleteCall {
-	c := &MylibraryAnnotationsDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.annotationId = annotationId
-	return c
+	return &MylibraryAnnotationsDeleteCall{
+		s:             r.s,
+		annotationId:  annotationId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "mylibrary/annotations/{annotationId}",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Source sets the optional parameter "source": String to identify the
 // originator of this request.
 func (c *MylibraryAnnotationsDeleteCall) Source(source string) *MylibraryAnnotationsDeleteCall {
-	c.opt_["source"] = source
+	c.params_.Set("source", fmt.Sprintf("%v", source))
 	return c
 }
-
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *MylibraryAnnotationsDeleteCall) Fields(s ...googleapi.Field) *MylibraryAnnotationsDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (c *MylibraryAnnotationsDeleteCall) Context(ctx context.Context) *MylibraryAnnotationsDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *MylibraryAnnotationsDeleteCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["source"]; ok {
-		params.Set("source", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "mylibrary/annotations/{annotationId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"annotationId": c.annotationId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Deletes an annotation.",
 	//   "httpMethod": "DELETE",
@@ -4103,22 +3886,31 @@ func (c *MylibraryAnnotationsDeleteCall) Do() error {
 // method id "books.mylibrary.annotations.insert":
 
 type MylibraryAnnotationsInsertCall struct {
-	s          *Service
-	annotation *Annotation
-	opt_       map[string]interface{}
+	s             *Service
+	annotation    *Annotation
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Insert: Inserts a new annotation.
+
 func (r *MylibraryAnnotationsService) Insert(annotation *Annotation) *MylibraryAnnotationsInsertCall {
-	c := &MylibraryAnnotationsInsertCall{s: r.s, opt_: make(map[string]interface{})}
-	c.annotation = annotation
-	return c
+	return &MylibraryAnnotationsInsertCall{
+		s:             r.s,
+		annotation:    annotation,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "mylibrary/annotations",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Country sets the optional parameter "country": ISO-3166-1 code to
 // override the IP-based location.
 func (c *MylibraryAnnotationsInsertCall) Country(country string) *MylibraryAnnotationsInsertCall {
-	c.opt_["country"] = country
+	c.params_.Set("country", fmt.Sprintf("%v", country))
 	return c
 }
 
@@ -4126,14 +3918,18 @@ func (c *MylibraryAnnotationsInsertCall) Country(country string) *MylibraryAnnot
 // "showOnlySummaryInResponse": Requests that only the summary of the
 // specified layer be provided in the response.
 func (c *MylibraryAnnotationsInsertCall) ShowOnlySummaryInResponse(showOnlySummaryInResponse bool) *MylibraryAnnotationsInsertCall {
-	c.opt_["showOnlySummaryInResponse"] = showOnlySummaryInResponse
+	c.params_.Set("showOnlySummaryInResponse", fmt.Sprintf("%v", showOnlySummaryInResponse))
 	return c
 }
 
 // Source sets the optional parameter "source": String to identify the
 // originator of this request.
 func (c *MylibraryAnnotationsInsertCall) Source(source string) *MylibraryAnnotationsInsertCall {
-	c.opt_["source"] = source
+	c.params_.Set("source", fmt.Sprintf("%v", source))
+	return c
+}
+func (c *MylibraryAnnotationsInsertCall) Context(ctx context.Context) *MylibraryAnnotationsInsertCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -4141,50 +3937,22 @@ func (c *MylibraryAnnotationsInsertCall) Source(source string) *MylibraryAnnotat
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *MylibraryAnnotationsInsertCall) Fields(s ...googleapi.Field) *MylibraryAnnotationsInsertCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *MylibraryAnnotationsInsertCall) Do() (*Annotation, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.annotation)
-	if err != nil {
-		return nil, err
+	var returnValue *Annotation
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.annotation,
+		Result:  &returnValue,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["country"]; ok {
-		params.Set("country", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["showOnlySummaryInResponse"]; ok {
-		params.Set("showOnlySummaryInResponse", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["source"]; ok {
-		params.Set("source", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "mylibrary/annotations")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Annotation
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Inserts a new annotation.",
 	//   "httpMethod": "POST",
@@ -4223,48 +3991,57 @@ func (c *MylibraryAnnotationsInsertCall) Do() (*Annotation, error) {
 // method id "books.mylibrary.annotations.list":
 
 type MylibraryAnnotationsListCall struct {
-	s    *Service
-	opt_ map[string]interface{}
+	s             *Service
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Retrieves a list of annotations, possibly filtered.
+
 func (r *MylibraryAnnotationsService) List() *MylibraryAnnotationsListCall {
-	c := &MylibraryAnnotationsListCall{s: r.s, opt_: make(map[string]interface{})}
-	return c
+	return &MylibraryAnnotationsListCall{
+		s:             r.s,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "mylibrary/annotations",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // ContentVersion sets the optional parameter "contentVersion": The
 // content version for the requested volume.
 func (c *MylibraryAnnotationsListCall) ContentVersion(contentVersion string) *MylibraryAnnotationsListCall {
-	c.opt_["contentVersion"] = contentVersion
+	c.params_.Set("contentVersion", fmt.Sprintf("%v", contentVersion))
 	return c
 }
 
 // LayerId sets the optional parameter "layerId": The layer ID to limit
 // annotation by.
 func (c *MylibraryAnnotationsListCall) LayerId(layerId string) *MylibraryAnnotationsListCall {
-	c.opt_["layerId"] = layerId
+	c.params_.Set("layerId", fmt.Sprintf("%v", layerId))
 	return c
 }
 
 // LayerIds sets the optional parameter "layerIds": The layer ID(s) to
 // limit annotation by.
-func (c *MylibraryAnnotationsListCall) LayerIds(layerIds string) *MylibraryAnnotationsListCall {
-	c.opt_["layerIds"] = layerIds
+func (c *MylibraryAnnotationsListCall) LayerIds(layerIds ...string) *MylibraryAnnotationsListCall {
+	c.params_["layerIds"] = layerIds
 	return c
 }
 
 // MaxResults sets the optional parameter "maxResults": Maximum number
 // of results to return
 func (c *MylibraryAnnotationsListCall) MaxResults(maxResults int64) *MylibraryAnnotationsListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
 // PageToken sets the optional parameter "pageToken": The value of the
 // nextToken from the previous page.
 func (c *MylibraryAnnotationsListCall) PageToken(pageToken string) *MylibraryAnnotationsListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
 	return c
 }
 
@@ -4272,14 +4049,14 @@ func (c *MylibraryAnnotationsListCall) PageToken(pageToken string) *MylibraryAnn
 // return deleted annotations. updatedMin must be in the request to use
 // this. Defaults to false.
 func (c *MylibraryAnnotationsListCall) ShowDeleted(showDeleted bool) *MylibraryAnnotationsListCall {
-	c.opt_["showDeleted"] = showDeleted
+	c.params_.Set("showDeleted", fmt.Sprintf("%v", showDeleted))
 	return c
 }
 
 // Source sets the optional parameter "source": String to identify the
 // originator of this request.
 func (c *MylibraryAnnotationsListCall) Source(source string) *MylibraryAnnotationsListCall {
-	c.opt_["source"] = source
+	c.params_.Set("source", fmt.Sprintf("%v", source))
 	return c
 }
 
@@ -4287,7 +4064,7 @@ func (c *MylibraryAnnotationsListCall) Source(source string) *MylibraryAnnotatio
 // timestamp to restrict to items updated prior to this timestamp
 // (exclusive).
 func (c *MylibraryAnnotationsListCall) UpdatedMax(updatedMax string) *MylibraryAnnotationsListCall {
-	c.opt_["updatedMax"] = updatedMax
+	c.params_.Set("updatedMax", fmt.Sprintf("%v", updatedMax))
 	return c
 }
 
@@ -4295,14 +4072,18 @@ func (c *MylibraryAnnotationsListCall) UpdatedMax(updatedMax string) *MylibraryA
 // timestamp to restrict to items updated since this timestamp
 // (inclusive).
 func (c *MylibraryAnnotationsListCall) UpdatedMin(updatedMin string) *MylibraryAnnotationsListCall {
-	c.opt_["updatedMin"] = updatedMin
+	c.params_.Set("updatedMin", fmt.Sprintf("%v", updatedMin))
 	return c
 }
 
 // VolumeId sets the optional parameter "volumeId": The volume to
 // restrict annotations to.
 func (c *MylibraryAnnotationsListCall) VolumeId(volumeId string) *MylibraryAnnotationsListCall {
-	c.opt_["volumeId"] = volumeId
+	c.params_.Set("volumeId", fmt.Sprintf("%v", volumeId))
+	return c
+}
+func (c *MylibraryAnnotationsListCall) Context(ctx context.Context) *MylibraryAnnotationsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -4310,65 +4091,21 @@ func (c *MylibraryAnnotationsListCall) VolumeId(volumeId string) *MylibraryAnnot
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *MylibraryAnnotationsListCall) Fields(s ...googleapi.Field) *MylibraryAnnotationsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *MylibraryAnnotationsListCall) Do() (*Annotations, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["contentVersion"]; ok {
-		params.Set("contentVersion", fmt.Sprintf("%v", v))
+	var returnValue *Annotations
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	if v, ok := c.opt_["layerId"]; ok {
-		params.Set("layerId", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["layerIds"]; ok {
-		params.Set("layerIds", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["showDeleted"]; ok {
-		params.Set("showDeleted", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["source"]; ok {
-		params.Set("source", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["updatedMax"]; ok {
-		params.Set("updatedMax", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["updatedMin"]; ok {
-		params.Set("updatedMin", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["volumeId"]; ok {
-		params.Set("volumeId", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "mylibrary/annotations")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Annotations
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves a list of annotations, possibly filtered.",
 	//   "httpMethod": "GET",
@@ -4443,17 +4180,30 @@ func (c *MylibraryAnnotationsListCall) Do() (*Annotations, error) {
 // method id "books.mylibrary.annotations.summary":
 
 type MylibraryAnnotationsSummaryCall struct {
-	s        *Service
-	layerIds []string
-	volumeId string
-	opt_     map[string]interface{}
+	s             *Service
+	layerIds      []string
+	volumeId      string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Summary: Gets the summary of specified layers.
+
 func (r *MylibraryAnnotationsService) Summary(layerIds []string, volumeId string) *MylibraryAnnotationsSummaryCall {
-	c := &MylibraryAnnotationsSummaryCall{s: r.s, opt_: make(map[string]interface{})}
-	c.layerIds = layerIds
-	c.volumeId = volumeId
+	return &MylibraryAnnotationsSummaryCall{
+		s:             r.s,
+		layerIds:      layerIds,
+		volumeId:      volumeId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "mylibrary/annotations/summary",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *MylibraryAnnotationsSummaryCall) Context(ctx context.Context) *MylibraryAnnotationsSummaryCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -4461,39 +4211,26 @@ func (r *MylibraryAnnotationsService) Summary(layerIds []string, volumeId string
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *MylibraryAnnotationsSummaryCall) Fields(s ...googleapi.Field) *MylibraryAnnotationsSummaryCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *MylibraryAnnotationsSummaryCall) Do() (*AnnotationsSummary, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("volumeId", fmt.Sprintf("%v", c.volumeId))
+	var returnValue *AnnotationsSummary
+	c.params_.Set("volumeId", fmt.Sprintf("%v", c.volumeId))
+	c.params_.Del("layerIds")
 	for _, v := range c.layerIds {
-		params.Add("layerIds", fmt.Sprintf("%v", v))
+		c.params_.Add("layerIds", fmt.Sprintf("%v", v))
 	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "POST",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "mylibrary/annotations/summary")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *AnnotationsSummary
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Gets the summary of specified layers.",
 	//   "httpMethod": "POST",
@@ -4531,24 +4268,37 @@ func (c *MylibraryAnnotationsSummaryCall) Do() (*AnnotationsSummary, error) {
 // method id "books.mylibrary.annotations.update":
 
 type MylibraryAnnotationsUpdateCall struct {
-	s            *Service
-	annotationId string
-	annotation   *Annotation
-	opt_         map[string]interface{}
+	s             *Service
+	annotationId  string
+	annotation    *Annotation
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Update: Updates an existing annotation.
+
 func (r *MylibraryAnnotationsService) Update(annotationId string, annotation *Annotation) *MylibraryAnnotationsUpdateCall {
-	c := &MylibraryAnnotationsUpdateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.annotationId = annotationId
-	c.annotation = annotation
-	return c
+	return &MylibraryAnnotationsUpdateCall{
+		s:             r.s,
+		annotationId:  annotationId,
+		annotation:    annotation,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "mylibrary/annotations/{annotationId}",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Source sets the optional parameter "source": String to identify the
 // originator of this request.
 func (c *MylibraryAnnotationsUpdateCall) Source(source string) *MylibraryAnnotationsUpdateCall {
-	c.opt_["source"] = source
+	c.params_.Set("source", fmt.Sprintf("%v", source))
+	return c
+}
+func (c *MylibraryAnnotationsUpdateCall) Context(ctx context.Context) *MylibraryAnnotationsUpdateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -4556,46 +4306,24 @@ func (c *MylibraryAnnotationsUpdateCall) Source(source string) *MylibraryAnnotat
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *MylibraryAnnotationsUpdateCall) Fields(s ...googleapi.Field) *MylibraryAnnotationsUpdateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *MylibraryAnnotationsUpdateCall) Do() (*Annotation, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.annotation)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["source"]; ok {
-		params.Set("source", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "mylibrary/annotations/{annotationId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Annotation
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"annotationId": c.annotationId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.annotation,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Annotation
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates an existing annotation.",
 	//   "httpMethod": "PUT",
@@ -4633,72 +4361,59 @@ func (c *MylibraryAnnotationsUpdateCall) Do() (*Annotation, error) {
 // method id "books.mylibrary.bookshelves.addVolume":
 
 type MylibraryBookshelvesAddVolumeCall struct {
-	s        *Service
-	shelf    string
-	volumeId string
-	opt_     map[string]interface{}
+	s             *Service
+	shelf         string
+	volumeId      string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // AddVolume: Adds a volume to a bookshelf.
+
 func (r *MylibraryBookshelvesService) AddVolume(shelf string, volumeId string) *MylibraryBookshelvesAddVolumeCall {
-	c := &MylibraryBookshelvesAddVolumeCall{s: r.s, opt_: make(map[string]interface{})}
-	c.shelf = shelf
-	c.volumeId = volumeId
-	return c
+	return &MylibraryBookshelvesAddVolumeCall{
+		s:             r.s,
+		shelf:         shelf,
+		volumeId:      volumeId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "mylibrary/bookshelves/{shelf}/addVolume",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Reason sets the optional parameter "reason": The reason for which the
 // book is added to the library.
 func (c *MylibraryBookshelvesAddVolumeCall) Reason(reason string) *MylibraryBookshelvesAddVolumeCall {
-	c.opt_["reason"] = reason
+	c.params_.Set("reason", fmt.Sprintf("%v", reason))
 	return c
 }
 
 // Source sets the optional parameter "source": String to identify the
 // originator of this request.
 func (c *MylibraryBookshelvesAddVolumeCall) Source(source string) *MylibraryBookshelvesAddVolumeCall {
-	c.opt_["source"] = source
+	c.params_.Set("source", fmt.Sprintf("%v", source))
 	return c
 }
-
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *MylibraryBookshelvesAddVolumeCall) Fields(s ...googleapi.Field) *MylibraryBookshelvesAddVolumeCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (c *MylibraryBookshelvesAddVolumeCall) Context(ctx context.Context) *MylibraryBookshelvesAddVolumeCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *MylibraryBookshelvesAddVolumeCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("volumeId", fmt.Sprintf("%v", c.volumeId))
-	if v, ok := c.opt_["reason"]; ok {
-		params.Set("reason", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["source"]; ok {
-		params.Set("source", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "mylibrary/bookshelves/{shelf}/addVolume")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	c.params_.Set("volumeId", fmt.Sprintf("%v", c.volumeId))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"shelf": c.shelf,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "POST",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Adds a volume to a bookshelf.",
 	//   "httpMethod": "POST",
@@ -4752,59 +4467,49 @@ func (c *MylibraryBookshelvesAddVolumeCall) Do() error {
 // method id "books.mylibrary.bookshelves.clearVolumes":
 
 type MylibraryBookshelvesClearVolumesCall struct {
-	s     *Service
-	shelf string
-	opt_  map[string]interface{}
+	s             *Service
+	shelf         string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // ClearVolumes: Clears all volumes from a bookshelf.
+
 func (r *MylibraryBookshelvesService) ClearVolumes(shelf string) *MylibraryBookshelvesClearVolumesCall {
-	c := &MylibraryBookshelvesClearVolumesCall{s: r.s, opt_: make(map[string]interface{})}
-	c.shelf = shelf
-	return c
+	return &MylibraryBookshelvesClearVolumesCall{
+		s:             r.s,
+		shelf:         shelf,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "mylibrary/bookshelves/{shelf}/clearVolumes",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Source sets the optional parameter "source": String to identify the
 // originator of this request.
 func (c *MylibraryBookshelvesClearVolumesCall) Source(source string) *MylibraryBookshelvesClearVolumesCall {
-	c.opt_["source"] = source
+	c.params_.Set("source", fmt.Sprintf("%v", source))
 	return c
 }
-
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *MylibraryBookshelvesClearVolumesCall) Fields(s ...googleapi.Field) *MylibraryBookshelvesClearVolumesCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (c *MylibraryBookshelvesClearVolumesCall) Context(ctx context.Context) *MylibraryBookshelvesClearVolumesCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *MylibraryBookshelvesClearVolumesCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["source"]; ok {
-		params.Set("source", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "mylibrary/bookshelves/{shelf}/clearVolumes")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"shelf": c.shelf,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "POST",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Clears all volumes from a bookshelf.",
 	//   "httpMethod": "POST",
@@ -4836,23 +4541,36 @@ func (c *MylibraryBookshelvesClearVolumesCall) Do() error {
 // method id "books.mylibrary.bookshelves.get":
 
 type MylibraryBookshelvesGetCall struct {
-	s     *Service
-	shelf string
-	opt_  map[string]interface{}
+	s             *Service
+	shelf         string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Retrieves metadata for a specific bookshelf belonging to the
 // authenticated user.
+
 func (r *MylibraryBookshelvesService) Get(shelf string) *MylibraryBookshelvesGetCall {
-	c := &MylibraryBookshelvesGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.shelf = shelf
-	return c
+	return &MylibraryBookshelvesGetCall{
+		s:             r.s,
+		shelf:         shelf,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "mylibrary/bookshelves/{shelf}",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Source sets the optional parameter "source": String to identify the
 // originator of this request.
 func (c *MylibraryBookshelvesGetCall) Source(source string) *MylibraryBookshelvesGetCall {
-	c.opt_["source"] = source
+	c.params_.Set("source", fmt.Sprintf("%v", source))
+	return c
+}
+func (c *MylibraryBookshelvesGetCall) Context(ctx context.Context) *MylibraryBookshelvesGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -4860,40 +4578,23 @@ func (c *MylibraryBookshelvesGetCall) Source(source string) *MylibraryBookshelve
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *MylibraryBookshelvesGetCall) Fields(s ...googleapi.Field) *MylibraryBookshelvesGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *MylibraryBookshelvesGetCall) Do() (*Bookshelf, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["source"]; ok {
-		params.Set("source", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "mylibrary/bookshelves/{shelf}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Bookshelf
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"shelf": c.shelf,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Bookshelf
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves metadata for a specific bookshelf belonging to the authenticated user.",
 	//   "httpMethod": "GET",
@@ -4928,21 +4629,34 @@ func (c *MylibraryBookshelvesGetCall) Do() (*Bookshelf, error) {
 // method id "books.mylibrary.bookshelves.list":
 
 type MylibraryBookshelvesListCall struct {
-	s    *Service
-	opt_ map[string]interface{}
+	s             *Service
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Retrieves a list of bookshelves belonging to the authenticated
 // user.
+
 func (r *MylibraryBookshelvesService) List() *MylibraryBookshelvesListCall {
-	c := &MylibraryBookshelvesListCall{s: r.s, opt_: make(map[string]interface{})}
-	return c
+	return &MylibraryBookshelvesListCall{
+		s:             r.s,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "mylibrary/bookshelves",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Source sets the optional parameter "source": String to identify the
 // originator of this request.
 func (c *MylibraryBookshelvesListCall) Source(source string) *MylibraryBookshelvesListCall {
-	c.opt_["source"] = source
+	c.params_.Set("source", fmt.Sprintf("%v", source))
+	return c
+}
+func (c *MylibraryBookshelvesListCall) Context(ctx context.Context) *MylibraryBookshelvesListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -4950,38 +4664,21 @@ func (c *MylibraryBookshelvesListCall) Source(source string) *MylibraryBookshelv
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *MylibraryBookshelvesListCall) Fields(s ...googleapi.Field) *MylibraryBookshelvesListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *MylibraryBookshelvesListCall) Do() (*Bookshelves, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["source"]; ok {
-		params.Set("source", fmt.Sprintf("%v", v))
+	var returnValue *Bookshelves
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "mylibrary/bookshelves")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Bookshelves
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves a list of bookshelves belonging to the authenticated user.",
 	//   "httpMethod": "GET",
@@ -5011,61 +4708,51 @@ type MylibraryBookshelvesMoveVolumeCall struct {
 	shelf          string
 	volumeId       string
 	volumePosition int64
-	opt_           map[string]interface{}
+	caller_        googleapi.Caller
+	params_        url.Values
+	pathTemplate_  string
+	context_       context.Context
 }
 
 // MoveVolume: Moves a volume within a bookshelf.
+
 func (r *MylibraryBookshelvesService) MoveVolume(shelf string, volumeId string, volumePosition int64) *MylibraryBookshelvesMoveVolumeCall {
-	c := &MylibraryBookshelvesMoveVolumeCall{s: r.s, opt_: make(map[string]interface{})}
-	c.shelf = shelf
-	c.volumeId = volumeId
-	c.volumePosition = volumePosition
-	return c
+	return &MylibraryBookshelvesMoveVolumeCall{
+		s:              r.s,
+		shelf:          shelf,
+		volumeId:       volumeId,
+		volumePosition: volumePosition,
+		caller_:        googleapi.JSONCall{},
+		params_:        make(map[string][]string),
+		pathTemplate_:  "mylibrary/bookshelves/{shelf}/moveVolume",
+		context_:       googleapi.NoContext,
+	}
 }
 
 // Source sets the optional parameter "source": String to identify the
 // originator of this request.
 func (c *MylibraryBookshelvesMoveVolumeCall) Source(source string) *MylibraryBookshelvesMoveVolumeCall {
-	c.opt_["source"] = source
+	c.params_.Set("source", fmt.Sprintf("%v", source))
 	return c
 }
-
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *MylibraryBookshelvesMoveVolumeCall) Fields(s ...googleapi.Field) *MylibraryBookshelvesMoveVolumeCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (c *MylibraryBookshelvesMoveVolumeCall) Context(ctx context.Context) *MylibraryBookshelvesMoveVolumeCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *MylibraryBookshelvesMoveVolumeCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("volumeId", fmt.Sprintf("%v", c.volumeId))
-	params.Set("volumePosition", fmt.Sprintf("%v", c.volumePosition))
-	if v, ok := c.opt_["source"]; ok {
-		params.Set("source", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "mylibrary/bookshelves/{shelf}/moveVolume")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	c.params_.Set("volumeId", fmt.Sprintf("%v", c.volumeId))
+	c.params_.Set("volumePosition", fmt.Sprintf("%v", c.volumePosition))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"shelf": c.shelf,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "POST",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Moves a volume within a bookshelf.",
 	//   "httpMethod": "POST",
@@ -5112,72 +4799,59 @@ func (c *MylibraryBookshelvesMoveVolumeCall) Do() error {
 // method id "books.mylibrary.bookshelves.removeVolume":
 
 type MylibraryBookshelvesRemoveVolumeCall struct {
-	s        *Service
-	shelf    string
-	volumeId string
-	opt_     map[string]interface{}
+	s             *Service
+	shelf         string
+	volumeId      string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // RemoveVolume: Removes a volume from a bookshelf.
+
 func (r *MylibraryBookshelvesService) RemoveVolume(shelf string, volumeId string) *MylibraryBookshelvesRemoveVolumeCall {
-	c := &MylibraryBookshelvesRemoveVolumeCall{s: r.s, opt_: make(map[string]interface{})}
-	c.shelf = shelf
-	c.volumeId = volumeId
-	return c
+	return &MylibraryBookshelvesRemoveVolumeCall{
+		s:             r.s,
+		shelf:         shelf,
+		volumeId:      volumeId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "mylibrary/bookshelves/{shelf}/removeVolume",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Reason sets the optional parameter "reason": The reason for which the
 // book is removed from the library.
 func (c *MylibraryBookshelvesRemoveVolumeCall) Reason(reason string) *MylibraryBookshelvesRemoveVolumeCall {
-	c.opt_["reason"] = reason
+	c.params_.Set("reason", fmt.Sprintf("%v", reason))
 	return c
 }
 
 // Source sets the optional parameter "source": String to identify the
 // originator of this request.
 func (c *MylibraryBookshelvesRemoveVolumeCall) Source(source string) *MylibraryBookshelvesRemoveVolumeCall {
-	c.opt_["source"] = source
+	c.params_.Set("source", fmt.Sprintf("%v", source))
 	return c
 }
-
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *MylibraryBookshelvesRemoveVolumeCall) Fields(s ...googleapi.Field) *MylibraryBookshelvesRemoveVolumeCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (c *MylibraryBookshelvesRemoveVolumeCall) Context(ctx context.Context) *MylibraryBookshelvesRemoveVolumeCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *MylibraryBookshelvesRemoveVolumeCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("volumeId", fmt.Sprintf("%v", c.volumeId))
-	if v, ok := c.opt_["reason"]; ok {
-		params.Set("reason", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["source"]; ok {
-		params.Set("source", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "mylibrary/bookshelves/{shelf}/removeVolume")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	c.params_.Set("volumeId", fmt.Sprintf("%v", c.volumeId))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"shelf": c.shelf,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "POST",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Removes a volume from a bookshelf.",
 	//   "httpMethod": "POST",
@@ -5227,64 +4901,77 @@ func (c *MylibraryBookshelvesRemoveVolumeCall) Do() error {
 // method id "books.mylibrary.bookshelves.volumes.list":
 
 type MylibraryBookshelvesVolumesListCall struct {
-	s     *Service
-	shelf string
-	opt_  map[string]interface{}
+	s             *Service
+	shelf         string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Gets volume information for volumes on a bookshelf.
+
 func (r *MylibraryBookshelvesVolumesService) List(shelf string) *MylibraryBookshelvesVolumesListCall {
-	c := &MylibraryBookshelvesVolumesListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.shelf = shelf
-	return c
+	return &MylibraryBookshelvesVolumesListCall{
+		s:             r.s,
+		shelf:         shelf,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "mylibrary/bookshelves/{shelf}/volumes",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Country sets the optional parameter "country": ISO-3166-1 code to
 // override the IP-based location.
 func (c *MylibraryBookshelvesVolumesListCall) Country(country string) *MylibraryBookshelvesVolumesListCall {
-	c.opt_["country"] = country
+	c.params_.Set("country", fmt.Sprintf("%v", country))
 	return c
 }
 
 // MaxResults sets the optional parameter "maxResults": Maximum number
 // of results to return
 func (c *MylibraryBookshelvesVolumesListCall) MaxResults(maxResults int64) *MylibraryBookshelvesVolumesListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
 // Projection sets the optional parameter "projection": Restrict
 // information returned to a set of selected fields.
 func (c *MylibraryBookshelvesVolumesListCall) Projection(projection string) *MylibraryBookshelvesVolumesListCall {
-	c.opt_["projection"] = projection
+	c.params_.Set("projection", fmt.Sprintf("%v", projection))
 	return c
 }
 
 // Q sets the optional parameter "q": Full-text search query string in
 // this bookshelf.
 func (c *MylibraryBookshelvesVolumesListCall) Q(q string) *MylibraryBookshelvesVolumesListCall {
-	c.opt_["q"] = q
+	c.params_.Set("q", fmt.Sprintf("%v", q))
 	return c
 }
 
 // ShowPreorders sets the optional parameter "showPreorders": Set to
 // true to show pre-ordered books. Defaults to false.
 func (c *MylibraryBookshelvesVolumesListCall) ShowPreorders(showPreorders bool) *MylibraryBookshelvesVolumesListCall {
-	c.opt_["showPreorders"] = showPreorders
+	c.params_.Set("showPreorders", fmt.Sprintf("%v", showPreorders))
 	return c
 }
 
 // Source sets the optional parameter "source": String to identify the
 // originator of this request.
 func (c *MylibraryBookshelvesVolumesListCall) Source(source string) *MylibraryBookshelvesVolumesListCall {
-	c.opt_["source"] = source
+	c.params_.Set("source", fmt.Sprintf("%v", source))
 	return c
 }
 
 // StartIndex sets the optional parameter "startIndex": Index of the
 // first element to return (starts at 0)
 func (c *MylibraryBookshelvesVolumesListCall) StartIndex(startIndex int64) *MylibraryBookshelvesVolumesListCall {
-	c.opt_["startIndex"] = startIndex
+	c.params_.Set("startIndex", fmt.Sprintf("%v", startIndex))
+	return c
+}
+func (c *MylibraryBookshelvesVolumesListCall) Context(ctx context.Context) *MylibraryBookshelvesVolumesListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -5292,58 +4979,23 @@ func (c *MylibraryBookshelvesVolumesListCall) StartIndex(startIndex int64) *Myli
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *MylibraryBookshelvesVolumesListCall) Fields(s ...googleapi.Field) *MylibraryBookshelvesVolumesListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *MylibraryBookshelvesVolumesListCall) Do() (*Volumes, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["country"]; ok {
-		params.Set("country", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["projection"]; ok {
-		params.Set("projection", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["q"]; ok {
-		params.Set("q", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["showPreorders"]; ok {
-		params.Set("showPreorders", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["source"]; ok {
-		params.Set("source", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["startIndex"]; ok {
-		params.Set("startIndex", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "mylibrary/bookshelves/{shelf}/volumes")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Volumes
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"shelf": c.shelf,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Volumes
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Gets volume information for volumes on a bookshelf.",
 	//   "httpMethod": "GET",
@@ -5420,29 +5072,42 @@ func (c *MylibraryBookshelvesVolumesListCall) Do() (*Volumes, error) {
 // method id "books.mylibrary.readingpositions.get":
 
 type MylibraryReadingpositionsGetCall struct {
-	s        *Service
-	volumeId string
-	opt_     map[string]interface{}
+	s             *Service
+	volumeId      string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Retrieves my reading position information for a volume.
+
 func (r *MylibraryReadingpositionsService) Get(volumeId string) *MylibraryReadingpositionsGetCall {
-	c := &MylibraryReadingpositionsGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.volumeId = volumeId
-	return c
+	return &MylibraryReadingpositionsGetCall{
+		s:             r.s,
+		volumeId:      volumeId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "mylibrary/readingpositions/{volumeId}",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // ContentVersion sets the optional parameter "contentVersion": Volume
 // content version for which this reading position is requested.
 func (c *MylibraryReadingpositionsGetCall) ContentVersion(contentVersion string) *MylibraryReadingpositionsGetCall {
-	c.opt_["contentVersion"] = contentVersion
+	c.params_.Set("contentVersion", fmt.Sprintf("%v", contentVersion))
 	return c
 }
 
 // Source sets the optional parameter "source": String to identify the
 // originator of this request.
 func (c *MylibraryReadingpositionsGetCall) Source(source string) *MylibraryReadingpositionsGetCall {
-	c.opt_["source"] = source
+	c.params_.Set("source", fmt.Sprintf("%v", source))
+	return c
+}
+func (c *MylibraryReadingpositionsGetCall) Context(ctx context.Context) *MylibraryReadingpositionsGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -5450,43 +5115,23 @@ func (c *MylibraryReadingpositionsGetCall) Source(source string) *MylibraryReadi
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *MylibraryReadingpositionsGetCall) Fields(s ...googleapi.Field) *MylibraryReadingpositionsGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *MylibraryReadingpositionsGetCall) Do() (*ReadingPosition, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["contentVersion"]; ok {
-		params.Set("contentVersion", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["source"]; ok {
-		params.Set("source", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "mylibrary/readingpositions/{volumeId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *ReadingPosition
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"volumeId": c.volumeId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ReadingPosition
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves my reading position information for a volume.",
 	//   "httpMethod": "GET",
@@ -5526,95 +5171,76 @@ func (c *MylibraryReadingpositionsGetCall) Do() (*ReadingPosition, error) {
 // method id "books.mylibrary.readingpositions.setPosition":
 
 type MylibraryReadingpositionsSetPositionCall struct {
-	s         *Service
-	volumeId  string
-	timestamp string
-	position  string
-	opt_      map[string]interface{}
+	s             *Service
+	volumeId      string
+	timestamp     string
+	position      string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // SetPosition: Sets my reading position information for a volume.
+
 func (r *MylibraryReadingpositionsService) SetPosition(volumeId string, timestamp string, position string) *MylibraryReadingpositionsSetPositionCall {
-	c := &MylibraryReadingpositionsSetPositionCall{s: r.s, opt_: make(map[string]interface{})}
-	c.volumeId = volumeId
-	c.timestamp = timestamp
-	c.position = position
-	return c
+	return &MylibraryReadingpositionsSetPositionCall{
+		s:             r.s,
+		volumeId:      volumeId,
+		timestamp:     timestamp,
+		position:      position,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "mylibrary/readingpositions/{volumeId}/setPosition",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Action sets the optional parameter "action": Action that caused this
 // reading position to be set.
 func (c *MylibraryReadingpositionsSetPositionCall) Action(action string) *MylibraryReadingpositionsSetPositionCall {
-	c.opt_["action"] = action
+	c.params_.Set("action", fmt.Sprintf("%v", action))
 	return c
 }
 
 // ContentVersion sets the optional parameter "contentVersion": Volume
 // content version for which this reading position applies.
 func (c *MylibraryReadingpositionsSetPositionCall) ContentVersion(contentVersion string) *MylibraryReadingpositionsSetPositionCall {
-	c.opt_["contentVersion"] = contentVersion
+	c.params_.Set("contentVersion", fmt.Sprintf("%v", contentVersion))
 	return c
 }
 
 // DeviceCookie sets the optional parameter "deviceCookie": Random
 // persistent device cookie optional on set position.
 func (c *MylibraryReadingpositionsSetPositionCall) DeviceCookie(deviceCookie string) *MylibraryReadingpositionsSetPositionCall {
-	c.opt_["deviceCookie"] = deviceCookie
+	c.params_.Set("deviceCookie", fmt.Sprintf("%v", deviceCookie))
 	return c
 }
 
 // Source sets the optional parameter "source": String to identify the
 // originator of this request.
 func (c *MylibraryReadingpositionsSetPositionCall) Source(source string) *MylibraryReadingpositionsSetPositionCall {
-	c.opt_["source"] = source
+	c.params_.Set("source", fmt.Sprintf("%v", source))
 	return c
 }
-
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *MylibraryReadingpositionsSetPositionCall) Fields(s ...googleapi.Field) *MylibraryReadingpositionsSetPositionCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (c *MylibraryReadingpositionsSetPositionCall) Context(ctx context.Context) *MylibraryReadingpositionsSetPositionCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *MylibraryReadingpositionsSetPositionCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("position", fmt.Sprintf("%v", c.position))
-	params.Set("timestamp", fmt.Sprintf("%v", c.timestamp))
-	if v, ok := c.opt_["action"]; ok {
-		params.Set("action", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["contentVersion"]; ok {
-		params.Set("contentVersion", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["deviceCookie"]; ok {
-		params.Set("deviceCookie", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["source"]; ok {
-		params.Set("source", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "mylibrary/readingpositions/{volumeId}/setPosition")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	c.params_.Set("position", fmt.Sprintf("%v", c.position))
+	c.params_.Set("timestamp", fmt.Sprintf("%v", c.timestamp))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"volumeId": c.volumeId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "POST",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Sets my reading position information for a volume.",
 	//   "httpMethod": "POST",
@@ -5691,20 +5317,33 @@ func (c *MylibraryReadingpositionsSetPositionCall) Do() error {
 // method id "books.onboarding.listCategories":
 
 type OnboardingListCategoriesCall struct {
-	s    *Service
-	opt_ map[string]interface{}
+	s             *Service
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // ListCategories: List categories for onboarding experience.
+
 func (r *OnboardingService) ListCategories() *OnboardingListCategoriesCall {
-	c := &OnboardingListCategoriesCall{s: r.s, opt_: make(map[string]interface{})}
-	return c
+	return &OnboardingListCategoriesCall{
+		s:             r.s,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "onboarding/listCategories",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Locale sets the optional parameter "locale": ISO-639-1 language and
 // ISO-3166-1 country code. Default is en-US if unset.
 func (c *OnboardingListCategoriesCall) Locale(locale string) *OnboardingListCategoriesCall {
-	c.opt_["locale"] = locale
+	c.params_.Set("locale", fmt.Sprintf("%v", locale))
+	return c
+}
+func (c *OnboardingListCategoriesCall) Context(ctx context.Context) *OnboardingListCategoriesCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -5712,38 +5351,21 @@ func (c *OnboardingListCategoriesCall) Locale(locale string) *OnboardingListCate
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *OnboardingListCategoriesCall) Fields(s ...googleapi.Field) *OnboardingListCategoriesCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *OnboardingListCategoriesCall) Do() (*Category, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["locale"]; ok {
-		params.Set("locale", fmt.Sprintf("%v", v))
+	var returnValue *Category
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "onboarding/listCategories")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Category
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "List categories for onboarding experience.",
 	//   "httpMethod": "GET",
@@ -5769,42 +5391,55 @@ func (c *OnboardingListCategoriesCall) Do() (*Category, error) {
 // method id "books.onboarding.listCategoryVolumes":
 
 type OnboardingListCategoryVolumesCall struct {
-	s    *Service
-	opt_ map[string]interface{}
+	s             *Service
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // ListCategoryVolumes: List available volumes under categories for
 // onboarding experience.
+
 func (r *OnboardingService) ListCategoryVolumes() *OnboardingListCategoryVolumesCall {
-	c := &OnboardingListCategoryVolumesCall{s: r.s, opt_: make(map[string]interface{})}
-	return c
+	return &OnboardingListCategoryVolumesCall{
+		s:             r.s,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "onboarding/listCategoryVolumes",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // CategoryId sets the optional parameter "categoryId": List of category
 // ids requested.
-func (c *OnboardingListCategoryVolumesCall) CategoryId(categoryId string) *OnboardingListCategoryVolumesCall {
-	c.opt_["categoryId"] = categoryId
+func (c *OnboardingListCategoryVolumesCall) CategoryId(categoryId ...string) *OnboardingListCategoryVolumesCall {
+	c.params_["categoryId"] = categoryId
 	return c
 }
 
 // Locale sets the optional parameter "locale": ISO-639-1 language and
 // ISO-3166-1 country code. Default is en-US if unset.
 func (c *OnboardingListCategoryVolumesCall) Locale(locale string) *OnboardingListCategoryVolumesCall {
-	c.opt_["locale"] = locale
+	c.params_.Set("locale", fmt.Sprintf("%v", locale))
 	return c
 }
 
 // PageSize sets the optional parameter "pageSize": Number of maximum
 // results per page to be included in the response.
 func (c *OnboardingListCategoryVolumesCall) PageSize(pageSize int64) *OnboardingListCategoryVolumesCall {
-	c.opt_["pageSize"] = pageSize
+	c.params_.Set("pageSize", fmt.Sprintf("%v", pageSize))
 	return c
 }
 
 // PageToken sets the optional parameter "pageToken": The value of the
 // nextToken from the previous page.
 func (c *OnboardingListCategoryVolumesCall) PageToken(pageToken string) *OnboardingListCategoryVolumesCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
+	return c
+}
+func (c *OnboardingListCategoryVolumesCall) Context(ctx context.Context) *OnboardingListCategoryVolumesCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -5812,47 +5447,21 @@ func (c *OnboardingListCategoryVolumesCall) PageToken(pageToken string) *Onboard
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *OnboardingListCategoryVolumesCall) Fields(s ...googleapi.Field) *OnboardingListCategoryVolumesCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *OnboardingListCategoryVolumesCall) Do() (*Volume2, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["categoryId"]; ok {
-		params.Set("categoryId", fmt.Sprintf("%v", v))
+	var returnValue *Volume2
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	if v, ok := c.opt_["locale"]; ok {
-		params.Set("locale", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageSize"]; ok {
-		params.Set("pageSize", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "onboarding/listCategoryVolumes")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Volume2
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "List available volumes under categories for onboarding experience.",
 	//   "httpMethod": "GET",
@@ -5895,119 +5504,88 @@ func (c *OnboardingListCategoryVolumesCall) Do() (*Volume2, error) {
 // method id "books.promooffer.accept":
 
 type PromoofferAcceptCall struct {
-	s    *Service
-	opt_ map[string]interface{}
+	s             *Service
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Accept:
+
 func (r *PromoofferService) Accept() *PromoofferAcceptCall {
-	c := &PromoofferAcceptCall{s: r.s, opt_: make(map[string]interface{})}
-	return c
+	return &PromoofferAcceptCall{
+		s:             r.s,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "promooffer/accept",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // AndroidId sets the optional parameter "androidId": device android_id
 func (c *PromoofferAcceptCall) AndroidId(androidId string) *PromoofferAcceptCall {
-	c.opt_["androidId"] = androidId
+	c.params_.Set("androidId", fmt.Sprintf("%v", androidId))
 	return c
 }
 
 // Device sets the optional parameter "device": device device
 func (c *PromoofferAcceptCall) Device(device string) *PromoofferAcceptCall {
-	c.opt_["device"] = device
+	c.params_.Set("device", fmt.Sprintf("%v", device))
 	return c
 }
 
 // Manufacturer sets the optional parameter "manufacturer": device
 // manufacturer
 func (c *PromoofferAcceptCall) Manufacturer(manufacturer string) *PromoofferAcceptCall {
-	c.opt_["manufacturer"] = manufacturer
+	c.params_.Set("manufacturer", fmt.Sprintf("%v", manufacturer))
 	return c
 }
 
 // Model sets the optional parameter "model": device model
 func (c *PromoofferAcceptCall) Model(model string) *PromoofferAcceptCall {
-	c.opt_["model"] = model
+	c.params_.Set("model", fmt.Sprintf("%v", model))
 	return c
 }
 
 // OfferId sets the optional parameter "offerId":
 func (c *PromoofferAcceptCall) OfferId(offerId string) *PromoofferAcceptCall {
-	c.opt_["offerId"] = offerId
+	c.params_.Set("offerId", fmt.Sprintf("%v", offerId))
 	return c
 }
 
 // Product sets the optional parameter "product": device product
 func (c *PromoofferAcceptCall) Product(product string) *PromoofferAcceptCall {
-	c.opt_["product"] = product
+	c.params_.Set("product", fmt.Sprintf("%v", product))
 	return c
 }
 
 // Serial sets the optional parameter "serial": device serial
 func (c *PromoofferAcceptCall) Serial(serial string) *PromoofferAcceptCall {
-	c.opt_["serial"] = serial
+	c.params_.Set("serial", fmt.Sprintf("%v", serial))
 	return c
 }
 
 // VolumeId sets the optional parameter "volumeId": Volume id to
 // exercise the offer
 func (c *PromoofferAcceptCall) VolumeId(volumeId string) *PromoofferAcceptCall {
-	c.opt_["volumeId"] = volumeId
+	c.params_.Set("volumeId", fmt.Sprintf("%v", volumeId))
 	return c
 }
-
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *PromoofferAcceptCall) Fields(s ...googleapi.Field) *PromoofferAcceptCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (c *PromoofferAcceptCall) Context(ctx context.Context) *PromoofferAcceptCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *PromoofferAcceptCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["androidId"]; ok {
-		params.Set("androidId", fmt.Sprintf("%v", v))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "POST",
+		URL:    u,
+		Params: c.params_,
 	}
-	if v, ok := c.opt_["device"]; ok {
-		params.Set("device", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["manufacturer"]; ok {
-		params.Set("manufacturer", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["model"]; ok {
-		params.Set("model", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["offerId"]; ok {
-		params.Set("offerId", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["product"]; ok {
-		params.Set("product", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["serial"]; ok {
-		params.Set("serial", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["volumeId"]; ok {
-		params.Set("volumeId", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "promooffer/accept")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "",
 	//   "httpMethod": "POST",
@@ -6064,109 +5642,81 @@ func (c *PromoofferAcceptCall) Do() error {
 // method id "books.promooffer.dismiss":
 
 type PromoofferDismissCall struct {
-	s    *Service
-	opt_ map[string]interface{}
+	s             *Service
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Dismiss:
+
 func (r *PromoofferService) Dismiss() *PromoofferDismissCall {
-	c := &PromoofferDismissCall{s: r.s, opt_: make(map[string]interface{})}
-	return c
+	return &PromoofferDismissCall{
+		s:             r.s,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "promooffer/dismiss",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // AndroidId sets the optional parameter "androidId": device android_id
 func (c *PromoofferDismissCall) AndroidId(androidId string) *PromoofferDismissCall {
-	c.opt_["androidId"] = androidId
+	c.params_.Set("androidId", fmt.Sprintf("%v", androidId))
 	return c
 }
 
 // Device sets the optional parameter "device": device device
 func (c *PromoofferDismissCall) Device(device string) *PromoofferDismissCall {
-	c.opt_["device"] = device
+	c.params_.Set("device", fmt.Sprintf("%v", device))
 	return c
 }
 
 // Manufacturer sets the optional parameter "manufacturer": device
 // manufacturer
 func (c *PromoofferDismissCall) Manufacturer(manufacturer string) *PromoofferDismissCall {
-	c.opt_["manufacturer"] = manufacturer
+	c.params_.Set("manufacturer", fmt.Sprintf("%v", manufacturer))
 	return c
 }
 
 // Model sets the optional parameter "model": device model
 func (c *PromoofferDismissCall) Model(model string) *PromoofferDismissCall {
-	c.opt_["model"] = model
+	c.params_.Set("model", fmt.Sprintf("%v", model))
 	return c
 }
 
 // OfferId sets the optional parameter "offerId": Offer to dimiss
 func (c *PromoofferDismissCall) OfferId(offerId string) *PromoofferDismissCall {
-	c.opt_["offerId"] = offerId
+	c.params_.Set("offerId", fmt.Sprintf("%v", offerId))
 	return c
 }
 
 // Product sets the optional parameter "product": device product
 func (c *PromoofferDismissCall) Product(product string) *PromoofferDismissCall {
-	c.opt_["product"] = product
+	c.params_.Set("product", fmt.Sprintf("%v", product))
 	return c
 }
 
 // Serial sets the optional parameter "serial": device serial
 func (c *PromoofferDismissCall) Serial(serial string) *PromoofferDismissCall {
-	c.opt_["serial"] = serial
+	c.params_.Set("serial", fmt.Sprintf("%v", serial))
 	return c
 }
-
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *PromoofferDismissCall) Fields(s ...googleapi.Field) *PromoofferDismissCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (c *PromoofferDismissCall) Context(ctx context.Context) *PromoofferDismissCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *PromoofferDismissCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["androidId"]; ok {
-		params.Set("androidId", fmt.Sprintf("%v", v))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "POST",
+		URL:    u,
+		Params: c.params_,
 	}
-	if v, ok := c.opt_["device"]; ok {
-		params.Set("device", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["manufacturer"]; ok {
-		params.Set("manufacturer", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["model"]; ok {
-		params.Set("model", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["offerId"]; ok {
-		params.Set("offerId", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["product"]; ok {
-		params.Set("product", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["serial"]; ok {
-		params.Set("serial", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "promooffer/dismiss")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "",
 	//   "httpMethod": "POST",
@@ -6219,50 +5769,63 @@ func (c *PromoofferDismissCall) Do() error {
 // method id "books.promooffer.get":
 
 type PromoofferGetCall struct {
-	s    *Service
-	opt_ map[string]interface{}
+	s             *Service
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Returns a list of promo offers available to the user
+
 func (r *PromoofferService) Get() *PromoofferGetCall {
-	c := &PromoofferGetCall{s: r.s, opt_: make(map[string]interface{})}
-	return c
+	return &PromoofferGetCall{
+		s:             r.s,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "promooffer/get",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // AndroidId sets the optional parameter "androidId": device android_id
 func (c *PromoofferGetCall) AndroidId(androidId string) *PromoofferGetCall {
-	c.opt_["androidId"] = androidId
+	c.params_.Set("androidId", fmt.Sprintf("%v", androidId))
 	return c
 }
 
 // Device sets the optional parameter "device": device device
 func (c *PromoofferGetCall) Device(device string) *PromoofferGetCall {
-	c.opt_["device"] = device
+	c.params_.Set("device", fmt.Sprintf("%v", device))
 	return c
 }
 
 // Manufacturer sets the optional parameter "manufacturer": device
 // manufacturer
 func (c *PromoofferGetCall) Manufacturer(manufacturer string) *PromoofferGetCall {
-	c.opt_["manufacturer"] = manufacturer
+	c.params_.Set("manufacturer", fmt.Sprintf("%v", manufacturer))
 	return c
 }
 
 // Model sets the optional parameter "model": device model
 func (c *PromoofferGetCall) Model(model string) *PromoofferGetCall {
-	c.opt_["model"] = model
+	c.params_.Set("model", fmt.Sprintf("%v", model))
 	return c
 }
 
 // Product sets the optional parameter "product": device product
 func (c *PromoofferGetCall) Product(product string) *PromoofferGetCall {
-	c.opt_["product"] = product
+	c.params_.Set("product", fmt.Sprintf("%v", product))
 	return c
 }
 
 // Serial sets the optional parameter "serial": device serial
 func (c *PromoofferGetCall) Serial(serial string) *PromoofferGetCall {
-	c.opt_["serial"] = serial
+	c.params_.Set("serial", fmt.Sprintf("%v", serial))
+	return c
+}
+func (c *PromoofferGetCall) Context(ctx context.Context) *PromoofferGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -6270,53 +5833,21 @@ func (c *PromoofferGetCall) Serial(serial string) *PromoofferGetCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *PromoofferGetCall) Fields(s ...googleapi.Field) *PromoofferGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *PromoofferGetCall) Do() (*Offers, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["androidId"]; ok {
-		params.Set("androidId", fmt.Sprintf("%v", v))
+	var returnValue *Offers
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	if v, ok := c.opt_["device"]; ok {
-		params.Set("device", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["manufacturer"]; ok {
-		params.Set("manufacturer", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["model"]; ok {
-		params.Set("model", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["product"]; ok {
-		params.Set("product", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["serial"]; ok {
-		params.Set("serial", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "promooffer/get")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Offers
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Returns a list of promo offers available to the user",
 	//   "httpMethod": "GET",
@@ -6367,50 +5898,63 @@ func (c *PromoofferGetCall) Do() (*Offers, error) {
 // method id "books.volumes.get":
 
 type VolumesGetCall struct {
-	s        *Service
-	volumeId string
-	opt_     map[string]interface{}
+	s             *Service
+	volumeId      string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Gets volume information for a single volume.
+
 func (r *VolumesService) Get(volumeId string) *VolumesGetCall {
-	c := &VolumesGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.volumeId = volumeId
-	return c
+	return &VolumesGetCall{
+		s:             r.s,
+		volumeId:      volumeId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "volumes/{volumeId}",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Country sets the optional parameter "country": ISO-3166-1 code to
 // override the IP-based location.
 func (c *VolumesGetCall) Country(country string) *VolumesGetCall {
-	c.opt_["country"] = country
+	c.params_.Set("country", fmt.Sprintf("%v", country))
 	return c
 }
 
 // Partner sets the optional parameter "partner": Brand results for
 // partner ID.
 func (c *VolumesGetCall) Partner(partner string) *VolumesGetCall {
-	c.opt_["partner"] = partner
+	c.params_.Set("partner", fmt.Sprintf("%v", partner))
 	return c
 }
 
 // Projection sets the optional parameter "projection": Restrict
 // information returned to a set of selected fields.
 func (c *VolumesGetCall) Projection(projection string) *VolumesGetCall {
-	c.opt_["projection"] = projection
+	c.params_.Set("projection", fmt.Sprintf("%v", projection))
 	return c
 }
 
 // Source sets the optional parameter "source": String to identify the
 // originator of this request.
 func (c *VolumesGetCall) Source(source string) *VolumesGetCall {
-	c.opt_["source"] = source
+	c.params_.Set("source", fmt.Sprintf("%v", source))
 	return c
 }
 
 // User_library_consistent_read sets the optional parameter
 // "user_library_consistent_read":
 func (c *VolumesGetCall) User_library_consistent_read(user_library_consistent_read bool) *VolumesGetCall {
-	c.opt_["user_library_consistent_read"] = user_library_consistent_read
+	c.params_.Set("user_library_consistent_read", fmt.Sprintf("%v", user_library_consistent_read))
+	return c
+}
+func (c *VolumesGetCall) Context(ctx context.Context) *VolumesGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -6418,52 +5962,23 @@ func (c *VolumesGetCall) User_library_consistent_read(user_library_consistent_re
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *VolumesGetCall) Fields(s ...googleapi.Field) *VolumesGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *VolumesGetCall) Do() (*Volume, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["country"]; ok {
-		params.Set("country", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["partner"]; ok {
-		params.Set("partner", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["projection"]; ok {
-		params.Set("projection", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["source"]; ok {
-		params.Set("source", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["user_library_consistent_read"]; ok {
-		params.Set("user_library_consistent_read", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "volumes/{volumeId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Volume
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"volumeId": c.volumeId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Volume
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Gets volume information for a single volume.",
 	//   "httpMethod": "GET",
@@ -6525,97 +6040,110 @@ func (c *VolumesGetCall) Do() (*Volume, error) {
 // method id "books.volumes.list":
 
 type VolumesListCall struct {
-	s    *Service
-	q    string
-	opt_ map[string]interface{}
+	s             *Service
+	q             string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Performs a book search.
+
 func (r *VolumesService) List(q string) *VolumesListCall {
-	c := &VolumesListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.q = q
-	return c
+	return &VolumesListCall{
+		s:             r.s,
+		q:             q,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "volumes",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Download sets the optional parameter "download": Restrict to volumes
 // by download availability.
 func (c *VolumesListCall) Download(download string) *VolumesListCall {
-	c.opt_["download"] = download
+	c.params_.Set("download", fmt.Sprintf("%v", download))
 	return c
 }
 
 // Filter sets the optional parameter "filter": Filter search results.
 func (c *VolumesListCall) Filter(filter string) *VolumesListCall {
-	c.opt_["filter"] = filter
+	c.params_.Set("filter", fmt.Sprintf("%v", filter))
 	return c
 }
 
 // LangRestrict sets the optional parameter "langRestrict": Restrict
 // results to books with this language code.
 func (c *VolumesListCall) LangRestrict(langRestrict string) *VolumesListCall {
-	c.opt_["langRestrict"] = langRestrict
+	c.params_.Set("langRestrict", fmt.Sprintf("%v", langRestrict))
 	return c
 }
 
 // LibraryRestrict sets the optional parameter "libraryRestrict":
 // Restrict search to this user's library.
 func (c *VolumesListCall) LibraryRestrict(libraryRestrict string) *VolumesListCall {
-	c.opt_["libraryRestrict"] = libraryRestrict
+	c.params_.Set("libraryRestrict", fmt.Sprintf("%v", libraryRestrict))
 	return c
 }
 
 // MaxResults sets the optional parameter "maxResults": Maximum number
 // of results to return.
 func (c *VolumesListCall) MaxResults(maxResults int64) *VolumesListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
 // OrderBy sets the optional parameter "orderBy": Sort search results.
 func (c *VolumesListCall) OrderBy(orderBy string) *VolumesListCall {
-	c.opt_["orderBy"] = orderBy
+	c.params_.Set("orderBy", fmt.Sprintf("%v", orderBy))
 	return c
 }
 
 // Partner sets the optional parameter "partner": Restrict and brand
 // results for partner ID.
 func (c *VolumesListCall) Partner(partner string) *VolumesListCall {
-	c.opt_["partner"] = partner
+	c.params_.Set("partner", fmt.Sprintf("%v", partner))
 	return c
 }
 
 // PrintType sets the optional parameter "printType": Restrict to books
 // or magazines.
 func (c *VolumesListCall) PrintType(printType string) *VolumesListCall {
-	c.opt_["printType"] = printType
+	c.params_.Set("printType", fmt.Sprintf("%v", printType))
 	return c
 }
 
 // Projection sets the optional parameter "projection": Restrict
 // information returned to a set of selected fields.
 func (c *VolumesListCall) Projection(projection string) *VolumesListCall {
-	c.opt_["projection"] = projection
+	c.params_.Set("projection", fmt.Sprintf("%v", projection))
 	return c
 }
 
 // ShowPreorders sets the optional parameter "showPreorders": Set to
 // true to show books available for preorder. Defaults to false.
 func (c *VolumesListCall) ShowPreorders(showPreorders bool) *VolumesListCall {
-	c.opt_["showPreorders"] = showPreorders
+	c.params_.Set("showPreorders", fmt.Sprintf("%v", showPreorders))
 	return c
 }
 
 // Source sets the optional parameter "source": String to identify the
 // originator of this request.
 func (c *VolumesListCall) Source(source string) *VolumesListCall {
-	c.opt_["source"] = source
+	c.params_.Set("source", fmt.Sprintf("%v", source))
 	return c
 }
 
 // StartIndex sets the optional parameter "startIndex": Index of the
 // first result to return (starts at 0)
 func (c *VolumesListCall) StartIndex(startIndex int64) *VolumesListCall {
-	c.opt_["startIndex"] = startIndex
+	c.params_.Set("startIndex", fmt.Sprintf("%v", startIndex))
+	return c
+}
+func (c *VolumesListCall) Context(ctx context.Context) *VolumesListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -6623,72 +6151,22 @@ func (c *VolumesListCall) StartIndex(startIndex int64) *VolumesListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *VolumesListCall) Fields(s ...googleapi.Field) *VolumesListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *VolumesListCall) Do() (*Volumes, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("q", fmt.Sprintf("%v", c.q))
-	if v, ok := c.opt_["download"]; ok {
-		params.Set("download", fmt.Sprintf("%v", v))
+	var returnValue *Volumes
+	c.params_.Set("q", fmt.Sprintf("%v", c.q))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	if v, ok := c.opt_["filter"]; ok {
-		params.Set("filter", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["langRestrict"]; ok {
-		params.Set("langRestrict", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["libraryRestrict"]; ok {
-		params.Set("libraryRestrict", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["orderBy"]; ok {
-		params.Set("orderBy", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["partner"]; ok {
-		params.Set("partner", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["printType"]; ok {
-		params.Set("printType", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["projection"]; ok {
-		params.Set("projection", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["showPreorders"]; ok {
-		params.Set("showPreorders", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["source"]; ok {
-		params.Set("source", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["startIndex"]; ok {
-		params.Set("startIndex", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "volumes")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Volumes
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Performs a book search.",
 	//   "httpMethod": "GET",
@@ -6837,22 +6315,31 @@ func (c *VolumesListCall) Do() (*Volumes, error) {
 // method id "books.volumes.associated.list":
 
 type VolumesAssociatedListCall struct {
-	s        *Service
-	volumeId string
-	opt_     map[string]interface{}
+	s             *Service
+	volumeId      string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Return a list of associated books.
+
 func (r *VolumesAssociatedService) List(volumeId string) *VolumesAssociatedListCall {
-	c := &VolumesAssociatedListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.volumeId = volumeId
-	return c
+	return &VolumesAssociatedListCall{
+		s:             r.s,
+		volumeId:      volumeId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "volumes/{volumeId}/associated",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Association sets the optional parameter "association": Association
 // type.
 func (c *VolumesAssociatedListCall) Association(association string) *VolumesAssociatedListCall {
-	c.opt_["association"] = association
+	c.params_.Set("association", fmt.Sprintf("%v", association))
 	return c
 }
 
@@ -6860,14 +6347,18 @@ func (c *VolumesAssociatedListCall) Association(association string) *VolumesAsso
 // ISO-3166-1 country code. Ex: 'en_US'. Used for generating
 // recommendations.
 func (c *VolumesAssociatedListCall) Locale(locale string) *VolumesAssociatedListCall {
-	c.opt_["locale"] = locale
+	c.params_.Set("locale", fmt.Sprintf("%v", locale))
 	return c
 }
 
 // Source sets the optional parameter "source": String to identify the
 // originator of this request.
 func (c *VolumesAssociatedListCall) Source(source string) *VolumesAssociatedListCall {
-	c.opt_["source"] = source
+	c.params_.Set("source", fmt.Sprintf("%v", source))
+	return c
+}
+func (c *VolumesAssociatedListCall) Context(ctx context.Context) *VolumesAssociatedListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -6875,46 +6366,23 @@ func (c *VolumesAssociatedListCall) Source(source string) *VolumesAssociatedList
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *VolumesAssociatedListCall) Fields(s ...googleapi.Field) *VolumesAssociatedListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *VolumesAssociatedListCall) Do() (*Volumes, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["association"]; ok {
-		params.Set("association", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["locale"]; ok {
-		params.Set("locale", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["source"]; ok {
-		params.Set("source", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "volumes/{volumeId}/associated")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Volumes
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"volumeId": c.volumeId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Volumes
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Return a list of associated books.",
 	//   "httpMethod": "GET",
@@ -6969,20 +6437,29 @@ func (c *VolumesAssociatedListCall) Do() (*Volumes, error) {
 // method id "books.volumes.mybooks.list":
 
 type VolumesMybooksListCall struct {
-	s    *Service
-	opt_ map[string]interface{}
+	s             *Service
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Return a list of books in My Library.
+
 func (r *VolumesMybooksService) List() *VolumesMybooksListCall {
-	c := &VolumesMybooksListCall{s: r.s, opt_: make(map[string]interface{})}
-	return c
+	return &VolumesMybooksListCall{
+		s:             r.s,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "volumes/mybooks",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // AcquireMethod sets the optional parameter "acquireMethod": How the
 // book was aquired
-func (c *VolumesMybooksListCall) AcquireMethod(acquireMethod string) *VolumesMybooksListCall {
-	c.opt_["acquireMethod"] = acquireMethod
+func (c *VolumesMybooksListCall) AcquireMethod(acquireMethod ...string) *VolumesMybooksListCall {
+	c.params_["acquireMethod"] = acquireMethod
 	return c
 }
 
@@ -6990,36 +6467,40 @@ func (c *VolumesMybooksListCall) AcquireMethod(acquireMethod string) *VolumesMyb
 // ISO-3166-1 country code. Ex:'en_US'. Used for generating
 // recommendations.
 func (c *VolumesMybooksListCall) Locale(locale string) *VolumesMybooksListCall {
-	c.opt_["locale"] = locale
+	c.params_.Set("locale", fmt.Sprintf("%v", locale))
 	return c
 }
 
 // MaxResults sets the optional parameter "maxResults": Maximum number
 // of results to return.
 func (c *VolumesMybooksListCall) MaxResults(maxResults int64) *VolumesMybooksListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
 // ProcessingState sets the optional parameter "processingState": The
 // processing state of the user uploaded volumes to be returned.
 // Applicable only if the UPLOADED is specified in the acquireMethod.
-func (c *VolumesMybooksListCall) ProcessingState(processingState string) *VolumesMybooksListCall {
-	c.opt_["processingState"] = processingState
+func (c *VolumesMybooksListCall) ProcessingState(processingState ...string) *VolumesMybooksListCall {
+	c.params_["processingState"] = processingState
 	return c
 }
 
 // Source sets the optional parameter "source": String to identify the
 // originator of this request.
 func (c *VolumesMybooksListCall) Source(source string) *VolumesMybooksListCall {
-	c.opt_["source"] = source
+	c.params_.Set("source", fmt.Sprintf("%v", source))
 	return c
 }
 
 // StartIndex sets the optional parameter "startIndex": Index of the
 // first result to return (starts at 0)
 func (c *VolumesMybooksListCall) StartIndex(startIndex int64) *VolumesMybooksListCall {
-	c.opt_["startIndex"] = startIndex
+	c.params_.Set("startIndex", fmt.Sprintf("%v", startIndex))
+	return c
+}
+func (c *VolumesMybooksListCall) Context(ctx context.Context) *VolumesMybooksListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -7027,53 +6508,21 @@ func (c *VolumesMybooksListCall) StartIndex(startIndex int64) *VolumesMybooksLis
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *VolumesMybooksListCall) Fields(s ...googleapi.Field) *VolumesMybooksListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *VolumesMybooksListCall) Do() (*Volumes, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["acquireMethod"]; ok {
-		params.Set("acquireMethod", fmt.Sprintf("%v", v))
+	var returnValue *Volumes
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	if v, ok := c.opt_["locale"]; ok {
-		params.Set("locale", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["processingState"]; ok {
-		params.Set("processingState", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["source"]; ok {
-		params.Set("source", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["startIndex"]; ok {
-		params.Set("startIndex", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "volumes/mybooks")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Volumes
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Return a list of books in My Library.",
 	//   "httpMethod": "GET",
@@ -7159,28 +6608,41 @@ func (c *VolumesMybooksListCall) Do() (*Volumes, error) {
 // method id "books.volumes.recommended.list":
 
 type VolumesRecommendedListCall struct {
-	s    *Service
-	opt_ map[string]interface{}
+	s             *Service
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Return a list of recommended books for the current user.
+
 func (r *VolumesRecommendedService) List() *VolumesRecommendedListCall {
-	c := &VolumesRecommendedListCall{s: r.s, opt_: make(map[string]interface{})}
-	return c
+	return &VolumesRecommendedListCall{
+		s:             r.s,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "volumes/recommended",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Locale sets the optional parameter "locale": ISO-639-1 language and
 // ISO-3166-1 country code. Ex: 'en_US'. Used for generating
 // recommendations.
 func (c *VolumesRecommendedListCall) Locale(locale string) *VolumesRecommendedListCall {
-	c.opt_["locale"] = locale
+	c.params_.Set("locale", fmt.Sprintf("%v", locale))
 	return c
 }
 
 // Source sets the optional parameter "source": String to identify the
 // originator of this request.
 func (c *VolumesRecommendedListCall) Source(source string) *VolumesRecommendedListCall {
-	c.opt_["source"] = source
+	c.params_.Set("source", fmt.Sprintf("%v", source))
+	return c
+}
+func (c *VolumesRecommendedListCall) Context(ctx context.Context) *VolumesRecommendedListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -7188,41 +6650,21 @@ func (c *VolumesRecommendedListCall) Source(source string) *VolumesRecommendedLi
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *VolumesRecommendedListCall) Fields(s ...googleapi.Field) *VolumesRecommendedListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *VolumesRecommendedListCall) Do() (*Volumes, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["locale"]; ok {
-		params.Set("locale", fmt.Sprintf("%v", v))
+	var returnValue *Volumes
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	if v, ok := c.opt_["source"]; ok {
-		params.Set("source", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "volumes/recommended")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Volumes
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Return a list of recommended books for the current user.",
 	//   "httpMethod": "GET",
@@ -7253,32 +6695,45 @@ func (c *VolumesRecommendedListCall) Do() (*Volumes, error) {
 // method id "books.volumes.recommended.rate":
 
 type VolumesRecommendedRateCall struct {
-	s        *Service
-	rating   string
-	volumeId string
-	opt_     map[string]interface{}
+	s             *Service
+	rating        string
+	volumeId      string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Rate: Rate a recommended book for the current user.
+
 func (r *VolumesRecommendedService) Rate(rating string, volumeId string) *VolumesRecommendedRateCall {
-	c := &VolumesRecommendedRateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.rating = rating
-	c.volumeId = volumeId
-	return c
+	return &VolumesRecommendedRateCall{
+		s:             r.s,
+		rating:        rating,
+		volumeId:      volumeId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "volumes/recommended/rate",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Locale sets the optional parameter "locale": ISO-639-1 language and
 // ISO-3166-1 country code. Ex: 'en_US'. Used for generating
 // recommendations.
 func (c *VolumesRecommendedRateCall) Locale(locale string) *VolumesRecommendedRateCall {
-	c.opt_["locale"] = locale
+	c.params_.Set("locale", fmt.Sprintf("%v", locale))
 	return c
 }
 
 // Source sets the optional parameter "source": String to identify the
 // originator of this request.
 func (c *VolumesRecommendedRateCall) Source(source string) *VolumesRecommendedRateCall {
-	c.opt_["source"] = source
+	c.params_.Set("source", fmt.Sprintf("%v", source))
+	return c
+}
+func (c *VolumesRecommendedRateCall) Context(ctx context.Context) *VolumesRecommendedRateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -7286,43 +6741,23 @@ func (c *VolumesRecommendedRateCall) Source(source string) *VolumesRecommendedRa
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *VolumesRecommendedRateCall) Fields(s ...googleapi.Field) *VolumesRecommendedRateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *VolumesRecommendedRateCall) Do() (*BooksVolumesRecommendedRateResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("rating", fmt.Sprintf("%v", c.rating))
-	params.Set("volumeId", fmt.Sprintf("%v", c.volumeId))
-	if v, ok := c.opt_["locale"]; ok {
-		params.Set("locale", fmt.Sprintf("%v", v))
+	var returnValue *BooksVolumesRecommendedRateResponse
+	c.params_.Set("rating", fmt.Sprintf("%v", c.rating))
+	c.params_.Set("volumeId", fmt.Sprintf("%v", c.volumeId))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "POST",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	if v, ok := c.opt_["source"]; ok {
-		params.Set("source", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "volumes/recommended/rate")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *BooksVolumesRecommendedRateResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Rate a recommended book for the current user.",
 	//   "httpMethod": "POST",
@@ -7377,57 +6812,70 @@ func (c *VolumesRecommendedRateCall) Do() (*BooksVolumesRecommendedRateResponse,
 // method id "books.volumes.useruploaded.list":
 
 type VolumesUseruploadedListCall struct {
-	s    *Service
-	opt_ map[string]interface{}
+	s             *Service
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Return a list of books uploaded by the current user.
+
 func (r *VolumesUseruploadedService) List() *VolumesUseruploadedListCall {
-	c := &VolumesUseruploadedListCall{s: r.s, opt_: make(map[string]interface{})}
-	return c
+	return &VolumesUseruploadedListCall{
+		s:             r.s,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "volumes/useruploaded",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Locale sets the optional parameter "locale": ISO-639-1 language and
 // ISO-3166-1 country code. Ex: 'en_US'. Used for generating
 // recommendations.
 func (c *VolumesUseruploadedListCall) Locale(locale string) *VolumesUseruploadedListCall {
-	c.opt_["locale"] = locale
+	c.params_.Set("locale", fmt.Sprintf("%v", locale))
 	return c
 }
 
 // MaxResults sets the optional parameter "maxResults": Maximum number
 // of results to return.
 func (c *VolumesUseruploadedListCall) MaxResults(maxResults int64) *VolumesUseruploadedListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
 // ProcessingState sets the optional parameter "processingState": The
 // processing state of the user uploaded volumes to be returned.
-func (c *VolumesUseruploadedListCall) ProcessingState(processingState string) *VolumesUseruploadedListCall {
-	c.opt_["processingState"] = processingState
+func (c *VolumesUseruploadedListCall) ProcessingState(processingState ...string) *VolumesUseruploadedListCall {
+	c.params_["processingState"] = processingState
 	return c
 }
 
 // Source sets the optional parameter "source": String to identify the
 // originator of this request.
 func (c *VolumesUseruploadedListCall) Source(source string) *VolumesUseruploadedListCall {
-	c.opt_["source"] = source
+	c.params_.Set("source", fmt.Sprintf("%v", source))
 	return c
 }
 
 // StartIndex sets the optional parameter "startIndex": Index of the
 // first result to return (starts at 0)
 func (c *VolumesUseruploadedListCall) StartIndex(startIndex int64) *VolumesUseruploadedListCall {
-	c.opt_["startIndex"] = startIndex
+	c.params_.Set("startIndex", fmt.Sprintf("%v", startIndex))
 	return c
 }
 
 // VolumeId sets the optional parameter "volumeId": The ids of the
 // volumes to be returned. If not specified all that match the
 // processingState are returned.
-func (c *VolumesUseruploadedListCall) VolumeId(volumeId string) *VolumesUseruploadedListCall {
-	c.opt_["volumeId"] = volumeId
+func (c *VolumesUseruploadedListCall) VolumeId(volumeId ...string) *VolumesUseruploadedListCall {
+	c.params_["volumeId"] = volumeId
+	return c
+}
+func (c *VolumesUseruploadedListCall) Context(ctx context.Context) *VolumesUseruploadedListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -7435,53 +6883,21 @@ func (c *VolumesUseruploadedListCall) VolumeId(volumeId string) *VolumesUseruplo
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *VolumesUseruploadedListCall) Fields(s ...googleapi.Field) *VolumesUseruploadedListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *VolumesUseruploadedListCall) Do() (*Volumes, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["locale"]; ok {
-		params.Set("locale", fmt.Sprintf("%v", v))
+	var returnValue *Volumes
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["processingState"]; ok {
-		params.Set("processingState", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["source"]; ok {
-		params.Set("source", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["startIndex"]; ok {
-		params.Set("startIndex", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["volumeId"]; ok {
-		params.Set("volumeId", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "volumes/useruploaded")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Volumes
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Return a list of books uploaded by the current user.",
 	//   "httpMethod": "GET",

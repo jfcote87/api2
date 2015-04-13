@@ -4,18 +4,16 @@
 //
 // Usage example:
 //
-//   import "google.golang.org/api/datastore/v1beta1"
+//   import "github.com/jfcote87/api2/datastore/v1beta1"
 //   ...
 //   datastoreService, err := datastore.New(oauthHttpClient)
 package datastore
 
 import (
-	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/jfcote87/api2/googleapi"
 	"golang.org/x/net/context"
-	"google.golang.org/api/googleapi"
 	"io"
 	"net/http"
 	"net/url"
@@ -25,10 +23,8 @@ import (
 
 // Always reference these packages, just in case the auto-generated code
 // below doesn't.
-var _ = bytes.NewBuffer
 var _ = strconv.Itoa
 var _ = fmt.Sprintf
-var _ = json.NewDecoder
 var _ = io.Copy
 var _ = url.Parse
 var _ = googleapi.Version
@@ -39,7 +35,8 @@ var _ = context.Background
 const apiId = "datastore:v1beta1"
 const apiName = "datastore"
 const apiVersion = "v1beta1"
-const basePath = "https://www.googleapis.com/datastore/v1beta1/datasets/"
+
+var baseURL *url.URL = &url.URL{Scheme: "https", Host: "www.googleapis.com", Path: "/datastore/v1beta1/datasets/"}
 
 // OAuth2 scopes used by this API.
 const (
@@ -57,24 +54,15 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
+	s := &Service{client: client}
 	s.Datasets = NewDatasetsService(s)
 	return s, nil
 }
 
 type Service struct {
-	client    *http.Client
-	BasePath  string // API endpoint base URL
-	UserAgent string // optional additional User-Agent fragment
+	client *http.Client
 
 	Datasets *DatasetsService
-}
-
-func (s *Service) userAgent() string {
-	if s.UserAgent == "" {
-		return googleapi.UserAgent
-	}
-	return googleapi.UserAgent + " " + s.UserAgent
 }
 
 func NewDatasetsService(s *Service) *DatasetsService {
@@ -497,7 +485,8 @@ type Value struct {
 	// BlobKeyValue: A blob key value.
 	BlobKeyValue string `json:"blobKeyValue,omitempty"`
 
-	// BlobValue: A blob value. May be a maximum of 1,000,000 bytes.
+	// BlobValue: A blob value. May be a maximum of 1,000,000 bytes. When
+	// indexed is true, may have at most 500 bytes.
 	BlobValue string `json:"blobValue,omitempty"`
 
 	// BooleanValue: A boolean value.
@@ -533,7 +522,8 @@ type Value struct {
 	// Meaning: The meaning field is reserved and should not be used.
 	Meaning int64 `json:"meaning,omitempty"`
 
-	// StringValue: A UTF-8 encoded string value.
+	// StringValue: A UTF-8 encoded string value. When indexed is true, may
+	// have at most 500 characters.
 	StringValue string `json:"stringValue,omitempty"`
 }
 
@@ -543,15 +533,28 @@ type DatasetsAllocateIdsCall struct {
 	s                  *Service
 	datasetId          string
 	allocateidsrequest *AllocateIdsRequest
-	opt_               map[string]interface{}
+	caller_            googleapi.Caller
+	params_            url.Values
+	pathTemplate_      string
+	context_           context.Context
 }
 
 // AllocateIds: Allocate IDs for incomplete keys (useful for referencing
 // an entity before it is inserted).
+
 func (r *DatasetsService) AllocateIds(datasetId string, allocateidsrequest *AllocateIdsRequest) *DatasetsAllocateIdsCall {
-	c := &DatasetsAllocateIdsCall{s: r.s, opt_: make(map[string]interface{})}
-	c.datasetId = datasetId
-	c.allocateidsrequest = allocateidsrequest
+	return &DatasetsAllocateIdsCall{
+		s:                  r.s,
+		datasetId:          datasetId,
+		allocateidsrequest: allocateidsrequest,
+		caller_:            googleapi.JSONCall{},
+		params_:            make(map[string][]string),
+		pathTemplate_:      "{datasetId}/allocateIds",
+		context_:           googleapi.NoContext,
+	}
+}
+func (c *DatasetsAllocateIdsCall) Context(ctx context.Context) *DatasetsAllocateIdsCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -559,43 +562,24 @@ func (r *DatasetsService) AllocateIds(datasetId string, allocateidsrequest *Allo
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *DatasetsAllocateIdsCall) Fields(s ...googleapi.Field) *DatasetsAllocateIdsCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *DatasetsAllocateIdsCall) Do() (*AllocateIdsResponse, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.allocateidsrequest)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{datasetId}/allocateIds")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *AllocateIdsResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"datasetId": c.datasetId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.allocateidsrequest,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *AllocateIdsResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Allocate IDs for incomplete keys (useful for referencing an entity before it is inserted).",
 	//   "httpMethod": "POST",
@@ -633,14 +617,27 @@ type DatasetsBeginTransactionCall struct {
 	s                       *Service
 	datasetId               string
 	begintransactionrequest *BeginTransactionRequest
-	opt_                    map[string]interface{}
+	caller_                 googleapi.Caller
+	params_                 url.Values
+	pathTemplate_           string
+	context_                context.Context
 }
 
 // BeginTransaction: Begin a new transaction.
+
 func (r *DatasetsService) BeginTransaction(datasetId string, begintransactionrequest *BeginTransactionRequest) *DatasetsBeginTransactionCall {
-	c := &DatasetsBeginTransactionCall{s: r.s, opt_: make(map[string]interface{})}
-	c.datasetId = datasetId
-	c.begintransactionrequest = begintransactionrequest
+	return &DatasetsBeginTransactionCall{
+		s:                       r.s,
+		datasetId:               datasetId,
+		begintransactionrequest: begintransactionrequest,
+		caller_:                 googleapi.JSONCall{},
+		params_:                 make(map[string][]string),
+		pathTemplate_:           "{datasetId}/beginTransaction",
+		context_:                googleapi.NoContext,
+	}
+}
+func (c *DatasetsBeginTransactionCall) Context(ctx context.Context) *DatasetsBeginTransactionCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -648,43 +645,24 @@ func (r *DatasetsService) BeginTransaction(datasetId string, begintransactionreq
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *DatasetsBeginTransactionCall) Fields(s ...googleapi.Field) *DatasetsBeginTransactionCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *DatasetsBeginTransactionCall) Do() (*BeginTransactionResponse, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.begintransactionrequest)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{datasetId}/beginTransaction")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *BeginTransactionResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"datasetId": c.datasetId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.begintransactionrequest,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *BeginTransactionResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Begin a new transaction.",
 	//   "httpMethod": "POST",
@@ -722,15 +700,28 @@ type DatasetsBlindWriteCall struct {
 	s                 *Service
 	datasetId         string
 	blindwriterequest *BlindWriteRequest
-	opt_              map[string]interface{}
+	caller_           googleapi.Caller
+	params_           url.Values
+	pathTemplate_     string
+	context_          context.Context
 }
 
 // BlindWrite: Create, delete or modify some entities outside a
 // transaction.
+
 func (r *DatasetsService) BlindWrite(datasetId string, blindwriterequest *BlindWriteRequest) *DatasetsBlindWriteCall {
-	c := &DatasetsBlindWriteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.datasetId = datasetId
-	c.blindwriterequest = blindwriterequest
+	return &DatasetsBlindWriteCall{
+		s:                 r.s,
+		datasetId:         datasetId,
+		blindwriterequest: blindwriterequest,
+		caller_:           googleapi.JSONCall{},
+		params_:           make(map[string][]string),
+		pathTemplate_:     "{datasetId}/blindWrite",
+		context_:          googleapi.NoContext,
+	}
+}
+func (c *DatasetsBlindWriteCall) Context(ctx context.Context) *DatasetsBlindWriteCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -738,43 +729,24 @@ func (r *DatasetsService) BlindWrite(datasetId string, blindwriterequest *BlindW
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *DatasetsBlindWriteCall) Fields(s ...googleapi.Field) *DatasetsBlindWriteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *DatasetsBlindWriteCall) Do() (*BlindWriteResponse, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.blindwriterequest)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{datasetId}/blindWrite")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *BlindWriteResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"datasetId": c.datasetId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.blindwriterequest,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *BlindWriteResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Create, delete or modify some entities outside a transaction.",
 	//   "httpMethod": "POST",
@@ -812,15 +784,28 @@ type DatasetsCommitCall struct {
 	s             *Service
 	datasetId     string
 	commitrequest *CommitRequest
-	opt_          map[string]interface{}
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Commit: Commit a transaction, optionally creating, deleting or
 // modifying some entities.
+
 func (r *DatasetsService) Commit(datasetId string, commitrequest *CommitRequest) *DatasetsCommitCall {
-	c := &DatasetsCommitCall{s: r.s, opt_: make(map[string]interface{})}
-	c.datasetId = datasetId
-	c.commitrequest = commitrequest
+	return &DatasetsCommitCall{
+		s:             r.s,
+		datasetId:     datasetId,
+		commitrequest: commitrequest,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{datasetId}/commit",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *DatasetsCommitCall) Context(ctx context.Context) *DatasetsCommitCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -828,43 +813,24 @@ func (r *DatasetsService) Commit(datasetId string, commitrequest *CommitRequest)
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *DatasetsCommitCall) Fields(s ...googleapi.Field) *DatasetsCommitCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *DatasetsCommitCall) Do() (*CommitResponse, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.commitrequest)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{datasetId}/commit")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *CommitResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"datasetId": c.datasetId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.commitrequest,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *CommitResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Commit a transaction, optionally creating, deleting or modifying some entities.",
 	//   "httpMethod": "POST",
@@ -902,14 +868,27 @@ type DatasetsLookupCall struct {
 	s             *Service
 	datasetId     string
 	lookuprequest *LookupRequest
-	opt_          map[string]interface{}
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Lookup: Look up some entities by key.
+
 func (r *DatasetsService) Lookup(datasetId string, lookuprequest *LookupRequest) *DatasetsLookupCall {
-	c := &DatasetsLookupCall{s: r.s, opt_: make(map[string]interface{})}
-	c.datasetId = datasetId
-	c.lookuprequest = lookuprequest
+	return &DatasetsLookupCall{
+		s:             r.s,
+		datasetId:     datasetId,
+		lookuprequest: lookuprequest,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{datasetId}/lookup",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *DatasetsLookupCall) Context(ctx context.Context) *DatasetsLookupCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -917,43 +896,24 @@ func (r *DatasetsService) Lookup(datasetId string, lookuprequest *LookupRequest)
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *DatasetsLookupCall) Fields(s ...googleapi.Field) *DatasetsLookupCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *DatasetsLookupCall) Do() (*LookupResponse, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.lookuprequest)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{datasetId}/lookup")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *LookupResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"datasetId": c.datasetId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.lookuprequest,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *LookupResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Look up some entities by key.",
 	//   "httpMethod": "POST",
@@ -991,14 +951,27 @@ type DatasetsRollbackCall struct {
 	s               *Service
 	datasetId       string
 	rollbackrequest *RollbackRequest
-	opt_            map[string]interface{}
+	caller_         googleapi.Caller
+	params_         url.Values
+	pathTemplate_   string
+	context_        context.Context
 }
 
 // Rollback: Roll back a transaction.
+
 func (r *DatasetsService) Rollback(datasetId string, rollbackrequest *RollbackRequest) *DatasetsRollbackCall {
-	c := &DatasetsRollbackCall{s: r.s, opt_: make(map[string]interface{})}
-	c.datasetId = datasetId
-	c.rollbackrequest = rollbackrequest
+	return &DatasetsRollbackCall{
+		s:               r.s,
+		datasetId:       datasetId,
+		rollbackrequest: rollbackrequest,
+		caller_:         googleapi.JSONCall{},
+		params_:         make(map[string][]string),
+		pathTemplate_:   "{datasetId}/rollback",
+		context_:        googleapi.NoContext,
+	}
+}
+func (c *DatasetsRollbackCall) Context(ctx context.Context) *DatasetsRollbackCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1006,43 +979,24 @@ func (r *DatasetsService) Rollback(datasetId string, rollbackrequest *RollbackRe
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *DatasetsRollbackCall) Fields(s ...googleapi.Field) *DatasetsRollbackCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *DatasetsRollbackCall) Do() (*RollbackResponse, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.rollbackrequest)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{datasetId}/rollback")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *RollbackResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"datasetId": c.datasetId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.rollbackrequest,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *RollbackResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Roll back a transaction.",
 	//   "httpMethod": "POST",
@@ -1080,14 +1034,27 @@ type DatasetsRunQueryCall struct {
 	s               *Service
 	datasetId       string
 	runqueryrequest *RunQueryRequest
-	opt_            map[string]interface{}
+	caller_         googleapi.Caller
+	params_         url.Values
+	pathTemplate_   string
+	context_        context.Context
 }
 
 // RunQuery: Query for entities.
+
 func (r *DatasetsService) RunQuery(datasetId string, runqueryrequest *RunQueryRequest) *DatasetsRunQueryCall {
-	c := &DatasetsRunQueryCall{s: r.s, opt_: make(map[string]interface{})}
-	c.datasetId = datasetId
-	c.runqueryrequest = runqueryrequest
+	return &DatasetsRunQueryCall{
+		s:               r.s,
+		datasetId:       datasetId,
+		runqueryrequest: runqueryrequest,
+		caller_:         googleapi.JSONCall{},
+		params_:         make(map[string][]string),
+		pathTemplate_:   "{datasetId}/runQuery",
+		context_:        googleapi.NoContext,
+	}
+}
+func (c *DatasetsRunQueryCall) Context(ctx context.Context) *DatasetsRunQueryCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1095,43 +1062,24 @@ func (r *DatasetsService) RunQuery(datasetId string, runqueryrequest *RunQueryRe
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *DatasetsRunQueryCall) Fields(s ...googleapi.Field) *DatasetsRunQueryCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *DatasetsRunQueryCall) Do() (*RunQueryResponse, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.runqueryrequest)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{datasetId}/runQuery")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *RunQueryResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"datasetId": c.datasetId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.runqueryrequest,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *RunQueryResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Query for entities.",
 	//   "httpMethod": "POST",

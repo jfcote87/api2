@@ -4,18 +4,16 @@
 //
 // Usage example:
 //
-//   import "google.golang.org/api/customsearch/v1"
+//   import "github.com/jfcote87/api2/customsearch/v1"
 //   ...
 //   customsearchService, err := customsearch.New(oauthHttpClient)
 package customsearch
 
 import (
-	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/jfcote87/api2/googleapi"
 	"golang.org/x/net/context"
-	"google.golang.org/api/googleapi"
 	"io"
 	"net/http"
 	"net/url"
@@ -25,10 +23,8 @@ import (
 
 // Always reference these packages, just in case the auto-generated code
 // below doesn't.
-var _ = bytes.NewBuffer
 var _ = strconv.Itoa
 var _ = fmt.Sprintf
-var _ = json.NewDecoder
 var _ = io.Copy
 var _ = url.Parse
 var _ = googleapi.Version
@@ -39,30 +35,22 @@ var _ = context.Background
 const apiId = "customsearch:v1"
 const apiName = "customsearch"
 const apiVersion = "v1"
-const basePath = "https://www.googleapis.com/customsearch/"
+
+var baseURL *url.URL = &url.URL{Scheme: "https", Host: "www.googleapis.com", Path: "/customsearch/"}
 
 func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
+	s := &Service{client: client}
 	s.Cse = NewCseService(s)
 	return s, nil
 }
 
 type Service struct {
-	client    *http.Client
-	BasePath  string // API endpoint base URL
-	UserAgent string // optional additional User-Agent fragment
+	client *http.Client
 
 	Cse *CseService
-}
-
-func (s *Service) userAgent() string {
-	if s.UserAgent == "" {
-		return googleapi.UserAgent
-	}
-	return googleapi.UserAgent + " " + s.UserAgent
 }
 
 func NewCseService(s *Service) *CseService {
@@ -298,57 +286,66 @@ type SearchUrl struct {
 // method id "search.cse.list":
 
 type CseListCall struct {
-	s    *Service
-	q    string
-	opt_ map[string]interface{}
+	s             *Service
+	q             string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Returns metadata about the search performed, metadata about the
 // custom search engine used for the search, and the search results.
+
 func (r *CseService) List(q string) *CseListCall {
-	c := &CseListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.q = q
-	return c
+	return &CseListCall{
+		s:             r.s,
+		q:             q,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "v1",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // C2coff sets the optional parameter "c2coff": Turns off the
 // translation between zh-CN and zh-TW.
 func (c *CseListCall) C2coff(c2coff string) *CseListCall {
-	c.opt_["c2coff"] = c2coff
+	c.params_.Set("c2coff", fmt.Sprintf("%v", c2coff))
 	return c
 }
 
 // Cr sets the optional parameter "cr": Country restrict(s).
 func (c *CseListCall) Cr(cr string) *CseListCall {
-	c.opt_["cr"] = cr
+	c.params_.Set("cr", fmt.Sprintf("%v", cr))
 	return c
 }
 
 // Cref sets the optional parameter "cref": The URL of a linked custom
 // search engine
 func (c *CseListCall) Cref(cref string) *CseListCall {
-	c.opt_["cref"] = cref
+	c.params_.Set("cref", fmt.Sprintf("%v", cref))
 	return c
 }
 
 // Cx sets the optional parameter "cx": The custom search engine ID to
 // scope this search query
 func (c *CseListCall) Cx(cx string) *CseListCall {
-	c.opt_["cx"] = cx
+	c.params_.Set("cx", fmt.Sprintf("%v", cx))
 	return c
 }
 
 // DateRestrict sets the optional parameter "dateRestrict": Specifies
 // all search results are from a time period
 func (c *CseListCall) DateRestrict(dateRestrict string) *CseListCall {
-	c.opt_["dateRestrict"] = dateRestrict
+	c.params_.Set("dateRestrict", fmt.Sprintf("%v", dateRestrict))
 	return c
 }
 
 // ExactTerms sets the optional parameter "exactTerms": Identifies a
 // phrase that all documents in the search results must contain
 func (c *CseListCall) ExactTerms(exactTerms string) *CseListCall {
-	c.opt_["exactTerms"] = exactTerms
+	c.params_.Set("exactTerms", fmt.Sprintf("%v", exactTerms))
 	return c
 }
 
@@ -356,7 +353,7 @@ func (c *CseListCall) ExactTerms(exactTerms string) *CseListCall {
 // word or phrase that should not appear in any documents in the search
 // results
 func (c *CseListCall) ExcludeTerms(excludeTerms string) *CseListCall {
-	c.opt_["excludeTerms"] = excludeTerms
+	c.params_.Set("excludeTerms", fmt.Sprintf("%v", excludeTerms))
 	return c
 }
 
@@ -364,55 +361,55 @@ func (c *CseListCall) ExcludeTerms(excludeTerms string) *CseListCall {
 // specified type. Some of the allowed values are: bmp, gif, png, jpg,
 // svg, pdf, ...
 func (c *CseListCall) FileType(fileType string) *CseListCall {
-	c.opt_["fileType"] = fileType
+	c.params_.Set("fileType", fmt.Sprintf("%v", fileType))
 	return c
 }
 
 // Filter sets the optional parameter "filter": Controls turning on or
 // off the duplicate content filter.
 func (c *CseListCall) Filter(filter string) *CseListCall {
-	c.opt_["filter"] = filter
+	c.params_.Set("filter", fmt.Sprintf("%v", filter))
 	return c
 }
 
 // Gl sets the optional parameter "gl": Geolocation of end user.
 func (c *CseListCall) Gl(gl string) *CseListCall {
-	c.opt_["gl"] = gl
+	c.params_.Set("gl", fmt.Sprintf("%v", gl))
 	return c
 }
 
 // Googlehost sets the optional parameter "googlehost": The local Google
 // domain to use to perform the search.
 func (c *CseListCall) Googlehost(googlehost string) *CseListCall {
-	c.opt_["googlehost"] = googlehost
+	c.params_.Set("googlehost", fmt.Sprintf("%v", googlehost))
 	return c
 }
 
 // HighRange sets the optional parameter "highRange": Creates a range in
 // form as_nlo value..as_nhi value and attempts to append it to query
 func (c *CseListCall) HighRange(highRange string) *CseListCall {
-	c.opt_["highRange"] = highRange
+	c.params_.Set("highRange", fmt.Sprintf("%v", highRange))
 	return c
 }
 
 // Hl sets the optional parameter "hl": Sets the user interface
 // language.
 func (c *CseListCall) Hl(hl string) *CseListCall {
-	c.opt_["hl"] = hl
+	c.params_.Set("hl", fmt.Sprintf("%v", hl))
 	return c
 }
 
 // Hq sets the optional parameter "hq": Appends the extra query terms to
 // the query.
 func (c *CseListCall) Hq(hq string) *CseListCall {
-	c.opt_["hq"] = hq
+	c.params_.Set("hq", fmt.Sprintf("%v", hq))
 	return c
 }
 
 // ImgColorType sets the optional parameter "imgColorType": Returns
 // black and white, grayscale, or color images: mono, gray, and color.
 func (c *CseListCall) ImgColorType(imgColorType string) *CseListCall {
-	c.opt_["imgColorType"] = imgColorType
+	c.params_.Set("imgColorType", fmt.Sprintf("%v", imgColorType))
 	return c
 }
 
@@ -420,7 +417,7 @@ func (c *CseListCall) ImgColorType(imgColorType string) *CseListCall {
 // Returns images of a specific dominant color: yellow, green, teal,
 // blue, purple, pink, white, gray, black and brown.
 func (c *CseListCall) ImgDominantColor(imgDominantColor string) *CseListCall {
-	c.opt_["imgDominantColor"] = imgDominantColor
+	c.params_.Set("imgDominantColor", fmt.Sprintf("%v", imgDominantColor))
 	return c
 }
 
@@ -428,42 +425,42 @@ func (c *CseListCall) ImgDominantColor(imgDominantColor string) *CseListCall {
 // specified size, where size can be one of: icon, small, medium, large,
 // xlarge, xxlarge, and huge.
 func (c *CseListCall) ImgSize(imgSize string) *CseListCall {
-	c.opt_["imgSize"] = imgSize
+	c.params_.Set("imgSize", fmt.Sprintf("%v", imgSize))
 	return c
 }
 
 // ImgType sets the optional parameter "imgType": Returns images of a
 // type, which can be one of: clipart, face, lineart, news, and photo.
 func (c *CseListCall) ImgType(imgType string) *CseListCall {
-	c.opt_["imgType"] = imgType
+	c.params_.Set("imgType", fmt.Sprintf("%v", imgType))
 	return c
 }
 
 // LinkSite sets the optional parameter "linkSite": Specifies that all
 // search results should contain a link to a particular URL
 func (c *CseListCall) LinkSite(linkSite string) *CseListCall {
-	c.opt_["linkSite"] = linkSite
+	c.params_.Set("linkSite", fmt.Sprintf("%v", linkSite))
 	return c
 }
 
 // LowRange sets the optional parameter "lowRange": Creates a range in
 // form as_nlo value..as_nhi value and attempts to append it to query
 func (c *CseListCall) LowRange(lowRange string) *CseListCall {
-	c.opt_["lowRange"] = lowRange
+	c.params_.Set("lowRange", fmt.Sprintf("%v", lowRange))
 	return c
 }
 
 // Lr sets the optional parameter "lr": The language restriction for the
 // search results
 func (c *CseListCall) Lr(lr string) *CseListCall {
-	c.opt_["lr"] = lr
+	c.params_.Set("lr", fmt.Sprintf("%v", lr))
 	return c
 }
 
 // Num sets the optional parameter "num": Number of search results to
 // return
 func (c *CseListCall) Num(num int64) *CseListCall {
-	c.opt_["num"] = num
+	c.params_.Set("num", fmt.Sprintf("%v", num))
 	return c
 }
 
@@ -472,7 +469,7 @@ func (c *CseListCall) Num(num int64) *CseListCall {
 // search results must contain at least one of the additional search
 // terms
 func (c *CseListCall) OrTerms(orTerms string) *CseListCall {
-	c.opt_["orTerms"] = orTerms
+	c.params_.Set("orTerms", fmt.Sprintf("%v", orTerms))
 	return c
 }
 
@@ -480,7 +477,7 @@ func (c *CseListCall) OrTerms(orTerms string) *CseListCall {
 // all search results should be pages that are related to the specified
 // URL
 func (c *CseListCall) RelatedSite(relatedSite string) *CseListCall {
-	c.opt_["relatedSite"] = relatedSite
+	c.params_.Set("relatedSite", fmt.Sprintf("%v", relatedSite))
 	return c
 }
 
@@ -489,27 +486,27 @@ func (c *CseListCall) RelatedSite(relatedSite string) *CseListCall {
 // cc_sharealike, cc_noncommercial, cc_nonderived and combinations of
 // these.
 func (c *CseListCall) Rights(rights string) *CseListCall {
-	c.opt_["rights"] = rights
+	c.params_.Set("rights", fmt.Sprintf("%v", rights))
 	return c
 }
 
 // Safe sets the optional parameter "safe": Search safety level
 func (c *CseListCall) Safe(safe string) *CseListCall {
-	c.opt_["safe"] = safe
+	c.params_.Set("safe", fmt.Sprintf("%v", safe))
 	return c
 }
 
 // SearchType sets the optional parameter "searchType": Specifies the
 // search type: image.
 func (c *CseListCall) SearchType(searchType string) *CseListCall {
-	c.opt_["searchType"] = searchType
+	c.params_.Set("searchType", fmt.Sprintf("%v", searchType))
 	return c
 }
 
 // SiteSearch sets the optional parameter "siteSearch": Specifies all
 // search results should be pages from a given site
 func (c *CseListCall) SiteSearch(siteSearch string) *CseListCall {
-	c.opt_["siteSearch"] = siteSearch
+	c.params_.Set("siteSearch", fmt.Sprintf("%v", siteSearch))
 	return c
 }
 
@@ -517,21 +514,25 @@ func (c *CseListCall) SiteSearch(siteSearch string) *CseListCall {
 // Controls whether to include or exclude results from the site named in
 // the as_sitesearch parameter
 func (c *CseListCall) SiteSearchFilter(siteSearchFilter string) *CseListCall {
-	c.opt_["siteSearchFilter"] = siteSearchFilter
+	c.params_.Set("siteSearchFilter", fmt.Sprintf("%v", siteSearchFilter))
 	return c
 }
 
 // Sort sets the optional parameter "sort": The sort expression to apply
 // to the results
 func (c *CseListCall) Sort(sort string) *CseListCall {
-	c.opt_["sort"] = sort
+	c.params_.Set("sort", fmt.Sprintf("%v", sort))
 	return c
 }
 
 // Start sets the optional parameter "start": The index of the first
 // result to return
 func (c *CseListCall) Start(start int64) *CseListCall {
-	c.opt_["start"] = start
+	c.params_.Set("start", fmt.Sprintf("%v", start))
+	return c
+}
+func (c *CseListCall) Context(ctx context.Context) *CseListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -539,129 +540,22 @@ func (c *CseListCall) Start(start int64) *CseListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *CseListCall) Fields(s ...googleapi.Field) *CseListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *CseListCall) Do() (*Search, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("q", fmt.Sprintf("%v", c.q))
-	if v, ok := c.opt_["c2coff"]; ok {
-		params.Set("c2coff", fmt.Sprintf("%v", v))
+	var returnValue *Search
+	c.params_.Set("q", fmt.Sprintf("%v", c.q))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	if v, ok := c.opt_["cr"]; ok {
-		params.Set("cr", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["cref"]; ok {
-		params.Set("cref", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["cx"]; ok {
-		params.Set("cx", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["dateRestrict"]; ok {
-		params.Set("dateRestrict", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["exactTerms"]; ok {
-		params.Set("exactTerms", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["excludeTerms"]; ok {
-		params.Set("excludeTerms", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fileType"]; ok {
-		params.Set("fileType", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["filter"]; ok {
-		params.Set("filter", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["gl"]; ok {
-		params.Set("gl", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["googlehost"]; ok {
-		params.Set("googlehost", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["highRange"]; ok {
-		params.Set("highRange", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["hl"]; ok {
-		params.Set("hl", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["hq"]; ok {
-		params.Set("hq", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["imgColorType"]; ok {
-		params.Set("imgColorType", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["imgDominantColor"]; ok {
-		params.Set("imgDominantColor", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["imgSize"]; ok {
-		params.Set("imgSize", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["imgType"]; ok {
-		params.Set("imgType", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["linkSite"]; ok {
-		params.Set("linkSite", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["lowRange"]; ok {
-		params.Set("lowRange", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["lr"]; ok {
-		params.Set("lr", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["num"]; ok {
-		params.Set("num", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["orTerms"]; ok {
-		params.Set("orTerms", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["relatedSite"]; ok {
-		params.Set("relatedSite", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["rights"]; ok {
-		params.Set("rights", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["safe"]; ok {
-		params.Set("safe", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["searchType"]; ok {
-		params.Set("searchType", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["siteSearch"]; ok {
-		params.Set("siteSearch", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["siteSearchFilter"]; ok {
-		params.Set("siteSearchFilter", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["sort"]; ok {
-		params.Set("sort", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["start"]; ok {
-		params.Set("start", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "v1")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Search
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Returns metadata about the search performed, metadata about the custom search engine used for the search, and the search results.",
 	//   "httpMethod": "GET",

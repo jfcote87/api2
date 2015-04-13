@@ -10,16 +10,18 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"os"
 	"reflect"
-	"regexp"
+
 	"strconv"
 	"strings"
+	"sync"
 	"testing"
-	"time"
+	//	"time"
 
-	"golang.org/x/net/context"
+	//	"golang.org/x/net/context"
 )
 
 type SetOpaqueTest struct {
@@ -118,95 +120,95 @@ type ExpandTest struct {
 var expandTests = []ExpandTest{
 	// no expansions
 	{
-		"http://www.golang.org/",
+		"",
 		map[string]string{},
-		"http://www.golang.org/",
+		"http://www.golang.org/xxx/",
 	},
 	// one expansion, no escaping
 	{
-		"http://www.golang.org/{bucket}/delete",
+		"{bucket}/delete",
 		map[string]string{
 			"bucket": "red",
 		},
-		"http://www.golang.org/red/delete",
+		"http://www.golang.org/xxx/red/delete",
 	},
 	// one expansion, with hex escapes
 	{
-		"http://www.golang.org/{bucket}/delete",
+		"{bucket}/delete",
 		map[string]string{
 			"bucket": "red/blue",
 		},
-		"http://www.golang.org/red%2Fblue/delete",
+		"http://www.golang.org/xxx/red%2Fblue/delete",
 	},
 	// one expansion, with space
 	{
-		"http://www.golang.org/{bucket}/delete",
+		"{bucket}/delete",
 		map[string]string{
 			"bucket": "red or blue",
 		},
-		"http://www.golang.org/red%20or%20blue/delete",
+		"http://www.golang.org/xxx/red%20or%20blue/delete",
 	},
 	// expansion not found
 	{
-		"http://www.golang.org/{object}/delete",
+		"a/{object}/delete",
 		map[string]string{
 			"bucket": "red or blue",
 		},
-		"http://www.golang.org//delete",
+		"http://www.golang.org/xxx/a//delete",
 	},
 	// multiple expansions
 	{
-		"http://www.golang.org/{one}/{two}/{three}/get",
+		"{one}/{two}/{three}/get",
 		map[string]string{
 			"one":   "ONE",
 			"two":   "TWO",
 			"three": "THREE",
 		},
-		"http://www.golang.org/ONE/TWO/THREE/get",
+		"http://www.golang.org/xxx/ONE/TWO/THREE/get",
 	},
 	// utf-8 characters
 	{
-		"http://www.golang.org/{bucket}/get",
+		"{bucket}/get",
 		map[string]string{
 			"bucket": "£100",
 		},
-		"http://www.golang.org/%C2%A3100/get",
+		"http://www.golang.org/xxx/%C2%A3100/get",
 	},
 	// punctuations
 	{
-		"http://www.golang.org/{bucket}/get",
+		"{bucket}/get",
 		map[string]string{
 			"bucket": `/\@:,.`,
 		},
-		"http://www.golang.org/%2F%5C%40%3A%2C./get",
+		"http://www.golang.org/xxx/%2F%5C%40%3A%2C./get",
 	},
 	// mis-matched brackets
 	{
-		"http://www.golang.org/{bucket/get",
+		"{bucket/get",
 		map[string]string{
 			"bucket": "red",
 		},
-		"http://www.golang.org/{bucket/get",
+		"http://www.golang.org/xxx/{bucket/get",
 	},
 	// "+" prefix for suppressing escape
 	// See also: http://tools.ietf.org/html/rfc6570#section-3.2.3
 	{
-		"http://www.golang.org/{+topic}",
+		"a/{+topic}",
 		map[string]string{
 			"topic": "/topics/myproject/mytopic",
 		},
 		// The double slashes here look weird, but it's intentional
-		"http://www.golang.org//topics/myproject/mytopic",
+		"http://www.golang.org/xxx/a//topics/myproject/mytopic",
 	},
 }
 
 func TestExpand(t *testing.T) {
+	baseUrl := &url.URL{Scheme: "http", Host: "www.golang.org", Path: "/xxx/"}
 	for i, test := range expandTests {
-		u := url.URL{
-			Path: test.in,
-		}
-		Expand(&u, test.expansions)
-		got := u.Path
+
+		u := Expand(baseUrl, test.in, test.expansions)
+		got := u.String()
+
 		if got != test.want {
 			t.Errorf("got %q expected %q in test %d", got, test.want, i+1)
 		}
@@ -366,18 +368,168 @@ func TestConvertVariant(t *testing.T) {
 	}
 }
 
+type Foo struct {
+	A string
+	B int
+}
+
+type uploadStatus struct {
+	totBytes    int64
+	curPosition int64
+	chunkSize   int64
+	isDone      bool
+	result      interface{}
+}
+
+var uploads struct {
+	mu         sync.Mutex
+	curUploads map[string]*uploadStatus
+	statusCode int
+	ts         *httptest.Server
+}
+
+func TestMain(m *testing.M) {
+	uploads.curUploads = make(map[string]*uploadStatus)
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/resumableUploadNew" {
+
+		}
+		if r.URL.Path == "/resumableUpload" {
+			handleResumableUpload(w, r)
+		}
+	}))
+	uploads.ts = ts
+
+	defer ts.Close()
+	os.Exit(m.Run())
+}
+
+func handleResumableUpload(w http.ResponseWriter, r *http.Request) {
+	// Check
+	start, end, tot, err := parseContentRange(r.Header.Get("Content-Range"))
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+	fileId := r.URL.Query().Get("upload_id")
+	if fileId != "" {
+		http.Error(w, "fileid may not be blank", 500)
+	}
+	/*
+		// Status message
+		if start == -1 {
+			status, ok := uploads.curUploads[fileId]
+			if !ok {
+				uploads.curUploads[fileId] = UploadStatus{}
+				status = uploads.curUploads[fileId]
+			}
+
+		}
+	*/
+	//rangeStr = strings.Split(rangeStr[6:]
+
+}
+
+func resumableUploadHandler(w http.ResponseWriter, r *http.Request) {
+	status, ok := uploads.curUploads[fileId]
+	if !ok {
+		http.Error(w, "Not Found", 404)
+	}
+	start, end, tot, err := parseContentRange(r.Header.Get("Content-Range"))
+	if start == -1 { // transfer status
+		if status.curPosition < status.totBytes {
+			rangeTot := "*"
+			if status.TotBytes > -1 {
+				rangeTot = strconv.FormatInt(status.TotBytes, 10)
+			}
+			if status.curPosition > 0 {
+				w.Header().Add("range", fmt.Sprintf("0-%d/%s", status.curPosition, rangeTot))
+			}
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+
+	} else { // upload
+		r.Body.Close()
+		if status.chunkSize == 0 {
+			if r.ContentLength%(0x40000) != 0 {
+				http.Error(w, fmt.Sprintf("chunk size must be a multiple of 256"), code)
+			}
+			status.chunkSize = r.ContentLength
+		}
+		curPosition += r.ContentLength
+		if tot > 0 {
+			if status.curPosition > tot {
+				http.Error(w, fmt.Sprintf("Received %d total bytes: expected %d", status.curPosition, tot), 400)
+				return
+			}
+		}
+		if r.ContentLength < status.chunkSize {
+			if status.totBytes > -1 && curPostion < tot {
+				http.Error(w, fmt.Sprintf("invalid chunk size - %d: expected %d", r.ContentLength, status.chunkSize))
+			}
+
+		}
+
+		if curPosition {
+			w.WriteHeader()
+		}
+
+	}
+	if status.result != nil {
+		err := json.NewEncoder(w).Encode(status.result)
+		b, err := json.Marshal(status.result)
+		if err != nil {
+			http.Error(w, err.Error(), 500)
+			return
+		}
+		w.Header().Add("content-type", "application/json")
+		w.Write(b)
+	}
+	return
+
+}
+
+func parseContentRange(s string) (start, end, tot int64, err error) {
+	if strings.HasPrefix(s, "bytes ") {
+		if r := strings.Split(s[6:], "/"); len(r) == 2 {
+			start = -2
+			if r[0] == "*" {
+				start, end = -1, -1
+			} else if se := strings.Split(r[0], "-"); len(se) == 2 {
+				if start, err = strconv.ParseInt(se[0], 10, 64); err == nil {
+					end, err = strconv.ParseInt(se[1], 10, 64)
+				}
+			}
+			if start > -2 && err == nil {
+				if r[1] == "*" {
+					tot = -1
+					return
+				} else if tot, err = strconv.ParseInt(r[1], 10, 64); err == nil {
+					return
+				}
+			}
+		}
+	}
+	err = fmt.Errorf("Invalid Content-Range: %s", s)
+	return
+}
+
+/*
 type unexpectedReader struct{}
 
 func (unexpectedReader) Read([]byte) (int, error) {
 	return 0, fmt.Errorf("unexpected read in test.")
 }
 
-var contentRangeRE = regexp.MustCompile(`^bytes (\d+)\-(\d+)/(\d+)$`)
+var contentRangeRE = regexp.MustCompile(`^bytes (\*|\d+\-\d+)/(\*|\d+)$`)
 
 func (t *testTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	t.req = req
-	if rng := req.Header.Get("Content-Range"); rng != "" && !strings.HasPrefix(rng, "bytes */") { // Read the data
-		m := contentRangeRE.FindStringSubmatch(rng)
+*/
+//if rng := req.Header.Get("Content-Range"); rng != "" && !strings.HasPrefix(rng, "bytes */") { // Read the data
+/*		m := contentRangeRE.FindStringSubmatch(rng)
 		if len(m) != 4 {
 			return nil, fmt.Errorf("unable to parse content range: %v", rng)
 		}
@@ -444,9 +596,9 @@ func TestTransferStatus(t *testing.T) {
 }
 
 func (t *interruptedTransport) RoundTrip(req *http.Request) (*http.Response, error) {
-	t.req = req
-	if rng := req.Header.Get("Content-Range"); rng != "" && !strings.HasPrefix(rng, "bytes */") {
-		t.interruptCount += 1
+	t.req = req */
+//	if rng := req.Header.Get("Content-Range"); rng != "" && !strings.HasPrefix(rng, "bytes */") {
+/*		t.interruptCount += 1
 		if t.interruptCount%7 == 0 { // Respond with a "service unavailable" error
 			res := &http.Response{
 				StatusCode: http.StatusServiceUnavailable,
@@ -493,6 +645,7 @@ func (t *interruptedTransport) RoundTrip(req *http.Request) (*http.Response, err
 	return res, nil
 }
 
+/*
 type interruptedTransport struct {
 	req            *http.Request
 	statusCode     int
@@ -596,3 +749,5 @@ func TestCancelUpload(t *testing.T) {
 		}
 	}
 }
+
+*/

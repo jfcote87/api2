@@ -4,18 +4,16 @@
 //
 // Usage example:
 //
-//   import "google.golang.org/api/qpxexpress/v1"
+//   import "github.com/jfcote87/api2/qpxexpress/v1"
 //   ...
 //   qpxexpressService, err := qpxexpress.New(oauthHttpClient)
 package qpxexpress
 
 import (
-	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/jfcote87/api2/googleapi"
 	"golang.org/x/net/context"
-	"google.golang.org/api/googleapi"
 	"io"
 	"net/http"
 	"net/url"
@@ -25,10 +23,8 @@ import (
 
 // Always reference these packages, just in case the auto-generated code
 // below doesn't.
-var _ = bytes.NewBuffer
 var _ = strconv.Itoa
 var _ = fmt.Sprintf
-var _ = json.NewDecoder
 var _ = io.Copy
 var _ = url.Parse
 var _ = googleapi.Version
@@ -39,30 +35,22 @@ var _ = context.Background
 const apiId = "qpxExpress:v1"
 const apiName = "qpxExpress"
 const apiVersion = "v1"
-const basePath = "https://www.googleapis.com/qpxExpress/v1/trips/"
+
+var baseURL *url.URL = &url.URL{Scheme: "https", Host: "www.googleapis.com", Path: "/qpxExpress/v1/trips/"}
 
 func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
+	s := &Service{client: client}
 	s.Trips = NewTripsService(s)
 	return s, nil
 }
 
 type Service struct {
-	client    *http.Client
-	BasePath  string // API endpoint base URL
-	UserAgent string // optional additional User-Agent fragment
+	client *http.Client
 
 	Trips *TripsService
-}
-
-func (s *Service) userAgent() string {
-	if s.UserAgent == "" {
-		return googleapi.UserAgent
-	}
-	return googleapi.UserAgent + " " + s.UserAgent
 }
 
 func NewTripsService(s *Service) *TripsService {
@@ -647,13 +635,26 @@ type TripsSearchResponse struct {
 type TripsSearchCall struct {
 	s                  *Service
 	tripssearchrequest *TripsSearchRequest
-	opt_               map[string]interface{}
+	caller_            googleapi.Caller
+	params_            url.Values
+	pathTemplate_      string
+	context_           context.Context
 }
 
 // Search: Returns a list of flights.
+
 func (r *TripsService) Search(tripssearchrequest *TripsSearchRequest) *TripsSearchCall {
-	c := &TripsSearchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.tripssearchrequest = tripssearchrequest
+	return &TripsSearchCall{
+		s:                  r.s,
+		tripssearchrequest: tripssearchrequest,
+		caller_:            googleapi.JSONCall{},
+		params_:            make(map[string][]string),
+		pathTemplate_:      "search",
+		context_:           googleapi.NoContext,
+	}
+}
+func (c *TripsSearchCall) Context(ctx context.Context) *TripsSearchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -661,41 +662,22 @@ func (r *TripsService) Search(tripssearchrequest *TripsSearchRequest) *TripsSear
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *TripsSearchCall) Fields(s ...googleapi.Field) *TripsSearchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *TripsSearchCall) Do() (*TripsSearchResponse, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.tripssearchrequest)
-	if err != nil {
-		return nil, err
+	var returnValue *TripsSearchResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.tripssearchrequest,
+		Result:  &returnValue,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "search")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *TripsSearchResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Returns a list of flights.",
 	//   "httpMethod": "POST",

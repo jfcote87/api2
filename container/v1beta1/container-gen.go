@@ -4,18 +4,16 @@
 //
 // Usage example:
 //
-//   import "google.golang.org/api/container/v1beta1"
+//   import "github.com/jfcote87/api2/container/v1beta1"
 //   ...
 //   containerService, err := container.New(oauthHttpClient)
 package container
 
 import (
-	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/jfcote87/api2/googleapi"
 	"golang.org/x/net/context"
-	"google.golang.org/api/googleapi"
 	"io"
 	"net/http"
 	"net/url"
@@ -25,10 +23,8 @@ import (
 
 // Always reference these packages, just in case the auto-generated code
 // below doesn't.
-var _ = bytes.NewBuffer
 var _ = strconv.Itoa
 var _ = fmt.Sprintf
-var _ = json.NewDecoder
 var _ = io.Copy
 var _ = url.Parse
 var _ = googleapi.Version
@@ -39,7 +35,8 @@ var _ = context.Background
 const apiId = "container:v1beta1"
 const apiName = "container"
 const apiVersion = "v1beta1"
-const basePath = "https://www.googleapis.com/container/v1beta1/projects/"
+
+var baseURL *url.URL = &url.URL{Scheme: "https", Host: "www.googleapis.com", Path: "/container/v1beta1/projects/"}
 
 // OAuth2 scopes used by this API.
 const (
@@ -51,24 +48,15 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
+	s := &Service{client: client}
 	s.Projects = NewProjectsService(s)
 	return s, nil
 }
 
 type Service struct {
-	client    *http.Client
-	BasePath  string // API endpoint base URL
-	UserAgent string // optional additional User-Agent fragment
+	client *http.Client
 
 	Projects *ProjectsService
-}
-
-func (s *Service) userAgent() string {
-	if s.UserAgent == "" {
-		return googleapi.UserAgent
-	}
-	return googleapi.UserAgent + " " + s.UserAgent
 }
 
 func NewProjectsService(s *Service) *ProjectsService {
@@ -111,6 +99,7 @@ func NewProjectsZonesService(s *Service) *ProjectsZonesService {
 	rs := &ProjectsZonesService{s: s}
 	rs.Clusters = NewProjectsZonesClustersService(s)
 	rs.Operations = NewProjectsZonesOperationsService(s)
+	rs.Tokens = NewProjectsZonesTokensService(s)
 	return rs
 }
 
@@ -120,6 +109,8 @@ type ProjectsZonesService struct {
 	Clusters *ProjectsZonesClustersService
 
 	Operations *ProjectsZonesOperationsService
+
+	Tokens *ProjectsZonesTokensService
 }
 
 func NewProjectsZonesClustersService(s *Service) *ProjectsZonesClustersService {
@@ -137,6 +128,15 @@ func NewProjectsZonesOperationsService(s *Service) *ProjectsZonesOperationsServi
 }
 
 type ProjectsZonesOperationsService struct {
+	s *Service
+}
+
+func NewProjectsZonesTokensService(s *Service) *ProjectsZonesTokensService {
+	rs := &ProjectsZonesTokensService{s: s}
+	return rs
+}
+
+type ProjectsZonesTokensService struct {
 	s *Service
 }
 
@@ -159,6 +159,12 @@ type Cluster struct {
 
 	// Description: An optional description of this cluster.
 	Description string `json:"description,omitempty"`
+
+	// EnableCloudLogging: Whether logs from the cluster should be made
+	// available via the Google Cloud Logging service. This includes both
+	// logs from your applications running in the cluster as well as logs
+	// from the Kubernetes components themselves.
+	EnableCloudLogging bool `json:"enableCloudLogging,omitempty"`
 
 	// Endpoint: [Output only] The IP address of this cluster's Kubernetes
 	// master. The endpoint can be accessed from the internet at
@@ -327,18 +333,40 @@ type ServiceAccount struct {
 	Scopes []string `json:"scopes,omitempty"`
 }
 
+type Token struct {
+	// AccessToken: The OAuth2 access token
+	AccessToken string `json:"accessToken,omitempty"`
+
+	// ExpiryTimeSeconds: The expiration time of the token in seconds since
+	// the unix epoch.
+	ExpiryTimeSeconds int64 `json:"expiryTimeSeconds,omitempty,string"`
+}
+
 // method id "container.projects.clusters.list":
 
 type ProjectsClustersListCall struct {
-	s         *Service
-	projectId string
-	opt_      map[string]interface{}
+	s             *Service
+	projectId     string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Lists all clusters owned by a project across all zones.
+
 func (r *ProjectsClustersService) List(projectId string) *ProjectsClustersListCall {
-	c := &ProjectsClustersListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.projectId = projectId
+	return &ProjectsClustersListCall{
+		s:             r.s,
+		projectId:     projectId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{projectId}/clusters",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *ProjectsClustersListCall) Context(ctx context.Context) *ProjectsClustersListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -346,37 +374,23 @@ func (r *ProjectsClustersService) List(projectId string) *ProjectsClustersListCa
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ProjectsClustersListCall) Fields(s ...googleapi.Field) *ProjectsClustersListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ProjectsClustersListCall) Do() (*ListAggregatedClustersResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{projectId}/clusters")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *ListAggregatedClustersResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"projectId": c.projectId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ListAggregatedClustersResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Lists all clusters owned by a project across all zones.",
 	//   "httpMethod": "GET",
@@ -406,15 +420,28 @@ func (c *ProjectsClustersListCall) Do() (*ListAggregatedClustersResponse, error)
 // method id "container.projects.operations.list":
 
 type ProjectsOperationsListCall struct {
-	s         *Service
-	projectId string
-	opt_      map[string]interface{}
+	s             *Service
+	projectId     string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Lists all operations in a project, across all zones.
+
 func (r *ProjectsOperationsService) List(projectId string) *ProjectsOperationsListCall {
-	c := &ProjectsOperationsListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.projectId = projectId
+	return &ProjectsOperationsListCall{
+		s:             r.s,
+		projectId:     projectId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{projectId}/operations",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *ProjectsOperationsListCall) Context(ctx context.Context) *ProjectsOperationsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -422,37 +449,23 @@ func (r *ProjectsOperationsService) List(projectId string) *ProjectsOperationsLi
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ProjectsOperationsListCall) Fields(s ...googleapi.Field) *ProjectsOperationsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ProjectsOperationsListCall) Do() (*ListAggregatedOperationsResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{projectId}/operations")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *ListAggregatedOperationsResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"projectId": c.projectId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ListAggregatedOperationsResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Lists all operations in a project, across all zones.",
 	//   "httpMethod": "GET",
@@ -486,7 +499,10 @@ type ProjectsZonesClustersCreateCall struct {
 	projectId            string
 	zoneId               string
 	createclusterrequest *CreateClusterRequest
-	opt_                 map[string]interface{}
+	caller_              googleapi.Caller
+	params_              url.Values
+	pathTemplate_        string
+	context_             context.Context
 }
 
 // Create: Creates a cluster, consisting of the specified number and
@@ -504,11 +520,21 @@ type ProjectsZonesClustersCreateCall struct {
 // Finally, a route named
 // k8s-iproute-10-xx-0-0 is created to track that the cluster's
 // 10.xx.0.0/16 CIDR has been assigned.
+
 func (r *ProjectsZonesClustersService) Create(projectId string, zoneId string, createclusterrequest *CreateClusterRequest) *ProjectsZonesClustersCreateCall {
-	c := &ProjectsZonesClustersCreateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.projectId = projectId
-	c.zoneId = zoneId
-	c.createclusterrequest = createclusterrequest
+	return &ProjectsZonesClustersCreateCall{
+		s:                    r.s,
+		projectId:            projectId,
+		zoneId:               zoneId,
+		createclusterrequest: createclusterrequest,
+		caller_:              googleapi.JSONCall{},
+		params_:              make(map[string][]string),
+		pathTemplate_:        "{projectId}/zones/{zoneId}/clusters",
+		context_:             googleapi.NoContext,
+	}
+}
+func (c *ProjectsZonesClustersCreateCall) Context(ctx context.Context) *ProjectsZonesClustersCreateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -516,44 +542,25 @@ func (r *ProjectsZonesClustersService) Create(projectId string, zoneId string, c
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ProjectsZonesClustersCreateCall) Fields(s ...googleapi.Field) *ProjectsZonesClustersCreateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ProjectsZonesClustersCreateCall) Do() (*Operation, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.createclusterrequest)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{projectId}/zones/{zoneId}/clusters")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Operation
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"projectId": c.projectId,
 		"zoneId":    c.zoneId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.createclusterrequest,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Operation
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Creates a cluster, consisting of the specified number and type of Google Compute Engine instances, plus a Kubernetes master instance.\n\nThe cluster is created in the project's default network.\n\nA firewall is added that allows traffic into port 443 on the master, which enables HTTPS. A firewall and a route is added for each node to allow the containers on that node to communicate with all other instances in the cluster.\n\nFinally, a route named k8s-iproute-10-xx-0-0 is created to track that the cluster's 10.xx.0.0/16 CIDR has been assigned.",
 	//   "httpMethod": "POST",
@@ -593,11 +600,14 @@ func (c *ProjectsZonesClustersCreateCall) Do() (*Operation, error) {
 // method id "container.projects.zones.clusters.delete":
 
 type ProjectsZonesClustersDeleteCall struct {
-	s         *Service
-	projectId string
-	zoneId    string
-	clusterId string
-	opt_      map[string]interface{}
+	s             *Service
+	projectId     string
+	zoneId        string
+	clusterId     string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Delete: Deletes the cluster, including the Kubernetes master and all
@@ -605,11 +615,21 @@ type ProjectsZonesClustersDeleteCall struct {
 //
 // Firewalls and routes that were configured at cluster
 // creation are also deleted.
+
 func (r *ProjectsZonesClustersService) Delete(projectId string, zoneId string, clusterId string) *ProjectsZonesClustersDeleteCall {
-	c := &ProjectsZonesClustersDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.projectId = projectId
-	c.zoneId = zoneId
-	c.clusterId = clusterId
+	return &ProjectsZonesClustersDeleteCall{
+		s:             r.s,
+		projectId:     projectId,
+		zoneId:        zoneId,
+		clusterId:     clusterId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{projectId}/zones/{zoneId}/clusters/{clusterId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *ProjectsZonesClustersDeleteCall) Context(ctx context.Context) *ProjectsZonesClustersDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -617,39 +637,25 @@ func (r *ProjectsZonesClustersService) Delete(projectId string, zoneId string, c
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ProjectsZonesClustersDeleteCall) Fields(s ...googleapi.Field) *ProjectsZonesClustersDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ProjectsZonesClustersDeleteCall) Do() (*Operation, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{projectId}/zones/{zoneId}/clusters/{clusterId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Operation
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"projectId": c.projectId,
 		"zoneId":    c.zoneId,
 		"clusterId": c.clusterId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Operation
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Deletes the cluster, including the Kubernetes master and all worker nodes.\n\nFirewalls and routes that were configured at cluster creation are also deleted.",
 	//   "httpMethod": "DELETE",
@@ -693,19 +699,32 @@ func (c *ProjectsZonesClustersDeleteCall) Do() (*Operation, error) {
 // method id "container.projects.zones.clusters.get":
 
 type ProjectsZonesClustersGetCall struct {
-	s         *Service
-	projectId string
-	zoneId    string
-	clusterId string
-	opt_      map[string]interface{}
+	s             *Service
+	projectId     string
+	zoneId        string
+	clusterId     string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Gets a specific cluster.
+
 func (r *ProjectsZonesClustersService) Get(projectId string, zoneId string, clusterId string) *ProjectsZonesClustersGetCall {
-	c := &ProjectsZonesClustersGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.projectId = projectId
-	c.zoneId = zoneId
-	c.clusterId = clusterId
+	return &ProjectsZonesClustersGetCall{
+		s:             r.s,
+		projectId:     projectId,
+		zoneId:        zoneId,
+		clusterId:     clusterId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{projectId}/zones/{zoneId}/clusters/{clusterId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *ProjectsZonesClustersGetCall) Context(ctx context.Context) *ProjectsZonesClustersGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -713,39 +732,25 @@ func (r *ProjectsZonesClustersService) Get(projectId string, zoneId string, clus
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ProjectsZonesClustersGetCall) Fields(s ...googleapi.Field) *ProjectsZonesClustersGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ProjectsZonesClustersGetCall) Do() (*Cluster, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{projectId}/zones/{zoneId}/clusters/{clusterId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Cluster
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"projectId": c.projectId,
 		"zoneId":    c.zoneId,
 		"clusterId": c.clusterId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Cluster
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Gets a specific cluster.",
 	//   "httpMethod": "GET",
@@ -789,17 +794,30 @@ func (c *ProjectsZonesClustersGetCall) Do() (*Cluster, error) {
 // method id "container.projects.zones.clusters.list":
 
 type ProjectsZonesClustersListCall struct {
-	s         *Service
-	projectId string
-	zoneId    string
-	opt_      map[string]interface{}
+	s             *Service
+	projectId     string
+	zoneId        string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Lists all clusters owned by a project in the specified zone.
+
 func (r *ProjectsZonesClustersService) List(projectId string, zoneId string) *ProjectsZonesClustersListCall {
-	c := &ProjectsZonesClustersListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.projectId = projectId
-	c.zoneId = zoneId
+	return &ProjectsZonesClustersListCall{
+		s:             r.s,
+		projectId:     projectId,
+		zoneId:        zoneId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{projectId}/zones/{zoneId}/clusters",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *ProjectsZonesClustersListCall) Context(ctx context.Context) *ProjectsZonesClustersListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -807,38 +825,24 @@ func (r *ProjectsZonesClustersService) List(projectId string, zoneId string) *Pr
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ProjectsZonesClustersListCall) Fields(s ...googleapi.Field) *ProjectsZonesClustersListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ProjectsZonesClustersListCall) Do() (*ListClustersResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{projectId}/zones/{zoneId}/clusters")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *ListClustersResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"projectId": c.projectId,
 		"zoneId":    c.zoneId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ListClustersResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Lists all clusters owned by a project in the specified zone.",
 	//   "httpMethod": "GET",
@@ -875,19 +879,32 @@ func (c *ProjectsZonesClustersListCall) Do() (*ListClustersResponse, error) {
 // method id "container.projects.zones.operations.get":
 
 type ProjectsZonesOperationsGetCall struct {
-	s           *Service
-	projectId   string
-	zoneId      string
-	operationId string
-	opt_        map[string]interface{}
+	s             *Service
+	projectId     string
+	zoneId        string
+	operationId   string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Gets the specified operation.
+
 func (r *ProjectsZonesOperationsService) Get(projectId string, zoneId string, operationId string) *ProjectsZonesOperationsGetCall {
-	c := &ProjectsZonesOperationsGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.projectId = projectId
-	c.zoneId = zoneId
-	c.operationId = operationId
+	return &ProjectsZonesOperationsGetCall{
+		s:             r.s,
+		projectId:     projectId,
+		zoneId:        zoneId,
+		operationId:   operationId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{projectId}/zones/{zoneId}/operations/{operationId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *ProjectsZonesOperationsGetCall) Context(ctx context.Context) *ProjectsZonesOperationsGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -895,39 +912,25 @@ func (r *ProjectsZonesOperationsService) Get(projectId string, zoneId string, op
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ProjectsZonesOperationsGetCall) Fields(s ...googleapi.Field) *ProjectsZonesOperationsGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ProjectsZonesOperationsGetCall) Do() (*Operation, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{projectId}/zones/{zoneId}/operations/{operationId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Operation
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"projectId":   c.projectId,
 		"zoneId":      c.zoneId,
 		"operationId": c.operationId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Operation
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Gets the specified operation.",
 	//   "httpMethod": "GET",
@@ -971,17 +974,30 @@ func (c *ProjectsZonesOperationsGetCall) Do() (*Operation, error) {
 // method id "container.projects.zones.operations.list":
 
 type ProjectsZonesOperationsListCall struct {
-	s         *Service
-	projectId string
-	zoneId    string
-	opt_      map[string]interface{}
+	s             *Service
+	projectId     string
+	zoneId        string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Lists all operations in a project in a specific zone.
+
 func (r *ProjectsZonesOperationsService) List(projectId string, zoneId string) *ProjectsZonesOperationsListCall {
-	c := &ProjectsZonesOperationsListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.projectId = projectId
-	c.zoneId = zoneId
+	return &ProjectsZonesOperationsListCall{
+		s:             r.s,
+		projectId:     projectId,
+		zoneId:        zoneId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{projectId}/zones/{zoneId}/operations",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *ProjectsZonesOperationsListCall) Context(ctx context.Context) *ProjectsZonesOperationsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -989,38 +1005,24 @@ func (r *ProjectsZonesOperationsService) List(projectId string, zoneId string) *
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ProjectsZonesOperationsListCall) Fields(s ...googleapi.Field) *ProjectsZonesOperationsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ProjectsZonesOperationsListCall) Do() (*ListOperationsResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{projectId}/zones/{zoneId}/operations")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *ListOperationsResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"projectId": c.projectId,
 		"zoneId":    c.zoneId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ListOperationsResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Lists all operations in a project in a specific zone.",
 	//   "httpMethod": "GET",
@@ -1050,6 +1052,113 @@ func (c *ProjectsZonesOperationsListCall) Do() (*ListOperationsResponse, error) 
 	//   "scopes": [
 	//     "https://www.googleapis.com/auth/cloud-platform"
 	//   ]
+	// }
+
+}
+
+// method id "container.projects.zones.tokens.get":
+
+type ProjectsZonesTokensGetCall struct {
+	s               *Service
+	masterProjectId string
+	zoneId          string
+	projectNumber   int64
+	clusterName     string
+	caller_         googleapi.Caller
+	params_         url.Values
+	pathTemplate_   string
+	context_        context.Context
+}
+
+// Get: Gets a compute-rw scoped OAuth2 access token for
+// .
+// Authentication is performed to ensure that the caller is a member of
+// and that the request is coming from the expected master VM for the
+// specified cluster. See go/gke-cross-project-auth for more details.
+
+func (r *ProjectsZonesTokensService) Get(masterProjectId string, zoneId string, projectNumber int64, clusterName string) *ProjectsZonesTokensGetCall {
+	return &ProjectsZonesTokensGetCall{
+		s:               r.s,
+		masterProjectId: masterProjectId,
+		zoneId:          zoneId,
+		projectNumber:   projectNumber,
+		clusterName:     clusterName,
+		caller_:         googleapi.JSONCall{},
+		params_:         make(map[string][]string),
+		pathTemplate_:   "{masterProjectId}/zones/{zoneId}/tokens/{projectNumber}/{clusterName}",
+		context_:        googleapi.NoContext,
+	}
+}
+func (c *ProjectsZonesTokensGetCall) Context(ctx context.Context) *ProjectsZonesTokensGetCall {
+	c.context_ = ctx
+	return c
+}
+
+// Fields allows partial responses to be retrieved.
+// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
+// for more information.
+func (c *ProjectsZonesTokensGetCall) Fields(s ...googleapi.Field) *ProjectsZonesTokensGetCall {
+	c.params_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+func (c *ProjectsZonesTokensGetCall) Do() (*Token, error) {
+	var returnValue *Token
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
+		"masterProjectId": c.masterProjectId,
+		"zoneId":          c.zoneId,
+		"projectNumber":   strconv.FormatInt(c.projectNumber, 10),
+		"clusterName":     c.clusterName,
+	})
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
+	}
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
+	// {
+	//   "description": "Gets a compute-rw scoped OAuth2 access token for\n. Authentication is performed to ensure that the caller is a member of  and that the request is coming from the expected master VM for the specified cluster. See go/gke-cross-project-auth for more details.",
+	//   "httpMethod": "GET",
+	//   "id": "container.projects.zones.tokens.get",
+	//   "parameterOrder": [
+	//     "masterProjectId",
+	//     "zoneId",
+	//     "projectNumber",
+	//     "clusterName"
+	//   ],
+	//   "parameters": {
+	//     "clusterName": {
+	//       "description": "The name of the specified cluster.",
+	//       "location": "path",
+	//       "required": true,
+	//       "type": "string"
+	//     },
+	//     "masterProjectId": {
+	//       "description": "The hosted master project from which this request is coming.",
+	//       "location": "path",
+	//       "required": true,
+	//       "type": "string"
+	//     },
+	//     "projectNumber": {
+	//       "description": "The project number for which the access token is being requested.",
+	//       "format": "int64",
+	//       "location": "path",
+	//       "required": true,
+	//       "type": "string"
+	//     },
+	//     "zoneId": {
+	//       "description": "The zone of the specified cluster.",
+	//       "location": "path",
+	//       "required": true,
+	//       "type": "string"
+	//     }
+	//   },
+	//   "path": "{masterProjectId}/zones/{zoneId}/tokens/{projectNumber}/{clusterName}",
+	//   "response": {
+	//     "$ref": "Token"
+	//   }
 	// }
 
 }

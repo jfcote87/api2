@@ -4,18 +4,16 @@
 //
 // Usage example:
 //
-//   import "google.golang.org/api/identitytoolkit/v3"
+//   import "github.com/jfcote87/api2/identitytoolkit/v3"
 //   ...
 //   identitytoolkitService, err := identitytoolkit.New(oauthHttpClient)
 package identitytoolkit
 
 import (
-	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/jfcote87/api2/googleapi"
 	"golang.org/x/net/context"
-	"google.golang.org/api/googleapi"
 	"io"
 	"net/http"
 	"net/url"
@@ -25,10 +23,8 @@ import (
 
 // Always reference these packages, just in case the auto-generated code
 // below doesn't.
-var _ = bytes.NewBuffer
 var _ = strconv.Itoa
 var _ = fmt.Sprintf
-var _ = json.NewDecoder
 var _ = io.Copy
 var _ = url.Parse
 var _ = googleapi.Version
@@ -39,30 +35,22 @@ var _ = context.Background
 const apiId = "identitytoolkit:v3"
 const apiName = "identitytoolkit"
 const apiVersion = "v3"
-const basePath = "https://www.googleapis.com/identitytoolkit/v3/relyingparty/"
+
+var baseURL *url.URL = &url.URL{Scheme: "https", Host: "www.googleapis.com", Path: "/identitytoolkit/v3/relyingparty/"}
 
 func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
+	s := &Service{client: client}
 	s.Relyingparty = NewRelyingpartyService(s)
 	return s, nil
 }
 
 type Service struct {
-	client    *http.Client
-	BasePath  string // API endpoint base URL
-	UserAgent string // optional additional User-Agent fragment
+	client *http.Client
 
 	Relyingparty *RelyingpartyService
-}
-
-func (s *Service) userAgent() string {
-	if s.UserAgent == "" {
-		return googleapi.UserAgent
-	}
-	return googleapi.UserAgent + " " + s.UserAgent
 }
 
 func NewRelyingpartyService(s *Service) *RelyingpartyService {
@@ -546,14 +534,27 @@ type VerifyPasswordResponse struct {
 type RelyingpartyCreateAuthUriCall struct {
 	s                                               *Service
 	identitytoolkitrelyingpartycreateauthurirequest *IdentitytoolkitRelyingpartyCreateAuthUriRequest
-	opt_                                            map[string]interface{}
+	caller_                                         googleapi.Caller
+	params_                                         url.Values
+	pathTemplate_                                   string
+	context_                                        context.Context
 }
 
 // CreateAuthUri: Creates the URI used by the IdP to authenticate the
 // user.
+
 func (r *RelyingpartyService) CreateAuthUri(identitytoolkitrelyingpartycreateauthurirequest *IdentitytoolkitRelyingpartyCreateAuthUriRequest) *RelyingpartyCreateAuthUriCall {
-	c := &RelyingpartyCreateAuthUriCall{s: r.s, opt_: make(map[string]interface{})}
-	c.identitytoolkitrelyingpartycreateauthurirequest = identitytoolkitrelyingpartycreateauthurirequest
+	return &RelyingpartyCreateAuthUriCall{
+		s: r.s,
+		identitytoolkitrelyingpartycreateauthurirequest: identitytoolkitrelyingpartycreateauthurirequest,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "createAuthUri",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *RelyingpartyCreateAuthUriCall) Context(ctx context.Context) *RelyingpartyCreateAuthUriCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -561,41 +562,22 @@ func (r *RelyingpartyService) CreateAuthUri(identitytoolkitrelyingpartycreateaut
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *RelyingpartyCreateAuthUriCall) Fields(s ...googleapi.Field) *RelyingpartyCreateAuthUriCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *RelyingpartyCreateAuthUriCall) Do() (*CreateAuthUriResponse, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.identitytoolkitrelyingpartycreateauthurirequest)
-	if err != nil {
-		return nil, err
+	var returnValue *CreateAuthUriResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.identitytoolkitrelyingpartycreateauthurirequest,
+		Result:  &returnValue,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "createAuthUri")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *CreateAuthUriResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Creates the URI used by the IdP to authenticate the user.",
 	//   "httpMethod": "POST",
@@ -616,13 +598,26 @@ func (c *RelyingpartyCreateAuthUriCall) Do() (*CreateAuthUriResponse, error) {
 type RelyingpartyDeleteAccountCall struct {
 	s                                               *Service
 	identitytoolkitrelyingpartydeleteaccountrequest *IdentitytoolkitRelyingpartyDeleteAccountRequest
-	opt_                                            map[string]interface{}
+	caller_                                         googleapi.Caller
+	params_                                         url.Values
+	pathTemplate_                                   string
+	context_                                        context.Context
 }
 
 // DeleteAccount: Delete user account.
+
 func (r *RelyingpartyService) DeleteAccount(identitytoolkitrelyingpartydeleteaccountrequest *IdentitytoolkitRelyingpartyDeleteAccountRequest) *RelyingpartyDeleteAccountCall {
-	c := &RelyingpartyDeleteAccountCall{s: r.s, opt_: make(map[string]interface{})}
-	c.identitytoolkitrelyingpartydeleteaccountrequest = identitytoolkitrelyingpartydeleteaccountrequest
+	return &RelyingpartyDeleteAccountCall{
+		s: r.s,
+		identitytoolkitrelyingpartydeleteaccountrequest: identitytoolkitrelyingpartydeleteaccountrequest,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "deleteAccount",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *RelyingpartyDeleteAccountCall) Context(ctx context.Context) *RelyingpartyDeleteAccountCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -630,41 +625,22 @@ func (r *RelyingpartyService) DeleteAccount(identitytoolkitrelyingpartydeleteacc
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *RelyingpartyDeleteAccountCall) Fields(s ...googleapi.Field) *RelyingpartyDeleteAccountCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *RelyingpartyDeleteAccountCall) Do() (*DeleteAccountResponse, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.identitytoolkitrelyingpartydeleteaccountrequest)
-	if err != nil {
-		return nil, err
+	var returnValue *DeleteAccountResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.identitytoolkitrelyingpartydeleteaccountrequest,
+		Result:  &returnValue,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "deleteAccount")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *DeleteAccountResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Delete user account.",
 	//   "httpMethod": "POST",
@@ -685,13 +661,26 @@ func (c *RelyingpartyDeleteAccountCall) Do() (*DeleteAccountResponse, error) {
 type RelyingpartyDownloadAccountCall struct {
 	s                                                 *Service
 	identitytoolkitrelyingpartydownloadaccountrequest *IdentitytoolkitRelyingpartyDownloadAccountRequest
-	opt_                                              map[string]interface{}
+	caller_                                           googleapi.Caller
+	params_                                           url.Values
+	pathTemplate_                                     string
+	context_                                          context.Context
 }
 
 // DownloadAccount: Batch download user accounts.
+
 func (r *RelyingpartyService) DownloadAccount(identitytoolkitrelyingpartydownloadaccountrequest *IdentitytoolkitRelyingpartyDownloadAccountRequest) *RelyingpartyDownloadAccountCall {
-	c := &RelyingpartyDownloadAccountCall{s: r.s, opt_: make(map[string]interface{})}
-	c.identitytoolkitrelyingpartydownloadaccountrequest = identitytoolkitrelyingpartydownloadaccountrequest
+	return &RelyingpartyDownloadAccountCall{
+		s: r.s,
+		identitytoolkitrelyingpartydownloadaccountrequest: identitytoolkitrelyingpartydownloadaccountrequest,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "downloadAccount",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *RelyingpartyDownloadAccountCall) Context(ctx context.Context) *RelyingpartyDownloadAccountCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -699,41 +688,22 @@ func (r *RelyingpartyService) DownloadAccount(identitytoolkitrelyingpartydownloa
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *RelyingpartyDownloadAccountCall) Fields(s ...googleapi.Field) *RelyingpartyDownloadAccountCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *RelyingpartyDownloadAccountCall) Do() (*DownloadAccountResponse, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.identitytoolkitrelyingpartydownloadaccountrequest)
-	if err != nil {
-		return nil, err
+	var returnValue *DownloadAccountResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.identitytoolkitrelyingpartydownloadaccountrequest,
+		Result:  &returnValue,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "downloadAccount")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *DownloadAccountResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Batch download user accounts.",
 	//   "httpMethod": "POST",
@@ -754,13 +724,26 @@ func (c *RelyingpartyDownloadAccountCall) Do() (*DownloadAccountResponse, error)
 type RelyingpartyGetAccountInfoCall struct {
 	s                                                *Service
 	identitytoolkitrelyingpartygetaccountinforequest *IdentitytoolkitRelyingpartyGetAccountInfoRequest
-	opt_                                             map[string]interface{}
+	caller_                                          googleapi.Caller
+	params_                                          url.Values
+	pathTemplate_                                    string
+	context_                                         context.Context
 }
 
 // GetAccountInfo: Returns the account info.
+
 func (r *RelyingpartyService) GetAccountInfo(identitytoolkitrelyingpartygetaccountinforequest *IdentitytoolkitRelyingpartyGetAccountInfoRequest) *RelyingpartyGetAccountInfoCall {
-	c := &RelyingpartyGetAccountInfoCall{s: r.s, opt_: make(map[string]interface{})}
-	c.identitytoolkitrelyingpartygetaccountinforequest = identitytoolkitrelyingpartygetaccountinforequest
+	return &RelyingpartyGetAccountInfoCall{
+		s: r.s,
+		identitytoolkitrelyingpartygetaccountinforequest: identitytoolkitrelyingpartygetaccountinforequest,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "getAccountInfo",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *RelyingpartyGetAccountInfoCall) Context(ctx context.Context) *RelyingpartyGetAccountInfoCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -768,41 +751,22 @@ func (r *RelyingpartyService) GetAccountInfo(identitytoolkitrelyingpartygetaccou
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *RelyingpartyGetAccountInfoCall) Fields(s ...googleapi.Field) *RelyingpartyGetAccountInfoCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *RelyingpartyGetAccountInfoCall) Do() (*GetAccountInfoResponse, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.identitytoolkitrelyingpartygetaccountinforequest)
-	if err != nil {
-		return nil, err
+	var returnValue *GetAccountInfoResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.identitytoolkitrelyingpartygetaccountinforequest,
+		Result:  &returnValue,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "getAccountInfo")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *GetAccountInfoResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Returns the account info.",
 	//   "httpMethod": "POST",
@@ -821,15 +785,28 @@ func (c *RelyingpartyGetAccountInfoCall) Do() (*GetAccountInfoResponse, error) {
 // method id "identitytoolkit.relyingparty.getOobConfirmationCode":
 
 type RelyingpartyGetOobConfirmationCodeCall struct {
-	s            *Service
-	relyingparty *Relyingparty
-	opt_         map[string]interface{}
+	s             *Service
+	relyingparty  *Relyingparty
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // GetOobConfirmationCode: Get a code for user action confirmation.
+
 func (r *RelyingpartyService) GetOobConfirmationCode(relyingparty *Relyingparty) *RelyingpartyGetOobConfirmationCodeCall {
-	c := &RelyingpartyGetOobConfirmationCodeCall{s: r.s, opt_: make(map[string]interface{})}
-	c.relyingparty = relyingparty
+	return &RelyingpartyGetOobConfirmationCodeCall{
+		s:             r.s,
+		relyingparty:  relyingparty,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "getOobConfirmationCode",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *RelyingpartyGetOobConfirmationCodeCall) Context(ctx context.Context) *RelyingpartyGetOobConfirmationCodeCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -837,41 +814,22 @@ func (r *RelyingpartyService) GetOobConfirmationCode(relyingparty *Relyingparty)
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *RelyingpartyGetOobConfirmationCodeCall) Fields(s ...googleapi.Field) *RelyingpartyGetOobConfirmationCodeCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *RelyingpartyGetOobConfirmationCodeCall) Do() (*GetOobConfirmationCodeResponse, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.relyingparty)
-	if err != nil {
-		return nil, err
+	var returnValue *GetOobConfirmationCodeResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.relyingparty,
+		Result:  &returnValue,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "getOobConfirmationCode")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *GetOobConfirmationCodeResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Get a code for user action confirmation.",
 	//   "httpMethod": "POST",
@@ -890,13 +848,26 @@ func (c *RelyingpartyGetOobConfirmationCodeCall) Do() (*GetOobConfirmationCodeRe
 // method id "identitytoolkit.relyingparty.getPublicKeys":
 
 type RelyingpartyGetPublicKeysCall struct {
-	s    *Service
-	opt_ map[string]interface{}
+	s             *Service
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // GetPublicKeys: Get token signing public key.
+
 func (r *RelyingpartyService) GetPublicKeys() *RelyingpartyGetPublicKeysCall {
-	c := &RelyingpartyGetPublicKeysCall{s: r.s, opt_: make(map[string]interface{})}
+	return &RelyingpartyGetPublicKeysCall{
+		s:             r.s,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "publicKeys",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *RelyingpartyGetPublicKeysCall) Context(ctx context.Context) *RelyingpartyGetPublicKeysCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -904,35 +875,21 @@ func (r *RelyingpartyService) GetPublicKeys() *RelyingpartyGetPublicKeysCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *RelyingpartyGetPublicKeysCall) Fields(s ...googleapi.Field) *RelyingpartyGetPublicKeysCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *RelyingpartyGetPublicKeysCall) Do() (map[string]string, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
+	var returnValue map[string]string
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "publicKeys")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret map[string]string
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Get token signing public key.",
 	//   "httpMethod": "GET",
@@ -950,13 +907,26 @@ func (c *RelyingpartyGetPublicKeysCall) Do() (map[string]string, error) {
 type RelyingpartyResetPasswordCall struct {
 	s                                               *Service
 	identitytoolkitrelyingpartyresetpasswordrequest *IdentitytoolkitRelyingpartyResetPasswordRequest
-	opt_                                            map[string]interface{}
+	caller_                                         googleapi.Caller
+	params_                                         url.Values
+	pathTemplate_                                   string
+	context_                                        context.Context
 }
 
 // ResetPassword: Reset password for a user.
+
 func (r *RelyingpartyService) ResetPassword(identitytoolkitrelyingpartyresetpasswordrequest *IdentitytoolkitRelyingpartyResetPasswordRequest) *RelyingpartyResetPasswordCall {
-	c := &RelyingpartyResetPasswordCall{s: r.s, opt_: make(map[string]interface{})}
-	c.identitytoolkitrelyingpartyresetpasswordrequest = identitytoolkitrelyingpartyresetpasswordrequest
+	return &RelyingpartyResetPasswordCall{
+		s: r.s,
+		identitytoolkitrelyingpartyresetpasswordrequest: identitytoolkitrelyingpartyresetpasswordrequest,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "resetPassword",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *RelyingpartyResetPasswordCall) Context(ctx context.Context) *RelyingpartyResetPasswordCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -964,41 +934,22 @@ func (r *RelyingpartyService) ResetPassword(identitytoolkitrelyingpartyresetpass
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *RelyingpartyResetPasswordCall) Fields(s ...googleapi.Field) *RelyingpartyResetPasswordCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *RelyingpartyResetPasswordCall) Do() (*ResetPasswordResponse, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.identitytoolkitrelyingpartyresetpasswordrequest)
-	if err != nil {
-		return nil, err
+	var returnValue *ResetPasswordResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.identitytoolkitrelyingpartyresetpasswordrequest,
+		Result:  &returnValue,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "resetPassword")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ResetPasswordResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Reset password for a user.",
 	//   "httpMethod": "POST",
@@ -1019,13 +970,26 @@ func (c *RelyingpartyResetPasswordCall) Do() (*ResetPasswordResponse, error) {
 type RelyingpartySetAccountInfoCall struct {
 	s                                                *Service
 	identitytoolkitrelyingpartysetaccountinforequest *IdentitytoolkitRelyingpartySetAccountInfoRequest
-	opt_                                             map[string]interface{}
+	caller_                                          googleapi.Caller
+	params_                                          url.Values
+	pathTemplate_                                    string
+	context_                                         context.Context
 }
 
 // SetAccountInfo: Set account info for a user.
+
 func (r *RelyingpartyService) SetAccountInfo(identitytoolkitrelyingpartysetaccountinforequest *IdentitytoolkitRelyingpartySetAccountInfoRequest) *RelyingpartySetAccountInfoCall {
-	c := &RelyingpartySetAccountInfoCall{s: r.s, opt_: make(map[string]interface{})}
-	c.identitytoolkitrelyingpartysetaccountinforequest = identitytoolkitrelyingpartysetaccountinforequest
+	return &RelyingpartySetAccountInfoCall{
+		s: r.s,
+		identitytoolkitrelyingpartysetaccountinforequest: identitytoolkitrelyingpartysetaccountinforequest,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "setAccountInfo",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *RelyingpartySetAccountInfoCall) Context(ctx context.Context) *RelyingpartySetAccountInfoCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1033,41 +997,22 @@ func (r *RelyingpartyService) SetAccountInfo(identitytoolkitrelyingpartysetaccou
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *RelyingpartySetAccountInfoCall) Fields(s ...googleapi.Field) *RelyingpartySetAccountInfoCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *RelyingpartySetAccountInfoCall) Do() (*SetAccountInfoResponse, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.identitytoolkitrelyingpartysetaccountinforequest)
-	if err != nil {
-		return nil, err
+	var returnValue *SetAccountInfoResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.identitytoolkitrelyingpartysetaccountinforequest,
+		Result:  &returnValue,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "setAccountInfo")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *SetAccountInfoResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Set account info for a user.",
 	//   "httpMethod": "POST",
@@ -1088,13 +1033,26 @@ func (c *RelyingpartySetAccountInfoCall) Do() (*SetAccountInfoResponse, error) {
 type RelyingpartyUploadAccountCall struct {
 	s                                               *Service
 	identitytoolkitrelyingpartyuploadaccountrequest *IdentitytoolkitRelyingpartyUploadAccountRequest
-	opt_                                            map[string]interface{}
+	caller_                                         googleapi.Caller
+	params_                                         url.Values
+	pathTemplate_                                   string
+	context_                                        context.Context
 }
 
 // UploadAccount: Batch upload existing user accounts.
+
 func (r *RelyingpartyService) UploadAccount(identitytoolkitrelyingpartyuploadaccountrequest *IdentitytoolkitRelyingpartyUploadAccountRequest) *RelyingpartyUploadAccountCall {
-	c := &RelyingpartyUploadAccountCall{s: r.s, opt_: make(map[string]interface{})}
-	c.identitytoolkitrelyingpartyuploadaccountrequest = identitytoolkitrelyingpartyuploadaccountrequest
+	return &RelyingpartyUploadAccountCall{
+		s: r.s,
+		identitytoolkitrelyingpartyuploadaccountrequest: identitytoolkitrelyingpartyuploadaccountrequest,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "uploadAccount",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *RelyingpartyUploadAccountCall) Context(ctx context.Context) *RelyingpartyUploadAccountCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1102,41 +1060,22 @@ func (r *RelyingpartyService) UploadAccount(identitytoolkitrelyingpartyuploadacc
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *RelyingpartyUploadAccountCall) Fields(s ...googleapi.Field) *RelyingpartyUploadAccountCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *RelyingpartyUploadAccountCall) Do() (*UploadAccountResponse, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.identitytoolkitrelyingpartyuploadaccountrequest)
-	if err != nil {
-		return nil, err
+	var returnValue *UploadAccountResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.identitytoolkitrelyingpartyuploadaccountrequest,
+		Result:  &returnValue,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "uploadAccount")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *UploadAccountResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Batch upload existing user accounts.",
 	//   "httpMethod": "POST",
@@ -1157,13 +1096,26 @@ func (c *RelyingpartyUploadAccountCall) Do() (*UploadAccountResponse, error) {
 type RelyingpartyVerifyAssertionCall struct {
 	s                                                 *Service
 	identitytoolkitrelyingpartyverifyassertionrequest *IdentitytoolkitRelyingpartyVerifyAssertionRequest
-	opt_                                              map[string]interface{}
+	caller_                                           googleapi.Caller
+	params_                                           url.Values
+	pathTemplate_                                     string
+	context_                                          context.Context
 }
 
 // VerifyAssertion: Verifies the assertion returned by the IdP.
+
 func (r *RelyingpartyService) VerifyAssertion(identitytoolkitrelyingpartyverifyassertionrequest *IdentitytoolkitRelyingpartyVerifyAssertionRequest) *RelyingpartyVerifyAssertionCall {
-	c := &RelyingpartyVerifyAssertionCall{s: r.s, opt_: make(map[string]interface{})}
-	c.identitytoolkitrelyingpartyverifyassertionrequest = identitytoolkitrelyingpartyverifyassertionrequest
+	return &RelyingpartyVerifyAssertionCall{
+		s: r.s,
+		identitytoolkitrelyingpartyverifyassertionrequest: identitytoolkitrelyingpartyverifyassertionrequest,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "verifyAssertion",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *RelyingpartyVerifyAssertionCall) Context(ctx context.Context) *RelyingpartyVerifyAssertionCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1171,41 +1123,22 @@ func (r *RelyingpartyService) VerifyAssertion(identitytoolkitrelyingpartyverifya
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *RelyingpartyVerifyAssertionCall) Fields(s ...googleapi.Field) *RelyingpartyVerifyAssertionCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *RelyingpartyVerifyAssertionCall) Do() (*VerifyAssertionResponse, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.identitytoolkitrelyingpartyverifyassertionrequest)
-	if err != nil {
-		return nil, err
+	var returnValue *VerifyAssertionResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.identitytoolkitrelyingpartyverifyassertionrequest,
+		Result:  &returnValue,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "verifyAssertion")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *VerifyAssertionResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Verifies the assertion returned by the IdP.",
 	//   "httpMethod": "POST",
@@ -1226,13 +1159,26 @@ func (c *RelyingpartyVerifyAssertionCall) Do() (*VerifyAssertionResponse, error)
 type RelyingpartyVerifyPasswordCall struct {
 	s                                                *Service
 	identitytoolkitrelyingpartyverifypasswordrequest *IdentitytoolkitRelyingpartyVerifyPasswordRequest
-	opt_                                             map[string]interface{}
+	caller_                                          googleapi.Caller
+	params_                                          url.Values
+	pathTemplate_                                    string
+	context_                                         context.Context
 }
 
 // VerifyPassword: Verifies the user entered password.
+
 func (r *RelyingpartyService) VerifyPassword(identitytoolkitrelyingpartyverifypasswordrequest *IdentitytoolkitRelyingpartyVerifyPasswordRequest) *RelyingpartyVerifyPasswordCall {
-	c := &RelyingpartyVerifyPasswordCall{s: r.s, opt_: make(map[string]interface{})}
-	c.identitytoolkitrelyingpartyverifypasswordrequest = identitytoolkitrelyingpartyverifypasswordrequest
+	return &RelyingpartyVerifyPasswordCall{
+		s: r.s,
+		identitytoolkitrelyingpartyverifypasswordrequest: identitytoolkitrelyingpartyverifypasswordrequest,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "verifyPassword",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *RelyingpartyVerifyPasswordCall) Context(ctx context.Context) *RelyingpartyVerifyPasswordCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1240,41 +1186,22 @@ func (r *RelyingpartyService) VerifyPassword(identitytoolkitrelyingpartyverifypa
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *RelyingpartyVerifyPasswordCall) Fields(s ...googleapi.Field) *RelyingpartyVerifyPasswordCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *RelyingpartyVerifyPasswordCall) Do() (*VerifyPasswordResponse, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.identitytoolkitrelyingpartyverifypasswordrequest)
-	if err != nil {
-		return nil, err
+	var returnValue *VerifyPasswordResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.identitytoolkitrelyingpartyverifypasswordrequest,
+		Result:  &returnValue,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "verifyPassword")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *VerifyPasswordResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Verifies the user entered password.",
 	//   "httpMethod": "POST",

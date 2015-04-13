@@ -4,18 +4,16 @@
 //
 // Usage example:
 //
-//   import "google.golang.org/api/audit/v1"
+//   import "github.com/jfcote87/api2/audit/v1"
 //   ...
 //   auditService, err := audit.New(oauthHttpClient)
 package audit
 
 import (
-	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/jfcote87/api2/googleapi"
 	"golang.org/x/net/context"
-	"google.golang.org/api/googleapi"
 	"io"
 	"net/http"
 	"net/url"
@@ -25,10 +23,8 @@ import (
 
 // Always reference these packages, just in case the auto-generated code
 // below doesn't.
-var _ = bytes.NewBuffer
 var _ = strconv.Itoa
 var _ = fmt.Sprintf
-var _ = json.NewDecoder
 var _ = io.Copy
 var _ = url.Parse
 var _ = googleapi.Version
@@ -39,30 +35,22 @@ var _ = context.Background
 const apiId = "audit:v1"
 const apiName = "audit"
 const apiVersion = "v1"
-const basePath = "https://www.googleapis.com/apps/reporting/audit/v1/"
+
+var baseURL *url.URL = &url.URL{Scheme: "https", Host: "www.googleapis.com", Path: "/apps/reporting/audit/v1/"}
 
 func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
+	s := &Service{client: client}
 	s.Activities = NewActivitiesService(s)
 	return s, nil
 }
 
 type Service struct {
-	client    *http.Client
-	BasePath  string // API endpoint base URL
-	UserAgent string // optional additional User-Agent fragment
+	client *http.Client
 
 	Activities *ActivitiesService
-}
-
-func (s *Service) userAgent() string {
-	if s.UserAgent == "" {
-		return googleapi.UserAgent
-	}
-	return googleapi.UserAgent + " " + s.UserAgent
 }
 
 func NewActivitiesService(s *Service) *ActivitiesService {
@@ -160,30 +148,39 @@ type ActivitiesListCall struct {
 	s             *Service
 	customerId    string
 	applicationId int64
-	opt_          map[string]interface{}
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Retrieves a list of activities for a specific customer and
 // application.
+
 func (r *ActivitiesService) List(customerId string, applicationId int64) *ActivitiesListCall {
-	c := &ActivitiesListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.customerId = customerId
-	c.applicationId = applicationId
-	return c
+	return &ActivitiesListCall{
+		s:             r.s,
+		customerId:    customerId,
+		applicationId: applicationId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{customerId}/{applicationId}",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // ActorApplicationId sets the optional parameter "actorApplicationId":
 // Application ID of the application which interacted on behalf of the
 // user while performing the event.
 func (c *ActivitiesListCall) ActorApplicationId(actorApplicationId int64) *ActivitiesListCall {
-	c.opt_["actorApplicationId"] = actorApplicationId
+	c.params_.Set("actorApplicationId", fmt.Sprintf("%v", actorApplicationId))
 	return c
 }
 
 // ActorEmail sets the optional parameter "actorEmail": Email address of
 // the user who performed the action.
 func (c *ActivitiesListCall) ActorEmail(actorEmail string) *ActivitiesListCall {
-	c.opt_["actorEmail"] = actorEmail
+	c.params_.Set("actorEmail", fmt.Sprintf("%v", actorEmail))
 	return c
 }
 
@@ -191,48 +188,52 @@ func (c *ActivitiesListCall) ActorEmail(actorEmail string) *ActivitiesListCall {
 // Address of host where the event was performed. Supports both IPv4 and
 // IPv6 addresses.
 func (c *ActivitiesListCall) ActorIpAddress(actorIpAddress string) *ActivitiesListCall {
-	c.opt_["actorIpAddress"] = actorIpAddress
+	c.params_.Set("actorIpAddress", fmt.Sprintf("%v", actorIpAddress))
 	return c
 }
 
 // Caller sets the optional parameter "caller": Type of the caller.
 func (c *ActivitiesListCall) Caller(caller string) *ActivitiesListCall {
-	c.opt_["caller"] = caller
+	c.params_.Set("caller", fmt.Sprintf("%v", caller))
 	return c
 }
 
 // ContinuationToken sets the optional parameter "continuationToken":
 // Next page URL.
 func (c *ActivitiesListCall) ContinuationToken(continuationToken string) *ActivitiesListCall {
-	c.opt_["continuationToken"] = continuationToken
+	c.params_.Set("continuationToken", fmt.Sprintf("%v", continuationToken))
 	return c
 }
 
 // EndTime sets the optional parameter "endTime": Return events which
 // occured at or before this time.
 func (c *ActivitiesListCall) EndTime(endTime string) *ActivitiesListCall {
-	c.opt_["endTime"] = endTime
+	c.params_.Set("endTime", fmt.Sprintf("%v", endTime))
 	return c
 }
 
 // EventName sets the optional parameter "eventName": Name of the event
 // being queried.
 func (c *ActivitiesListCall) EventName(eventName string) *ActivitiesListCall {
-	c.opt_["eventName"] = eventName
+	c.params_.Set("eventName", fmt.Sprintf("%v", eventName))
 	return c
 }
 
 // MaxResults sets the optional parameter "maxResults": Number of
 // activity records to be shown in each page.
 func (c *ActivitiesListCall) MaxResults(maxResults int64) *ActivitiesListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
 // StartTime sets the optional parameter "startTime": Return events
 // which occured at or after this time.
 func (c *ActivitiesListCall) StartTime(startTime string) *ActivitiesListCall {
-	c.opt_["startTime"] = startTime
+	c.params_.Set("startTime", fmt.Sprintf("%v", startTime))
+	return c
+}
+func (c *ActivitiesListCall) Context(ctx context.Context) *ActivitiesListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -240,65 +241,24 @@ func (c *ActivitiesListCall) StartTime(startTime string) *ActivitiesListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ActivitiesListCall) Fields(s ...googleapi.Field) *ActivitiesListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ActivitiesListCall) Do() (*Activities, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["actorApplicationId"]; ok {
-		params.Set("actorApplicationId", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["actorEmail"]; ok {
-		params.Set("actorEmail", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["actorIpAddress"]; ok {
-		params.Set("actorIpAddress", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["caller"]; ok {
-		params.Set("caller", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["continuationToken"]; ok {
-		params.Set("continuationToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["endTime"]; ok {
-		params.Set("endTime", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["eventName"]; ok {
-		params.Set("eventName", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["startTime"]; ok {
-		params.Set("startTime", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{customerId}/{applicationId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Activities
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"customerId":    c.customerId,
 		"applicationId": strconv.FormatInt(c.applicationId, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Activities
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves a list of activities for a specific customer and application.",
 	//   "httpMethod": "GET",

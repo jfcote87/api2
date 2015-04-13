@@ -4,18 +4,16 @@
 //
 // Usage example:
 //
-//   import "google.golang.org/api/gamesconfiguration/v1configuration"
+//   import "github.com/jfcote87/api2/gamesconfiguration/v1configuration"
 //   ...
 //   gamesconfigurationService, err := gamesconfiguration.New(oauthHttpClient)
 package gamesconfiguration
 
 import (
-	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/jfcote87/api2/googleapi"
 	"golang.org/x/net/context"
-	"google.golang.org/api/googleapi"
 	"io"
 	"net/http"
 	"net/url"
@@ -25,10 +23,8 @@ import (
 
 // Always reference these packages, just in case the auto-generated code
 // below doesn't.
-var _ = bytes.NewBuffer
 var _ = strconv.Itoa
 var _ = fmt.Sprintf
-var _ = json.NewDecoder
 var _ = io.Copy
 var _ = url.Parse
 var _ = googleapi.Version
@@ -39,7 +35,8 @@ var _ = context.Background
 const apiId = "gamesConfiguration:v1configuration"
 const apiName = "gamesConfiguration"
 const apiVersion = "v1configuration"
-const basePath = "https://www.googleapis.com/games/v1configuration/"
+
+var baseURL *url.URL = &url.URL{Scheme: "https", Host: "www.googleapis.com", Path: "/games/v1configuration/"}
 
 // OAuth2 scopes used by this API.
 const (
@@ -51,7 +48,7 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
+	s := &Service{client: client}
 	s.AchievementConfigurations = NewAchievementConfigurationsService(s)
 	s.ImageConfigurations = NewImageConfigurationsService(s)
 	s.LeaderboardConfigurations = NewLeaderboardConfigurationsService(s)
@@ -59,22 +56,13 @@ func New(client *http.Client) (*Service, error) {
 }
 
 type Service struct {
-	client    *http.Client
-	BasePath  string // API endpoint base URL
-	UserAgent string // optional additional User-Agent fragment
+	client *http.Client
 
 	AchievementConfigurations *AchievementConfigurationsService
 
 	ImageConfigurations *ImageConfigurationsService
 
 	LeaderboardConfigurations *LeaderboardConfigurationsService
-}
-
-func (s *Service) userAgent() string {
-	if s.UserAgent == "" {
-		return googleapi.UserAgent
-	}
-	return googleapi.UserAgent + " " + s.UserAgent
 }
 
 func NewAchievementConfigurationsService(s *Service) *AchievementConfigurationsService {
@@ -338,47 +326,40 @@ type LocalizedStringBundle struct {
 type AchievementConfigurationsDeleteCall struct {
 	s             *Service
 	achievementId string
-	opt_          map[string]interface{}
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Delete: Delete the achievement configuration with the given ID.
-func (r *AchievementConfigurationsService) Delete(achievementId string) *AchievementConfigurationsDeleteCall {
-	c := &AchievementConfigurationsDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.achievementId = achievementId
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *AchievementConfigurationsDeleteCall) Fields(s ...googleapi.Field) *AchievementConfigurationsDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *AchievementConfigurationsService) Delete(achievementId string) *AchievementConfigurationsDeleteCall {
+	return &AchievementConfigurationsDeleteCall{
+		s:             r.s,
+		achievementId: achievementId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "achievements/{achievementId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *AchievementConfigurationsDeleteCall) Context(ctx context.Context) *AchievementConfigurationsDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *AchievementConfigurationsDeleteCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "achievements/{achievementId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"achievementId": c.achievementId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Delete the achievement configuration with the given ID.",
 	//   "httpMethod": "DELETE",
@@ -407,14 +388,27 @@ func (c *AchievementConfigurationsDeleteCall) Do() error {
 type AchievementConfigurationsGetCall struct {
 	s             *Service
 	achievementId string
-	opt_          map[string]interface{}
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Retrieves the metadata of the achievement configuration with the
 // given ID.
+
 func (r *AchievementConfigurationsService) Get(achievementId string) *AchievementConfigurationsGetCall {
-	c := &AchievementConfigurationsGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.achievementId = achievementId
+	return &AchievementConfigurationsGetCall{
+		s:             r.s,
+		achievementId: achievementId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "achievements/{achievementId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *AchievementConfigurationsGetCall) Context(ctx context.Context) *AchievementConfigurationsGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -422,37 +416,23 @@ func (r *AchievementConfigurationsService) Get(achievementId string) *Achievemen
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AchievementConfigurationsGetCall) Fields(s ...googleapi.Field) *AchievementConfigurationsGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AchievementConfigurationsGetCall) Do() (*AchievementConfiguration, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "achievements/{achievementId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *AchievementConfiguration
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"achievementId": c.achievementId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *AchievementConfiguration
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves the metadata of the achievement configuration with the given ID.",
 	//   "httpMethod": "GET",
@@ -485,14 +465,27 @@ type AchievementConfigurationsInsertCall struct {
 	s                        *Service
 	applicationId            string
 	achievementconfiguration *AchievementConfiguration
-	opt_                     map[string]interface{}
+	caller_                  googleapi.Caller
+	params_                  url.Values
+	pathTemplate_            string
+	context_                 context.Context
 }
 
 // Insert: Insert a new achievement configuration in this application.
+
 func (r *AchievementConfigurationsService) Insert(applicationId string, achievementconfiguration *AchievementConfiguration) *AchievementConfigurationsInsertCall {
-	c := &AchievementConfigurationsInsertCall{s: r.s, opt_: make(map[string]interface{})}
-	c.applicationId = applicationId
-	c.achievementconfiguration = achievementconfiguration
+	return &AchievementConfigurationsInsertCall{
+		s:                        r.s,
+		applicationId:            applicationId,
+		achievementconfiguration: achievementconfiguration,
+		caller_:                  googleapi.JSONCall{},
+		params_:                  make(map[string][]string),
+		pathTemplate_:            "applications/{applicationId}/achievements",
+		context_:                 googleapi.NoContext,
+	}
+}
+func (c *AchievementConfigurationsInsertCall) Context(ctx context.Context) *AchievementConfigurationsInsertCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -500,43 +493,24 @@ func (r *AchievementConfigurationsService) Insert(applicationId string, achievem
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AchievementConfigurationsInsertCall) Fields(s ...googleapi.Field) *AchievementConfigurationsInsertCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AchievementConfigurationsInsertCall) Do() (*AchievementConfiguration, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.achievementconfiguration)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "applications/{applicationId}/achievements")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *AchievementConfiguration
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"applicationId": c.applicationId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.achievementconfiguration,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *AchievementConfiguration
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Insert a new achievement configuration in this application.",
 	//   "httpMethod": "POST",
@@ -571,15 +545,24 @@ func (c *AchievementConfigurationsInsertCall) Do() (*AchievementConfiguration, e
 type AchievementConfigurationsListCall struct {
 	s             *Service
 	applicationId string
-	opt_          map[string]interface{}
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Returns a list of the achievement configurations in this
 // application.
+
 func (r *AchievementConfigurationsService) List(applicationId string) *AchievementConfigurationsListCall {
-	c := &AchievementConfigurationsListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.applicationId = applicationId
-	return c
+	return &AchievementConfigurationsListCall{
+		s:             r.s,
+		applicationId: applicationId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "applications/{applicationId}/achievements",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // MaxResults sets the optional parameter "maxResults": The maximum
@@ -587,14 +570,18 @@ func (r *AchievementConfigurationsService) List(applicationId string) *Achieveme
 // paging. For any response, the actual number of resources returned may
 // be less than the specified maxResults.
 func (c *AchievementConfigurationsListCall) MaxResults(maxResults int64) *AchievementConfigurationsListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
 // PageToken sets the optional parameter "pageToken": The token returned
 // by the previous request.
 func (c *AchievementConfigurationsListCall) PageToken(pageToken string) *AchievementConfigurationsListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
+	return c
+}
+func (c *AchievementConfigurationsListCall) Context(ctx context.Context) *AchievementConfigurationsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -602,43 +589,23 @@ func (c *AchievementConfigurationsListCall) PageToken(pageToken string) *Achieve
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AchievementConfigurationsListCall) Fields(s ...googleapi.Field) *AchievementConfigurationsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AchievementConfigurationsListCall) Do() (*AchievementConfigurationListResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "applications/{applicationId}/achievements")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *AchievementConfigurationListResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"applicationId": c.applicationId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *AchievementConfigurationListResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Returns a list of the achievement configurations in this application.",
 	//   "httpMethod": "GET",
@@ -684,15 +651,28 @@ type AchievementConfigurationsPatchCall struct {
 	s                        *Service
 	achievementId            string
 	achievementconfiguration *AchievementConfiguration
-	opt_                     map[string]interface{}
+	caller_                  googleapi.Caller
+	params_                  url.Values
+	pathTemplate_            string
+	context_                 context.Context
 }
 
 // Patch: Update the metadata of the achievement configuration with the
 // given ID. This method supports patch semantics.
+
 func (r *AchievementConfigurationsService) Patch(achievementId string, achievementconfiguration *AchievementConfiguration) *AchievementConfigurationsPatchCall {
-	c := &AchievementConfigurationsPatchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.achievementId = achievementId
-	c.achievementconfiguration = achievementconfiguration
+	return &AchievementConfigurationsPatchCall{
+		s:                        r.s,
+		achievementId:            achievementId,
+		achievementconfiguration: achievementconfiguration,
+		caller_:                  googleapi.JSONCall{},
+		params_:                  make(map[string][]string),
+		pathTemplate_:            "achievements/{achievementId}",
+		context_:                 googleapi.NoContext,
+	}
+}
+func (c *AchievementConfigurationsPatchCall) Context(ctx context.Context) *AchievementConfigurationsPatchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -700,43 +680,24 @@ func (r *AchievementConfigurationsService) Patch(achievementId string, achieveme
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AchievementConfigurationsPatchCall) Fields(s ...googleapi.Field) *AchievementConfigurationsPatchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AchievementConfigurationsPatchCall) Do() (*AchievementConfiguration, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.achievementconfiguration)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "achievements/{achievementId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PATCH", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *AchievementConfiguration
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"achievementId": c.achievementId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PATCH",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.achievementconfiguration,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *AchievementConfiguration
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Update the metadata of the achievement configuration with the given ID. This method supports patch semantics.",
 	//   "httpMethod": "PATCH",
@@ -772,15 +733,28 @@ type AchievementConfigurationsUpdateCall struct {
 	s                        *Service
 	achievementId            string
 	achievementconfiguration *AchievementConfiguration
-	opt_                     map[string]interface{}
+	caller_                  googleapi.Caller
+	params_                  url.Values
+	pathTemplate_            string
+	context_                 context.Context
 }
 
 // Update: Update the metadata of the achievement configuration with the
 // given ID.
+
 func (r *AchievementConfigurationsService) Update(achievementId string, achievementconfiguration *AchievementConfiguration) *AchievementConfigurationsUpdateCall {
-	c := &AchievementConfigurationsUpdateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.achievementId = achievementId
-	c.achievementconfiguration = achievementconfiguration
+	return &AchievementConfigurationsUpdateCall{
+		s:                        r.s,
+		achievementId:            achievementId,
+		achievementconfiguration: achievementconfiguration,
+		caller_:                  googleapi.JSONCall{},
+		params_:                  make(map[string][]string),
+		pathTemplate_:            "achievements/{achievementId}",
+		context_:                 googleapi.NoContext,
+	}
+}
+func (c *AchievementConfigurationsUpdateCall) Context(ctx context.Context) *AchievementConfigurationsUpdateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -788,43 +762,24 @@ func (r *AchievementConfigurationsService) Update(achievementId string, achievem
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AchievementConfigurationsUpdateCall) Fields(s ...googleapi.Field) *AchievementConfigurationsUpdateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AchievementConfigurationsUpdateCall) Do() (*AchievementConfiguration, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.achievementconfiguration)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "achievements/{achievementId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *AchievementConfiguration
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"achievementId": c.achievementId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.achievementconfiguration,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *AchievementConfiguration
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Update the metadata of the achievement configuration with the given ID.",
 	//   "httpMethod": "PUT",
@@ -857,31 +812,56 @@ func (c *AchievementConfigurationsUpdateCall) Do() (*AchievementConfiguration, e
 // method id "gamesConfiguration.imageConfigurations.upload":
 
 type ImageConfigurationsUploadCall struct {
-	s          *Service
-	resourceId string
-	imageType  string
-	opt_       map[string]interface{}
-	media_     io.Reader
-	resumable_ googleapi.SizeReaderAt
-	mediaType_ string
-	ctx_       context.Context
-	protocol_  string
+	s             *Service
+	resourceId    string
+	imageType     string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
+	callback_     googleapi.ProgressUpdater
 }
 
 // Upload: Uploads an image for a resource with the given ID and image
 // type.
+
 func (r *ImageConfigurationsService) Upload(resourceId string, imageType string) *ImageConfigurationsUploadCall {
-	c := &ImageConfigurationsUploadCall{s: r.s, opt_: make(map[string]interface{})}
-	c.resourceId = resourceId
-	c.imageType = imageType
+	return &ImageConfigurationsUploadCall{
+		s:             r.s,
+		resourceId:    resourceId,
+		imageType:     imageType,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "images/{resourceId}/imageType/{imageType}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *ImageConfigurationsUploadCall) Context(ctx context.Context) *ImageConfigurationsUploadCall {
+	c.context_ = ctx
+	return c
+}
+
+// MediaUpload takes a context and UploadCaller interface
+func (c *ImageConfigurationsUploadCall) Upload(ctx context.Context, u googleapi.UploadCaller) *ImageConfigurationsUploadCall {
+	c.caller_ = u
+	c.context_ = ctx
+	switch u.(type) {
+	case *googleapi.MediaUpload:
+		c.pathTemplate_ = "/upload/games/v1configuration/images/{resourceId}/imageType/{imageType}"
+	case *googleapi.ResumableUpload:
+		c.pathTemplate_ = "/resumable/upload/games/v1configuration/images/{resourceId}/imageType/{imageType}"
+	}
 	return c
 }
 
 // Media specifies the media to upload in a single chunk.
 // At most one of Media and ResumableMedia may be set.
+// The mime type type will be auto-detected unless r is a googleapi.ContentTyper as well.
 func (c *ImageConfigurationsUploadCall) Media(r io.Reader) *ImageConfigurationsUploadCall {
-	c.media_ = r
-	c.protocol_ = "multipart"
+	c.caller_ = &googleapi.MediaUpload{
+		Media: r,
+	}
+	c.pathTemplate_ = "/upload/games/v1configuration/images/{resourceId}/imageType/{imageType}"
 	return c
 }
 
@@ -890,10 +870,14 @@ func (c *ImageConfigurationsUploadCall) Media(r io.Reader) *ImageConfigurationsU
 // mediaType identifies the MIME media type of the upload, such as "image/png".
 // If mediaType is "", it will be auto-detected.
 func (c *ImageConfigurationsUploadCall) ResumableMedia(ctx context.Context, r io.ReaderAt, size int64, mediaType string) *ImageConfigurationsUploadCall {
-	c.ctx_ = ctx
-	c.resumable_ = io.NewSectionReader(r, 0, size)
-	c.mediaType_ = mediaType
-	c.protocol_ = "resumable"
+	c.caller_ = &googleapi.ResumableUpload{
+		Media:         io.NewSectionReader(r, 0, size),
+		MediaType:     mediaType,
+		ContentLength: size,
+		Callback:      c.callback_,
+	}
+	c.pathTemplate_ = "/resumable/upload/games/v1configuration/images/{resourceId}/imageType/{imageType}"
+	c.context_ = ctx
 	return c
 }
 
@@ -901,7 +885,10 @@ func (c *ImageConfigurationsUploadCall) ResumableMedia(ctx context.Context, r io
 // It should be a low-latency function in order to not slow down the upload operation.
 // This should only be called when using ResumableMedia (as opposed to Media).
 func (c *ImageConfigurationsUploadCall) ProgressUpdater(pu googleapi.ProgressUpdater) *ImageConfigurationsUploadCall {
-	c.opt_["progressUpdater"] = pu
+	c.callback_ = pu
+	if rx, ok := c.caller_.(*googleapi.ResumableUpload); ok {
+		rx.Callback = pu
+	}
 	return c
 }
 
@@ -909,84 +896,24 @@ func (c *ImageConfigurationsUploadCall) ProgressUpdater(pu googleapi.ProgressUpd
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ImageConfigurationsUploadCall) Fields(s ...googleapi.Field) *ImageConfigurationsUploadCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ImageConfigurationsUploadCall) Do() (*ImageConfiguration, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "images/{resourceId}/imageType/{imageType}")
-	var progressUpdater_ googleapi.ProgressUpdater
-	if v, ok := c.opt_["progressUpdater"]; ok {
-		if pu, ok := v.(googleapi.ProgressUpdater); ok {
-			progressUpdater_ = pu
-		}
-	}
-	if c.media_ != nil || c.resumable_ != nil {
-		urls = strings.Replace(urls, "https://www.googleapis.com/", "https://www.googleapis.com/upload/", 1)
-		params.Set("uploadType", c.protocol_)
-	}
-	urls += "?" + params.Encode()
-	body = new(bytes.Buffer)
-	ctype := "application/json"
-	if c.protocol_ != "resumable" {
-		var cancel func()
-		cancel, _ = googleapi.ConditionallyIncludeMedia(c.media_, &body, &ctype)
-		if cancel != nil {
-			defer cancel()
-		}
-	}
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *ImageConfiguration
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"resourceId": c.resourceId,
 		"imageType":  c.imageType,
 	})
-	if c.protocol_ == "resumable" {
-		req.ContentLength = 0
-		if c.mediaType_ == "" {
-			c.mediaType_ = googleapi.DetectMediaType(c.resumable_)
-		}
-		req.Header.Set("X-Upload-Content-Type", c.mediaType_)
-		req.Body = nil
-	} else {
-		req.Header.Set("Content-Type", ctype)
+	call := &googleapi.Call{
+		Method: "POST",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	if c.protocol_ == "resumable" {
-		loc := res.Header.Get("Location")
-		rx := &googleapi.ResumableUpload{
-			Client:        c.s.client,
-			UserAgent:     c.s.userAgent(),
-			URI:           loc,
-			Media:         c.resumable_,
-			MediaType:     c.mediaType_,
-			ContentLength: c.resumable_.Size(),
-			Callback:      progressUpdater_,
-		}
-		res, err = rx.Upload(c.ctx_)
-		if err != nil {
-			return nil, err
-		}
-		defer res.Body.Close()
-	}
-	var ret *ImageConfiguration
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Uploads an image for a resource with the given ID and image type.",
 	//   "httpMethod": "POST",
@@ -1050,47 +977,40 @@ func (c *ImageConfigurationsUploadCall) Do() (*ImageConfiguration, error) {
 type LeaderboardConfigurationsDeleteCall struct {
 	s             *Service
 	leaderboardId string
-	opt_          map[string]interface{}
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Delete: Delete the leaderboard configuration with the given ID.
-func (r *LeaderboardConfigurationsService) Delete(leaderboardId string) *LeaderboardConfigurationsDeleteCall {
-	c := &LeaderboardConfigurationsDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.leaderboardId = leaderboardId
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *LeaderboardConfigurationsDeleteCall) Fields(s ...googleapi.Field) *LeaderboardConfigurationsDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *LeaderboardConfigurationsService) Delete(leaderboardId string) *LeaderboardConfigurationsDeleteCall {
+	return &LeaderboardConfigurationsDeleteCall{
+		s:             r.s,
+		leaderboardId: leaderboardId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "leaderboards/{leaderboardId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *LeaderboardConfigurationsDeleteCall) Context(ctx context.Context) *LeaderboardConfigurationsDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *LeaderboardConfigurationsDeleteCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "leaderboards/{leaderboardId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"leaderboardId": c.leaderboardId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Delete the leaderboard configuration with the given ID.",
 	//   "httpMethod": "DELETE",
@@ -1119,14 +1039,27 @@ func (c *LeaderboardConfigurationsDeleteCall) Do() error {
 type LeaderboardConfigurationsGetCall struct {
 	s             *Service
 	leaderboardId string
-	opt_          map[string]interface{}
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Retrieves the metadata of the leaderboard configuration with the
 // given ID.
+
 func (r *LeaderboardConfigurationsService) Get(leaderboardId string) *LeaderboardConfigurationsGetCall {
-	c := &LeaderboardConfigurationsGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.leaderboardId = leaderboardId
+	return &LeaderboardConfigurationsGetCall{
+		s:             r.s,
+		leaderboardId: leaderboardId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "leaderboards/{leaderboardId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *LeaderboardConfigurationsGetCall) Context(ctx context.Context) *LeaderboardConfigurationsGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1134,37 +1067,23 @@ func (r *LeaderboardConfigurationsService) Get(leaderboardId string) *Leaderboar
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *LeaderboardConfigurationsGetCall) Fields(s ...googleapi.Field) *LeaderboardConfigurationsGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *LeaderboardConfigurationsGetCall) Do() (*LeaderboardConfiguration, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "leaderboards/{leaderboardId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *LeaderboardConfiguration
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"leaderboardId": c.leaderboardId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *LeaderboardConfiguration
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves the metadata of the leaderboard configuration with the given ID.",
 	//   "httpMethod": "GET",
@@ -1197,14 +1116,27 @@ type LeaderboardConfigurationsInsertCall struct {
 	s                        *Service
 	applicationId            string
 	leaderboardconfiguration *LeaderboardConfiguration
-	opt_                     map[string]interface{}
+	caller_                  googleapi.Caller
+	params_                  url.Values
+	pathTemplate_            string
+	context_                 context.Context
 }
 
 // Insert: Insert a new leaderboard configuration in this application.
+
 func (r *LeaderboardConfigurationsService) Insert(applicationId string, leaderboardconfiguration *LeaderboardConfiguration) *LeaderboardConfigurationsInsertCall {
-	c := &LeaderboardConfigurationsInsertCall{s: r.s, opt_: make(map[string]interface{})}
-	c.applicationId = applicationId
-	c.leaderboardconfiguration = leaderboardconfiguration
+	return &LeaderboardConfigurationsInsertCall{
+		s:                        r.s,
+		applicationId:            applicationId,
+		leaderboardconfiguration: leaderboardconfiguration,
+		caller_:                  googleapi.JSONCall{},
+		params_:                  make(map[string][]string),
+		pathTemplate_:            "applications/{applicationId}/leaderboards",
+		context_:                 googleapi.NoContext,
+	}
+}
+func (c *LeaderboardConfigurationsInsertCall) Context(ctx context.Context) *LeaderboardConfigurationsInsertCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1212,43 +1144,24 @@ func (r *LeaderboardConfigurationsService) Insert(applicationId string, leaderbo
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *LeaderboardConfigurationsInsertCall) Fields(s ...googleapi.Field) *LeaderboardConfigurationsInsertCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *LeaderboardConfigurationsInsertCall) Do() (*LeaderboardConfiguration, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.leaderboardconfiguration)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "applications/{applicationId}/leaderboards")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *LeaderboardConfiguration
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"applicationId": c.applicationId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.leaderboardconfiguration,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *LeaderboardConfiguration
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Insert a new leaderboard configuration in this application.",
 	//   "httpMethod": "POST",
@@ -1283,15 +1196,24 @@ func (c *LeaderboardConfigurationsInsertCall) Do() (*LeaderboardConfiguration, e
 type LeaderboardConfigurationsListCall struct {
 	s             *Service
 	applicationId string
-	opt_          map[string]interface{}
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Returns a list of the leaderboard configurations in this
 // application.
+
 func (r *LeaderboardConfigurationsService) List(applicationId string) *LeaderboardConfigurationsListCall {
-	c := &LeaderboardConfigurationsListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.applicationId = applicationId
-	return c
+	return &LeaderboardConfigurationsListCall{
+		s:             r.s,
+		applicationId: applicationId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "applications/{applicationId}/leaderboards",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // MaxResults sets the optional parameter "maxResults": The maximum
@@ -1299,14 +1221,18 @@ func (r *LeaderboardConfigurationsService) List(applicationId string) *Leaderboa
 // paging. For any response, the actual number of resources returned may
 // be less than the specified maxResults.
 func (c *LeaderboardConfigurationsListCall) MaxResults(maxResults int64) *LeaderboardConfigurationsListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
 // PageToken sets the optional parameter "pageToken": The token returned
 // by the previous request.
 func (c *LeaderboardConfigurationsListCall) PageToken(pageToken string) *LeaderboardConfigurationsListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
+	return c
+}
+func (c *LeaderboardConfigurationsListCall) Context(ctx context.Context) *LeaderboardConfigurationsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1314,43 +1240,23 @@ func (c *LeaderboardConfigurationsListCall) PageToken(pageToken string) *Leaderb
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *LeaderboardConfigurationsListCall) Fields(s ...googleapi.Field) *LeaderboardConfigurationsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *LeaderboardConfigurationsListCall) Do() (*LeaderboardConfigurationListResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "applications/{applicationId}/leaderboards")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *LeaderboardConfigurationListResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"applicationId": c.applicationId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *LeaderboardConfigurationListResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Returns a list of the leaderboard configurations in this application.",
 	//   "httpMethod": "GET",
@@ -1396,15 +1302,28 @@ type LeaderboardConfigurationsPatchCall struct {
 	s                        *Service
 	leaderboardId            string
 	leaderboardconfiguration *LeaderboardConfiguration
-	opt_                     map[string]interface{}
+	caller_                  googleapi.Caller
+	params_                  url.Values
+	pathTemplate_            string
+	context_                 context.Context
 }
 
 // Patch: Update the metadata of the leaderboard configuration with the
 // given ID. This method supports patch semantics.
+
 func (r *LeaderboardConfigurationsService) Patch(leaderboardId string, leaderboardconfiguration *LeaderboardConfiguration) *LeaderboardConfigurationsPatchCall {
-	c := &LeaderboardConfigurationsPatchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.leaderboardId = leaderboardId
-	c.leaderboardconfiguration = leaderboardconfiguration
+	return &LeaderboardConfigurationsPatchCall{
+		s:                        r.s,
+		leaderboardId:            leaderboardId,
+		leaderboardconfiguration: leaderboardconfiguration,
+		caller_:                  googleapi.JSONCall{},
+		params_:                  make(map[string][]string),
+		pathTemplate_:            "leaderboards/{leaderboardId}",
+		context_:                 googleapi.NoContext,
+	}
+}
+func (c *LeaderboardConfigurationsPatchCall) Context(ctx context.Context) *LeaderboardConfigurationsPatchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1412,43 +1331,24 @@ func (r *LeaderboardConfigurationsService) Patch(leaderboardId string, leaderboa
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *LeaderboardConfigurationsPatchCall) Fields(s ...googleapi.Field) *LeaderboardConfigurationsPatchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *LeaderboardConfigurationsPatchCall) Do() (*LeaderboardConfiguration, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.leaderboardconfiguration)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "leaderboards/{leaderboardId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PATCH", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *LeaderboardConfiguration
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"leaderboardId": c.leaderboardId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PATCH",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.leaderboardconfiguration,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *LeaderboardConfiguration
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Update the metadata of the leaderboard configuration with the given ID. This method supports patch semantics.",
 	//   "httpMethod": "PATCH",
@@ -1484,15 +1384,28 @@ type LeaderboardConfigurationsUpdateCall struct {
 	s                        *Service
 	leaderboardId            string
 	leaderboardconfiguration *LeaderboardConfiguration
-	opt_                     map[string]interface{}
+	caller_                  googleapi.Caller
+	params_                  url.Values
+	pathTemplate_            string
+	context_                 context.Context
 }
 
 // Update: Update the metadata of the leaderboard configuration with the
 // given ID.
+
 func (r *LeaderboardConfigurationsService) Update(leaderboardId string, leaderboardconfiguration *LeaderboardConfiguration) *LeaderboardConfigurationsUpdateCall {
-	c := &LeaderboardConfigurationsUpdateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.leaderboardId = leaderboardId
-	c.leaderboardconfiguration = leaderboardconfiguration
+	return &LeaderboardConfigurationsUpdateCall{
+		s:                        r.s,
+		leaderboardId:            leaderboardId,
+		leaderboardconfiguration: leaderboardconfiguration,
+		caller_:                  googleapi.JSONCall{},
+		params_:                  make(map[string][]string),
+		pathTemplate_:            "leaderboards/{leaderboardId}",
+		context_:                 googleapi.NoContext,
+	}
+}
+func (c *LeaderboardConfigurationsUpdateCall) Context(ctx context.Context) *LeaderboardConfigurationsUpdateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1500,43 +1413,24 @@ func (r *LeaderboardConfigurationsService) Update(leaderboardId string, leaderbo
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *LeaderboardConfigurationsUpdateCall) Fields(s ...googleapi.Field) *LeaderboardConfigurationsUpdateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *LeaderboardConfigurationsUpdateCall) Do() (*LeaderboardConfiguration, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.leaderboardconfiguration)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "leaderboards/{leaderboardId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *LeaderboardConfiguration
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"leaderboardId": c.leaderboardId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.leaderboardconfiguration,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *LeaderboardConfiguration
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Update the metadata of the leaderboard configuration with the given ID.",
 	//   "httpMethod": "PUT",

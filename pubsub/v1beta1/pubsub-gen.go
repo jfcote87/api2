@@ -4,18 +4,16 @@
 //
 // Usage example:
 //
-//   import "google.golang.org/api/pubsub/v1beta1"
+//   import "github.com/jfcote87/api2/pubsub/v1beta1"
 //   ...
 //   pubsubService, err := pubsub.New(oauthHttpClient)
 package pubsub
 
 import (
-	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/jfcote87/api2/googleapi"
 	"golang.org/x/net/context"
-	"google.golang.org/api/googleapi"
 	"io"
 	"net/http"
 	"net/url"
@@ -25,10 +23,8 @@ import (
 
 // Always reference these packages, just in case the auto-generated code
 // below doesn't.
-var _ = bytes.NewBuffer
 var _ = strconv.Itoa
 var _ = fmt.Sprintf
-var _ = json.NewDecoder
 var _ = io.Copy
 var _ = url.Parse
 var _ = googleapi.Version
@@ -39,7 +35,8 @@ var _ = context.Background
 const apiId = "pubsub:v1beta1"
 const apiName = "pubsub"
 const apiVersion = "v1beta1"
-const basePath = "https://www.googleapis.com/pubsub/v1beta1/"
+
+var baseURL *url.URL = &url.URL{Scheme: "https", Host: "www.googleapis.com", Path: "/pubsub/v1beta1/"}
 
 // OAuth2 scopes used by this API.
 const (
@@ -54,27 +51,18 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
+	s := &Service{client: client}
 	s.Subscriptions = NewSubscriptionsService(s)
 	s.Topics = NewTopicsService(s)
 	return s, nil
 }
 
 type Service struct {
-	client    *http.Client
-	BasePath  string // API endpoint base URL
-	UserAgent string // optional additional User-Agent fragment
+	client *http.Client
 
 	Subscriptions *SubscriptionsService
 
 	Topics *TopicsService
-}
-
-func (s *Service) userAgent() string {
-	if s.UserAgent == "" {
-		return googleapi.UserAgent
-	}
-	return googleapi.UserAgent + " " + s.UserAgent
 }
 
 func NewSubscriptionsService(s *Service) *SubscriptionsService {
@@ -332,7 +320,10 @@ type Topic struct {
 type SubscriptionsAcknowledgeCall struct {
 	s                  *Service
 	acknowledgerequest *AcknowledgeRequest
-	opt_               map[string]interface{}
+	caller_            googleapi.Caller
+	params_            url.Values
+	pathTemplate_      string
+	context_           context.Context
 }
 
 // Acknowledge: Acknowledges a particular received message: the Pub/Sub
@@ -341,47 +332,32 @@ type SubscriptionsAcknowledgeCall struct {
 // but the message could have been already redelivered. Acknowledging a
 // message more than once will not result in an error. This is only used
 // for messages received via pull.
-func (r *SubscriptionsService) Acknowledge(acknowledgerequest *AcknowledgeRequest) *SubscriptionsAcknowledgeCall {
-	c := &SubscriptionsAcknowledgeCall{s: r.s, opt_: make(map[string]interface{})}
-	c.acknowledgerequest = acknowledgerequest
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *SubscriptionsAcknowledgeCall) Fields(s ...googleapi.Field) *SubscriptionsAcknowledgeCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *SubscriptionsService) Acknowledge(acknowledgerequest *AcknowledgeRequest) *SubscriptionsAcknowledgeCall {
+	return &SubscriptionsAcknowledgeCall{
+		s:                  r.s,
+		acknowledgerequest: acknowledgerequest,
+		caller_:            googleapi.JSONCall{},
+		params_:            make(map[string][]string),
+		pathTemplate_:      "subscriptions/acknowledge",
+		context_:           googleapi.NoContext,
+	}
+}
+func (c *SubscriptionsAcknowledgeCall) Context(ctx context.Context) *SubscriptionsAcknowledgeCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *SubscriptionsAcknowledgeCall) Do() error {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.acknowledgerequest)
-	if err != nil {
-		return err
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.acknowledgerequest,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "subscriptions/acknowledge")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Acknowledges a particular received message: the Pub/Sub system can remove the given message from the subscription. Acknowledging a message whose Ack deadline has expired may succeed, but the message could have been already redelivered. Acknowledging a message more than once will not result in an error. This is only used for messages received via pull.",
 	//   "httpMethod": "POST",
@@ -401,9 +377,12 @@ func (c *SubscriptionsAcknowledgeCall) Do() error {
 // method id "pubsub.subscriptions.create":
 
 type SubscriptionsCreateCall struct {
-	s            *Service
-	subscription *Subscription
-	opt_         map[string]interface{}
+	s             *Service
+	subscription  *Subscription
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Create: Creates a subscription on a given topic for a given
@@ -414,9 +393,19 @@ type SubscriptionsCreateCall struct {
 // If the name is not provided in the request, the server
 // will assign a random name for this subscription on the same project
 // as the topic.
+
 func (r *SubscriptionsService) Create(subscription *Subscription) *SubscriptionsCreateCall {
-	c := &SubscriptionsCreateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.subscription = subscription
+	return &SubscriptionsCreateCall{
+		s:             r.s,
+		subscription:  subscription,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "subscriptions",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *SubscriptionsCreateCall) Context(ctx context.Context) *SubscriptionsCreateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -424,41 +413,22 @@ func (r *SubscriptionsService) Create(subscription *Subscription) *Subscriptions
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *SubscriptionsCreateCall) Fields(s ...googleapi.Field) *SubscriptionsCreateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *SubscriptionsCreateCall) Do() (*Subscription, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.subscription)
-	if err != nil {
-		return nil, err
+	var returnValue *Subscription
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.subscription,
+		Result:  &returnValue,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "subscriptions")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Subscription
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Creates a subscription on a given topic for a given subscriber. If the subscription already exists, returns ALREADY_EXISTS. If the corresponding topic doesn't exist, returns NOT_FOUND.\n\nIf the name is not provided in the request, the server will assign a random name for this subscription on the same project as the topic.",
 	//   "httpMethod": "POST",
@@ -481,51 +451,44 @@ func (c *SubscriptionsCreateCall) Do() (*Subscription, error) {
 // method id "pubsub.subscriptions.delete":
 
 type SubscriptionsDeleteCall struct {
-	s            *Service
-	subscription string
-	opt_         map[string]interface{}
+	s             *Service
+	subscription  string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Delete: Deletes an existing subscription. All pending messages in the
 // subscription are immediately dropped. Calls to Pull after deletion
 // will return NOT_FOUND.
-func (r *SubscriptionsService) Delete(subscription string) *SubscriptionsDeleteCall {
-	c := &SubscriptionsDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.subscription = subscription
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *SubscriptionsDeleteCall) Fields(s ...googleapi.Field) *SubscriptionsDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *SubscriptionsService) Delete(subscription string) *SubscriptionsDeleteCall {
+	return &SubscriptionsDeleteCall{
+		s:             r.s,
+		subscription:  subscription,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "subscriptions/{+subscription}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *SubscriptionsDeleteCall) Context(ctx context.Context) *SubscriptionsDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *SubscriptionsDeleteCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "subscriptions/{+subscription}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"subscription": c.subscription,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Deletes an existing subscription. All pending messages in the subscription are immediately dropped. Calls to Pull after deletion will return NOT_FOUND.",
 	//   "httpMethod": "DELETE",
@@ -553,15 +516,28 @@ func (c *SubscriptionsDeleteCall) Do() error {
 // method id "pubsub.subscriptions.get":
 
 type SubscriptionsGetCall struct {
-	s            *Service
-	subscription string
-	opt_         map[string]interface{}
+	s             *Service
+	subscription  string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Gets the configuration details of a subscription.
+
 func (r *SubscriptionsService) Get(subscription string) *SubscriptionsGetCall {
-	c := &SubscriptionsGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.subscription = subscription
+	return &SubscriptionsGetCall{
+		s:             r.s,
+		subscription:  subscription,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "subscriptions/{+subscription}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *SubscriptionsGetCall) Context(ctx context.Context) *SubscriptionsGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -569,37 +545,23 @@ func (r *SubscriptionsService) Get(subscription string) *SubscriptionsGetCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *SubscriptionsGetCall) Fields(s ...googleapi.Field) *SubscriptionsGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *SubscriptionsGetCall) Do() (*Subscription, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "subscriptions/{+subscription}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Subscription
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"subscription": c.subscription,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Subscription
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Gets the configuration details of a subscription.",
 	//   "httpMethod": "GET",
@@ -630,34 +592,47 @@ func (c *SubscriptionsGetCall) Do() (*Subscription, error) {
 // method id "pubsub.subscriptions.list":
 
 type SubscriptionsListCall struct {
-	s    *Service
-	opt_ map[string]interface{}
+	s             *Service
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Lists matching subscriptions.
+
 func (r *SubscriptionsService) List() *SubscriptionsListCall {
-	c := &SubscriptionsListCall{s: r.s, opt_: make(map[string]interface{})}
-	return c
+	return &SubscriptionsListCall{
+		s:             r.s,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "subscriptions",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // MaxResults sets the optional parameter "maxResults": Maximum number
 // of subscriptions to return.
 func (c *SubscriptionsListCall) MaxResults(maxResults int64) *SubscriptionsListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
 // PageToken sets the optional parameter "pageToken": The value obtained
 // in the last ListSubscriptionsResponse for continuation.
 func (c *SubscriptionsListCall) PageToken(pageToken string) *SubscriptionsListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
 	return c
 }
 
 // Query sets the optional parameter "query": A valid label query
 // expression.
 func (c *SubscriptionsListCall) Query(query string) *SubscriptionsListCall {
-	c.opt_["query"] = query
+	c.params_.Set("query", fmt.Sprintf("%v", query))
+	return c
+}
+func (c *SubscriptionsListCall) Context(ctx context.Context) *SubscriptionsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -665,44 +640,21 @@ func (c *SubscriptionsListCall) Query(query string) *SubscriptionsListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *SubscriptionsListCall) Fields(s ...googleapi.Field) *SubscriptionsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *SubscriptionsListCall) Do() (*ListSubscriptionsResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
+	var returnValue *ListSubscriptionsResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["query"]; ok {
-		params.Set("query", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "subscriptions")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ListSubscriptionsResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Lists matching subscriptions.",
 	//   "httpMethod": "GET",
@@ -742,52 +694,40 @@ func (c *SubscriptionsListCall) Do() (*ListSubscriptionsResponse, error) {
 type SubscriptionsModifyAckDeadlineCall struct {
 	s                        *Service
 	modifyackdeadlinerequest *ModifyAckDeadlineRequest
-	opt_                     map[string]interface{}
+	caller_                  googleapi.Caller
+	params_                  url.Values
+	pathTemplate_            string
+	context_                 context.Context
 }
 
 // ModifyAckDeadline: Modifies the Ack deadline for a message received
 // from a pull request.
-func (r *SubscriptionsService) ModifyAckDeadline(modifyackdeadlinerequest *ModifyAckDeadlineRequest) *SubscriptionsModifyAckDeadlineCall {
-	c := &SubscriptionsModifyAckDeadlineCall{s: r.s, opt_: make(map[string]interface{})}
-	c.modifyackdeadlinerequest = modifyackdeadlinerequest
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *SubscriptionsModifyAckDeadlineCall) Fields(s ...googleapi.Field) *SubscriptionsModifyAckDeadlineCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *SubscriptionsService) ModifyAckDeadline(modifyackdeadlinerequest *ModifyAckDeadlineRequest) *SubscriptionsModifyAckDeadlineCall {
+	return &SubscriptionsModifyAckDeadlineCall{
+		s: r.s,
+		modifyackdeadlinerequest: modifyackdeadlinerequest,
+		caller_:                  googleapi.JSONCall{},
+		params_:                  make(map[string][]string),
+		pathTemplate_:            "subscriptions/modifyAckDeadline",
+		context_:                 googleapi.NoContext,
+	}
+}
+func (c *SubscriptionsModifyAckDeadlineCall) Context(ctx context.Context) *SubscriptionsModifyAckDeadlineCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *SubscriptionsModifyAckDeadlineCall) Do() error {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.modifyackdeadlinerequest)
-	if err != nil {
-		return err
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.modifyackdeadlinerequest,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "subscriptions/modifyAckDeadline")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Modifies the Ack deadline for a message received from a pull request.",
 	//   "httpMethod": "POST",
@@ -809,7 +749,10 @@ func (c *SubscriptionsModifyAckDeadlineCall) Do() error {
 type SubscriptionsModifyPushConfigCall struct {
 	s                       *Service
 	modifypushconfigrequest *ModifyPushConfigRequest
-	opt_                    map[string]interface{}
+	caller_                 googleapi.Caller
+	params_                 url.Values
+	pathTemplate_           string
+	context_                context.Context
 }
 
 // ModifyPushConfig: Modifies the PushConfig for a specified
@@ -817,47 +760,32 @@ type SubscriptionsModifyPushConfigCall struct {
 // to an endpoint by clearing the PushConfig field in the request.
 // Messages will be accumulated for delivery even if no push
 // configuration is defined or while the configuration is modified.
-func (r *SubscriptionsService) ModifyPushConfig(modifypushconfigrequest *ModifyPushConfigRequest) *SubscriptionsModifyPushConfigCall {
-	c := &SubscriptionsModifyPushConfigCall{s: r.s, opt_: make(map[string]interface{})}
-	c.modifypushconfigrequest = modifypushconfigrequest
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *SubscriptionsModifyPushConfigCall) Fields(s ...googleapi.Field) *SubscriptionsModifyPushConfigCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *SubscriptionsService) ModifyPushConfig(modifypushconfigrequest *ModifyPushConfigRequest) *SubscriptionsModifyPushConfigCall {
+	return &SubscriptionsModifyPushConfigCall{
+		s: r.s,
+		modifypushconfigrequest: modifypushconfigrequest,
+		caller_:                 googleapi.JSONCall{},
+		params_:                 make(map[string][]string),
+		pathTemplate_:           "subscriptions/modifyPushConfig",
+		context_:                googleapi.NoContext,
+	}
+}
+func (c *SubscriptionsModifyPushConfigCall) Context(ctx context.Context) *SubscriptionsModifyPushConfigCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *SubscriptionsModifyPushConfigCall) Do() error {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.modifypushconfigrequest)
-	if err != nil {
-		return err
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.modifypushconfigrequest,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "subscriptions/modifyPushConfig")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Modifies the PushConfig for a specified subscription. This method can be used to suspend the flow of messages to an endpoint by clearing the PushConfig field in the request. Messages will be accumulated for delivery even if no push configuration is defined or while the configuration is modified.",
 	//   "httpMethod": "POST",
@@ -877,9 +805,12 @@ func (c *SubscriptionsModifyPushConfigCall) Do() error {
 // method id "pubsub.subscriptions.pull":
 
 type SubscriptionsPullCall struct {
-	s           *Service
-	pullrequest *PullRequest
-	opt_        map[string]interface{}
+	s             *Service
+	pullrequest   *PullRequest
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Pull: Pulls a single message from the server. If return_immediately
@@ -887,9 +818,19 @@ type SubscriptionsPullCall struct {
 // method returns FAILED_PRECONDITION. The system is free to return an
 // UNAVAILABLE error if no messages are available in a reasonable amount
 // of time (to reduce system load).
+
 func (r *SubscriptionsService) Pull(pullrequest *PullRequest) *SubscriptionsPullCall {
-	c := &SubscriptionsPullCall{s: r.s, opt_: make(map[string]interface{})}
-	c.pullrequest = pullrequest
+	return &SubscriptionsPullCall{
+		s:             r.s,
+		pullrequest:   pullrequest,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "subscriptions/pull",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *SubscriptionsPullCall) Context(ctx context.Context) *SubscriptionsPullCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -897,41 +838,22 @@ func (r *SubscriptionsService) Pull(pullrequest *PullRequest) *SubscriptionsPull
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *SubscriptionsPullCall) Fields(s ...googleapi.Field) *SubscriptionsPullCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *SubscriptionsPullCall) Do() (*PullResponse, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.pullrequest)
-	if err != nil {
-		return nil, err
+	var returnValue *PullResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.pullrequest,
+		Result:  &returnValue,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "subscriptions/pull")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *PullResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Pulls a single message from the server. If return_immediately is true, and no messages are available in the subscription, this method returns FAILED_PRECONDITION. The system is free to return an UNAVAILABLE error if no messages are available in a reasonable amount of time (to reduce system load).",
 	//   "httpMethod": "POST",
@@ -956,16 +878,29 @@ func (c *SubscriptionsPullCall) Do() (*PullResponse, error) {
 type SubscriptionsPullBatchCall struct {
 	s                *Service
 	pullbatchrequest *PullBatchRequest
-	opt_             map[string]interface{}
+	caller_          googleapi.Caller
+	params_          url.Values
+	pathTemplate_    string
+	context_         context.Context
 }
 
 // PullBatch: Pulls messages from the server. Returns an empty list if
 // there are no messages available in the backlog. The system is free to
 // return UNAVAILABLE if there are too many pull requests outstanding
 // for the given subscription.
+
 func (r *SubscriptionsService) PullBatch(pullbatchrequest *PullBatchRequest) *SubscriptionsPullBatchCall {
-	c := &SubscriptionsPullBatchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.pullbatchrequest = pullbatchrequest
+	return &SubscriptionsPullBatchCall{
+		s:                r.s,
+		pullbatchrequest: pullbatchrequest,
+		caller_:          googleapi.JSONCall{},
+		params_:          make(map[string][]string),
+		pathTemplate_:    "subscriptions/pullBatch",
+		context_:         googleapi.NoContext,
+	}
+}
+func (c *SubscriptionsPullBatchCall) Context(ctx context.Context) *SubscriptionsPullBatchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -973,41 +908,22 @@ func (r *SubscriptionsService) PullBatch(pullbatchrequest *PullBatchRequest) *Su
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *SubscriptionsPullBatchCall) Fields(s ...googleapi.Field) *SubscriptionsPullBatchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *SubscriptionsPullBatchCall) Do() (*PullBatchResponse, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.pullbatchrequest)
-	if err != nil {
-		return nil, err
+	var returnValue *PullBatchResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.pullbatchrequest,
+		Result:  &returnValue,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "subscriptions/pullBatch")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *PullBatchResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Pulls messages from the server. Returns an empty list if there are no messages available in the backlog. The system is free to return UNAVAILABLE if there are too many pull requests outstanding for the given subscription.",
 	//   "httpMethod": "POST",
@@ -1030,15 +946,28 @@ func (c *SubscriptionsPullBatchCall) Do() (*PullBatchResponse, error) {
 // method id "pubsub.topics.create":
 
 type TopicsCreateCall struct {
-	s     *Service
-	topic *Topic
-	opt_  map[string]interface{}
+	s             *Service
+	topic         *Topic
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Create: Creates the given topic with the given name.
+
 func (r *TopicsService) Create(topic *Topic) *TopicsCreateCall {
-	c := &TopicsCreateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.topic = topic
+	return &TopicsCreateCall{
+		s:             r.s,
+		topic:         topic,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "topics",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *TopicsCreateCall) Context(ctx context.Context) *TopicsCreateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1046,41 +975,22 @@ func (r *TopicsService) Create(topic *Topic) *TopicsCreateCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *TopicsCreateCall) Fields(s ...googleapi.Field) *TopicsCreateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *TopicsCreateCall) Do() (*Topic, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.topic)
-	if err != nil {
-		return nil, err
+	var returnValue *Topic
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.topic,
+		Result:  &returnValue,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "topics")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Topic
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Creates the given topic with the given name.",
 	//   "httpMethod": "POST",
@@ -1103,52 +1013,45 @@ func (c *TopicsCreateCall) Do() (*Topic, error) {
 // method id "pubsub.topics.delete":
 
 type TopicsDeleteCall struct {
-	s     *Service
-	topic string
-	opt_  map[string]interface{}
+	s             *Service
+	topic         string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Delete: Deletes the topic with the given name. All subscriptions to
 // this topic are also deleted. Returns NOT_FOUND if the topic does not
 // exist. After a topic is deleted, a new topic may be created with the
 // same name.
-func (r *TopicsService) Delete(topic string) *TopicsDeleteCall {
-	c := &TopicsDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.topic = topic
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *TopicsDeleteCall) Fields(s ...googleapi.Field) *TopicsDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *TopicsService) Delete(topic string) *TopicsDeleteCall {
+	return &TopicsDeleteCall{
+		s:             r.s,
+		topic:         topic,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "topics/{+topic}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *TopicsDeleteCall) Context(ctx context.Context) *TopicsDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *TopicsDeleteCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "topics/{+topic}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"topic": c.topic,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Deletes the topic with the given name. All subscriptions to this topic are also deleted. Returns NOT_FOUND if the topic does not exist. After a topic is deleted, a new topic may be created with the same name.",
 	//   "httpMethod": "DELETE",
@@ -1176,18 +1079,31 @@ func (c *TopicsDeleteCall) Do() error {
 // method id "pubsub.topics.get":
 
 type TopicsGetCall struct {
-	s     *Service
-	topic string
-	opt_  map[string]interface{}
+	s             *Service
+	topic         string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Gets the configuration of a topic. Since the topic only has the
 // name attribute, this method is only useful to check the existence of
 // a topic. If other attributes are added in the future, they will be
 // returned here.
+
 func (r *TopicsService) Get(topic string) *TopicsGetCall {
-	c := &TopicsGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.topic = topic
+	return &TopicsGetCall{
+		s:             r.s,
+		topic:         topic,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "topics/{+topic}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *TopicsGetCall) Context(ctx context.Context) *TopicsGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1195,37 +1111,23 @@ func (r *TopicsService) Get(topic string) *TopicsGetCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *TopicsGetCall) Fields(s ...googleapi.Field) *TopicsGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *TopicsGetCall) Do() (*Topic, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "topics/{+topic}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Topic
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"topic": c.topic,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Topic
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Gets the configuration of a topic. Since the topic only has the name attribute, this method is only useful to check the existence of a topic. If other attributes are added in the future, they will be returned here.",
 	//   "httpMethod": "GET",
@@ -1256,34 +1158,47 @@ func (c *TopicsGetCall) Do() (*Topic, error) {
 // method id "pubsub.topics.list":
 
 type TopicsListCall struct {
-	s    *Service
-	opt_ map[string]interface{}
+	s             *Service
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Lists matching topics.
+
 func (r *TopicsService) List() *TopicsListCall {
-	c := &TopicsListCall{s: r.s, opt_: make(map[string]interface{})}
-	return c
+	return &TopicsListCall{
+		s:             r.s,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "topics",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // MaxResults sets the optional parameter "maxResults": Maximum number
 // of topics to return.
 func (c *TopicsListCall) MaxResults(maxResults int64) *TopicsListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
 // PageToken sets the optional parameter "pageToken": The value obtained
 // in the last ListTopicsResponse for continuation.
 func (c *TopicsListCall) PageToken(pageToken string) *TopicsListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
 	return c
 }
 
 // Query sets the optional parameter "query": A valid label query
 // expression.
 func (c *TopicsListCall) Query(query string) *TopicsListCall {
-	c.opt_["query"] = query
+	c.params_.Set("query", fmt.Sprintf("%v", query))
+	return c
+}
+func (c *TopicsListCall) Context(ctx context.Context) *TopicsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1291,44 +1206,21 @@ func (c *TopicsListCall) Query(query string) *TopicsListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *TopicsListCall) Fields(s ...googleapi.Field) *TopicsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *TopicsListCall) Do() (*ListTopicsResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
+	var returnValue *ListTopicsResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["query"]; ok {
-		params.Set("query", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "topics")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ListTopicsResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Lists matching topics.",
 	//   "httpMethod": "GET",
@@ -1368,52 +1260,40 @@ func (c *TopicsListCall) Do() (*ListTopicsResponse, error) {
 type TopicsPublishCall struct {
 	s              *Service
 	publishrequest *PublishRequest
-	opt_           map[string]interface{}
+	caller_        googleapi.Caller
+	params_        url.Values
+	pathTemplate_  string
+	context_       context.Context
 }
 
 // Publish: Adds a message to the topic. Returns NOT_FOUND if the topic
 // does not exist.
-func (r *TopicsService) Publish(publishrequest *PublishRequest) *TopicsPublishCall {
-	c := &TopicsPublishCall{s: r.s, opt_: make(map[string]interface{})}
-	c.publishrequest = publishrequest
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *TopicsPublishCall) Fields(s ...googleapi.Field) *TopicsPublishCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *TopicsService) Publish(publishrequest *PublishRequest) *TopicsPublishCall {
+	return &TopicsPublishCall{
+		s:              r.s,
+		publishrequest: publishrequest,
+		caller_:        googleapi.JSONCall{},
+		params_:        make(map[string][]string),
+		pathTemplate_:  "topics/publish",
+		context_:       googleapi.NoContext,
+	}
+}
+func (c *TopicsPublishCall) Context(ctx context.Context) *TopicsPublishCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *TopicsPublishCall) Do() error {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.publishrequest)
-	if err != nil {
-		return err
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.publishrequest,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "topics/publish")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Adds a message to the topic. Returns NOT_FOUND if the topic does not exist.",
 	//   "httpMethod": "POST",
@@ -1435,14 +1315,27 @@ func (c *TopicsPublishCall) Do() error {
 type TopicsPublishBatchCall struct {
 	s                   *Service
 	publishbatchrequest *PublishBatchRequest
-	opt_                map[string]interface{}
+	caller_             googleapi.Caller
+	params_             url.Values
+	pathTemplate_       string
+	context_            context.Context
 }
 
 // PublishBatch: Adds one or more messages to the topic. Returns
 // NOT_FOUND if the topic does not exist.
+
 func (r *TopicsService) PublishBatch(publishbatchrequest *PublishBatchRequest) *TopicsPublishBatchCall {
-	c := &TopicsPublishBatchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.publishbatchrequest = publishbatchrequest
+	return &TopicsPublishBatchCall{
+		s:                   r.s,
+		publishbatchrequest: publishbatchrequest,
+		caller_:             googleapi.JSONCall{},
+		params_:             make(map[string][]string),
+		pathTemplate_:       "topics/publishBatch",
+		context_:            googleapi.NoContext,
+	}
+}
+func (c *TopicsPublishBatchCall) Context(ctx context.Context) *TopicsPublishBatchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1450,41 +1343,22 @@ func (r *TopicsService) PublishBatch(publishbatchrequest *PublishBatchRequest) *
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *TopicsPublishBatchCall) Fields(s ...googleapi.Field) *TopicsPublishBatchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *TopicsPublishBatchCall) Do() (*PublishBatchResponse, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.publishbatchrequest)
-	if err != nil {
-		return nil, err
+	var returnValue *PublishBatchResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.publishbatchrequest,
+		Result:  &returnValue,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "topics/publishBatch")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *PublishBatchResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Adds one or more messages to the topic. Returns NOT_FOUND if the topic does not exist.",
 	//   "httpMethod": "POST",

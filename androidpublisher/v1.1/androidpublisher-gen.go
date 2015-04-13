@@ -1,21 +1,19 @@
-// Package androidpublisher provides access to the Google Play Android Developer API.
+// Package androidpublisher provides access to the Google Play Developer API.
 //
 // See https://developers.google.com/android-publisher
 //
 // Usage example:
 //
-//   import "google.golang.org/api/androidpublisher/v1.1"
+//   import "github.com/jfcote87/api2/androidpublisher/v1.1"
 //   ...
 //   androidpublisherService, err := androidpublisher.New(oauthHttpClient)
 package androidpublisher
 
 import (
-	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/jfcote87/api2/googleapi"
 	"golang.org/x/net/context"
-	"google.golang.org/api/googleapi"
 	"io"
 	"net/http"
 	"net/url"
@@ -25,10 +23,8 @@ import (
 
 // Always reference these packages, just in case the auto-generated code
 // below doesn't.
-var _ = bytes.NewBuffer
 var _ = strconv.Itoa
 var _ = fmt.Sprintf
-var _ = json.NewDecoder
 var _ = io.Copy
 var _ = url.Parse
 var _ = googleapi.Version
@@ -39,7 +35,8 @@ var _ = context.Background
 const apiId = "androidpublisher:v1.1"
 const apiName = "androidpublisher"
 const apiVersion = "v1.1"
-const basePath = "https://www.googleapis.com/androidpublisher/v1.1/applications/"
+
+var baseURL *url.URL = &url.URL{Scheme: "https", Host: "www.googleapis.com", Path: "/androidpublisher/v1.1/applications/"}
 
 // OAuth2 scopes used by this API.
 const (
@@ -51,27 +48,18 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
+	s := &Service{client: client}
 	s.Inapppurchases = NewInapppurchasesService(s)
 	s.Purchases = NewPurchasesService(s)
 	return s, nil
 }
 
 type Service struct {
-	client    *http.Client
-	BasePath  string // API endpoint base URL
-	UserAgent string // optional additional User-Agent fragment
+	client *http.Client
 
 	Inapppurchases *InapppurchasesService
 
 	Purchases *PurchasesService
-}
-
-func (s *Service) userAgent() string {
-	if s.UserAgent == "" {
-		return googleapi.UserAgent
-	}
-	return googleapi.UserAgent + " " + s.UserAgent
 }
 
 func NewInapppurchasesService(s *Service) *InapppurchasesService {
@@ -139,19 +127,32 @@ type SubscriptionPurchase struct {
 // method id "androidpublisher.inapppurchases.get":
 
 type InapppurchasesGetCall struct {
-	s           *Service
-	packageName string
-	productId   string
-	token       string
-	opt_        map[string]interface{}
+	s             *Service
+	packageName   string
+	productId     string
+	token         string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Checks the purchase and consumption status of an inapp item.
+
 func (r *InapppurchasesService) Get(packageName string, productId string, token string) *InapppurchasesGetCall {
-	c := &InapppurchasesGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.packageName = packageName
-	c.productId = productId
-	c.token = token
+	return &InapppurchasesGetCall{
+		s:             r.s,
+		packageName:   packageName,
+		productId:     productId,
+		token:         token,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{packageName}/inapp/{productId}/purchases/{token}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *InapppurchasesGetCall) Context(ctx context.Context) *InapppurchasesGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -159,39 +160,25 @@ func (r *InapppurchasesService) Get(packageName string, productId string, token 
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *InapppurchasesGetCall) Fields(s ...googleapi.Field) *InapppurchasesGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *InapppurchasesGetCall) Do() (*InappPurchase, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{packageName}/inapp/{productId}/purchases/{token}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *InappPurchase
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"packageName": c.packageName,
 		"productId":   c.productId,
 		"token":       c.token,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *InappPurchase
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Checks the purchase and consumption status of an inapp item.",
 	//   "httpMethod": "GET",
@@ -239,52 +226,45 @@ type PurchasesCancelCall struct {
 	packageName    string
 	subscriptionId string
 	token          string
-	opt_           map[string]interface{}
+	caller_        googleapi.Caller
+	params_        url.Values
+	pathTemplate_  string
+	context_       context.Context
 }
 
 // Cancel: Cancels a user's subscription purchase. The subscription
 // remains valid until its expiration time.
-func (r *PurchasesService) Cancel(packageName string, subscriptionId string, token string) *PurchasesCancelCall {
-	c := &PurchasesCancelCall{s: r.s, opt_: make(map[string]interface{})}
-	c.packageName = packageName
-	c.subscriptionId = subscriptionId
-	c.token = token
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *PurchasesCancelCall) Fields(s ...googleapi.Field) *PurchasesCancelCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *PurchasesService) Cancel(packageName string, subscriptionId string, token string) *PurchasesCancelCall {
+	return &PurchasesCancelCall{
+		s:              r.s,
+		packageName:    packageName,
+		subscriptionId: subscriptionId,
+		token:          token,
+		caller_:        googleapi.JSONCall{},
+		params_:        make(map[string][]string),
+		pathTemplate_:  "{packageName}/subscriptions/{subscriptionId}/purchases/{token}/cancel",
+		context_:       googleapi.NoContext,
+	}
+}
+func (c *PurchasesCancelCall) Context(ctx context.Context) *PurchasesCancelCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *PurchasesCancelCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{packageName}/subscriptions/{subscriptionId}/purchases/{token}/cancel")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"packageName":    c.packageName,
 		"subscriptionId": c.subscriptionId,
 		"token":          c.token,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "POST",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Cancels a user's subscription purchase. The subscription remains valid until its expiration time.",
 	//   "httpMethod": "POST",
@@ -329,16 +309,29 @@ type PurchasesGetCall struct {
 	packageName    string
 	subscriptionId string
 	token          string
-	opt_           map[string]interface{}
+	caller_        googleapi.Caller
+	params_        url.Values
+	pathTemplate_  string
+	context_       context.Context
 }
 
 // Get: Checks whether a user's subscription purchase is valid and
 // returns its expiry time.
+
 func (r *PurchasesService) Get(packageName string, subscriptionId string, token string) *PurchasesGetCall {
-	c := &PurchasesGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.packageName = packageName
-	c.subscriptionId = subscriptionId
-	c.token = token
+	return &PurchasesGetCall{
+		s:              r.s,
+		packageName:    packageName,
+		subscriptionId: subscriptionId,
+		token:          token,
+		caller_:        googleapi.JSONCall{},
+		params_:        make(map[string][]string),
+		pathTemplate_:  "{packageName}/subscriptions/{subscriptionId}/purchases/{token}",
+		context_:       googleapi.NoContext,
+	}
+}
+func (c *PurchasesGetCall) Context(ctx context.Context) *PurchasesGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -346,39 +339,25 @@ func (r *PurchasesService) Get(packageName string, subscriptionId string, token 
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *PurchasesGetCall) Fields(s ...googleapi.Field) *PurchasesGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *PurchasesGetCall) Do() (*SubscriptionPurchase, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{packageName}/subscriptions/{subscriptionId}/purchases/{token}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *SubscriptionPurchase
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"packageName":    c.packageName,
 		"subscriptionId": c.subscriptionId,
 		"token":          c.token,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *SubscriptionPurchase
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Checks whether a user's subscription purchase is valid and returns its expiry time.",
 	//   "httpMethod": "GET",

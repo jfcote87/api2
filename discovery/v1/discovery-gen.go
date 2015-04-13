@@ -4,18 +4,16 @@
 //
 // Usage example:
 //
-//   import "google.golang.org/api/discovery/v1"
+//   import "github.com/jfcote87/api2/discovery/v1"
 //   ...
 //   discoveryService, err := discovery.New(oauthHttpClient)
 package discovery
 
 import (
-	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/jfcote87/api2/googleapi"
 	"golang.org/x/net/context"
-	"google.golang.org/api/googleapi"
 	"io"
 	"net/http"
 	"net/url"
@@ -25,10 +23,8 @@ import (
 
 // Always reference these packages, just in case the auto-generated code
 // below doesn't.
-var _ = bytes.NewBuffer
 var _ = strconv.Itoa
 var _ = fmt.Sprintf
-var _ = json.NewDecoder
 var _ = io.Copy
 var _ = url.Parse
 var _ = googleapi.Version
@@ -39,30 +35,22 @@ var _ = context.Background
 const apiId = "discovery:v1"
 const apiName = "discovery"
 const apiVersion = "v1"
-const basePath = "https://www.googleapis.com/discovery/v1/"
+
+var baseURL *url.URL = &url.URL{Scheme: "https", Host: "www.googleapis.com", Path: "/discovery/v1/"}
 
 func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
+	s := &Service{client: client}
 	s.Apis = NewApisService(s)
 	return s, nil
 }
 
 type Service struct {
-	client    *http.Client
-	BasePath  string // API endpoint base URL
-	UserAgent string // optional additional User-Agent fragment
+	client *http.Client
 
 	Apis *ApisService
-}
-
-func (s *Service) userAgent() string {
-	if s.UserAgent == "" {
-		return googleapi.UserAgent
-	}
-	return googleapi.UserAgent + " " + s.UserAgent
 }
 
 func NewApisService(s *Service) *ApisService {
@@ -393,6 +381,11 @@ type RestMethod struct {
 
 	// SupportsSubscription: Whether this method supports subscriptions.
 	SupportsSubscription bool `json:"supportsSubscription,omitempty"`
+
+	// UseMediaDownloadService: Indicates that downloads from this method
+	// should use the download service URL (i.e. "/download"). Only applies
+	// if the method supports media download.
+	UseMediaDownloadService bool `json:"useMediaDownloadService,omitempty"`
 }
 
 type RestMethodMediaUpload struct {
@@ -458,17 +451,30 @@ type RestResource struct {
 // method id "discovery.apis.getRest":
 
 type ApisGetRestCall struct {
-	s       *Service
-	api     string
-	version string
-	opt_    map[string]interface{}
+	s             *Service
+	api           string
+	version       string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // GetRest: Retrieve the description of a particular version of an api.
+
 func (r *ApisService) GetRest(api string, version string) *ApisGetRestCall {
-	c := &ApisGetRestCall{s: r.s, opt_: make(map[string]interface{})}
-	c.api = api
-	c.version = version
+	return &ApisGetRestCall{
+		s:             r.s,
+		api:           api,
+		version:       version,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "apis/{api}/{version}/rest",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *ApisGetRestCall) Context(ctx context.Context) *ApisGetRestCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -476,38 +482,24 @@ func (r *ApisService) GetRest(api string, version string) *ApisGetRestCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ApisGetRestCall) Fields(s ...googleapi.Field) *ApisGetRestCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ApisGetRestCall) Do() (*RestDescription, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "apis/{api}/{version}/rest")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *RestDescription
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"api":     c.api,
 		"version": c.version,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *RestDescription
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieve the description of a particular version of an api.",
 	//   "httpMethod": "GET",
@@ -541,27 +533,40 @@ func (c *ApisGetRestCall) Do() (*RestDescription, error) {
 // method id "discovery.apis.list":
 
 type ApisListCall struct {
-	s    *Service
-	opt_ map[string]interface{}
+	s             *Service
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Retrieve the list of APIs supported at this endpoint.
+
 func (r *ApisService) List() *ApisListCall {
-	c := &ApisListCall{s: r.s, opt_: make(map[string]interface{})}
-	return c
+	return &ApisListCall{
+		s:             r.s,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "apis",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Name sets the optional parameter "name": Only include APIs with the
 // given name.
 func (c *ApisListCall) Name(name string) *ApisListCall {
-	c.opt_["name"] = name
+	c.params_.Set("name", fmt.Sprintf("%v", name))
 	return c
 }
 
 // Preferred sets the optional parameter "preferred": Return only the
 // preferred version of an API.
 func (c *ApisListCall) Preferred(preferred bool) *ApisListCall {
-	c.opt_["preferred"] = preferred
+	c.params_.Set("preferred", fmt.Sprintf("%v", preferred))
+	return c
+}
+func (c *ApisListCall) Context(ctx context.Context) *ApisListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -569,41 +574,21 @@ func (c *ApisListCall) Preferred(preferred bool) *ApisListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ApisListCall) Fields(s ...googleapi.Field) *ApisListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ApisListCall) Do() (*DirectoryList, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["name"]; ok {
-		params.Set("name", fmt.Sprintf("%v", v))
+	var returnValue *DirectoryList
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	if v, ok := c.opt_["preferred"]; ok {
-		params.Set("preferred", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "apis")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *DirectoryList
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieve the list of APIs supported at this endpoint.",
 	//   "httpMethod": "GET",

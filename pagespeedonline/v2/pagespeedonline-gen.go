@@ -4,18 +4,16 @@
 //
 // Usage example:
 //
-//   import "google.golang.org/api/pagespeedonline/v2"
+//   import "github.com/jfcote87/api2/pagespeedonline/v2"
 //   ...
 //   pagespeedonlineService, err := pagespeedonline.New(oauthHttpClient)
 package pagespeedonline
 
 import (
-	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/jfcote87/api2/googleapi"
 	"golang.org/x/net/context"
-	"google.golang.org/api/googleapi"
 	"io"
 	"net/http"
 	"net/url"
@@ -25,10 +23,8 @@ import (
 
 // Always reference these packages, just in case the auto-generated code
 // below doesn't.
-var _ = bytes.NewBuffer
 var _ = strconv.Itoa
 var _ = fmt.Sprintf
-var _ = json.NewDecoder
 var _ = io.Copy
 var _ = url.Parse
 var _ = googleapi.Version
@@ -39,30 +35,22 @@ var _ = context.Background
 const apiId = "pagespeedonline:v2"
 const apiName = "pagespeedonline"
 const apiVersion = "v2"
-const basePath = "https://www.googleapis.com/pagespeedonline/v2/"
+
+var baseURL *url.URL = &url.URL{Scheme: "https", Host: "www.googleapis.com", Path: "/pagespeedonline/v2/"}
 
 func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
+	s := &Service{client: client}
 	s.Pagespeedapi = NewPagespeedapiService(s)
 	return s, nil
 }
 
 type Service struct {
-	client    *http.Client
-	BasePath  string // API endpoint base URL
-	UserAgent string // optional additional User-Agent fragment
+	client *http.Client
 
 	Pagespeedapi *PagespeedapiService
-}
-
-func (s *Service) userAgent() string {
-	if s.UserAgent == "" {
-		return googleapi.UserAgent
-	}
-	return googleapi.UserAgent + " " + s.UserAgent
 }
 
 func NewPagespeedapiService(s *Service) *PagespeedapiService {
@@ -289,53 +277,66 @@ type ResultVersion struct {
 // method id "pagespeedonline.pagespeedapi.runpagespeed":
 
 type PagespeedapiRunpagespeedCall struct {
-	s    *Service
-	url  string
-	opt_ map[string]interface{}
+	s             *Service
+	url           string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Runpagespeed: Runs PageSpeed analysis on the page at the specified
 // URL, and returns PageSpeed scores, a list of suggestions to make that
 // page faster, and other information.
+
 func (r *PagespeedapiService) Runpagespeed(url string) *PagespeedapiRunpagespeedCall {
-	c := &PagespeedapiRunpagespeedCall{s: r.s, opt_: make(map[string]interface{})}
-	c.url = url
-	return c
+	return &PagespeedapiRunpagespeedCall{
+		s:             r.s,
+		url:           url,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "runPagespeed",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Filter_third_party_resources sets the optional parameter
 // "filter_third_party_resources": Indicates if third party resources
 // should be filtered out before PageSpeed analysis.
 func (c *PagespeedapiRunpagespeedCall) Filter_third_party_resources(filter_third_party_resources bool) *PagespeedapiRunpagespeedCall {
-	c.opt_["filter_third_party_resources"] = filter_third_party_resources
+	c.params_.Set("filter_third_party_resources", fmt.Sprintf("%v", filter_third_party_resources))
 	return c
 }
 
 // Locale sets the optional parameter "locale": The locale used to
 // localize formatted results
 func (c *PagespeedapiRunpagespeedCall) Locale(locale string) *PagespeedapiRunpagespeedCall {
-	c.opt_["locale"] = locale
+	c.params_.Set("locale", fmt.Sprintf("%v", locale))
 	return c
 }
 
 // Rule sets the optional parameter "rule": A PageSpeed rule to run; if
 // none are given, all rules are run
-func (c *PagespeedapiRunpagespeedCall) Rule(rule string) *PagespeedapiRunpagespeedCall {
-	c.opt_["rule"] = rule
+func (c *PagespeedapiRunpagespeedCall) Rule(rule ...string) *PagespeedapiRunpagespeedCall {
+	c.params_["rule"] = rule
 	return c
 }
 
 // Screenshot sets the optional parameter "screenshot": Indicates if
 // binary data containing a screenshot should be included
 func (c *PagespeedapiRunpagespeedCall) Screenshot(screenshot bool) *PagespeedapiRunpagespeedCall {
-	c.opt_["screenshot"] = screenshot
+	c.params_.Set("screenshot", fmt.Sprintf("%v", screenshot))
 	return c
 }
 
 // Strategy sets the optional parameter "strategy": The analysis
 // strategy to use
 func (c *PagespeedapiRunpagespeedCall) Strategy(strategy string) *PagespeedapiRunpagespeedCall {
-	c.opt_["strategy"] = strategy
+	c.params_.Set("strategy", fmt.Sprintf("%v", strategy))
+	return c
+}
+func (c *PagespeedapiRunpagespeedCall) Context(ctx context.Context) *PagespeedapiRunpagespeedCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -343,51 +344,22 @@ func (c *PagespeedapiRunpagespeedCall) Strategy(strategy string) *PagespeedapiRu
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *PagespeedapiRunpagespeedCall) Fields(s ...googleapi.Field) *PagespeedapiRunpagespeedCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *PagespeedapiRunpagespeedCall) Do() (*Result, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("url", fmt.Sprintf("%v", c.url))
-	if v, ok := c.opt_["filter_third_party_resources"]; ok {
-		params.Set("filter_third_party_resources", fmt.Sprintf("%v", v))
+	var returnValue *Result
+	c.params_.Set("url", fmt.Sprintf("%v", c.url))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	if v, ok := c.opt_["locale"]; ok {
-		params.Set("locale", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["rule"]; ok {
-		params.Set("rule", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["screenshot"]; ok {
-		params.Set("screenshot", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["strategy"]; ok {
-		params.Set("strategy", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "runPagespeed")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Result
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Runs PageSpeed analysis on the page at the specified URL, and returns PageSpeed scores, a list of suggestions to make that page faster, and other information.",
 	//   "httpMethod": "GET",

@@ -4,18 +4,16 @@
 //
 // Usage example:
 //
-//   import "google.golang.org/api/storage/v1beta2"
+//   import "github.com/jfcote87/api2/storage/v1beta2"
 //   ...
 //   storageService, err := storage.New(oauthHttpClient)
 package storage
 
 import (
-	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/jfcote87/api2/googleapi"
 	"golang.org/x/net/context"
-	"google.golang.org/api/googleapi"
 	"io"
 	"net/http"
 	"net/url"
@@ -25,10 +23,8 @@ import (
 
 // Always reference these packages, just in case the auto-generated code
 // below doesn't.
-var _ = bytes.NewBuffer
 var _ = strconv.Itoa
 var _ = fmt.Sprintf
-var _ = json.NewDecoder
 var _ = io.Copy
 var _ = url.Parse
 var _ = googleapi.Version
@@ -39,7 +35,8 @@ var _ = context.Background
 const apiId = "storage:v1beta2"
 const apiName = "storage"
 const apiVersion = "v1beta2"
-const basePath = "https://www.googleapis.com/storage/v1beta2/"
+
+var baseURL *url.URL = &url.URL{Scheme: "https", Host: "www.googleapis.com", Path: "/storage/v1beta2/"}
 
 // OAuth2 scopes used by this API.
 const (
@@ -57,7 +54,7 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
+	s := &Service{client: client}
 	s.BucketAccessControls = NewBucketAccessControlsService(s)
 	s.Buckets = NewBucketsService(s)
 	s.Channels = NewChannelsService(s)
@@ -68,9 +65,7 @@ func New(client *http.Client) (*Service, error) {
 }
 
 type Service struct {
-	client    *http.Client
-	BasePath  string // API endpoint base URL
-	UserAgent string // optional additional User-Agent fragment
+	client *http.Client
 
 	BucketAccessControls *BucketAccessControlsService
 
@@ -83,13 +78,6 @@ type Service struct {
 	ObjectAccessControls *ObjectAccessControlsService
 
 	Objects *ObjectsService
-}
-
-func (s *Service) userAgent() string {
-	if s.UserAgent == "" {
-		return googleapi.UserAgent
-	}
-	return googleapi.UserAgent + " " + s.UserAgent
 }
 
 func NewBucketAccessControlsService(s *Service) *BucketAccessControlsService {
@@ -629,53 +617,46 @@ type Objects struct {
 // method id "storage.bucketAccessControls.delete":
 
 type BucketAccessControlsDeleteCall struct {
-	s      *Service
-	bucket string
-	entity string
-	opt_   map[string]interface{}
+	s             *Service
+	bucket        string
+	entity        string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Delete: Permanently deletes the ACL entry for the specified entity on
 // the specified bucket.
-func (r *BucketAccessControlsService) Delete(bucket string, entity string) *BucketAccessControlsDeleteCall {
-	c := &BucketAccessControlsDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.bucket = bucket
-	c.entity = entity
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *BucketAccessControlsDeleteCall) Fields(s ...googleapi.Field) *BucketAccessControlsDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *BucketAccessControlsService) Delete(bucket string, entity string) *BucketAccessControlsDeleteCall {
+	return &BucketAccessControlsDeleteCall{
+		s:             r.s,
+		bucket:        bucket,
+		entity:        entity,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "b/{bucket}/acl/{entity}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *BucketAccessControlsDeleteCall) Context(ctx context.Context) *BucketAccessControlsDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *BucketAccessControlsDeleteCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "b/{bucket}/acl/{entity}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"bucket": c.bucket,
 		"entity": c.entity,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Permanently deletes the ACL entry for the specified entity on the specified bucket.",
 	//   "httpMethod": "DELETE",
@@ -709,18 +690,31 @@ func (c *BucketAccessControlsDeleteCall) Do() error {
 // method id "storage.bucketAccessControls.get":
 
 type BucketAccessControlsGetCall struct {
-	s      *Service
-	bucket string
-	entity string
-	opt_   map[string]interface{}
+	s             *Service
+	bucket        string
+	entity        string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Returns the ACL entry for the specified entity on the specified
 // bucket.
+
 func (r *BucketAccessControlsService) Get(bucket string, entity string) *BucketAccessControlsGetCall {
-	c := &BucketAccessControlsGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.bucket = bucket
-	c.entity = entity
+	return &BucketAccessControlsGetCall{
+		s:             r.s,
+		bucket:        bucket,
+		entity:        entity,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "b/{bucket}/acl/{entity}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *BucketAccessControlsGetCall) Context(ctx context.Context) *BucketAccessControlsGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -728,38 +722,24 @@ func (r *BucketAccessControlsService) Get(bucket string, entity string) *BucketA
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *BucketAccessControlsGetCall) Fields(s ...googleapi.Field) *BucketAccessControlsGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *BucketAccessControlsGetCall) Do() (*BucketAccessControl, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "b/{bucket}/acl/{entity}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *BucketAccessControl
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"bucket": c.bucket,
 		"entity": c.entity,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *BucketAccessControl
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Returns the ACL entry for the specified entity on the specified bucket.",
 	//   "httpMethod": "GET",
@@ -799,14 +779,27 @@ type BucketAccessControlsInsertCall struct {
 	s                   *Service
 	bucket              string
 	bucketaccesscontrol *BucketAccessControl
-	opt_                map[string]interface{}
+	caller_             googleapi.Caller
+	params_             url.Values
+	pathTemplate_       string
+	context_            context.Context
 }
 
 // Insert: Creates a new ACL entry on the specified bucket.
+
 func (r *BucketAccessControlsService) Insert(bucket string, bucketaccesscontrol *BucketAccessControl) *BucketAccessControlsInsertCall {
-	c := &BucketAccessControlsInsertCall{s: r.s, opt_: make(map[string]interface{})}
-	c.bucket = bucket
-	c.bucketaccesscontrol = bucketaccesscontrol
+	return &BucketAccessControlsInsertCall{
+		s:                   r.s,
+		bucket:              bucket,
+		bucketaccesscontrol: bucketaccesscontrol,
+		caller_:             googleapi.JSONCall{},
+		params_:             make(map[string][]string),
+		pathTemplate_:       "b/{bucket}/acl",
+		context_:            googleapi.NoContext,
+	}
+}
+func (c *BucketAccessControlsInsertCall) Context(ctx context.Context) *BucketAccessControlsInsertCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -814,43 +807,24 @@ func (r *BucketAccessControlsService) Insert(bucket string, bucketaccesscontrol 
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *BucketAccessControlsInsertCall) Fields(s ...googleapi.Field) *BucketAccessControlsInsertCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *BucketAccessControlsInsertCall) Do() (*BucketAccessControl, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.bucketaccesscontrol)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "b/{bucket}/acl")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *BucketAccessControl
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"bucket": c.bucket,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.bucketaccesscontrol,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *BucketAccessControl
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Creates a new ACL entry on the specified bucket.",
 	//   "httpMethod": "POST",
@@ -883,15 +857,28 @@ func (c *BucketAccessControlsInsertCall) Do() (*BucketAccessControl, error) {
 // method id "storage.bucketAccessControls.list":
 
 type BucketAccessControlsListCall struct {
-	s      *Service
-	bucket string
-	opt_   map[string]interface{}
+	s             *Service
+	bucket        string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Retrieves ACL entries on the specified bucket.
+
 func (r *BucketAccessControlsService) List(bucket string) *BucketAccessControlsListCall {
-	c := &BucketAccessControlsListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.bucket = bucket
+	return &BucketAccessControlsListCall{
+		s:             r.s,
+		bucket:        bucket,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "b/{bucket}/acl",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *BucketAccessControlsListCall) Context(ctx context.Context) *BucketAccessControlsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -899,37 +886,23 @@ func (r *BucketAccessControlsService) List(bucket string) *BucketAccessControlsL
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *BucketAccessControlsListCall) Fields(s ...googleapi.Field) *BucketAccessControlsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *BucketAccessControlsListCall) Do() (*BucketAccessControls, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "b/{bucket}/acl")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *BucketAccessControls
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"bucket": c.bucket,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *BucketAccessControls
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves ACL entries on the specified bucket.",
 	//   "httpMethod": "GET",
@@ -963,16 +936,29 @@ type BucketAccessControlsPatchCall struct {
 	bucket              string
 	entity              string
 	bucketaccesscontrol *BucketAccessControl
-	opt_                map[string]interface{}
+	caller_             googleapi.Caller
+	params_             url.Values
+	pathTemplate_       string
+	context_            context.Context
 }
 
 // Patch: Updates an ACL entry on the specified bucket. This method
 // supports patch semantics.
+
 func (r *BucketAccessControlsService) Patch(bucket string, entity string, bucketaccesscontrol *BucketAccessControl) *BucketAccessControlsPatchCall {
-	c := &BucketAccessControlsPatchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.bucket = bucket
-	c.entity = entity
-	c.bucketaccesscontrol = bucketaccesscontrol
+	return &BucketAccessControlsPatchCall{
+		s:                   r.s,
+		bucket:              bucket,
+		entity:              entity,
+		bucketaccesscontrol: bucketaccesscontrol,
+		caller_:             googleapi.JSONCall{},
+		params_:             make(map[string][]string),
+		pathTemplate_:       "b/{bucket}/acl/{entity}",
+		context_:            googleapi.NoContext,
+	}
+}
+func (c *BucketAccessControlsPatchCall) Context(ctx context.Context) *BucketAccessControlsPatchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -980,44 +966,25 @@ func (r *BucketAccessControlsService) Patch(bucket string, entity string, bucket
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *BucketAccessControlsPatchCall) Fields(s ...googleapi.Field) *BucketAccessControlsPatchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *BucketAccessControlsPatchCall) Do() (*BucketAccessControl, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.bucketaccesscontrol)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "b/{bucket}/acl/{entity}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PATCH", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *BucketAccessControl
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"bucket": c.bucket,
 		"entity": c.entity,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PATCH",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.bucketaccesscontrol,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *BucketAccessControl
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates an ACL entry on the specified bucket. This method supports patch semantics.",
 	//   "httpMethod": "PATCH",
@@ -1061,15 +1028,28 @@ type BucketAccessControlsUpdateCall struct {
 	bucket              string
 	entity              string
 	bucketaccesscontrol *BucketAccessControl
-	opt_                map[string]interface{}
+	caller_             googleapi.Caller
+	params_             url.Values
+	pathTemplate_       string
+	context_            context.Context
 }
 
 // Update: Updates an ACL entry on the specified bucket.
+
 func (r *BucketAccessControlsService) Update(bucket string, entity string, bucketaccesscontrol *BucketAccessControl) *BucketAccessControlsUpdateCall {
-	c := &BucketAccessControlsUpdateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.bucket = bucket
-	c.entity = entity
-	c.bucketaccesscontrol = bucketaccesscontrol
+	return &BucketAccessControlsUpdateCall{
+		s:                   r.s,
+		bucket:              bucket,
+		entity:              entity,
+		bucketaccesscontrol: bucketaccesscontrol,
+		caller_:             googleapi.JSONCall{},
+		params_:             make(map[string][]string),
+		pathTemplate_:       "b/{bucket}/acl/{entity}",
+		context_:            googleapi.NoContext,
+	}
+}
+func (c *BucketAccessControlsUpdateCall) Context(ctx context.Context) *BucketAccessControlsUpdateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1077,44 +1057,25 @@ func (r *BucketAccessControlsService) Update(bucket string, entity string, bucke
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *BucketAccessControlsUpdateCall) Fields(s ...googleapi.Field) *BucketAccessControlsUpdateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *BucketAccessControlsUpdateCall) Do() (*BucketAccessControl, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.bucketaccesscontrol)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "b/{bucket}/acl/{entity}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *BucketAccessControl
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"bucket": c.bucket,
 		"entity": c.entity,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.bucketaccesscontrol,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *BucketAccessControl
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates an ACL entry on the specified bucket.",
 	//   "httpMethod": "PUT",
@@ -1154,16 +1115,25 @@ func (c *BucketAccessControlsUpdateCall) Do() (*BucketAccessControl, error) {
 // method id "storage.buckets.delete":
 
 type BucketsDeleteCall struct {
-	s      *Service
-	bucket string
-	opt_   map[string]interface{}
+	s             *Service
+	bucket        string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Delete: Permanently deletes an empty bucket.
+
 func (r *BucketsService) Delete(bucket string) *BucketsDeleteCall {
-	c := &BucketsDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.bucket = bucket
-	return c
+	return &BucketsDeleteCall{
+		s:             r.s,
+		bucket:        bucket,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "b/{bucket}",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // IfMetagenerationMatch sets the optional parameter
@@ -1171,7 +1141,7 @@ func (r *BucketsService) Delete(bucket string) *BucketsDeleteCall {
 // conditional on whether the bucket's current metageneration matches
 // the given value.
 func (c *BucketsDeleteCall) IfMetagenerationMatch(ifMetagenerationMatch uint64) *BucketsDeleteCall {
-	c.opt_["ifMetagenerationMatch"] = ifMetagenerationMatch
+	c.params_.Set("ifMetagenerationMatch", fmt.Sprintf("%v", ifMetagenerationMatch))
 	return c
 }
 
@@ -1180,47 +1150,25 @@ func (c *BucketsDeleteCall) IfMetagenerationMatch(ifMetagenerationMatch uint64) 
 // conditional on whether the bucket's current metageneration does not
 // match the given value.
 func (c *BucketsDeleteCall) IfMetagenerationNotMatch(ifMetagenerationNotMatch uint64) *BucketsDeleteCall {
-	c.opt_["ifMetagenerationNotMatch"] = ifMetagenerationNotMatch
+	c.params_.Set("ifMetagenerationNotMatch", fmt.Sprintf("%v", ifMetagenerationNotMatch))
 	return c
 }
-
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *BucketsDeleteCall) Fields(s ...googleapi.Field) *BucketsDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (c *BucketsDeleteCall) Context(ctx context.Context) *BucketsDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *BucketsDeleteCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["ifMetagenerationMatch"]; ok {
-		params.Set("ifMetagenerationMatch", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["ifMetagenerationNotMatch"]; ok {
-		params.Set("ifMetagenerationNotMatch", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "b/{bucket}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"bucket": c.bucket,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Permanently deletes an empty bucket.",
 	//   "httpMethod": "DELETE",
@@ -1260,16 +1208,25 @@ func (c *BucketsDeleteCall) Do() error {
 // method id "storage.buckets.get":
 
 type BucketsGetCall struct {
-	s      *Service
-	bucket string
-	opt_   map[string]interface{}
+	s             *Service
+	bucket        string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Returns metadata for the specified bucket.
+
 func (r *BucketsService) Get(bucket string) *BucketsGetCall {
-	c := &BucketsGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.bucket = bucket
-	return c
+	return &BucketsGetCall{
+		s:             r.s,
+		bucket:        bucket,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "b/{bucket}",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // IfMetagenerationMatch sets the optional parameter
@@ -1277,7 +1234,7 @@ func (r *BucketsService) Get(bucket string) *BucketsGetCall {
 // conditional on whether the bucket's current metageneration matches
 // the given value.
 func (c *BucketsGetCall) IfMetagenerationMatch(ifMetagenerationMatch uint64) *BucketsGetCall {
-	c.opt_["ifMetagenerationMatch"] = ifMetagenerationMatch
+	c.params_.Set("ifMetagenerationMatch", fmt.Sprintf("%v", ifMetagenerationMatch))
 	return c
 }
 
@@ -1286,14 +1243,18 @@ func (c *BucketsGetCall) IfMetagenerationMatch(ifMetagenerationMatch uint64) *Bu
 // conditional on whether the bucket's current metageneration does not
 // match the given value.
 func (c *BucketsGetCall) IfMetagenerationNotMatch(ifMetagenerationNotMatch uint64) *BucketsGetCall {
-	c.opt_["ifMetagenerationNotMatch"] = ifMetagenerationNotMatch
+	c.params_.Set("ifMetagenerationNotMatch", fmt.Sprintf("%v", ifMetagenerationNotMatch))
 	return c
 }
 
 // Projection sets the optional parameter "projection": Set of
 // properties to return. Defaults to noAcl.
 func (c *BucketsGetCall) Projection(projection string) *BucketsGetCall {
-	c.opt_["projection"] = projection
+	c.params_.Set("projection", fmt.Sprintf("%v", projection))
+	return c
+}
+func (c *BucketsGetCall) Context(ctx context.Context) *BucketsGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1301,46 +1262,23 @@ func (c *BucketsGetCall) Projection(projection string) *BucketsGetCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *BucketsGetCall) Fields(s ...googleapi.Field) *BucketsGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *BucketsGetCall) Do() (*Bucket, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["ifMetagenerationMatch"]; ok {
-		params.Set("ifMetagenerationMatch", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["ifMetagenerationNotMatch"]; ok {
-		params.Set("ifMetagenerationNotMatch", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["projection"]; ok {
-		params.Set("projection", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "b/{bucket}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Bucket
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"bucket": c.bucket,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Bucket
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Returns metadata for the specified bucket.",
 	//   "httpMethod": "GET",
@@ -1397,18 +1335,27 @@ func (c *BucketsGetCall) Do() (*Bucket, error) {
 // method id "storage.buckets.insert":
 
 type BucketsInsertCall struct {
-	s         *Service
-	projectid string
-	bucket    *Bucket
-	opt_      map[string]interface{}
+	s             *Service
+	projectid     string
+	bucket        *Bucket
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Insert: Creates a new bucket.
+
 func (r *BucketsService) Insert(projectid string, bucket *Bucket) *BucketsInsertCall {
-	c := &BucketsInsertCall{s: r.s, opt_: make(map[string]interface{})}
-	c.projectid = projectid
-	c.bucket = bucket
-	return c
+	return &BucketsInsertCall{
+		s:             r.s,
+		projectid:     projectid,
+		bucket:        bucket,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "b",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Projection sets the optional parameter "projection": Set of
@@ -1416,7 +1363,11 @@ func (r *BucketsService) Insert(projectid string, bucket *Bucket) *BucketsInsert
 // specifies acl or defaultObjectAcl properties, when it defaults to
 // full.
 func (c *BucketsInsertCall) Projection(projection string) *BucketsInsertCall {
-	c.opt_["projection"] = projection
+	c.params_.Set("projection", fmt.Sprintf("%v", projection))
+	return c
+}
+func (c *BucketsInsertCall) Context(ctx context.Context) *BucketsInsertCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1424,45 +1375,23 @@ func (c *BucketsInsertCall) Projection(projection string) *BucketsInsertCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *BucketsInsertCall) Fields(s ...googleapi.Field) *BucketsInsertCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *BucketsInsertCall) Do() (*Bucket, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.bucket)
-	if err != nil {
-		return nil, err
+	var returnValue *Bucket
+	c.params_.Set("project", fmt.Sprintf("%v", c.projectid))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.bucket,
+		Result:  &returnValue,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("project", fmt.Sprintf("%v", c.projectid))
-	if v, ok := c.opt_["projection"]; ok {
-		params.Set("projection", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "b")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Bucket
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Creates a new bucket.",
 	//   "httpMethod": "POST",
@@ -1509,22 +1438,31 @@ func (c *BucketsInsertCall) Do() (*Bucket, error) {
 // method id "storage.buckets.list":
 
 type BucketsListCall struct {
-	s         *Service
-	projectid string
-	opt_      map[string]interface{}
+	s             *Service
+	projectid     string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Retrieves a list of buckets for a given project.
+
 func (r *BucketsService) List(projectid string) *BucketsListCall {
-	c := &BucketsListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.projectid = projectid
-	return c
+	return &BucketsListCall{
+		s:             r.s,
+		projectid:     projectid,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "b",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // MaxResults sets the optional parameter "maxResults": Maximum number
 // of buckets to return.
 func (c *BucketsListCall) MaxResults(maxResults int64) *BucketsListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
@@ -1532,14 +1470,18 @@ func (c *BucketsListCall) MaxResults(maxResults int64) *BucketsListCall {
 // previously-returned page token representing part of the larger set of
 // results to view.
 func (c *BucketsListCall) PageToken(pageToken string) *BucketsListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
 	return c
 }
 
 // Projection sets the optional parameter "projection": Set of
 // properties to return. Defaults to noAcl.
 func (c *BucketsListCall) Projection(projection string) *BucketsListCall {
-	c.opt_["projection"] = projection
+	c.params_.Set("projection", fmt.Sprintf("%v", projection))
+	return c
+}
+func (c *BucketsListCall) Context(ctx context.Context) *BucketsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1547,45 +1489,22 @@ func (c *BucketsListCall) Projection(projection string) *BucketsListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *BucketsListCall) Fields(s ...googleapi.Field) *BucketsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *BucketsListCall) Do() (*Buckets, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("project", fmt.Sprintf("%v", c.projectid))
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
+	var returnValue *Buckets
+	c.params_.Set("project", fmt.Sprintf("%v", c.projectid))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["projection"]; ok {
-		params.Set("projection", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "b")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Buckets
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves a list of buckets for a given project.",
 	//   "httpMethod": "GET",
@@ -1642,18 +1561,27 @@ func (c *BucketsListCall) Do() (*Buckets, error) {
 // method id "storage.buckets.patch":
 
 type BucketsPatchCall struct {
-	s       *Service
-	bucket  string
-	bucket2 *Bucket
-	opt_    map[string]interface{}
+	s             *Service
+	bucket        string
+	bucket2       *Bucket
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Patch: Updates a bucket. This method supports patch semantics.
+
 func (r *BucketsService) Patch(bucket string, bucket2 *Bucket) *BucketsPatchCall {
-	c := &BucketsPatchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.bucket = bucket
-	c.bucket2 = bucket2
-	return c
+	return &BucketsPatchCall{
+		s:             r.s,
+		bucket:        bucket,
+		bucket2:       bucket2,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "b/{bucket}",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // IfMetagenerationMatch sets the optional parameter
@@ -1661,7 +1589,7 @@ func (r *BucketsService) Patch(bucket string, bucket2 *Bucket) *BucketsPatchCall
 // conditional on whether the bucket's current metageneration matches
 // the given value.
 func (c *BucketsPatchCall) IfMetagenerationMatch(ifMetagenerationMatch uint64) *BucketsPatchCall {
-	c.opt_["ifMetagenerationMatch"] = ifMetagenerationMatch
+	c.params_.Set("ifMetagenerationMatch", fmt.Sprintf("%v", ifMetagenerationMatch))
 	return c
 }
 
@@ -1670,14 +1598,18 @@ func (c *BucketsPatchCall) IfMetagenerationMatch(ifMetagenerationMatch uint64) *
 // conditional on whether the bucket's current metageneration does not
 // match the given value.
 func (c *BucketsPatchCall) IfMetagenerationNotMatch(ifMetagenerationNotMatch uint64) *BucketsPatchCall {
-	c.opt_["ifMetagenerationNotMatch"] = ifMetagenerationNotMatch
+	c.params_.Set("ifMetagenerationNotMatch", fmt.Sprintf("%v", ifMetagenerationNotMatch))
 	return c
 }
 
 // Projection sets the optional parameter "projection": Set of
 // properties to return. Defaults to full.
 func (c *BucketsPatchCall) Projection(projection string) *BucketsPatchCall {
-	c.opt_["projection"] = projection
+	c.params_.Set("projection", fmt.Sprintf("%v", projection))
+	return c
+}
+func (c *BucketsPatchCall) Context(ctx context.Context) *BucketsPatchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1685,52 +1617,24 @@ func (c *BucketsPatchCall) Projection(projection string) *BucketsPatchCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *BucketsPatchCall) Fields(s ...googleapi.Field) *BucketsPatchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *BucketsPatchCall) Do() (*Bucket, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.bucket2)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["ifMetagenerationMatch"]; ok {
-		params.Set("ifMetagenerationMatch", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["ifMetagenerationNotMatch"]; ok {
-		params.Set("ifMetagenerationNotMatch", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["projection"]; ok {
-		params.Set("projection", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "b/{bucket}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PATCH", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Bucket
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"bucket": c.bucket,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PATCH",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.bucket2,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Bucket
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates a bucket. This method supports patch semantics.",
 	//   "httpMethod": "PATCH",
@@ -1789,18 +1693,27 @@ func (c *BucketsPatchCall) Do() (*Bucket, error) {
 // method id "storage.buckets.update":
 
 type BucketsUpdateCall struct {
-	s       *Service
-	bucket  string
-	bucket2 *Bucket
-	opt_    map[string]interface{}
+	s             *Service
+	bucket        string
+	bucket2       *Bucket
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Update: Updates a bucket.
+
 func (r *BucketsService) Update(bucket string, bucket2 *Bucket) *BucketsUpdateCall {
-	c := &BucketsUpdateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.bucket = bucket
-	c.bucket2 = bucket2
-	return c
+	return &BucketsUpdateCall{
+		s:             r.s,
+		bucket:        bucket,
+		bucket2:       bucket2,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "b/{bucket}",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // IfMetagenerationMatch sets the optional parameter
@@ -1808,7 +1721,7 @@ func (r *BucketsService) Update(bucket string, bucket2 *Bucket) *BucketsUpdateCa
 // conditional on whether the bucket's current metageneration matches
 // the given value.
 func (c *BucketsUpdateCall) IfMetagenerationMatch(ifMetagenerationMatch uint64) *BucketsUpdateCall {
-	c.opt_["ifMetagenerationMatch"] = ifMetagenerationMatch
+	c.params_.Set("ifMetagenerationMatch", fmt.Sprintf("%v", ifMetagenerationMatch))
 	return c
 }
 
@@ -1817,14 +1730,18 @@ func (c *BucketsUpdateCall) IfMetagenerationMatch(ifMetagenerationMatch uint64) 
 // conditional on whether the bucket's current metageneration does not
 // match the given value.
 func (c *BucketsUpdateCall) IfMetagenerationNotMatch(ifMetagenerationNotMatch uint64) *BucketsUpdateCall {
-	c.opt_["ifMetagenerationNotMatch"] = ifMetagenerationNotMatch
+	c.params_.Set("ifMetagenerationNotMatch", fmt.Sprintf("%v", ifMetagenerationNotMatch))
 	return c
 }
 
 // Projection sets the optional parameter "projection": Set of
 // properties to return. Defaults to full.
 func (c *BucketsUpdateCall) Projection(projection string) *BucketsUpdateCall {
-	c.opt_["projection"] = projection
+	c.params_.Set("projection", fmt.Sprintf("%v", projection))
+	return c
+}
+func (c *BucketsUpdateCall) Context(ctx context.Context) *BucketsUpdateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1832,52 +1749,24 @@ func (c *BucketsUpdateCall) Projection(projection string) *BucketsUpdateCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *BucketsUpdateCall) Fields(s ...googleapi.Field) *BucketsUpdateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *BucketsUpdateCall) Do() (*Bucket, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.bucket2)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["ifMetagenerationMatch"]; ok {
-		params.Set("ifMetagenerationMatch", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["ifMetagenerationNotMatch"]; ok {
-		params.Set("ifMetagenerationNotMatch", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["projection"]; ok {
-		params.Set("projection", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "b/{bucket}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Bucket
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"bucket": c.bucket,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.bucket2,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Bucket
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates a bucket.",
 	//   "httpMethod": "PUT",
@@ -1936,53 +1825,41 @@ func (c *BucketsUpdateCall) Do() (*Bucket, error) {
 // method id "storage.channels.stop":
 
 type ChannelsStopCall struct {
-	s       *Service
-	channel *Channel
-	opt_    map[string]interface{}
+	s             *Service
+	channel       *Channel
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Stop: Stop watching resources through this channel
-func (r *ChannelsService) Stop(channel *Channel) *ChannelsStopCall {
-	c := &ChannelsStopCall{s: r.s, opt_: make(map[string]interface{})}
-	c.channel = channel
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *ChannelsStopCall) Fields(s ...googleapi.Field) *ChannelsStopCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *ChannelsService) Stop(channel *Channel) *ChannelsStopCall {
+	return &ChannelsStopCall{
+		s:             r.s,
+		channel:       channel,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "channels/stop",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *ChannelsStopCall) Context(ctx context.Context) *ChannelsStopCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *ChannelsStopCall) Do() error {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.channel)
-	if err != nil {
-		return err
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.channel,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "channels/stop")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Stop watching resources through this channel",
 	//   "httpMethod": "POST",
@@ -2004,53 +1881,46 @@ func (c *ChannelsStopCall) Do() error {
 // method id "storage.defaultObjectAccessControls.delete":
 
 type DefaultObjectAccessControlsDeleteCall struct {
-	s      *Service
-	bucket string
-	entity string
-	opt_   map[string]interface{}
+	s             *Service
+	bucket        string
+	entity        string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Delete: Permanently deletes the default object ACL entry for the
 // specified entity on the specified bucket.
-func (r *DefaultObjectAccessControlsService) Delete(bucket string, entity string) *DefaultObjectAccessControlsDeleteCall {
-	c := &DefaultObjectAccessControlsDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.bucket = bucket
-	c.entity = entity
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *DefaultObjectAccessControlsDeleteCall) Fields(s ...googleapi.Field) *DefaultObjectAccessControlsDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *DefaultObjectAccessControlsService) Delete(bucket string, entity string) *DefaultObjectAccessControlsDeleteCall {
+	return &DefaultObjectAccessControlsDeleteCall{
+		s:             r.s,
+		bucket:        bucket,
+		entity:        entity,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "b/{bucket}/defaultObjectAcl/{entity}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *DefaultObjectAccessControlsDeleteCall) Context(ctx context.Context) *DefaultObjectAccessControlsDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *DefaultObjectAccessControlsDeleteCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "b/{bucket}/defaultObjectAcl/{entity}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"bucket": c.bucket,
 		"entity": c.entity,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Permanently deletes the default object ACL entry for the specified entity on the specified bucket.",
 	//   "httpMethod": "DELETE",
@@ -2084,18 +1954,31 @@ func (c *DefaultObjectAccessControlsDeleteCall) Do() error {
 // method id "storage.defaultObjectAccessControls.get":
 
 type DefaultObjectAccessControlsGetCall struct {
-	s      *Service
-	bucket string
-	entity string
-	opt_   map[string]interface{}
+	s             *Service
+	bucket        string
+	entity        string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Returns the default object ACL entry for the specified entity on
 // the specified bucket.
+
 func (r *DefaultObjectAccessControlsService) Get(bucket string, entity string) *DefaultObjectAccessControlsGetCall {
-	c := &DefaultObjectAccessControlsGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.bucket = bucket
-	c.entity = entity
+	return &DefaultObjectAccessControlsGetCall{
+		s:             r.s,
+		bucket:        bucket,
+		entity:        entity,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "b/{bucket}/defaultObjectAcl/{entity}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *DefaultObjectAccessControlsGetCall) Context(ctx context.Context) *DefaultObjectAccessControlsGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2103,38 +1986,24 @@ func (r *DefaultObjectAccessControlsService) Get(bucket string, entity string) *
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *DefaultObjectAccessControlsGetCall) Fields(s ...googleapi.Field) *DefaultObjectAccessControlsGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *DefaultObjectAccessControlsGetCall) Do() (*ObjectAccessControl, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "b/{bucket}/defaultObjectAcl/{entity}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *ObjectAccessControl
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"bucket": c.bucket,
 		"entity": c.entity,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ObjectAccessControl
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Returns the default object ACL entry for the specified entity on the specified bucket.",
 	//   "httpMethod": "GET",
@@ -2174,15 +2043,28 @@ type DefaultObjectAccessControlsInsertCall struct {
 	s                   *Service
 	bucket              string
 	objectaccesscontrol *ObjectAccessControl
-	opt_                map[string]interface{}
+	caller_             googleapi.Caller
+	params_             url.Values
+	pathTemplate_       string
+	context_            context.Context
 }
 
 // Insert: Creates a new default object ACL entry on the specified
 // bucket.
+
 func (r *DefaultObjectAccessControlsService) Insert(bucket string, objectaccesscontrol *ObjectAccessControl) *DefaultObjectAccessControlsInsertCall {
-	c := &DefaultObjectAccessControlsInsertCall{s: r.s, opt_: make(map[string]interface{})}
-	c.bucket = bucket
-	c.objectaccesscontrol = objectaccesscontrol
+	return &DefaultObjectAccessControlsInsertCall{
+		s:                   r.s,
+		bucket:              bucket,
+		objectaccesscontrol: objectaccesscontrol,
+		caller_:             googleapi.JSONCall{},
+		params_:             make(map[string][]string),
+		pathTemplate_:       "b/{bucket}/defaultObjectAcl",
+		context_:            googleapi.NoContext,
+	}
+}
+func (c *DefaultObjectAccessControlsInsertCall) Context(ctx context.Context) *DefaultObjectAccessControlsInsertCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2190,43 +2072,24 @@ func (r *DefaultObjectAccessControlsService) Insert(bucket string, objectaccessc
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *DefaultObjectAccessControlsInsertCall) Fields(s ...googleapi.Field) *DefaultObjectAccessControlsInsertCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *DefaultObjectAccessControlsInsertCall) Do() (*ObjectAccessControl, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.objectaccesscontrol)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "b/{bucket}/defaultObjectAcl")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *ObjectAccessControl
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"bucket": c.bucket,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.objectaccesscontrol,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ObjectAccessControl
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Creates a new default object ACL entry on the specified bucket.",
 	//   "httpMethod": "POST",
@@ -2259,23 +2122,32 @@ func (c *DefaultObjectAccessControlsInsertCall) Do() (*ObjectAccessControl, erro
 // method id "storage.defaultObjectAccessControls.list":
 
 type DefaultObjectAccessControlsListCall struct {
-	s      *Service
-	bucket string
-	opt_   map[string]interface{}
+	s             *Service
+	bucket        string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Retrieves default object ACL entries on the specified bucket.
+
 func (r *DefaultObjectAccessControlsService) List(bucket string) *DefaultObjectAccessControlsListCall {
-	c := &DefaultObjectAccessControlsListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.bucket = bucket
-	return c
+	return &DefaultObjectAccessControlsListCall{
+		s:             r.s,
+		bucket:        bucket,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "b/{bucket}/defaultObjectAcl",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // IfMetagenerationMatch sets the optional parameter
 // "ifMetagenerationMatch": If present, only return default ACL listing
 // if the bucket's current metageneration matches this value.
 func (c *DefaultObjectAccessControlsListCall) IfMetagenerationMatch(ifMetagenerationMatch int64) *DefaultObjectAccessControlsListCall {
-	c.opt_["ifMetagenerationMatch"] = ifMetagenerationMatch
+	c.params_.Set("ifMetagenerationMatch", fmt.Sprintf("%v", ifMetagenerationMatch))
 	return c
 }
 
@@ -2284,7 +2156,11 @@ func (c *DefaultObjectAccessControlsListCall) IfMetagenerationMatch(ifMetagenera
 // listing if the bucket's current metageneration does not match the
 // given value.
 func (c *DefaultObjectAccessControlsListCall) IfMetagenerationNotMatch(ifMetagenerationNotMatch int64) *DefaultObjectAccessControlsListCall {
-	c.opt_["ifMetagenerationNotMatch"] = ifMetagenerationNotMatch
+	c.params_.Set("ifMetagenerationNotMatch", fmt.Sprintf("%v", ifMetagenerationNotMatch))
+	return c
+}
+func (c *DefaultObjectAccessControlsListCall) Context(ctx context.Context) *DefaultObjectAccessControlsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2292,43 +2168,23 @@ func (c *DefaultObjectAccessControlsListCall) IfMetagenerationNotMatch(ifMetagen
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *DefaultObjectAccessControlsListCall) Fields(s ...googleapi.Field) *DefaultObjectAccessControlsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *DefaultObjectAccessControlsListCall) Do() (*ObjectAccessControls, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["ifMetagenerationMatch"]; ok {
-		params.Set("ifMetagenerationMatch", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["ifMetagenerationNotMatch"]; ok {
-		params.Set("ifMetagenerationNotMatch", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "b/{bucket}/defaultObjectAcl")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *ObjectAccessControls
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"bucket": c.bucket,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ObjectAccessControls
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves default object ACL entries on the specified bucket.",
 	//   "httpMethod": "GET",
@@ -2374,16 +2230,29 @@ type DefaultObjectAccessControlsPatchCall struct {
 	bucket              string
 	entity              string
 	objectaccesscontrol *ObjectAccessControl
-	opt_                map[string]interface{}
+	caller_             googleapi.Caller
+	params_             url.Values
+	pathTemplate_       string
+	context_            context.Context
 }
 
 // Patch: Updates a default object ACL entry on the specified bucket.
 // This method supports patch semantics.
+
 func (r *DefaultObjectAccessControlsService) Patch(bucket string, entity string, objectaccesscontrol *ObjectAccessControl) *DefaultObjectAccessControlsPatchCall {
-	c := &DefaultObjectAccessControlsPatchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.bucket = bucket
-	c.entity = entity
-	c.objectaccesscontrol = objectaccesscontrol
+	return &DefaultObjectAccessControlsPatchCall{
+		s:                   r.s,
+		bucket:              bucket,
+		entity:              entity,
+		objectaccesscontrol: objectaccesscontrol,
+		caller_:             googleapi.JSONCall{},
+		params_:             make(map[string][]string),
+		pathTemplate_:       "b/{bucket}/defaultObjectAcl/{entity}",
+		context_:            googleapi.NoContext,
+	}
+}
+func (c *DefaultObjectAccessControlsPatchCall) Context(ctx context.Context) *DefaultObjectAccessControlsPatchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2391,44 +2260,25 @@ func (r *DefaultObjectAccessControlsService) Patch(bucket string, entity string,
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *DefaultObjectAccessControlsPatchCall) Fields(s ...googleapi.Field) *DefaultObjectAccessControlsPatchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *DefaultObjectAccessControlsPatchCall) Do() (*ObjectAccessControl, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.objectaccesscontrol)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "b/{bucket}/defaultObjectAcl/{entity}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PATCH", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *ObjectAccessControl
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"bucket": c.bucket,
 		"entity": c.entity,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PATCH",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.objectaccesscontrol,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ObjectAccessControl
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates a default object ACL entry on the specified bucket. This method supports patch semantics.",
 	//   "httpMethod": "PATCH",
@@ -2472,15 +2322,28 @@ type DefaultObjectAccessControlsUpdateCall struct {
 	bucket              string
 	entity              string
 	objectaccesscontrol *ObjectAccessControl
-	opt_                map[string]interface{}
+	caller_             googleapi.Caller
+	params_             url.Values
+	pathTemplate_       string
+	context_            context.Context
 }
 
 // Update: Updates a default object ACL entry on the specified bucket.
+
 func (r *DefaultObjectAccessControlsService) Update(bucket string, entity string, objectaccesscontrol *ObjectAccessControl) *DefaultObjectAccessControlsUpdateCall {
-	c := &DefaultObjectAccessControlsUpdateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.bucket = bucket
-	c.entity = entity
-	c.objectaccesscontrol = objectaccesscontrol
+	return &DefaultObjectAccessControlsUpdateCall{
+		s:                   r.s,
+		bucket:              bucket,
+		entity:              entity,
+		objectaccesscontrol: objectaccesscontrol,
+		caller_:             googleapi.JSONCall{},
+		params_:             make(map[string][]string),
+		pathTemplate_:       "b/{bucket}/defaultObjectAcl/{entity}",
+		context_:            googleapi.NoContext,
+	}
+}
+func (c *DefaultObjectAccessControlsUpdateCall) Context(ctx context.Context) *DefaultObjectAccessControlsUpdateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2488,44 +2351,25 @@ func (r *DefaultObjectAccessControlsService) Update(bucket string, entity string
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *DefaultObjectAccessControlsUpdateCall) Fields(s ...googleapi.Field) *DefaultObjectAccessControlsUpdateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *DefaultObjectAccessControlsUpdateCall) Do() (*ObjectAccessControl, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.objectaccesscontrol)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "b/{bucket}/defaultObjectAcl/{entity}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *ObjectAccessControl
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"bucket": c.bucket,
 		"entity": c.entity,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.objectaccesscontrol,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ObjectAccessControl
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates a default object ACL entry on the specified bucket.",
 	//   "httpMethod": "PUT",
@@ -2565,67 +2409,57 @@ func (c *DefaultObjectAccessControlsUpdateCall) Do() (*ObjectAccessControl, erro
 // method id "storage.objectAccessControls.delete":
 
 type ObjectAccessControlsDeleteCall struct {
-	s      *Service
-	bucket string
-	object string
-	entity string
-	opt_   map[string]interface{}
+	s             *Service
+	bucket        string
+	object        string
+	entity        string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Delete: Permanently deletes the ACL entry for the specified entity on
 // the specified object.
+
 func (r *ObjectAccessControlsService) Delete(bucket string, object string, entity string) *ObjectAccessControlsDeleteCall {
-	c := &ObjectAccessControlsDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.bucket = bucket
-	c.object = object
-	c.entity = entity
-	return c
+	return &ObjectAccessControlsDeleteCall{
+		s:             r.s,
+		bucket:        bucket,
+		object:        object,
+		entity:        entity,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "b/{bucket}/o/{object}/acl/{entity}",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Generation sets the optional parameter "generation": If present,
 // selects a specific revision of this object (as opposed to the latest
 // version, the default).
 func (c *ObjectAccessControlsDeleteCall) Generation(generation uint64) *ObjectAccessControlsDeleteCall {
-	c.opt_["generation"] = generation
+	c.params_.Set("generation", fmt.Sprintf("%v", generation))
 	return c
 }
-
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *ObjectAccessControlsDeleteCall) Fields(s ...googleapi.Field) *ObjectAccessControlsDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (c *ObjectAccessControlsDeleteCall) Context(ctx context.Context) *ObjectAccessControlsDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *ObjectAccessControlsDeleteCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["generation"]; ok {
-		params.Set("generation", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "b/{bucket}/o/{object}/acl/{entity}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"bucket": c.bucket,
 		"object": c.object,
 		"entity": c.entity,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Permanently deletes the ACL entry for the specified entity on the specified object.",
 	//   "httpMethod": "DELETE",
@@ -2672,28 +2506,41 @@ func (c *ObjectAccessControlsDeleteCall) Do() error {
 // method id "storage.objectAccessControls.get":
 
 type ObjectAccessControlsGetCall struct {
-	s      *Service
-	bucket string
-	object string
-	entity string
-	opt_   map[string]interface{}
+	s             *Service
+	bucket        string
+	object        string
+	entity        string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Returns the ACL entry for the specified entity on the specified
 // object.
+
 func (r *ObjectAccessControlsService) Get(bucket string, object string, entity string) *ObjectAccessControlsGetCall {
-	c := &ObjectAccessControlsGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.bucket = bucket
-	c.object = object
-	c.entity = entity
-	return c
+	return &ObjectAccessControlsGetCall{
+		s:             r.s,
+		bucket:        bucket,
+		object:        object,
+		entity:        entity,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "b/{bucket}/o/{object}/acl/{entity}",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Generation sets the optional parameter "generation": If present,
 // selects a specific revision of this object (as opposed to the latest
 // version, the default).
 func (c *ObjectAccessControlsGetCall) Generation(generation uint64) *ObjectAccessControlsGetCall {
-	c.opt_["generation"] = generation
+	c.params_.Set("generation", fmt.Sprintf("%v", generation))
+	return c
+}
+func (c *ObjectAccessControlsGetCall) Context(ctx context.Context) *ObjectAccessControlsGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2701,42 +2548,25 @@ func (c *ObjectAccessControlsGetCall) Generation(generation uint64) *ObjectAcces
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ObjectAccessControlsGetCall) Fields(s ...googleapi.Field) *ObjectAccessControlsGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ObjectAccessControlsGetCall) Do() (*ObjectAccessControl, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["generation"]; ok {
-		params.Set("generation", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "b/{bucket}/o/{object}/acl/{entity}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *ObjectAccessControl
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"bucket": c.bucket,
 		"object": c.object,
 		"entity": c.entity,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ObjectAccessControl
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Returns the ACL entry for the specified entity on the specified object.",
 	//   "httpMethod": "GET",
@@ -2790,23 +2620,36 @@ type ObjectAccessControlsInsertCall struct {
 	bucket              string
 	object              string
 	objectaccesscontrol *ObjectAccessControl
-	opt_                map[string]interface{}
+	caller_             googleapi.Caller
+	params_             url.Values
+	pathTemplate_       string
+	context_            context.Context
 }
 
 // Insert: Creates a new ACL entry on the specified object.
+
 func (r *ObjectAccessControlsService) Insert(bucket string, object string, objectaccesscontrol *ObjectAccessControl) *ObjectAccessControlsInsertCall {
-	c := &ObjectAccessControlsInsertCall{s: r.s, opt_: make(map[string]interface{})}
-	c.bucket = bucket
-	c.object = object
-	c.objectaccesscontrol = objectaccesscontrol
-	return c
+	return &ObjectAccessControlsInsertCall{
+		s:                   r.s,
+		bucket:              bucket,
+		object:              object,
+		objectaccesscontrol: objectaccesscontrol,
+		caller_:             googleapi.JSONCall{},
+		params_:             make(map[string][]string),
+		pathTemplate_:       "b/{bucket}/o/{object}/acl",
+		context_:            googleapi.NoContext,
+	}
 }
 
 // Generation sets the optional parameter "generation": If present,
 // selects a specific revision of this object (as opposed to the latest
 // version, the default).
 func (c *ObjectAccessControlsInsertCall) Generation(generation uint64) *ObjectAccessControlsInsertCall {
-	c.opt_["generation"] = generation
+	c.params_.Set("generation", fmt.Sprintf("%v", generation))
+	return c
+}
+func (c *ObjectAccessControlsInsertCall) Context(ctx context.Context) *ObjectAccessControlsInsertCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2814,47 +2657,25 @@ func (c *ObjectAccessControlsInsertCall) Generation(generation uint64) *ObjectAc
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ObjectAccessControlsInsertCall) Fields(s ...googleapi.Field) *ObjectAccessControlsInsertCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ObjectAccessControlsInsertCall) Do() (*ObjectAccessControl, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.objectaccesscontrol)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["generation"]; ok {
-		params.Set("generation", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "b/{bucket}/o/{object}/acl")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *ObjectAccessControl
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"bucket": c.bucket,
 		"object": c.object,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.objectaccesscontrol,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ObjectAccessControl
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Creates a new ACL entry on the specified object.",
 	//   "httpMethod": "POST",
@@ -2900,25 +2721,38 @@ func (c *ObjectAccessControlsInsertCall) Do() (*ObjectAccessControl, error) {
 // method id "storage.objectAccessControls.list":
 
 type ObjectAccessControlsListCall struct {
-	s      *Service
-	bucket string
-	object string
-	opt_   map[string]interface{}
+	s             *Service
+	bucket        string
+	object        string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Retrieves ACL entries on the specified object.
+
 func (r *ObjectAccessControlsService) List(bucket string, object string) *ObjectAccessControlsListCall {
-	c := &ObjectAccessControlsListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.bucket = bucket
-	c.object = object
-	return c
+	return &ObjectAccessControlsListCall{
+		s:             r.s,
+		bucket:        bucket,
+		object:        object,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "b/{bucket}/o/{object}/acl",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Generation sets the optional parameter "generation": If present,
 // selects a specific revision of this object (as opposed to the latest
 // version, the default).
 func (c *ObjectAccessControlsListCall) Generation(generation uint64) *ObjectAccessControlsListCall {
-	c.opt_["generation"] = generation
+	c.params_.Set("generation", fmt.Sprintf("%v", generation))
+	return c
+}
+func (c *ObjectAccessControlsListCall) Context(ctx context.Context) *ObjectAccessControlsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2926,41 +2760,24 @@ func (c *ObjectAccessControlsListCall) Generation(generation uint64) *ObjectAcce
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ObjectAccessControlsListCall) Fields(s ...googleapi.Field) *ObjectAccessControlsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ObjectAccessControlsListCall) Do() (*ObjectAccessControls, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["generation"]; ok {
-		params.Set("generation", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "b/{bucket}/o/{object}/acl")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *ObjectAccessControls
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"bucket": c.bucket,
 		"object": c.object,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ObjectAccessControls
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves ACL entries on the specified object.",
 	//   "httpMethod": "GET",
@@ -3008,25 +2825,38 @@ type ObjectAccessControlsPatchCall struct {
 	object              string
 	entity              string
 	objectaccesscontrol *ObjectAccessControl
-	opt_                map[string]interface{}
+	caller_             googleapi.Caller
+	params_             url.Values
+	pathTemplate_       string
+	context_            context.Context
 }
 
 // Patch: Updates an ACL entry on the specified object. This method
 // supports patch semantics.
+
 func (r *ObjectAccessControlsService) Patch(bucket string, object string, entity string, objectaccesscontrol *ObjectAccessControl) *ObjectAccessControlsPatchCall {
-	c := &ObjectAccessControlsPatchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.bucket = bucket
-	c.object = object
-	c.entity = entity
-	c.objectaccesscontrol = objectaccesscontrol
-	return c
+	return &ObjectAccessControlsPatchCall{
+		s:                   r.s,
+		bucket:              bucket,
+		object:              object,
+		entity:              entity,
+		objectaccesscontrol: objectaccesscontrol,
+		caller_:             googleapi.JSONCall{},
+		params_:             make(map[string][]string),
+		pathTemplate_:       "b/{bucket}/o/{object}/acl/{entity}",
+		context_:            googleapi.NoContext,
+	}
 }
 
 // Generation sets the optional parameter "generation": If present,
 // selects a specific revision of this object (as opposed to the latest
 // version, the default).
 func (c *ObjectAccessControlsPatchCall) Generation(generation uint64) *ObjectAccessControlsPatchCall {
-	c.opt_["generation"] = generation
+	c.params_.Set("generation", fmt.Sprintf("%v", generation))
+	return c
+}
+func (c *ObjectAccessControlsPatchCall) Context(ctx context.Context) *ObjectAccessControlsPatchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -3034,48 +2864,26 @@ func (c *ObjectAccessControlsPatchCall) Generation(generation uint64) *ObjectAcc
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ObjectAccessControlsPatchCall) Fields(s ...googleapi.Field) *ObjectAccessControlsPatchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ObjectAccessControlsPatchCall) Do() (*ObjectAccessControl, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.objectaccesscontrol)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["generation"]; ok {
-		params.Set("generation", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "b/{bucket}/o/{object}/acl/{entity}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PATCH", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *ObjectAccessControl
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"bucket": c.bucket,
 		"object": c.object,
 		"entity": c.entity,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PATCH",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.objectaccesscontrol,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ObjectAccessControl
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates an ACL entry on the specified object. This method supports patch semantics.",
 	//   "httpMethod": "PATCH",
@@ -3133,24 +2941,37 @@ type ObjectAccessControlsUpdateCall struct {
 	object              string
 	entity              string
 	objectaccesscontrol *ObjectAccessControl
-	opt_                map[string]interface{}
+	caller_             googleapi.Caller
+	params_             url.Values
+	pathTemplate_       string
+	context_            context.Context
 }
 
 // Update: Updates an ACL entry on the specified object.
+
 func (r *ObjectAccessControlsService) Update(bucket string, object string, entity string, objectaccesscontrol *ObjectAccessControl) *ObjectAccessControlsUpdateCall {
-	c := &ObjectAccessControlsUpdateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.bucket = bucket
-	c.object = object
-	c.entity = entity
-	c.objectaccesscontrol = objectaccesscontrol
-	return c
+	return &ObjectAccessControlsUpdateCall{
+		s:                   r.s,
+		bucket:              bucket,
+		object:              object,
+		entity:              entity,
+		objectaccesscontrol: objectaccesscontrol,
+		caller_:             googleapi.JSONCall{},
+		params_:             make(map[string][]string),
+		pathTemplate_:       "b/{bucket}/o/{object}/acl/{entity}",
+		context_:            googleapi.NoContext,
+	}
 }
 
 // Generation sets the optional parameter "generation": If present,
 // selects a specific revision of this object (as opposed to the latest
 // version, the default).
 func (c *ObjectAccessControlsUpdateCall) Generation(generation uint64) *ObjectAccessControlsUpdateCall {
-	c.opt_["generation"] = generation
+	c.params_.Set("generation", fmt.Sprintf("%v", generation))
+	return c
+}
+func (c *ObjectAccessControlsUpdateCall) Context(ctx context.Context) *ObjectAccessControlsUpdateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -3158,48 +2979,26 @@ func (c *ObjectAccessControlsUpdateCall) Generation(generation uint64) *ObjectAc
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ObjectAccessControlsUpdateCall) Fields(s ...googleapi.Field) *ObjectAccessControlsUpdateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ObjectAccessControlsUpdateCall) Do() (*ObjectAccessControl, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.objectaccesscontrol)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["generation"]; ok {
-		params.Set("generation", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "b/{bucket}/o/{object}/acl/{entity}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *ObjectAccessControl
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"bucket": c.bucket,
 		"object": c.object,
 		"entity": c.entity,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.objectaccesscontrol,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ObjectAccessControl
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates an ACL entry on the specified object.",
 	//   "httpMethod": "PUT",
@@ -3256,24 +3055,33 @@ type ObjectsComposeCall struct {
 	destinationBucket string
 	destinationObject string
 	composerequest    *ComposeRequest
-	opt_              map[string]interface{}
+	caller_           googleapi.Caller
+	params_           url.Values
+	pathTemplate_     string
+	context_          context.Context
 }
 
 // Compose: Concatenates a list of existing objects into a new object in
 // the same bucket.
+
 func (r *ObjectsService) Compose(destinationBucket string, destinationObject string, composerequest *ComposeRequest) *ObjectsComposeCall {
-	c := &ObjectsComposeCall{s: r.s, opt_: make(map[string]interface{})}
-	c.destinationBucket = destinationBucket
-	c.destinationObject = destinationObject
-	c.composerequest = composerequest
-	return c
+	return &ObjectsComposeCall{
+		s:                 r.s,
+		destinationBucket: destinationBucket,
+		destinationObject: destinationObject,
+		composerequest:    composerequest,
+		caller_:           googleapi.JSONCall{},
+		params_:           make(map[string][]string),
+		pathTemplate_:     "b/{destinationBucket}/o/{destinationObject}/compose",
+		context_:          googleapi.NoContext,
+	}
 }
 
 // IfGenerationMatch sets the optional parameter "ifGenerationMatch":
 // Makes the operation conditional on whether the object's current
 // generation matches the given value.
 func (c *ObjectsComposeCall) IfGenerationMatch(ifGenerationMatch uint64) *ObjectsComposeCall {
-	c.opt_["ifGenerationMatch"] = ifGenerationMatch
+	c.params_.Set("ifGenerationMatch", fmt.Sprintf("%v", ifGenerationMatch))
 	return c
 }
 
@@ -3281,7 +3089,11 @@ func (c *ObjectsComposeCall) IfGenerationMatch(ifGenerationMatch uint64) *Object
 // "ifMetagenerationMatch": Makes the operation conditional on whether
 // the object's current metageneration matches the given value.
 func (c *ObjectsComposeCall) IfMetagenerationMatch(ifMetagenerationMatch uint64) *ObjectsComposeCall {
-	c.opt_["ifMetagenerationMatch"] = ifMetagenerationMatch
+	c.params_.Set("ifMetagenerationMatch", fmt.Sprintf("%v", ifMetagenerationMatch))
+	return c
+}
+func (c *ObjectsComposeCall) Context(ctx context.Context) *ObjectsComposeCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -3289,50 +3101,45 @@ func (c *ObjectsComposeCall) IfMetagenerationMatch(ifMetagenerationMatch uint64)
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ObjectsComposeCall) Fields(s ...googleapi.Field) *ObjectsComposeCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
-func (c *ObjectsComposeCall) Do() (*Object, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.composerequest)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["ifGenerationMatch"]; ok {
-		params.Set("ifGenerationMatch", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["ifMetagenerationMatch"]; ok {
-		params.Set("ifMetagenerationMatch", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "b/{destinationBucket}/o/{destinationObject}/compose")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+// GetResponse sets alt=media creating a file download request. The body
+// of the *http.Response contains the media.  You should close the response
+// body when finished reading.
+
+func (c *ObjectsComposeCall) GetResponse() (*http.Response, error) {
+	var res *http.Response
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"destinationBucket": c.destinationBucket,
 		"destinationObject": c.destinationObject,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.composerequest,
+		Result:  &res,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
+	return res, c.caller_.Do(c.context_, c.s.client, call)
+}
+
+func (c *ObjectsComposeCall) Do() (*Object, error) {
+	var returnValue *Object
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
+		"destinationBucket": c.destinationBucket,
+		"destinationObject": c.destinationObject,
+	})
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.composerequest,
+		Result:  &returnValue,
 	}
-	var ret *Object
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Concatenates a list of existing objects into a new object in the same bucket.",
 	//   "httpMethod": "POST",
@@ -3392,26 +3199,35 @@ type ObjectsCopyCall struct {
 	destinationBucket string
 	destinationObject string
 	object            *Object
-	opt_              map[string]interface{}
+	caller_           googleapi.Caller
+	params_           url.Values
+	pathTemplate_     string
+	context_          context.Context
 }
 
 // Copy: Copies an object to a destination in the same location.
 // Optionally overrides metadata.
+
 func (r *ObjectsService) Copy(sourceBucket string, sourceObject string, destinationBucket string, destinationObject string, object *Object) *ObjectsCopyCall {
-	c := &ObjectsCopyCall{s: r.s, opt_: make(map[string]interface{})}
-	c.sourceBucket = sourceBucket
-	c.sourceObject = sourceObject
-	c.destinationBucket = destinationBucket
-	c.destinationObject = destinationObject
-	c.object = object
-	return c
+	return &ObjectsCopyCall{
+		s:                 r.s,
+		sourceBucket:      sourceBucket,
+		sourceObject:      sourceObject,
+		destinationBucket: destinationBucket,
+		destinationObject: destinationObject,
+		object:            object,
+		caller_:           googleapi.JSONCall{},
+		params_:           make(map[string][]string),
+		pathTemplate_:     "b/{sourceBucket}/o/{sourceObject}/copyTo/b/{destinationBucket}/o/{destinationObject}",
+		context_:          googleapi.NoContext,
+	}
 }
 
 // IfGenerationMatch sets the optional parameter "ifGenerationMatch":
 // Makes the operation conditional on whether the destination object's
 // current generation matches the given value.
 func (c *ObjectsCopyCall) IfGenerationMatch(ifGenerationMatch uint64) *ObjectsCopyCall {
-	c.opt_["ifGenerationMatch"] = ifGenerationMatch
+	c.params_.Set("ifGenerationMatch", fmt.Sprintf("%v", ifGenerationMatch))
 	return c
 }
 
@@ -3420,7 +3236,7 @@ func (c *ObjectsCopyCall) IfGenerationMatch(ifGenerationMatch uint64) *ObjectsCo
 // the destination object's current generation does not match the given
 // value.
 func (c *ObjectsCopyCall) IfGenerationNotMatch(ifGenerationNotMatch uint64) *ObjectsCopyCall {
-	c.opt_["ifGenerationNotMatch"] = ifGenerationNotMatch
+	c.params_.Set("ifGenerationNotMatch", fmt.Sprintf("%v", ifGenerationNotMatch))
 	return c
 }
 
@@ -3429,7 +3245,7 @@ func (c *ObjectsCopyCall) IfGenerationNotMatch(ifGenerationNotMatch uint64) *Obj
 // the destination object's current metageneration matches the given
 // value.
 func (c *ObjectsCopyCall) IfMetagenerationMatch(ifMetagenerationMatch uint64) *ObjectsCopyCall {
-	c.opt_["ifMetagenerationMatch"] = ifMetagenerationMatch
+	c.params_.Set("ifMetagenerationMatch", fmt.Sprintf("%v", ifMetagenerationMatch))
 	return c
 }
 
@@ -3438,7 +3254,7 @@ func (c *ObjectsCopyCall) IfMetagenerationMatch(ifMetagenerationMatch uint64) *O
 // whether the destination object's current metageneration does not
 // match the given value.
 func (c *ObjectsCopyCall) IfMetagenerationNotMatch(ifMetagenerationNotMatch uint64) *ObjectsCopyCall {
-	c.opt_["ifMetagenerationNotMatch"] = ifMetagenerationNotMatch
+	c.params_.Set("ifMetagenerationNotMatch", fmt.Sprintf("%v", ifMetagenerationNotMatch))
 	return c
 }
 
@@ -3446,7 +3262,7 @@ func (c *ObjectsCopyCall) IfMetagenerationNotMatch(ifMetagenerationNotMatch uint
 // "ifSourceGenerationMatch": Makes the operation conditional on whether
 // the source object's generation matches the given value.
 func (c *ObjectsCopyCall) IfSourceGenerationMatch(ifSourceGenerationMatch uint64) *ObjectsCopyCall {
-	c.opt_["ifSourceGenerationMatch"] = ifSourceGenerationMatch
+	c.params_.Set("ifSourceGenerationMatch", fmt.Sprintf("%v", ifSourceGenerationMatch))
 	return c
 }
 
@@ -3455,7 +3271,7 @@ func (c *ObjectsCopyCall) IfSourceGenerationMatch(ifSourceGenerationMatch uint64
 // whether the source object's generation does not match the given
 // value.
 func (c *ObjectsCopyCall) IfSourceGenerationNotMatch(ifSourceGenerationNotMatch uint64) *ObjectsCopyCall {
-	c.opt_["ifSourceGenerationNotMatch"] = ifSourceGenerationNotMatch
+	c.params_.Set("ifSourceGenerationNotMatch", fmt.Sprintf("%v", ifSourceGenerationNotMatch))
 	return c
 }
 
@@ -3464,7 +3280,7 @@ func (c *ObjectsCopyCall) IfSourceGenerationNotMatch(ifSourceGenerationNotMatch 
 // whether the source object's current metageneration matches the given
 // value.
 func (c *ObjectsCopyCall) IfSourceMetagenerationMatch(ifSourceMetagenerationMatch uint64) *ObjectsCopyCall {
-	c.opt_["ifSourceMetagenerationMatch"] = ifSourceMetagenerationMatch
+	c.params_.Set("ifSourceMetagenerationMatch", fmt.Sprintf("%v", ifSourceMetagenerationMatch))
 	return c
 }
 
@@ -3473,7 +3289,7 @@ func (c *ObjectsCopyCall) IfSourceMetagenerationMatch(ifSourceMetagenerationMatc
 // whether the source object's current metageneration does not match the
 // given value.
 func (c *ObjectsCopyCall) IfSourceMetagenerationNotMatch(ifSourceMetagenerationNotMatch uint64) *ObjectsCopyCall {
-	c.opt_["ifSourceMetagenerationNotMatch"] = ifSourceMetagenerationNotMatch
+	c.params_.Set("ifSourceMetagenerationNotMatch", fmt.Sprintf("%v", ifSourceMetagenerationNotMatch))
 	return c
 }
 
@@ -3481,7 +3297,7 @@ func (c *ObjectsCopyCall) IfSourceMetagenerationNotMatch(ifSourceMetagenerationN
 // properties to return. Defaults to noAcl, unless the object resource
 // specifies the acl property, when it defaults to full.
 func (c *ObjectsCopyCall) Projection(projection string) *ObjectsCopyCall {
-	c.opt_["projection"] = projection
+	c.params_.Set("projection", fmt.Sprintf("%v", projection))
 	return c
 }
 
@@ -3489,7 +3305,11 @@ func (c *ObjectsCopyCall) Projection(projection string) *ObjectsCopyCall {
 // present, selects a specific revision of the source object (as opposed
 // to the latest version, the default).
 func (c *ObjectsCopyCall) SourceGeneration(sourceGeneration uint64) *ObjectsCopyCall {
-	c.opt_["sourceGeneration"] = sourceGeneration
+	c.params_.Set("sourceGeneration", fmt.Sprintf("%v", sourceGeneration))
+	return c
+}
+func (c *ObjectsCopyCall) Context(ctx context.Context) *ObjectsCopyCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -3497,76 +3317,49 @@ func (c *ObjectsCopyCall) SourceGeneration(sourceGeneration uint64) *ObjectsCopy
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ObjectsCopyCall) Fields(s ...googleapi.Field) *ObjectsCopyCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
-func (c *ObjectsCopyCall) Do() (*Object, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.object)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["ifGenerationMatch"]; ok {
-		params.Set("ifGenerationMatch", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["ifGenerationNotMatch"]; ok {
-		params.Set("ifGenerationNotMatch", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["ifMetagenerationMatch"]; ok {
-		params.Set("ifMetagenerationMatch", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["ifMetagenerationNotMatch"]; ok {
-		params.Set("ifMetagenerationNotMatch", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["ifSourceGenerationMatch"]; ok {
-		params.Set("ifSourceGenerationMatch", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["ifSourceGenerationNotMatch"]; ok {
-		params.Set("ifSourceGenerationNotMatch", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["ifSourceMetagenerationMatch"]; ok {
-		params.Set("ifSourceMetagenerationMatch", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["ifSourceMetagenerationNotMatch"]; ok {
-		params.Set("ifSourceMetagenerationNotMatch", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["projection"]; ok {
-		params.Set("projection", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["sourceGeneration"]; ok {
-		params.Set("sourceGeneration", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "b/{sourceBucket}/o/{sourceObject}/copyTo/b/{destinationBucket}/o/{destinationObject}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+// GetResponse sets alt=media creating a file download request. The body
+// of the *http.Response contains the media.  You should close the response
+// body when finished reading.
+
+func (c *ObjectsCopyCall) GetResponse() (*http.Response, error) {
+	var res *http.Response
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"sourceBucket":      c.sourceBucket,
 		"sourceObject":      c.sourceObject,
 		"destinationBucket": c.destinationBucket,
 		"destinationObject": c.destinationObject,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.object,
+		Result:  &res,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
+	return res, c.caller_.Do(c.context_, c.s.client, call)
+}
+
+func (c *ObjectsCopyCall) Do() (*Object, error) {
+	var returnValue *Object
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
+		"sourceBucket":      c.sourceBucket,
+		"sourceObject":      c.sourceObject,
+		"destinationBucket": c.destinationBucket,
+		"destinationObject": c.destinationObject,
+	})
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.object,
+		Result:  &returnValue,
 	}
-	var ret *Object
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Copies an object to a destination in the same location. Optionally overrides metadata.",
 	//   "httpMethod": "POST",
@@ -3689,27 +3482,36 @@ func (c *ObjectsCopyCall) Do() (*Object, error) {
 // method id "storage.objects.delete":
 
 type ObjectsDeleteCall struct {
-	s      *Service
-	bucket string
-	object string
-	opt_   map[string]interface{}
+	s             *Service
+	bucket        string
+	object        string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Delete: Deletes data blobs and associated metadata. Deletions are
 // permanent if versioning is not enabled for the bucket, or if the
 // generation parameter is used.
+
 func (r *ObjectsService) Delete(bucket string, object string) *ObjectsDeleteCall {
-	c := &ObjectsDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.bucket = bucket
-	c.object = object
-	return c
+	return &ObjectsDeleteCall{
+		s:             r.s,
+		bucket:        bucket,
+		object:        object,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "b/{bucket}/o/{object}",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Generation sets the optional parameter "generation": If present,
 // permanently deletes a specific revision of this object (as opposed to
 // the latest version, the default).
 func (c *ObjectsDeleteCall) Generation(generation uint64) *ObjectsDeleteCall {
-	c.opt_["generation"] = generation
+	c.params_.Set("generation", fmt.Sprintf("%v", generation))
 	return c
 }
 
@@ -3717,7 +3519,7 @@ func (c *ObjectsDeleteCall) Generation(generation uint64) *ObjectsDeleteCall {
 // Makes the operation conditional on whether the object's current
 // generation matches the given value.
 func (c *ObjectsDeleteCall) IfGenerationMatch(ifGenerationMatch uint64) *ObjectsDeleteCall {
-	c.opt_["ifGenerationMatch"] = ifGenerationMatch
+	c.params_.Set("ifGenerationMatch", fmt.Sprintf("%v", ifGenerationMatch))
 	return c
 }
 
@@ -3725,7 +3527,7 @@ func (c *ObjectsDeleteCall) IfGenerationMatch(ifGenerationMatch uint64) *Objects
 // "ifGenerationNotMatch": Makes the operation conditional on whether
 // the object's current generation does not match the given value.
 func (c *ObjectsDeleteCall) IfGenerationNotMatch(ifGenerationNotMatch uint64) *ObjectsDeleteCall {
-	c.opt_["ifGenerationNotMatch"] = ifGenerationNotMatch
+	c.params_.Set("ifGenerationNotMatch", fmt.Sprintf("%v", ifGenerationNotMatch))
 	return c
 }
 
@@ -3733,7 +3535,7 @@ func (c *ObjectsDeleteCall) IfGenerationNotMatch(ifGenerationNotMatch uint64) *O
 // "ifMetagenerationMatch": Makes the operation conditional on whether
 // the object's current metageneration matches the given value.
 func (c *ObjectsDeleteCall) IfMetagenerationMatch(ifMetagenerationMatch uint64) *ObjectsDeleteCall {
-	c.opt_["ifMetagenerationMatch"] = ifMetagenerationMatch
+	c.params_.Set("ifMetagenerationMatch", fmt.Sprintf("%v", ifMetagenerationMatch))
 	return c
 }
 
@@ -3742,57 +3544,26 @@ func (c *ObjectsDeleteCall) IfMetagenerationMatch(ifMetagenerationMatch uint64) 
 // whether the object's current metageneration does not match the given
 // value.
 func (c *ObjectsDeleteCall) IfMetagenerationNotMatch(ifMetagenerationNotMatch uint64) *ObjectsDeleteCall {
-	c.opt_["ifMetagenerationNotMatch"] = ifMetagenerationNotMatch
+	c.params_.Set("ifMetagenerationNotMatch", fmt.Sprintf("%v", ifMetagenerationNotMatch))
 	return c
 }
-
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *ObjectsDeleteCall) Fields(s ...googleapi.Field) *ObjectsDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (c *ObjectsDeleteCall) Context(ctx context.Context) *ObjectsDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *ObjectsDeleteCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["generation"]; ok {
-		params.Set("generation", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["ifGenerationMatch"]; ok {
-		params.Set("ifGenerationMatch", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["ifGenerationNotMatch"]; ok {
-		params.Set("ifGenerationNotMatch", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["ifMetagenerationMatch"]; ok {
-		params.Set("ifMetagenerationMatch", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["ifMetagenerationNotMatch"]; ok {
-		params.Set("ifMetagenerationNotMatch", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "b/{bucket}/o/{object}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"bucket": c.bucket,
 		"object": c.object,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Deletes data blobs and associated metadata. Deletions are permanent if versioning is not enabled for the bucket, or if the generation parameter is used.",
 	//   "httpMethod": "DELETE",
@@ -3857,25 +3628,34 @@ func (c *ObjectsDeleteCall) Do() error {
 // method id "storage.objects.get":
 
 type ObjectsGetCall struct {
-	s      *Service
-	bucket string
-	object string
-	opt_   map[string]interface{}
+	s             *Service
+	bucket        string
+	object        string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Retrieves objects or their associated metadata.
+
 func (r *ObjectsService) Get(bucket string, object string) *ObjectsGetCall {
-	c := &ObjectsGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.bucket = bucket
-	c.object = object
-	return c
+	return &ObjectsGetCall{
+		s:             r.s,
+		bucket:        bucket,
+		object:        object,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "b/{bucket}/o/{object}",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Generation sets the optional parameter "generation": If present,
 // selects a specific revision of this object (as opposed to the latest
 // version, the default).
 func (c *ObjectsGetCall) Generation(generation uint64) *ObjectsGetCall {
-	c.opt_["generation"] = generation
+	c.params_.Set("generation", fmt.Sprintf("%v", generation))
 	return c
 }
 
@@ -3883,7 +3663,7 @@ func (c *ObjectsGetCall) Generation(generation uint64) *ObjectsGetCall {
 // Makes the operation conditional on whether the object's generation
 // matches the given value.
 func (c *ObjectsGetCall) IfGenerationMatch(ifGenerationMatch uint64) *ObjectsGetCall {
-	c.opt_["ifGenerationMatch"] = ifGenerationMatch
+	c.params_.Set("ifGenerationMatch", fmt.Sprintf("%v", ifGenerationMatch))
 	return c
 }
 
@@ -3891,7 +3671,7 @@ func (c *ObjectsGetCall) IfGenerationMatch(ifGenerationMatch uint64) *ObjectsGet
 // "ifGenerationNotMatch": Makes the operation conditional on whether
 // the object's generation does not match the given value.
 func (c *ObjectsGetCall) IfGenerationNotMatch(ifGenerationNotMatch uint64) *ObjectsGetCall {
-	c.opt_["ifGenerationNotMatch"] = ifGenerationNotMatch
+	c.params_.Set("ifGenerationNotMatch", fmt.Sprintf("%v", ifGenerationNotMatch))
 	return c
 }
 
@@ -3899,7 +3679,7 @@ func (c *ObjectsGetCall) IfGenerationNotMatch(ifGenerationNotMatch uint64) *Obje
 // "ifMetagenerationMatch": Makes the operation conditional on whether
 // the object's current metageneration matches the given value.
 func (c *ObjectsGetCall) IfMetagenerationMatch(ifMetagenerationMatch uint64) *ObjectsGetCall {
-	c.opt_["ifMetagenerationMatch"] = ifMetagenerationMatch
+	c.params_.Set("ifMetagenerationMatch", fmt.Sprintf("%v", ifMetagenerationMatch))
 	return c
 }
 
@@ -3908,14 +3688,18 @@ func (c *ObjectsGetCall) IfMetagenerationMatch(ifMetagenerationMatch uint64) *Ob
 // whether the object's current metageneration does not match the given
 // value.
 func (c *ObjectsGetCall) IfMetagenerationNotMatch(ifMetagenerationNotMatch uint64) *ObjectsGetCall {
-	c.opt_["ifMetagenerationNotMatch"] = ifMetagenerationNotMatch
+	c.params_.Set("ifMetagenerationNotMatch", fmt.Sprintf("%v", ifMetagenerationNotMatch))
 	return c
 }
 
 // Projection sets the optional parameter "projection": Set of
 // properties to return. Defaults to noAcl.
 func (c *ObjectsGetCall) Projection(projection string) *ObjectsGetCall {
-	c.opt_["projection"] = projection
+	c.params_.Set("projection", fmt.Sprintf("%v", projection))
+	return c
+}
+func (c *ObjectsGetCall) Context(ctx context.Context) *ObjectsGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -3923,56 +3707,43 @@ func (c *ObjectsGetCall) Projection(projection string) *ObjectsGetCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ObjectsGetCall) Fields(s ...googleapi.Field) *ObjectsGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
-func (c *ObjectsGetCall) Do() (*Object, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["generation"]; ok {
-		params.Set("generation", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["ifGenerationMatch"]; ok {
-		params.Set("ifGenerationMatch", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["ifGenerationNotMatch"]; ok {
-		params.Set("ifGenerationNotMatch", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["ifMetagenerationMatch"]; ok {
-		params.Set("ifMetagenerationMatch", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["ifMetagenerationNotMatch"]; ok {
-		params.Set("ifMetagenerationNotMatch", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["projection"]; ok {
-		params.Set("projection", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "b/{bucket}/o/{object}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+// GetResponse sets alt=media creating a file download request. The body
+// of the *http.Response contains the media.  You should close the response
+// body when finished reading.
+
+func (c *ObjectsGetCall) GetResponse() (*http.Response, error) {
+	var res *http.Response
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"bucket": c.bucket,
 		"object": c.object,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &res,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
+	return res, c.caller_.Do(c.context_, c.s.client, call)
+}
+
+func (c *ObjectsGetCall) Do() (*Object, error) {
+	var returnValue *Object
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
+		"bucket": c.bucket,
+		"object": c.object,
+	})
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	var ret *Object
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves objects or their associated metadata.",
 	//   "httpMethod": "GET",
@@ -4055,30 +3826,35 @@ func (c *ObjectsGetCall) Do() (*Object, error) {
 // method id "storage.objects.insert":
 
 type ObjectsInsertCall struct {
-	s          *Service
-	bucket     string
-	object     *Object
-	opt_       map[string]interface{}
-	media_     io.Reader
-	resumable_ googleapi.SizeReaderAt
-	mediaType_ string
-	ctx_       context.Context
-	protocol_  string
+	s             *Service
+	bucket        string
+	object        *Object
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
+	callback_     googleapi.ProgressUpdater
 }
 
 // Insert: Stores new data blobs and associated metadata.
+
 func (r *ObjectsService) Insert(bucket string, object *Object) *ObjectsInsertCall {
-	c := &ObjectsInsertCall{s: r.s, opt_: make(map[string]interface{})}
-	c.bucket = bucket
-	c.object = object
-	return c
+	return &ObjectsInsertCall{
+		s:             r.s,
+		bucket:        bucket,
+		object:        object,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "b/{bucket}/o",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // IfGenerationMatch sets the optional parameter "ifGenerationMatch":
 // Makes the operation conditional on whether the object's current
 // generation matches the given value.
 func (c *ObjectsInsertCall) IfGenerationMatch(ifGenerationMatch uint64) *ObjectsInsertCall {
-	c.opt_["ifGenerationMatch"] = ifGenerationMatch
+	c.params_.Set("ifGenerationMatch", fmt.Sprintf("%v", ifGenerationMatch))
 	return c
 }
 
@@ -4086,7 +3862,7 @@ func (c *ObjectsInsertCall) IfGenerationMatch(ifGenerationMatch uint64) *Objects
 // "ifGenerationNotMatch": Makes the operation conditional on whether
 // the object's current generation does not match the given value.
 func (c *ObjectsInsertCall) IfGenerationNotMatch(ifGenerationNotMatch uint64) *ObjectsInsertCall {
-	c.opt_["ifGenerationNotMatch"] = ifGenerationNotMatch
+	c.params_.Set("ifGenerationNotMatch", fmt.Sprintf("%v", ifGenerationNotMatch))
 	return c
 }
 
@@ -4094,7 +3870,7 @@ func (c *ObjectsInsertCall) IfGenerationNotMatch(ifGenerationNotMatch uint64) *O
 // "ifMetagenerationMatch": Makes the operation conditional on whether
 // the object's current metageneration matches the given value.
 func (c *ObjectsInsertCall) IfMetagenerationMatch(ifMetagenerationMatch uint64) *ObjectsInsertCall {
-	c.opt_["ifMetagenerationMatch"] = ifMetagenerationMatch
+	c.params_.Set("ifMetagenerationMatch", fmt.Sprintf("%v", ifMetagenerationMatch))
 	return c
 }
 
@@ -4103,7 +3879,7 @@ func (c *ObjectsInsertCall) IfMetagenerationMatch(ifMetagenerationMatch uint64) 
 // whether the object's current metageneration does not match the given
 // value.
 func (c *ObjectsInsertCall) IfMetagenerationNotMatch(ifMetagenerationNotMatch uint64) *ObjectsInsertCall {
-	c.opt_["ifMetagenerationNotMatch"] = ifMetagenerationNotMatch
+	c.params_.Set("ifMetagenerationNotMatch", fmt.Sprintf("%v", ifMetagenerationNotMatch))
 	return c
 }
 
@@ -4111,7 +3887,7 @@ func (c *ObjectsInsertCall) IfMetagenerationNotMatch(ifMetagenerationNotMatch ui
 // when the object metadata is not otherwise provided. Overrides the
 // object metadata's name value, if any.
 func (c *ObjectsInsertCall) Name(name string) *ObjectsInsertCall {
-	c.opt_["name"] = name
+	c.params_.Set("name", fmt.Sprintf("%v", name))
 	return c
 }
 
@@ -4119,15 +3895,35 @@ func (c *ObjectsInsertCall) Name(name string) *ObjectsInsertCall {
 // properties to return. Defaults to noAcl, unless the object resource
 // specifies the acl property, when it defaults to full.
 func (c *ObjectsInsertCall) Projection(projection string) *ObjectsInsertCall {
-	c.opt_["projection"] = projection
+	c.params_.Set("projection", fmt.Sprintf("%v", projection))
+	return c
+}
+func (c *ObjectsInsertCall) Context(ctx context.Context) *ObjectsInsertCall {
+	c.context_ = ctx
+	return c
+}
+
+// MediaUpload takes a context and UploadCaller interface
+func (c *ObjectsInsertCall) Upload(ctx context.Context, u googleapi.UploadCaller) *ObjectsInsertCall {
+	c.caller_ = u
+	c.context_ = ctx
+	switch u.(type) {
+	case *googleapi.MediaUpload:
+		c.pathTemplate_ = "/upload/storage/v1beta2/b/{bucket}/o"
+	case *googleapi.ResumableUpload:
+		c.pathTemplate_ = "/resumable/upload/storage/v1beta2/b/{bucket}/o"
+	}
 	return c
 }
 
 // Media specifies the media to upload in a single chunk.
 // At most one of Media and ResumableMedia may be set.
+// The mime type type will be auto-detected unless r is a googleapi.ContentTyper as well.
 func (c *ObjectsInsertCall) Media(r io.Reader) *ObjectsInsertCall {
-	c.media_ = r
-	c.protocol_ = "multipart"
+	c.caller_ = &googleapi.MediaUpload{
+		Media: r,
+	}
+	c.pathTemplate_ = "/upload/storage/v1beta2/b/{bucket}/o"
 	return c
 }
 
@@ -4136,10 +3932,14 @@ func (c *ObjectsInsertCall) Media(r io.Reader) *ObjectsInsertCall {
 // mediaType identifies the MIME media type of the upload, such as "image/png".
 // If mediaType is "", it will be auto-detected.
 func (c *ObjectsInsertCall) ResumableMedia(ctx context.Context, r io.ReaderAt, size int64, mediaType string) *ObjectsInsertCall {
-	c.ctx_ = ctx
-	c.resumable_ = io.NewSectionReader(r, 0, size)
-	c.mediaType_ = mediaType
-	c.protocol_ = "resumable"
+	c.caller_ = &googleapi.ResumableUpload{
+		Media:         io.NewSectionReader(r, 0, size),
+		MediaType:     mediaType,
+		ContentLength: size,
+		Callback:      c.callback_,
+	}
+	c.pathTemplate_ = "/resumable/upload/storage/v1beta2/b/{bucket}/o"
+	c.context_ = ctx
 	return c
 }
 
@@ -4147,7 +3947,10 @@ func (c *ObjectsInsertCall) ResumableMedia(ctx context.Context, r io.ReaderAt, s
 // It should be a low-latency function in order to not slow down the upload operation.
 // This should only be called when using ResumableMedia (as opposed to Media).
 func (c *ObjectsInsertCall) ProgressUpdater(pu googleapi.ProgressUpdater) *ObjectsInsertCall {
-	c.opt_["progressUpdater"] = pu
+	c.callback_ = pu
+	if rx, ok := c.caller_.(*googleapi.ResumableUpload); ok {
+		rx.Callback = pu
+	}
 	return c
 }
 
@@ -4155,104 +3958,43 @@ func (c *ObjectsInsertCall) ProgressUpdater(pu googleapi.ProgressUpdater) *Objec
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ObjectsInsertCall) Fields(s ...googleapi.Field) *ObjectsInsertCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
-func (c *ObjectsInsertCall) Do() (*Object, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.object)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["ifGenerationMatch"]; ok {
-		params.Set("ifGenerationMatch", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["ifGenerationNotMatch"]; ok {
-		params.Set("ifGenerationNotMatch", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["ifMetagenerationMatch"]; ok {
-		params.Set("ifMetagenerationMatch", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["ifMetagenerationNotMatch"]; ok {
-		params.Set("ifMetagenerationNotMatch", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["name"]; ok {
-		params.Set("name", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["projection"]; ok {
-		params.Set("projection", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "b/{bucket}/o")
-	var progressUpdater_ googleapi.ProgressUpdater
-	if v, ok := c.opt_["progressUpdater"]; ok {
-		if pu, ok := v.(googleapi.ProgressUpdater); ok {
-			progressUpdater_ = pu
-		}
-	}
-	if c.media_ != nil || c.resumable_ != nil {
-		urls = strings.Replace(urls, "https://www.googleapis.com/", "https://www.googleapis.com/upload/", 1)
-		params.Set("uploadType", c.protocol_)
-	}
-	urls += "?" + params.Encode()
-	if c.protocol_ != "resumable" {
-		var cancel func()
-		cancel, _ = googleapi.ConditionallyIncludeMedia(c.media_, &body, &ctype)
-		if cancel != nil {
-			defer cancel()
-		}
-	}
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+// GetResponse sets alt=media creating a file download request. The body
+// of the *http.Response contains the media.  You should close the response
+// body when finished reading.
+
+func (c *ObjectsInsertCall) GetResponse() (*http.Response, error) {
+	var res *http.Response
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"bucket": c.bucket,
 	})
-	if c.protocol_ == "resumable" {
-		req.ContentLength = 0
-		if c.mediaType_ == "" {
-			c.mediaType_ = googleapi.DetectMediaType(c.resumable_)
-		}
-		req.Header.Set("X-Upload-Content-Type", c.mediaType_)
-		req.Body = nil
-	} else {
-		req.Header.Set("Content-Type", ctype)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.object,
+		Result:  &res,
 	}
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	return res, c.caller_.Do(c.context_, c.s.client, call)
+}
+
+func (c *ObjectsInsertCall) Do() (*Object, error) {
+	var returnValue *Object
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
+		"bucket": c.bucket,
+	})
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.object,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	if c.protocol_ == "resumable" {
-		loc := res.Header.Get("Location")
-		rx := &googleapi.ResumableUpload{
-			Client:        c.s.client,
-			UserAgent:     c.s.userAgent(),
-			URI:           loc,
-			Media:         c.resumable_,
-			MediaType:     c.mediaType_,
-			ContentLength: c.resumable_.Size(),
-			Callback:      progressUpdater_,
-		}
-		res, err = rx.Upload(c.ctx_)
-		if err != nil {
-			return nil, err
-		}
-		defer res.Body.Close()
-	}
-	var ret *Object
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Stores new data blobs and associated metadata.",
 	//   "httpMethod": "POST",
@@ -4345,16 +4087,25 @@ func (c *ObjectsInsertCall) Do() (*Object, error) {
 // method id "storage.objects.list":
 
 type ObjectsListCall struct {
-	s      *Service
-	bucket string
-	opt_   map[string]interface{}
+	s             *Service
+	bucket        string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Retrieves a list of objects matching the criteria.
+
 func (r *ObjectsService) List(bucket string) *ObjectsListCall {
-	c := &ObjectsListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.bucket = bucket
-	return c
+	return &ObjectsListCall{
+		s:             r.s,
+		bucket:        bucket,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "b/{bucket}/o",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Delimiter sets the optional parameter "delimiter": Returns results in
@@ -4364,7 +4115,7 @@ func (r *ObjectsService) List(bucket string) *ObjectsListCall {
 // truncated after the delimiter, returned in prefixes. Duplicate
 // prefixes are omitted.
 func (c *ObjectsListCall) Delimiter(delimiter string) *ObjectsListCall {
-	c.opt_["delimiter"] = delimiter
+	c.params_.Set("delimiter", fmt.Sprintf("%v", delimiter))
 	return c
 }
 
@@ -4372,7 +4123,7 @@ func (c *ObjectsListCall) Delimiter(delimiter string) *ObjectsListCall {
 // of items plus prefixes to return. As duplicate prefixes are omitted,
 // fewer total results may be returned than requested.
 func (c *ObjectsListCall) MaxResults(maxResults int64) *ObjectsListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
@@ -4380,28 +4131,32 @@ func (c *ObjectsListCall) MaxResults(maxResults int64) *ObjectsListCall {
 // previously-returned page token representing part of the larger set of
 // results to view.
 func (c *ObjectsListCall) PageToken(pageToken string) *ObjectsListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
 	return c
 }
 
 // Prefix sets the optional parameter "prefix": Filter results to
 // objects whose names begin with this prefix.
 func (c *ObjectsListCall) Prefix(prefix string) *ObjectsListCall {
-	c.opt_["prefix"] = prefix
+	c.params_.Set("prefix", fmt.Sprintf("%v", prefix))
 	return c
 }
 
 // Projection sets the optional parameter "projection": Set of
 // properties to return. Defaults to noAcl.
 func (c *ObjectsListCall) Projection(projection string) *ObjectsListCall {
-	c.opt_["projection"] = projection
+	c.params_.Set("projection", fmt.Sprintf("%v", projection))
 	return c
 }
 
 // Versions sets the optional parameter "versions": If true, lists all
 // versions of a file as distinct results.
 func (c *ObjectsListCall) Versions(versions bool) *ObjectsListCall {
-	c.opt_["versions"] = versions
+	c.params_.Set("versions", fmt.Sprintf("%v", versions))
+	return c
+}
+func (c *ObjectsListCall) Context(ctx context.Context) *ObjectsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -4409,55 +4164,23 @@ func (c *ObjectsListCall) Versions(versions bool) *ObjectsListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ObjectsListCall) Fields(s ...googleapi.Field) *ObjectsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ObjectsListCall) Do() (*Objects, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["delimiter"]; ok {
-		params.Set("delimiter", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["prefix"]; ok {
-		params.Set("prefix", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["projection"]; ok {
-		params.Set("projection", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["versions"]; ok {
-		params.Set("versions", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "b/{bucket}/o")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Objects
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"bucket": c.bucket,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Objects
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves a list of objects matching the criteria.",
 	//   "httpMethod": "GET",
@@ -4530,28 +4253,37 @@ func (c *ObjectsListCall) Do() (*Objects, error) {
 // method id "storage.objects.patch":
 
 type ObjectsPatchCall struct {
-	s       *Service
-	bucket  string
-	object  string
-	object2 *Object
-	opt_    map[string]interface{}
+	s             *Service
+	bucket        string
+	object        string
+	object2       *Object
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Patch: Updates a data blob's associated metadata. This method
 // supports patch semantics.
+
 func (r *ObjectsService) Patch(bucket string, object string, object2 *Object) *ObjectsPatchCall {
-	c := &ObjectsPatchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.bucket = bucket
-	c.object = object
-	c.object2 = object2
-	return c
+	return &ObjectsPatchCall{
+		s:             r.s,
+		bucket:        bucket,
+		object:        object,
+		object2:       object2,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "b/{bucket}/o/{object}",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Generation sets the optional parameter "generation": If present,
 // selects a specific revision of this object (as opposed to the latest
 // version, the default).
 func (c *ObjectsPatchCall) Generation(generation uint64) *ObjectsPatchCall {
-	c.opt_["generation"] = generation
+	c.params_.Set("generation", fmt.Sprintf("%v", generation))
 	return c
 }
 
@@ -4559,7 +4291,7 @@ func (c *ObjectsPatchCall) Generation(generation uint64) *ObjectsPatchCall {
 // Makes the operation conditional on whether the object's current
 // generation matches the given value.
 func (c *ObjectsPatchCall) IfGenerationMatch(ifGenerationMatch uint64) *ObjectsPatchCall {
-	c.opt_["ifGenerationMatch"] = ifGenerationMatch
+	c.params_.Set("ifGenerationMatch", fmt.Sprintf("%v", ifGenerationMatch))
 	return c
 }
 
@@ -4567,7 +4299,7 @@ func (c *ObjectsPatchCall) IfGenerationMatch(ifGenerationMatch uint64) *ObjectsP
 // "ifGenerationNotMatch": Makes the operation conditional on whether
 // the object's current generation does not match the given value.
 func (c *ObjectsPatchCall) IfGenerationNotMatch(ifGenerationNotMatch uint64) *ObjectsPatchCall {
-	c.opt_["ifGenerationNotMatch"] = ifGenerationNotMatch
+	c.params_.Set("ifGenerationNotMatch", fmt.Sprintf("%v", ifGenerationNotMatch))
 	return c
 }
 
@@ -4575,7 +4307,7 @@ func (c *ObjectsPatchCall) IfGenerationNotMatch(ifGenerationNotMatch uint64) *Ob
 // "ifMetagenerationMatch": Makes the operation conditional on whether
 // the object's current metageneration matches the given value.
 func (c *ObjectsPatchCall) IfMetagenerationMatch(ifMetagenerationMatch uint64) *ObjectsPatchCall {
-	c.opt_["ifMetagenerationMatch"] = ifMetagenerationMatch
+	c.params_.Set("ifMetagenerationMatch", fmt.Sprintf("%v", ifMetagenerationMatch))
 	return c
 }
 
@@ -4584,14 +4316,18 @@ func (c *ObjectsPatchCall) IfMetagenerationMatch(ifMetagenerationMatch uint64) *
 // whether the object's current metageneration does not match the given
 // value.
 func (c *ObjectsPatchCall) IfMetagenerationNotMatch(ifMetagenerationNotMatch uint64) *ObjectsPatchCall {
-	c.opt_["ifMetagenerationNotMatch"] = ifMetagenerationNotMatch
+	c.params_.Set("ifMetagenerationNotMatch", fmt.Sprintf("%v", ifMetagenerationNotMatch))
 	return c
 }
 
 // Projection sets the optional parameter "projection": Set of
 // properties to return. Defaults to full.
 func (c *ObjectsPatchCall) Projection(projection string) *ObjectsPatchCall {
-	c.opt_["projection"] = projection
+	c.params_.Set("projection", fmt.Sprintf("%v", projection))
+	return c
+}
+func (c *ObjectsPatchCall) Context(ctx context.Context) *ObjectsPatchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -4599,62 +4335,25 @@ func (c *ObjectsPatchCall) Projection(projection string) *ObjectsPatchCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ObjectsPatchCall) Fields(s ...googleapi.Field) *ObjectsPatchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ObjectsPatchCall) Do() (*Object, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.object2)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["generation"]; ok {
-		params.Set("generation", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["ifGenerationMatch"]; ok {
-		params.Set("ifGenerationMatch", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["ifGenerationNotMatch"]; ok {
-		params.Set("ifGenerationNotMatch", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["ifMetagenerationMatch"]; ok {
-		params.Set("ifMetagenerationMatch", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["ifMetagenerationNotMatch"]; ok {
-		params.Set("ifMetagenerationNotMatch", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["projection"]; ok {
-		params.Set("projection", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "b/{bucket}/o/{object}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PATCH", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Object
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"bucket": c.bucket,
 		"object": c.object,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PATCH",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.object2,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Object
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates a data blob's associated metadata. This method supports patch semantics.",
 	//   "httpMethod": "PATCH",
@@ -4738,27 +4437,36 @@ func (c *ObjectsPatchCall) Do() (*Object, error) {
 // method id "storage.objects.update":
 
 type ObjectsUpdateCall struct {
-	s       *Service
-	bucket  string
-	object  string
-	object2 *Object
-	opt_    map[string]interface{}
+	s             *Service
+	bucket        string
+	object        string
+	object2       *Object
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Update: Updates a data blob's associated metadata.
+
 func (r *ObjectsService) Update(bucket string, object string, object2 *Object) *ObjectsUpdateCall {
-	c := &ObjectsUpdateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.bucket = bucket
-	c.object = object
-	c.object2 = object2
-	return c
+	return &ObjectsUpdateCall{
+		s:             r.s,
+		bucket:        bucket,
+		object:        object,
+		object2:       object2,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "b/{bucket}/o/{object}",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Generation sets the optional parameter "generation": If present,
 // selects a specific revision of this object (as opposed to the latest
 // version, the default).
 func (c *ObjectsUpdateCall) Generation(generation uint64) *ObjectsUpdateCall {
-	c.opt_["generation"] = generation
+	c.params_.Set("generation", fmt.Sprintf("%v", generation))
 	return c
 }
 
@@ -4766,7 +4474,7 @@ func (c *ObjectsUpdateCall) Generation(generation uint64) *ObjectsUpdateCall {
 // Makes the operation conditional on whether the object's current
 // generation matches the given value.
 func (c *ObjectsUpdateCall) IfGenerationMatch(ifGenerationMatch uint64) *ObjectsUpdateCall {
-	c.opt_["ifGenerationMatch"] = ifGenerationMatch
+	c.params_.Set("ifGenerationMatch", fmt.Sprintf("%v", ifGenerationMatch))
 	return c
 }
 
@@ -4774,7 +4482,7 @@ func (c *ObjectsUpdateCall) IfGenerationMatch(ifGenerationMatch uint64) *Objects
 // "ifGenerationNotMatch": Makes the operation conditional on whether
 // the object's current generation does not match the given value.
 func (c *ObjectsUpdateCall) IfGenerationNotMatch(ifGenerationNotMatch uint64) *ObjectsUpdateCall {
-	c.opt_["ifGenerationNotMatch"] = ifGenerationNotMatch
+	c.params_.Set("ifGenerationNotMatch", fmt.Sprintf("%v", ifGenerationNotMatch))
 	return c
 }
 
@@ -4782,7 +4490,7 @@ func (c *ObjectsUpdateCall) IfGenerationNotMatch(ifGenerationNotMatch uint64) *O
 // "ifMetagenerationMatch": Makes the operation conditional on whether
 // the object's current metageneration matches the given value.
 func (c *ObjectsUpdateCall) IfMetagenerationMatch(ifMetagenerationMatch uint64) *ObjectsUpdateCall {
-	c.opt_["ifMetagenerationMatch"] = ifMetagenerationMatch
+	c.params_.Set("ifMetagenerationMatch", fmt.Sprintf("%v", ifMetagenerationMatch))
 	return c
 }
 
@@ -4791,14 +4499,18 @@ func (c *ObjectsUpdateCall) IfMetagenerationMatch(ifMetagenerationMatch uint64) 
 // whether the object's current metageneration does not match the given
 // value.
 func (c *ObjectsUpdateCall) IfMetagenerationNotMatch(ifMetagenerationNotMatch uint64) *ObjectsUpdateCall {
-	c.opt_["ifMetagenerationNotMatch"] = ifMetagenerationNotMatch
+	c.params_.Set("ifMetagenerationNotMatch", fmt.Sprintf("%v", ifMetagenerationNotMatch))
 	return c
 }
 
 // Projection sets the optional parameter "projection": Set of
 // properties to return. Defaults to full.
 func (c *ObjectsUpdateCall) Projection(projection string) *ObjectsUpdateCall {
-	c.opt_["projection"] = projection
+	c.params_.Set("projection", fmt.Sprintf("%v", projection))
+	return c
+}
+func (c *ObjectsUpdateCall) Context(ctx context.Context) *ObjectsUpdateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -4806,62 +4518,45 @@ func (c *ObjectsUpdateCall) Projection(projection string) *ObjectsUpdateCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ObjectsUpdateCall) Fields(s ...googleapi.Field) *ObjectsUpdateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
-func (c *ObjectsUpdateCall) Do() (*Object, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.object2)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["generation"]; ok {
-		params.Set("generation", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["ifGenerationMatch"]; ok {
-		params.Set("ifGenerationMatch", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["ifGenerationNotMatch"]; ok {
-		params.Set("ifGenerationNotMatch", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["ifMetagenerationMatch"]; ok {
-		params.Set("ifMetagenerationMatch", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["ifMetagenerationNotMatch"]; ok {
-		params.Set("ifMetagenerationNotMatch", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["projection"]; ok {
-		params.Set("projection", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "b/{bucket}/o/{object}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+// GetResponse sets alt=media creating a file download request. The body
+// of the *http.Response contains the media.  You should close the response
+// body when finished reading.
+
+func (c *ObjectsUpdateCall) GetResponse() (*http.Response, error) {
+	var res *http.Response
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"bucket": c.bucket,
 		"object": c.object,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.object2,
+		Result:  &res,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
+	return res, c.caller_.Do(c.context_, c.s.client, call)
+}
+
+func (c *ObjectsUpdateCall) Do() (*Object, error) {
+	var returnValue *Object
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
+		"bucket": c.bucket,
+		"object": c.object,
+	})
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.object2,
+		Result:  &returnValue,
 	}
-	var ret *Object
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates a data blob's associated metadata.",
 	//   "httpMethod": "PUT",
@@ -4946,18 +4641,27 @@ func (c *ObjectsUpdateCall) Do() (*Object, error) {
 // method id "storage.objects.watchAll":
 
 type ObjectsWatchAllCall struct {
-	s       *Service
-	bucket  string
-	channel *Channel
-	opt_    map[string]interface{}
+	s             *Service
+	bucket        string
+	channel       *Channel
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // WatchAll: Watch for changes on all objects in a bucket.
+
 func (r *ObjectsService) WatchAll(bucket string, channel *Channel) *ObjectsWatchAllCall {
-	c := &ObjectsWatchAllCall{s: r.s, opt_: make(map[string]interface{})}
-	c.bucket = bucket
-	c.channel = channel
-	return c
+	return &ObjectsWatchAllCall{
+		s:             r.s,
+		bucket:        bucket,
+		channel:       channel,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "b/{bucket}/o/watch",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Delimiter sets the optional parameter "delimiter": Returns results in
@@ -4967,7 +4671,7 @@ func (r *ObjectsService) WatchAll(bucket string, channel *Channel) *ObjectsWatch
 // truncated after the delimiter, returned in prefixes. Duplicate
 // prefixes are omitted.
 func (c *ObjectsWatchAllCall) Delimiter(delimiter string) *ObjectsWatchAllCall {
-	c.opt_["delimiter"] = delimiter
+	c.params_.Set("delimiter", fmt.Sprintf("%v", delimiter))
 	return c
 }
 
@@ -4975,7 +4679,7 @@ func (c *ObjectsWatchAllCall) Delimiter(delimiter string) *ObjectsWatchAllCall {
 // of items plus prefixes to return. As duplicate prefixes are omitted,
 // fewer total results may be returned than requested.
 func (c *ObjectsWatchAllCall) MaxResults(maxResults int64) *ObjectsWatchAllCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
@@ -4983,28 +4687,32 @@ func (c *ObjectsWatchAllCall) MaxResults(maxResults int64) *ObjectsWatchAllCall 
 // previously-returned page token representing part of the larger set of
 // results to view.
 func (c *ObjectsWatchAllCall) PageToken(pageToken string) *ObjectsWatchAllCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
 	return c
 }
 
 // Prefix sets the optional parameter "prefix": Filter results to
 // objects whose names begin with this prefix.
 func (c *ObjectsWatchAllCall) Prefix(prefix string) *ObjectsWatchAllCall {
-	c.opt_["prefix"] = prefix
+	c.params_.Set("prefix", fmt.Sprintf("%v", prefix))
 	return c
 }
 
 // Projection sets the optional parameter "projection": Set of
 // properties to return. Defaults to noAcl.
 func (c *ObjectsWatchAllCall) Projection(projection string) *ObjectsWatchAllCall {
-	c.opt_["projection"] = projection
+	c.params_.Set("projection", fmt.Sprintf("%v", projection))
 	return c
 }
 
 // Versions sets the optional parameter "versions": If true, lists all
 // versions of a file as distinct results.
 func (c *ObjectsWatchAllCall) Versions(versions bool) *ObjectsWatchAllCall {
-	c.opt_["versions"] = versions
+	c.params_.Set("versions", fmt.Sprintf("%v", versions))
+	return c
+}
+func (c *ObjectsWatchAllCall) Context(ctx context.Context) *ObjectsWatchAllCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -5012,61 +4720,24 @@ func (c *ObjectsWatchAllCall) Versions(versions bool) *ObjectsWatchAllCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ObjectsWatchAllCall) Fields(s ...googleapi.Field) *ObjectsWatchAllCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ObjectsWatchAllCall) Do() (*Channel, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.channel)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["delimiter"]; ok {
-		params.Set("delimiter", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["prefix"]; ok {
-		params.Set("prefix", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["projection"]; ok {
-		params.Set("projection", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["versions"]; ok {
-		params.Set("versions", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "b/{bucket}/o/watch")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Channel
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"bucket": c.bucket,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.channel,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Channel
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Watch for changes on all objects in a bucket.",
 	//   "httpMethod": "POST",

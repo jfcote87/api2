@@ -4,18 +4,16 @@
 //
 // Usage example:
 //
-//   import "google.golang.org/api/games/v1"
+//   import "github.com/jfcote87/api2/games/v1"
 //   ...
 //   gamesService, err := games.New(oauthHttpClient)
 package games
 
 import (
-	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/jfcote87/api2/googleapi"
 	"golang.org/x/net/context"
-	"google.golang.org/api/googleapi"
 	"io"
 	"net/http"
 	"net/url"
@@ -25,10 +23,8 @@ import (
 
 // Always reference these packages, just in case the auto-generated code
 // below doesn't.
-var _ = bytes.NewBuffer
 var _ = strconv.Itoa
 var _ = fmt.Sprintf
-var _ = json.NewDecoder
 var _ = io.Copy
 var _ = url.Parse
 var _ = googleapi.Version
@@ -39,7 +35,8 @@ var _ = context.Background
 const apiId = "games:v1"
 const apiName = "games"
 const apiVersion = "v1"
-const basePath = "https://www.googleapis.com/games/v1/"
+
+var baseURL *url.URL = &url.URL{Scheme: "https", Host: "www.googleapis.com", Path: "/games/v1/"}
 
 // OAuth2 scopes used by this API.
 const (
@@ -58,7 +55,7 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
+	s := &Service{client: client}
 	s.AchievementDefinitions = NewAchievementDefinitionsService(s)
 	s.Achievements = NewAchievementsService(s)
 	s.Applications = NewApplicationsService(s)
@@ -78,9 +75,7 @@ func New(client *http.Client) (*Service, error) {
 }
 
 type Service struct {
-	client    *http.Client
-	BasePath  string // API endpoint base URL
-	UserAgent string // optional additional User-Agent fragment
+	client *http.Client
 
 	AchievementDefinitions *AchievementDefinitionsService
 
@@ -111,13 +106,6 @@ type Service struct {
 	Snapshots *SnapshotsService
 
 	TurnBasedMatches *TurnBasedMatchesService
-}
-
-func (s *Service) userAgent() string {
-	if s.UserAgent == "" {
-		return googleapi.UserAgent
-	}
-	return googleapi.UserAgent + " " + s.UserAgent
 }
 
 func NewAchievementDefinitionsService(s *Service) *AchievementDefinitionsService {
@@ -2522,20 +2510,29 @@ type TurnBasedMatchTurn struct {
 // method id "games.achievementDefinitions.list":
 
 type AchievementDefinitionsListCall struct {
-	s    *Service
-	opt_ map[string]interface{}
+	s             *Service
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Lists all the achievement definitions for your application.
+
 func (r *AchievementDefinitionsService) List() *AchievementDefinitionsListCall {
-	c := &AchievementDefinitionsListCall{s: r.s, opt_: make(map[string]interface{})}
-	return c
+	return &AchievementDefinitionsListCall{
+		s:             r.s,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "achievements",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Language sets the optional parameter "language": The preferred
 // language to use for strings returned by this method.
 func (c *AchievementDefinitionsListCall) Language(language string) *AchievementDefinitionsListCall {
-	c.opt_["language"] = language
+	c.params_.Set("language", fmt.Sprintf("%v", language))
 	return c
 }
 
@@ -2544,14 +2541,18 @@ func (c *AchievementDefinitionsListCall) Language(language string) *AchievementD
 // paging. For any response, the actual number of achievement resources
 // returned may be less than the specified maxResults.
 func (c *AchievementDefinitionsListCall) MaxResults(maxResults int64) *AchievementDefinitionsListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
 // PageToken sets the optional parameter "pageToken": The token returned
 // by the previous request.
 func (c *AchievementDefinitionsListCall) PageToken(pageToken string) *AchievementDefinitionsListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
+	return c
+}
+func (c *AchievementDefinitionsListCall) Context(ctx context.Context) *AchievementDefinitionsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2559,44 +2560,21 @@ func (c *AchievementDefinitionsListCall) PageToken(pageToken string) *Achievemen
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AchievementDefinitionsListCall) Fields(s ...googleapi.Field) *AchievementDefinitionsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AchievementDefinitionsListCall) Do() (*AchievementDefinitionsListResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["language"]; ok {
-		params.Set("language", fmt.Sprintf("%v", v))
+	var returnValue *AchievementDefinitionsListResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "achievements")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *AchievementDefinitionsListResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Lists all the achievement definitions for your application.",
 	//   "httpMethod": "GET",
@@ -2639,16 +2617,25 @@ type AchievementsIncrementCall struct {
 	s                *Service
 	achievementId    string
 	stepsToIncrement int64
-	opt_             map[string]interface{}
+	caller_          googleapi.Caller
+	params_          url.Values
+	pathTemplate_    string
+	context_         context.Context
 }
 
 // Increment: Increments the steps of the achievement with the given ID
 // for the currently authenticated player.
+
 func (r *AchievementsService) Increment(achievementId string, stepsToIncrement int64) *AchievementsIncrementCall {
-	c := &AchievementsIncrementCall{s: r.s, opt_: make(map[string]interface{})}
-	c.achievementId = achievementId
-	c.stepsToIncrement = stepsToIncrement
-	return c
+	return &AchievementsIncrementCall{
+		s:                r.s,
+		achievementId:    achievementId,
+		stepsToIncrement: stepsToIncrement,
+		caller_:          googleapi.JSONCall{},
+		params_:          make(map[string][]string),
+		pathTemplate_:    "achievements/{achievementId}/increment",
+		context_:         googleapi.NoContext,
+	}
 }
 
 // RequestId sets the optional parameter "requestId": A randomly
@@ -2656,7 +2643,11 @@ func (r *AchievementsService) Increment(achievementId string, stepsToIncrement i
 // number is used at the server to ensure that the request is handled
 // correctly across retries.
 func (c *AchievementsIncrementCall) RequestId(requestId int64) *AchievementsIncrementCall {
-	c.opt_["requestId"] = requestId
+	c.params_.Set("requestId", fmt.Sprintf("%v", requestId))
+	return c
+}
+func (c *AchievementsIncrementCall) Context(ctx context.Context) *AchievementsIncrementCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2664,41 +2655,24 @@ func (c *AchievementsIncrementCall) RequestId(requestId int64) *AchievementsIncr
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AchievementsIncrementCall) Fields(s ...googleapi.Field) *AchievementsIncrementCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AchievementsIncrementCall) Do() (*AchievementIncrementResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("stepsToIncrement", fmt.Sprintf("%v", c.stepsToIncrement))
-	if v, ok := c.opt_["requestId"]; ok {
-		params.Set("requestId", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "achievements/{achievementId}/increment")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *AchievementIncrementResponse
+	c.params_.Set("stepsToIncrement", fmt.Sprintf("%v", c.stepsToIncrement))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"achievementId": c.achievementId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "POST",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *AchievementIncrementResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Increments the steps of the achievement with the given ID for the currently authenticated player.",
 	//   "httpMethod": "POST",
@@ -2744,23 +2718,32 @@ func (c *AchievementsIncrementCall) Do() (*AchievementIncrementResponse, error) 
 // method id "games.achievements.list":
 
 type AchievementsListCall struct {
-	s        *Service
-	playerId string
-	opt_     map[string]interface{}
+	s             *Service
+	playerId      string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Lists the progress for all your application's achievements for
 // the currently authenticated player.
+
 func (r *AchievementsService) List(playerId string) *AchievementsListCall {
-	c := &AchievementsListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.playerId = playerId
-	return c
+	return &AchievementsListCall{
+		s:             r.s,
+		playerId:      playerId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "players/{playerId}/achievements",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Language sets the optional parameter "language": The preferred
 // language to use for strings returned by this method.
 func (c *AchievementsListCall) Language(language string) *AchievementsListCall {
-	c.opt_["language"] = language
+	c.params_.Set("language", fmt.Sprintf("%v", language))
 	return c
 }
 
@@ -2769,14 +2752,14 @@ func (c *AchievementsListCall) Language(language string) *AchievementsListCall {
 // paging. For any response, the actual number of achievement resources
 // returned may be less than the specified maxResults.
 func (c *AchievementsListCall) MaxResults(maxResults int64) *AchievementsListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
 // PageToken sets the optional parameter "pageToken": The token returned
 // by the previous request.
 func (c *AchievementsListCall) PageToken(pageToken string) *AchievementsListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
 	return c
 }
 
@@ -2784,7 +2767,11 @@ func (c *AchievementsListCall) PageToken(pageToken string) *AchievementsListCall
 // only achievements with the specified state. If this parameter isn't
 // specified, all achievements are returned.
 func (c *AchievementsListCall) State(state string) *AchievementsListCall {
-	c.opt_["state"] = state
+	c.params_.Set("state", fmt.Sprintf("%v", state))
+	return c
+}
+func (c *AchievementsListCall) Context(ctx context.Context) *AchievementsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2792,49 +2779,23 @@ func (c *AchievementsListCall) State(state string) *AchievementsListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AchievementsListCall) Fields(s ...googleapi.Field) *AchievementsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AchievementsListCall) Do() (*PlayerAchievementListResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["language"]; ok {
-		params.Set("language", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["state"]; ok {
-		params.Set("state", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "players/{playerId}/achievements")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *PlayerAchievementListResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"playerId": c.playerId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *PlayerAchievementListResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Lists the progress for all your application's achievements for the currently authenticated player.",
 	//   "httpMethod": "GET",
@@ -2902,14 +2863,27 @@ func (c *AchievementsListCall) Do() (*PlayerAchievementListResponse, error) {
 type AchievementsRevealCall struct {
 	s             *Service
 	achievementId string
-	opt_          map[string]interface{}
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Reveal: Sets the state of the achievement with the given ID to
 // REVEALED for the currently authenticated player.
+
 func (r *AchievementsService) Reveal(achievementId string) *AchievementsRevealCall {
-	c := &AchievementsRevealCall{s: r.s, opt_: make(map[string]interface{})}
-	c.achievementId = achievementId
+	return &AchievementsRevealCall{
+		s:             r.s,
+		achievementId: achievementId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "achievements/{achievementId}/reveal",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *AchievementsRevealCall) Context(ctx context.Context) *AchievementsRevealCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2917,37 +2891,23 @@ func (r *AchievementsService) Reveal(achievementId string) *AchievementsRevealCa
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AchievementsRevealCall) Fields(s ...googleapi.Field) *AchievementsRevealCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AchievementsRevealCall) Do() (*AchievementRevealResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "achievements/{achievementId}/reveal")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *AchievementRevealResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"achievementId": c.achievementId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "POST",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *AchievementRevealResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Sets the state of the achievement with the given ID to REVEALED for the currently authenticated player.",
 	//   "httpMethod": "POST",
@@ -2981,17 +2941,30 @@ type AchievementsSetStepsAtLeastCall struct {
 	s             *Service
 	achievementId string
 	steps         int64
-	opt_          map[string]interface{}
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // SetStepsAtLeast: Sets the steps for the currently authenticated
 // player towards unlocking an achievement. If the steps parameter is
 // less than the current number of steps that the player already gained
 // for the achievement, the achievement is not modified.
+
 func (r *AchievementsService) SetStepsAtLeast(achievementId string, steps int64) *AchievementsSetStepsAtLeastCall {
-	c := &AchievementsSetStepsAtLeastCall{s: r.s, opt_: make(map[string]interface{})}
-	c.achievementId = achievementId
-	c.steps = steps
+	return &AchievementsSetStepsAtLeastCall{
+		s:             r.s,
+		achievementId: achievementId,
+		steps:         steps,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "achievements/{achievementId}/setStepsAtLeast",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *AchievementsSetStepsAtLeastCall) Context(ctx context.Context) *AchievementsSetStepsAtLeastCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2999,38 +2972,24 @@ func (r *AchievementsService) SetStepsAtLeast(achievementId string, steps int64)
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AchievementsSetStepsAtLeastCall) Fields(s ...googleapi.Field) *AchievementsSetStepsAtLeastCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AchievementsSetStepsAtLeastCall) Do() (*AchievementSetStepsAtLeastResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("steps", fmt.Sprintf("%v", c.steps))
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "achievements/{achievementId}/setStepsAtLeast")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *AchievementSetStepsAtLeastResponse
+	c.params_.Set("steps", fmt.Sprintf("%v", c.steps))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"achievementId": c.achievementId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "POST",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *AchievementSetStepsAtLeastResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Sets the steps for the currently authenticated player towards unlocking an achievement. If the steps parameter is less than the current number of steps that the player already gained for the achievement, the achievement is not modified.",
 	//   "httpMethod": "POST",
@@ -3072,14 +3031,27 @@ func (c *AchievementsSetStepsAtLeastCall) Do() (*AchievementSetStepsAtLeastRespo
 type AchievementsUnlockCall struct {
 	s             *Service
 	achievementId string
-	opt_          map[string]interface{}
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Unlock: Unlocks this achievement for the currently authenticated
 // player.
+
 func (r *AchievementsService) Unlock(achievementId string) *AchievementsUnlockCall {
-	c := &AchievementsUnlockCall{s: r.s, opt_: make(map[string]interface{})}
-	c.achievementId = achievementId
+	return &AchievementsUnlockCall{
+		s:             r.s,
+		achievementId: achievementId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "achievements/{achievementId}/unlock",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *AchievementsUnlockCall) Context(ctx context.Context) *AchievementsUnlockCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -3087,37 +3059,23 @@ func (r *AchievementsService) Unlock(achievementId string) *AchievementsUnlockCa
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AchievementsUnlockCall) Fields(s ...googleapi.Field) *AchievementsUnlockCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AchievementsUnlockCall) Do() (*AchievementUnlockResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "achievements/{achievementId}/unlock")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *AchievementUnlockResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"achievementId": c.achievementId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "POST",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *AchievementUnlockResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Unlocks this achievement for the currently authenticated player.",
 	//   "httpMethod": "POST",
@@ -3150,14 +3108,27 @@ func (c *AchievementsUnlockCall) Do() (*AchievementUnlockResponse, error) {
 type AchievementsUpdateMultipleCall struct {
 	s                                *Service
 	achievementupdatemultiplerequest *AchievementUpdateMultipleRequest
-	opt_                             map[string]interface{}
+	caller_                          googleapi.Caller
+	params_                          url.Values
+	pathTemplate_                    string
+	context_                         context.Context
 }
 
 // UpdateMultiple: Updates multiple achievements for the currently
 // authenticated player.
+
 func (r *AchievementsService) UpdateMultiple(achievementupdatemultiplerequest *AchievementUpdateMultipleRequest) *AchievementsUpdateMultipleCall {
-	c := &AchievementsUpdateMultipleCall{s: r.s, opt_: make(map[string]interface{})}
-	c.achievementupdatemultiplerequest = achievementupdatemultiplerequest
+	return &AchievementsUpdateMultipleCall{
+		s: r.s,
+		achievementupdatemultiplerequest: achievementupdatemultiplerequest,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "achievements/updateMultiple",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *AchievementsUpdateMultipleCall) Context(ctx context.Context) *AchievementsUpdateMultipleCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -3165,41 +3136,22 @@ func (r *AchievementsService) UpdateMultiple(achievementupdatemultiplerequest *A
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AchievementsUpdateMultipleCall) Fields(s ...googleapi.Field) *AchievementsUpdateMultipleCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AchievementsUpdateMultipleCall) Do() (*AchievementUpdateMultipleResponse, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.achievementupdatemultiplerequest)
-	if err != nil {
-		return nil, err
+	var returnValue *AchievementUpdateMultipleResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.achievementupdatemultiplerequest,
+		Result:  &returnValue,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "achievements/updateMultiple")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *AchievementUpdateMultipleResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates multiple achievements for the currently authenticated player.",
 	//   "httpMethod": "POST",
@@ -3224,30 +3176,43 @@ func (c *AchievementsUpdateMultipleCall) Do() (*AchievementUpdateMultipleRespons
 type ApplicationsGetCall struct {
 	s             *Service
 	applicationId string
-	opt_          map[string]interface{}
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Retrieves the metadata of the application with the given ID. If
 // the requested application is not available for the specified
 // platformType, the returned response will not include any instance
 // data.
+
 func (r *ApplicationsService) Get(applicationId string) *ApplicationsGetCall {
-	c := &ApplicationsGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.applicationId = applicationId
-	return c
+	return &ApplicationsGetCall{
+		s:             r.s,
+		applicationId: applicationId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "applications/{applicationId}",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Language sets the optional parameter "language": The preferred
 // language to use for strings returned by this method.
 func (c *ApplicationsGetCall) Language(language string) *ApplicationsGetCall {
-	c.opt_["language"] = language
+	c.params_.Set("language", fmt.Sprintf("%v", language))
 	return c
 }
 
 // PlatformType sets the optional parameter "platformType": Restrict
 // application details returned to the specific platform.
 func (c *ApplicationsGetCall) PlatformType(platformType string) *ApplicationsGetCall {
-	c.opt_["platformType"] = platformType
+	c.params_.Set("platformType", fmt.Sprintf("%v", platformType))
+	return c
+}
+func (c *ApplicationsGetCall) Context(ctx context.Context) *ApplicationsGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -3255,43 +3220,23 @@ func (c *ApplicationsGetCall) PlatformType(platformType string) *ApplicationsGet
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ApplicationsGetCall) Fields(s ...googleapi.Field) *ApplicationsGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ApplicationsGetCall) Do() (*Application, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["language"]; ok {
-		params.Set("language", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["platformType"]; ok {
-		params.Set("platformType", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "applications/{applicationId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Application
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"applicationId": c.applicationId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Application
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves the metadata of the application with the given ID. If the requested application is not available for the specified platformType, the returned response will not include any instance data.",
 	//   "httpMethod": "GET",
@@ -3342,46 +3287,39 @@ func (c *ApplicationsGetCall) Do() (*Application, error) {
 // method id "games.applications.played":
 
 type ApplicationsPlayedCall struct {
-	s    *Service
-	opt_ map[string]interface{}
+	s             *Service
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Played: Indicate that the the currently authenticated user is playing
 // your application.
-func (r *ApplicationsService) Played() *ApplicationsPlayedCall {
-	c := &ApplicationsPlayedCall{s: r.s, opt_: make(map[string]interface{})}
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *ApplicationsPlayedCall) Fields(s ...googleapi.Field) *ApplicationsPlayedCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *ApplicationsService) Played() *ApplicationsPlayedCall {
+	return &ApplicationsPlayedCall{
+		s:             r.s,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "applications/played",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *ApplicationsPlayedCall) Context(ctx context.Context) *ApplicationsPlayedCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *ApplicationsPlayedCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "POST",
+		URL:    u,
+		Params: c.params_,
 	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "applications/played")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Indicate that the the currently authenticated user is playing your application.",
 	//   "httpMethod": "POST",
@@ -3398,21 +3336,30 @@ func (c *ApplicationsPlayedCall) Do() error {
 // method id "games.events.listByPlayer":
 
 type EventsListByPlayerCall struct {
-	s    *Service
-	opt_ map[string]interface{}
+	s             *Service
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // ListByPlayer: Returns a list showing the current progress on events
 // in this application for the currently authenticated user.
+
 func (r *EventsService) ListByPlayer() *EventsListByPlayerCall {
-	c := &EventsListByPlayerCall{s: r.s, opt_: make(map[string]interface{})}
-	return c
+	return &EventsListByPlayerCall{
+		s:             r.s,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "events",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Language sets the optional parameter "language": The preferred
 // language to use for strings returned by this method.
 func (c *EventsListByPlayerCall) Language(language string) *EventsListByPlayerCall {
-	c.opt_["language"] = language
+	c.params_.Set("language", fmt.Sprintf("%v", language))
 	return c
 }
 
@@ -3421,14 +3368,18 @@ func (c *EventsListByPlayerCall) Language(language string) *EventsListByPlayerCa
 // response, the actual number of events to return may be less than the
 // specified maxResults.
 func (c *EventsListByPlayerCall) MaxResults(maxResults int64) *EventsListByPlayerCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
 // PageToken sets the optional parameter "pageToken": The token returned
 // by the previous request.
 func (c *EventsListByPlayerCall) PageToken(pageToken string) *EventsListByPlayerCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
+	return c
+}
+func (c *EventsListByPlayerCall) Context(ctx context.Context) *EventsListByPlayerCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -3436,44 +3387,21 @@ func (c *EventsListByPlayerCall) PageToken(pageToken string) *EventsListByPlayer
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *EventsListByPlayerCall) Fields(s ...googleapi.Field) *EventsListByPlayerCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *EventsListByPlayerCall) Do() (*PlayerEventListResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["language"]; ok {
-		params.Set("language", fmt.Sprintf("%v", v))
+	var returnValue *PlayerEventListResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "events")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *PlayerEventListResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Returns a list showing the current progress on events in this application for the currently authenticated user.",
 	//   "httpMethod": "GET",
@@ -3513,21 +3441,30 @@ func (c *EventsListByPlayerCall) Do() (*PlayerEventListResponse, error) {
 // method id "games.events.listDefinitions":
 
 type EventsListDefinitionsCall struct {
-	s    *Service
-	opt_ map[string]interface{}
+	s             *Service
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // ListDefinitions: Returns a list of the event definitions in this
 // application.
+
 func (r *EventsService) ListDefinitions() *EventsListDefinitionsCall {
-	c := &EventsListDefinitionsCall{s: r.s, opt_: make(map[string]interface{})}
-	return c
+	return &EventsListDefinitionsCall{
+		s:             r.s,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "eventDefinitions",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Language sets the optional parameter "language": The preferred
 // language to use for strings returned by this method.
 func (c *EventsListDefinitionsCall) Language(language string) *EventsListDefinitionsCall {
-	c.opt_["language"] = language
+	c.params_.Set("language", fmt.Sprintf("%v", language))
 	return c
 }
 
@@ -3536,14 +3473,18 @@ func (c *EventsListDefinitionsCall) Language(language string) *EventsListDefinit
 // paging. For any response, the actual number of event definitions to
 // return may be less than the specified maxResults.
 func (c *EventsListDefinitionsCall) MaxResults(maxResults int64) *EventsListDefinitionsCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
 // PageToken sets the optional parameter "pageToken": The token returned
 // by the previous request.
 func (c *EventsListDefinitionsCall) PageToken(pageToken string) *EventsListDefinitionsCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
+	return c
+}
+func (c *EventsListDefinitionsCall) Context(ctx context.Context) *EventsListDefinitionsCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -3551,44 +3492,21 @@ func (c *EventsListDefinitionsCall) PageToken(pageToken string) *EventsListDefin
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *EventsListDefinitionsCall) Fields(s ...googleapi.Field) *EventsListDefinitionsCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *EventsListDefinitionsCall) Do() (*EventDefinitionListResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["language"]; ok {
-		params.Set("language", fmt.Sprintf("%v", v))
+	var returnValue *EventDefinitionListResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "eventDefinitions")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *EventDefinitionListResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Returns a list of the event definitions in this application.",
 	//   "httpMethod": "GET",
@@ -3630,21 +3548,34 @@ func (c *EventsListDefinitionsCall) Do() (*EventDefinitionListResponse, error) {
 type EventsRecordCall struct {
 	s                  *Service
 	eventrecordrequest *EventRecordRequest
-	opt_               map[string]interface{}
+	caller_            googleapi.Caller
+	params_            url.Values
+	pathTemplate_      string
+	context_           context.Context
 }
 
 // Record: Records a batch of changes to the number of times events have
 // occurred for the currently authenticated user of this application.
+
 func (r *EventsService) Record(eventrecordrequest *EventRecordRequest) *EventsRecordCall {
-	c := &EventsRecordCall{s: r.s, opt_: make(map[string]interface{})}
-	c.eventrecordrequest = eventrecordrequest
-	return c
+	return &EventsRecordCall{
+		s:                  r.s,
+		eventrecordrequest: eventrecordrequest,
+		caller_:            googleapi.JSONCall{},
+		params_:            make(map[string][]string),
+		pathTemplate_:      "events",
+		context_:           googleapi.NoContext,
+	}
 }
 
 // Language sets the optional parameter "language": The preferred
 // language to use for strings returned by this method.
 func (c *EventsRecordCall) Language(language string) *EventsRecordCall {
-	c.opt_["language"] = language
+	c.params_.Set("language", fmt.Sprintf("%v", language))
+	return c
+}
+func (c *EventsRecordCall) Context(ctx context.Context) *EventsRecordCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -3652,44 +3583,22 @@ func (c *EventsRecordCall) Language(language string) *EventsRecordCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *EventsRecordCall) Fields(s ...googleapi.Field) *EventsRecordCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *EventsRecordCall) Do() (*EventUpdateResponse, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.eventrecordrequest)
-	if err != nil {
-		return nil, err
+	var returnValue *EventUpdateResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.eventrecordrequest,
+		Result:  &returnValue,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["language"]; ok {
-		params.Set("language", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "events")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *EventUpdateResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Records a batch of changes to the number of times events have occurred for the currently authenticated user of this application.",
 	//   "httpMethod": "POST",
@@ -3721,20 +3630,33 @@ func (c *EventsRecordCall) Do() (*EventUpdateResponse, error) {
 type LeaderboardsGetCall struct {
 	s             *Service
 	leaderboardId string
-	opt_          map[string]interface{}
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Retrieves the metadata of the leaderboard with the given ID.
+
 func (r *LeaderboardsService) Get(leaderboardId string) *LeaderboardsGetCall {
-	c := &LeaderboardsGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.leaderboardId = leaderboardId
-	return c
+	return &LeaderboardsGetCall{
+		s:             r.s,
+		leaderboardId: leaderboardId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "leaderboards/{leaderboardId}",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Language sets the optional parameter "language": The preferred
 // language to use for strings returned by this method.
 func (c *LeaderboardsGetCall) Language(language string) *LeaderboardsGetCall {
-	c.opt_["language"] = language
+	c.params_.Set("language", fmt.Sprintf("%v", language))
+	return c
+}
+func (c *LeaderboardsGetCall) Context(ctx context.Context) *LeaderboardsGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -3742,40 +3664,23 @@ func (c *LeaderboardsGetCall) Language(language string) *LeaderboardsGetCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *LeaderboardsGetCall) Fields(s ...googleapi.Field) *LeaderboardsGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *LeaderboardsGetCall) Do() (*Leaderboard, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["language"]; ok {
-		params.Set("language", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "leaderboards/{leaderboardId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Leaderboard
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"leaderboardId": c.leaderboardId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Leaderboard
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves the metadata of the leaderboard with the given ID.",
 	//   "httpMethod": "GET",
@@ -3811,20 +3716,29 @@ func (c *LeaderboardsGetCall) Do() (*Leaderboard, error) {
 // method id "games.leaderboards.list":
 
 type LeaderboardsListCall struct {
-	s    *Service
-	opt_ map[string]interface{}
+	s             *Service
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Lists all the leaderboard metadata for your application.
+
 func (r *LeaderboardsService) List() *LeaderboardsListCall {
-	c := &LeaderboardsListCall{s: r.s, opt_: make(map[string]interface{})}
-	return c
+	return &LeaderboardsListCall{
+		s:             r.s,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "leaderboards",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Language sets the optional parameter "language": The preferred
 // language to use for strings returned by this method.
 func (c *LeaderboardsListCall) Language(language string) *LeaderboardsListCall {
-	c.opt_["language"] = language
+	c.params_.Set("language", fmt.Sprintf("%v", language))
 	return c
 }
 
@@ -3833,14 +3747,18 @@ func (c *LeaderboardsListCall) Language(language string) *LeaderboardsListCall {
 // the actual number of leaderboards returned may be less than the
 // specified maxResults.
 func (c *LeaderboardsListCall) MaxResults(maxResults int64) *LeaderboardsListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
 // PageToken sets the optional parameter "pageToken": The token returned
 // by the previous request.
 func (c *LeaderboardsListCall) PageToken(pageToken string) *LeaderboardsListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
+	return c
+}
+func (c *LeaderboardsListCall) Context(ctx context.Context) *LeaderboardsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -3848,44 +3766,21 @@ func (c *LeaderboardsListCall) PageToken(pageToken string) *LeaderboardsListCall
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *LeaderboardsListCall) Fields(s ...googleapi.Field) *LeaderboardsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *LeaderboardsListCall) Do() (*LeaderboardListResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["language"]; ok {
-		params.Set("language", fmt.Sprintf("%v", v))
+	var returnValue *LeaderboardListResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "leaderboards")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *LeaderboardListResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Lists all the leaderboard metadata for your application.",
 	//   "httpMethod": "GET",
@@ -3925,14 +3820,27 @@ func (c *LeaderboardsListCall) Do() (*LeaderboardListResponse, error) {
 // method id "games.metagame.getMetagameConfig":
 
 type MetagameGetMetagameConfigCall struct {
-	s    *Service
-	opt_ map[string]interface{}
+	s             *Service
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // GetMetagameConfig: Return the metagame configuration data for the
 // calling application.
+
 func (r *MetagameService) GetMetagameConfig() *MetagameGetMetagameConfigCall {
-	c := &MetagameGetMetagameConfigCall{s: r.s, opt_: make(map[string]interface{})}
+	return &MetagameGetMetagameConfigCall{
+		s:             r.s,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "metagameConfig",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *MetagameGetMetagameConfigCall) Context(ctx context.Context) *MetagameGetMetagameConfigCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -3940,35 +3848,21 @@ func (r *MetagameService) GetMetagameConfig() *MetagameGetMetagameConfigCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *MetagameGetMetagameConfigCall) Fields(s ...googleapi.Field) *MetagameGetMetagameConfigCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *MetagameGetMetagameConfigCall) Do() (*MetagameConfig, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
+	var returnValue *MetagameConfig
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "metagameConfig")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *MetagameConfig
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Return the metagame configuration data for the calling application.",
 	//   "httpMethod": "GET",
@@ -3988,25 +3882,34 @@ func (c *MetagameGetMetagameConfigCall) Do() (*MetagameConfig, error) {
 // method id "games.metagame.listCategoriesByPlayer":
 
 type MetagameListCategoriesByPlayerCall struct {
-	s          *Service
-	playerId   string
-	collection string
-	opt_       map[string]interface{}
+	s             *Service
+	playerId      string
+	collection    string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // ListCategoriesByPlayer: List play data aggregated per category for
 // the player corresponding to playerId.
+
 func (r *MetagameService) ListCategoriesByPlayer(playerId string, collection string) *MetagameListCategoriesByPlayerCall {
-	c := &MetagameListCategoriesByPlayerCall{s: r.s, opt_: make(map[string]interface{})}
-	c.playerId = playerId
-	c.collection = collection
-	return c
+	return &MetagameListCategoriesByPlayerCall{
+		s:             r.s,
+		playerId:      playerId,
+		collection:    collection,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "players/{playerId}/categories/{collection}",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Language sets the optional parameter "language": The preferred
 // language to use for strings returned by this method.
 func (c *MetagameListCategoriesByPlayerCall) Language(language string) *MetagameListCategoriesByPlayerCall {
-	c.opt_["language"] = language
+	c.params_.Set("language", fmt.Sprintf("%v", language))
 	return c
 }
 
@@ -4015,14 +3918,18 @@ func (c *MetagameListCategoriesByPlayerCall) Language(language string) *Metagame
 // paging. For any response, the actual number of category resources
 // returned may be less than the specified maxResults.
 func (c *MetagameListCategoriesByPlayerCall) MaxResults(maxResults int64) *MetagameListCategoriesByPlayerCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
 // PageToken sets the optional parameter "pageToken": The token returned
 // by the previous request.
 func (c *MetagameListCategoriesByPlayerCall) PageToken(pageToken string) *MetagameListCategoriesByPlayerCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
+	return c
+}
+func (c *MetagameListCategoriesByPlayerCall) Context(ctx context.Context) *MetagameListCategoriesByPlayerCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -4030,47 +3937,24 @@ func (c *MetagameListCategoriesByPlayerCall) PageToken(pageToken string) *Metaga
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *MetagameListCategoriesByPlayerCall) Fields(s ...googleapi.Field) *MetagameListCategoriesByPlayerCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *MetagameListCategoriesByPlayerCall) Do() (*CategoryListResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["language"]; ok {
-		params.Set("language", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "players/{playerId}/categories/{collection}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *CategoryListResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"playerId":   c.playerId,
 		"collection": c.collection,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *CategoryListResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "List play data aggregated per category for the player corresponding to playerId.",
 	//   "httpMethod": "GET",
@@ -4132,23 +4016,36 @@ func (c *MetagameListCategoriesByPlayerCall) Do() (*CategoryListResponse, error)
 // method id "games.players.get":
 
 type PlayersGetCall struct {
-	s        *Service
-	playerId string
-	opt_     map[string]interface{}
+	s             *Service
+	playerId      string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Retrieves the Player resource with the given ID. To retrieve the
 // player for the currently authenticated user, set playerId to me.
+
 func (r *PlayersService) Get(playerId string) *PlayersGetCall {
-	c := &PlayersGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.playerId = playerId
-	return c
+	return &PlayersGetCall{
+		s:             r.s,
+		playerId:      playerId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "players/{playerId}",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Language sets the optional parameter "language": The preferred
 // language to use for strings returned by this method.
 func (c *PlayersGetCall) Language(language string) *PlayersGetCall {
-	c.opt_["language"] = language
+	c.params_.Set("language", fmt.Sprintf("%v", language))
+	return c
+}
+func (c *PlayersGetCall) Context(ctx context.Context) *PlayersGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -4156,40 +4053,23 @@ func (c *PlayersGetCall) Language(language string) *PlayersGetCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *PlayersGetCall) Fields(s ...googleapi.Field) *PlayersGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *PlayersGetCall) Do() (*Player, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["language"]; ok {
-		params.Set("language", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "players/{playerId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Player
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"playerId": c.playerId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Player
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves the Player resource with the given ID. To retrieve the player for the currently authenticated user, set playerId to me.",
 	//   "httpMethod": "GET",
@@ -4225,23 +4105,32 @@ func (c *PlayersGetCall) Do() (*Player, error) {
 // method id "games.players.list":
 
 type PlayersListCall struct {
-	s          *Service
-	collection string
-	opt_       map[string]interface{}
+	s             *Service
+	collection    string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Get the collection of players for the currently authenticated
 // user.
+
 func (r *PlayersService) List(collection string) *PlayersListCall {
-	c := &PlayersListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.collection = collection
-	return c
+	return &PlayersListCall{
+		s:             r.s,
+		collection:    collection,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "players/me/players/{collection}",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Language sets the optional parameter "language": The preferred
 // language to use for strings returned by this method.
 func (c *PlayersListCall) Language(language string) *PlayersListCall {
-	c.opt_["language"] = language
+	c.params_.Set("language", fmt.Sprintf("%v", language))
 	return c
 }
 
@@ -4250,14 +4139,18 @@ func (c *PlayersListCall) Language(language string) *PlayersListCall {
 // paging. For any response, the actual number of player resources
 // returned may be less than the specified maxResults.
 func (c *PlayersListCall) MaxResults(maxResults int64) *PlayersListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
 // PageToken sets the optional parameter "pageToken": The token returned
 // by the previous request.
 func (c *PlayersListCall) PageToken(pageToken string) *PlayersListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
+	return c
+}
+func (c *PlayersListCall) Context(ctx context.Context) *PlayersListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -4265,46 +4158,23 @@ func (c *PlayersListCall) PageToken(pageToken string) *PlayersListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *PlayersListCall) Fields(s ...googleapi.Field) *PlayersListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *PlayersListCall) Do() (*PlayerListResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["language"]; ok {
-		params.Set("language", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "players/me/players/{collection}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *PlayerListResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"collection": c.collection,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *PlayerListResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Get the collection of players for the currently authenticated user.",
 	//   "httpMethod": "GET",
@@ -4361,54 +4231,42 @@ func (c *PlayersListCall) Do() (*PlayerListResponse, error) {
 // method id "games.pushtokens.remove":
 
 type PushtokensRemoveCall struct {
-	s           *Service
-	pushtokenid *PushTokenId
-	opt_        map[string]interface{}
+	s             *Service
+	pushtokenid   *PushTokenId
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Remove: Removes a push token for the current user and application.
 // Removing a non-existent push token will report success.
-func (r *PushtokensService) Remove(pushtokenid *PushTokenId) *PushtokensRemoveCall {
-	c := &PushtokensRemoveCall{s: r.s, opt_: make(map[string]interface{})}
-	c.pushtokenid = pushtokenid
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *PushtokensRemoveCall) Fields(s ...googleapi.Field) *PushtokensRemoveCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *PushtokensService) Remove(pushtokenid *PushTokenId) *PushtokensRemoveCall {
+	return &PushtokensRemoveCall{
+		s:             r.s,
+		pushtokenid:   pushtokenid,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "pushtokens/remove",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *PushtokensRemoveCall) Context(ctx context.Context) *PushtokensRemoveCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *PushtokensRemoveCall) Do() error {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.pushtokenid)
-	if err != nil {
-		return err
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.pushtokenid,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "pushtokens/remove")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Removes a push token for the current user and application. Removing a non-existent push token will report success.",
 	//   "httpMethod": "POST",
@@ -4428,53 +4286,41 @@ func (c *PushtokensRemoveCall) Do() error {
 // method id "games.pushtokens.update":
 
 type PushtokensUpdateCall struct {
-	s         *Service
-	pushtoken *PushToken
-	opt_      map[string]interface{}
+	s             *Service
+	pushtoken     *PushToken
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Update: Registers a push token for the current user and application.
-func (r *PushtokensService) Update(pushtoken *PushToken) *PushtokensUpdateCall {
-	c := &PushtokensUpdateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.pushtoken = pushtoken
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *PushtokensUpdateCall) Fields(s ...googleapi.Field) *PushtokensUpdateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *PushtokensService) Update(pushtoken *PushToken) *PushtokensUpdateCall {
+	return &PushtokensUpdateCall{
+		s:             r.s,
+		pushtoken:     pushtoken,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "pushtokens",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *PushtokensUpdateCall) Context(ctx context.Context) *PushtokensUpdateCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *PushtokensUpdateCall) Do() error {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.pushtoken)
-	if err != nil {
-		return err
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.pushtoken,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "pushtokens")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Registers a push token for the current user and application.",
 	//   "httpMethod": "PUT",
@@ -4494,57 +4340,50 @@ func (c *PushtokensUpdateCall) Do() error {
 // method id "games.questMilestones.claim":
 
 type QuestMilestonesClaimCall struct {
-	s           *Service
-	questId     string
-	milestoneId string
-	requestId   int64
-	opt_        map[string]interface{}
+	s             *Service
+	questId       string
+	milestoneId   string
+	requestId     int64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Claim: Report that a reward for the milestone corresponding to
 // milestoneId for the quest corresponding to questId has been claimed
 // by the currently authorized user.
-func (r *QuestMilestonesService) Claim(questId string, milestoneId string, requestId int64) *QuestMilestonesClaimCall {
-	c := &QuestMilestonesClaimCall{s: r.s, opt_: make(map[string]interface{})}
-	c.questId = questId
-	c.milestoneId = milestoneId
-	c.requestId = requestId
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *QuestMilestonesClaimCall) Fields(s ...googleapi.Field) *QuestMilestonesClaimCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *QuestMilestonesService) Claim(questId string, milestoneId string, requestId int64) *QuestMilestonesClaimCall {
+	return &QuestMilestonesClaimCall{
+		s:             r.s,
+		questId:       questId,
+		milestoneId:   milestoneId,
+		requestId:     requestId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "quests/{questId}/milestones/{milestoneId}/claim",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *QuestMilestonesClaimCall) Context(ctx context.Context) *QuestMilestonesClaimCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *QuestMilestonesClaimCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("requestId", fmt.Sprintf("%v", c.requestId))
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "quests/{questId}/milestones/{milestoneId}/claim")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	c.params_.Set("requestId", fmt.Sprintf("%v", c.requestId))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"questId":     c.questId,
 		"milestoneId": c.milestoneId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "PUT",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Report that a reward for the milestone corresponding to milestoneId for the quest corresponding to questId has been claimed by the currently authorized user.",
 	//   "httpMethod": "PUT",
@@ -4587,23 +4426,36 @@ func (c *QuestMilestonesClaimCall) Do() error {
 // method id "games.quests.accept":
 
 type QuestsAcceptCall struct {
-	s       *Service
-	questId string
-	opt_    map[string]interface{}
+	s             *Service
+	questId       string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Accept: Indicates that the currently authorized user will participate
 // in the quest.
+
 func (r *QuestsService) Accept(questId string) *QuestsAcceptCall {
-	c := &QuestsAcceptCall{s: r.s, opt_: make(map[string]interface{})}
-	c.questId = questId
-	return c
+	return &QuestsAcceptCall{
+		s:             r.s,
+		questId:       questId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "quests/{questId}/accept",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Language sets the optional parameter "language": The preferred
 // language to use for strings returned by this method.
 func (c *QuestsAcceptCall) Language(language string) *QuestsAcceptCall {
-	c.opt_["language"] = language
+	c.params_.Set("language", fmt.Sprintf("%v", language))
+	return c
+}
+func (c *QuestsAcceptCall) Context(ctx context.Context) *QuestsAcceptCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -4611,40 +4463,23 @@ func (c *QuestsAcceptCall) Language(language string) *QuestsAcceptCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *QuestsAcceptCall) Fields(s ...googleapi.Field) *QuestsAcceptCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *QuestsAcceptCall) Do() (*Quest, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["language"]; ok {
-		params.Set("language", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "quests/{questId}/accept")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Quest
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"questId": c.questId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "POST",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Quest
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Indicates that the currently authorized user will participate in the quest.",
 	//   "httpMethod": "POST",
@@ -4680,23 +4515,32 @@ func (c *QuestsAcceptCall) Do() (*Quest, error) {
 // method id "games.quests.list":
 
 type QuestsListCall struct {
-	s        *Service
-	playerId string
-	opt_     map[string]interface{}
+	s             *Service
+	playerId      string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Get a list of quests for your application and the currently
 // authenticated player.
+
 func (r *QuestsService) List(playerId string) *QuestsListCall {
-	c := &QuestsListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.playerId = playerId
-	return c
+	return &QuestsListCall{
+		s:             r.s,
+		playerId:      playerId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "players/{playerId}/quests",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Language sets the optional parameter "language": The preferred
 // language to use for strings returned by this method.
 func (c *QuestsListCall) Language(language string) *QuestsListCall {
-	c.opt_["language"] = language
+	c.params_.Set("language", fmt.Sprintf("%v", language))
 	return c
 }
 
@@ -4706,14 +4550,18 @@ func (c *QuestsListCall) Language(language string) *QuestsListCall {
 // be less than the specified maxResults. Acceptable values are 1 to 50,
 // inclusive. (Default: 50).
 func (c *QuestsListCall) MaxResults(maxResults int64) *QuestsListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
 // PageToken sets the optional parameter "pageToken": The token returned
 // by the previous request.
 func (c *QuestsListCall) PageToken(pageToken string) *QuestsListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
+	return c
+}
+func (c *QuestsListCall) Context(ctx context.Context) *QuestsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -4721,46 +4569,23 @@ func (c *QuestsListCall) PageToken(pageToken string) *QuestsListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *QuestsListCall) Fields(s ...googleapi.Field) *QuestsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *QuestsListCall) Do() (*QuestListResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["language"]; ok {
-		params.Set("language", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "players/{playerId}/quests")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *QuestListResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"playerId": c.playerId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *QuestListResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Get a list of quests for your application and the currently authenticated player.",
 	//   "httpMethod": "GET",
@@ -4811,13 +4636,26 @@ func (c *QuestsListCall) Do() (*QuestListResponse, error) {
 type RevisionsCheckCall struct {
 	s              *Service
 	clientRevision string
-	opt_           map[string]interface{}
+	caller_        googleapi.Caller
+	params_        url.Values
+	pathTemplate_  string
+	context_       context.Context
 }
 
 // Check: Checks whether the games client is out of date.
+
 func (r *RevisionsService) Check(clientRevision string) *RevisionsCheckCall {
-	c := &RevisionsCheckCall{s: r.s, opt_: make(map[string]interface{})}
-	c.clientRevision = clientRevision
+	return &RevisionsCheckCall{
+		s:              r.s,
+		clientRevision: clientRevision,
+		caller_:        googleapi.JSONCall{},
+		params_:        make(map[string][]string),
+		pathTemplate_:  "revisions/check",
+		context_:       googleapi.NoContext,
+	}
+}
+func (c *RevisionsCheckCall) Context(ctx context.Context) *RevisionsCheckCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -4825,36 +4663,22 @@ func (r *RevisionsService) Check(clientRevision string) *RevisionsCheckCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *RevisionsCheckCall) Fields(s ...googleapi.Field) *RevisionsCheckCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *RevisionsCheckCall) Do() (*RevisionCheckResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("clientRevision", fmt.Sprintf("%v", c.clientRevision))
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
+	var returnValue *RevisionCheckResponse
+	c.params_.Set("clientRevision", fmt.Sprintf("%v", c.clientRevision))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "revisions/check")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *RevisionCheckResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Checks whether the games client is out of date.",
 	//   "httpMethod": "GET",
@@ -4887,21 +4711,34 @@ func (c *RevisionsCheckCall) Do() (*RevisionCheckResponse, error) {
 type RoomsCreateCall struct {
 	s                 *Service
 	roomcreaterequest *RoomCreateRequest
-	opt_              map[string]interface{}
+	caller_           googleapi.Caller
+	params_           url.Values
+	pathTemplate_     string
+	context_          context.Context
 }
 
 // Create: Create a room. For internal use by the Games SDK only.
 // Calling this method directly is unsupported.
+
 func (r *RoomsService) Create(roomcreaterequest *RoomCreateRequest) *RoomsCreateCall {
-	c := &RoomsCreateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.roomcreaterequest = roomcreaterequest
-	return c
+	return &RoomsCreateCall{
+		s:                 r.s,
+		roomcreaterequest: roomcreaterequest,
+		caller_:           googleapi.JSONCall{},
+		params_:           make(map[string][]string),
+		pathTemplate_:     "rooms/create",
+		context_:          googleapi.NoContext,
+	}
 }
 
 // Language sets the optional parameter "language": The preferred
 // language to use for strings returned by this method.
 func (c *RoomsCreateCall) Language(language string) *RoomsCreateCall {
-	c.opt_["language"] = language
+	c.params_.Set("language", fmt.Sprintf("%v", language))
+	return c
+}
+func (c *RoomsCreateCall) Context(ctx context.Context) *RoomsCreateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -4909,44 +4746,22 @@ func (c *RoomsCreateCall) Language(language string) *RoomsCreateCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *RoomsCreateCall) Fields(s ...googleapi.Field) *RoomsCreateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *RoomsCreateCall) Do() (*Room, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.roomcreaterequest)
-	if err != nil {
-		return nil, err
+	var returnValue *Room
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.roomcreaterequest,
+		Result:  &returnValue,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["language"]; ok {
-		params.Set("language", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "rooms/create")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Room
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Create a room. For internal use by the Games SDK only. Calling this method directly is unsupported.",
 	//   "httpMethod": "POST",
@@ -4976,23 +4791,36 @@ func (c *RoomsCreateCall) Do() (*Room, error) {
 // method id "games.rooms.decline":
 
 type RoomsDeclineCall struct {
-	s      *Service
-	roomId string
-	opt_   map[string]interface{}
+	s             *Service
+	roomId        string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Decline: Decline an invitation to join a room. For internal use by
 // the Games SDK only. Calling this method directly is unsupported.
+
 func (r *RoomsService) Decline(roomId string) *RoomsDeclineCall {
-	c := &RoomsDeclineCall{s: r.s, opt_: make(map[string]interface{})}
-	c.roomId = roomId
-	return c
+	return &RoomsDeclineCall{
+		s:             r.s,
+		roomId:        roomId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "rooms/{roomId}/decline",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Language sets the optional parameter "language": The preferred
 // language to use for strings returned by this method.
 func (c *RoomsDeclineCall) Language(language string) *RoomsDeclineCall {
-	c.opt_["language"] = language
+	c.params_.Set("language", fmt.Sprintf("%v", language))
+	return c
+}
+func (c *RoomsDeclineCall) Context(ctx context.Context) *RoomsDeclineCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -5000,40 +4828,23 @@ func (c *RoomsDeclineCall) Language(language string) *RoomsDeclineCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *RoomsDeclineCall) Fields(s ...googleapi.Field) *RoomsDeclineCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *RoomsDeclineCall) Do() (*Room, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["language"]; ok {
-		params.Set("language", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "rooms/{roomId}/decline")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Room
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"roomId": c.roomId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "POST",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Room
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Decline an invitation to join a room. For internal use by the Games SDK only. Calling this method directly is unsupported.",
 	//   "httpMethod": "POST",
@@ -5069,50 +4880,43 @@ func (c *RoomsDeclineCall) Do() (*Room, error) {
 // method id "games.rooms.dismiss":
 
 type RoomsDismissCall struct {
-	s      *Service
-	roomId string
-	opt_   map[string]interface{}
+	s             *Service
+	roomId        string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Dismiss: Dismiss an invitation to join a room. For internal use by
 // the Games SDK only. Calling this method directly is unsupported.
-func (r *RoomsService) Dismiss(roomId string) *RoomsDismissCall {
-	c := &RoomsDismissCall{s: r.s, opt_: make(map[string]interface{})}
-	c.roomId = roomId
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *RoomsDismissCall) Fields(s ...googleapi.Field) *RoomsDismissCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *RoomsService) Dismiss(roomId string) *RoomsDismissCall {
+	return &RoomsDismissCall{
+		s:             r.s,
+		roomId:        roomId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "rooms/{roomId}/dismiss",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *RoomsDismissCall) Context(ctx context.Context) *RoomsDismissCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *RoomsDismissCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "rooms/{roomId}/dismiss")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"roomId": c.roomId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "POST",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Dismiss an invitation to join a room. For internal use by the Games SDK only. Calling this method directly is unsupported.",
 	//   "httpMethod": "POST",
@@ -5140,22 +4944,35 @@ func (c *RoomsDismissCall) Do() error {
 // method id "games.rooms.get":
 
 type RoomsGetCall struct {
-	s      *Service
-	roomId string
-	opt_   map[string]interface{}
+	s             *Service
+	roomId        string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Get the data for a room.
+
 func (r *RoomsService) Get(roomId string) *RoomsGetCall {
-	c := &RoomsGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.roomId = roomId
-	return c
+	return &RoomsGetCall{
+		s:             r.s,
+		roomId:        roomId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "rooms/{roomId}",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Language sets the optional parameter "language": The preferred
 // language to use for strings returned by this method.
 func (c *RoomsGetCall) Language(language string) *RoomsGetCall {
-	c.opt_["language"] = language
+	c.params_.Set("language", fmt.Sprintf("%v", language))
+	return c
+}
+func (c *RoomsGetCall) Context(ctx context.Context) *RoomsGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -5163,40 +4980,23 @@ func (c *RoomsGetCall) Language(language string) *RoomsGetCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *RoomsGetCall) Fields(s ...googleapi.Field) *RoomsGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *RoomsGetCall) Do() (*Room, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["language"]; ok {
-		params.Set("language", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "rooms/{roomId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Room
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"roomId": c.roomId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Room
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Get the data for a room.",
 	//   "httpMethod": "GET",
@@ -5235,22 +5035,35 @@ type RoomsJoinCall struct {
 	s               *Service
 	roomId          string
 	roomjoinrequest *RoomJoinRequest
-	opt_            map[string]interface{}
+	caller_         googleapi.Caller
+	params_         url.Values
+	pathTemplate_   string
+	context_        context.Context
 }
 
 // Join: Join a room. For internal use by the Games SDK only. Calling
 // this method directly is unsupported.
+
 func (r *RoomsService) Join(roomId string, roomjoinrequest *RoomJoinRequest) *RoomsJoinCall {
-	c := &RoomsJoinCall{s: r.s, opt_: make(map[string]interface{})}
-	c.roomId = roomId
-	c.roomjoinrequest = roomjoinrequest
-	return c
+	return &RoomsJoinCall{
+		s:               r.s,
+		roomId:          roomId,
+		roomjoinrequest: roomjoinrequest,
+		caller_:         googleapi.JSONCall{},
+		params_:         make(map[string][]string),
+		pathTemplate_:   "rooms/{roomId}/join",
+		context_:        googleapi.NoContext,
+	}
 }
 
 // Language sets the optional parameter "language": The preferred
 // language to use for strings returned by this method.
 func (c *RoomsJoinCall) Language(language string) *RoomsJoinCall {
-	c.opt_["language"] = language
+	c.params_.Set("language", fmt.Sprintf("%v", language))
+	return c
+}
+func (c *RoomsJoinCall) Context(ctx context.Context) *RoomsJoinCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -5258,46 +5071,24 @@ func (c *RoomsJoinCall) Language(language string) *RoomsJoinCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *RoomsJoinCall) Fields(s ...googleapi.Field) *RoomsJoinCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *RoomsJoinCall) Do() (*Room, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.roomjoinrequest)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["language"]; ok {
-		params.Set("language", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "rooms/{roomId}/join")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Room
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"roomId": c.roomId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.roomjoinrequest,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Room
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Join a room. For internal use by the Games SDK only. Calling this method directly is unsupported.",
 	//   "httpMethod": "POST",
@@ -5339,22 +5130,35 @@ type RoomsLeaveCall struct {
 	s                *Service
 	roomId           string
 	roomleaverequest *RoomLeaveRequest
-	opt_             map[string]interface{}
+	caller_          googleapi.Caller
+	params_          url.Values
+	pathTemplate_    string
+	context_         context.Context
 }
 
 // Leave: Leave a room. For internal use by the Games SDK only. Calling
 // this method directly is unsupported.
+
 func (r *RoomsService) Leave(roomId string, roomleaverequest *RoomLeaveRequest) *RoomsLeaveCall {
-	c := &RoomsLeaveCall{s: r.s, opt_: make(map[string]interface{})}
-	c.roomId = roomId
-	c.roomleaverequest = roomleaverequest
-	return c
+	return &RoomsLeaveCall{
+		s:                r.s,
+		roomId:           roomId,
+		roomleaverequest: roomleaverequest,
+		caller_:          googleapi.JSONCall{},
+		params_:          make(map[string][]string),
+		pathTemplate_:    "rooms/{roomId}/leave",
+		context_:         googleapi.NoContext,
+	}
 }
 
 // Language sets the optional parameter "language": The preferred
 // language to use for strings returned by this method.
 func (c *RoomsLeaveCall) Language(language string) *RoomsLeaveCall {
-	c.opt_["language"] = language
+	c.params_.Set("language", fmt.Sprintf("%v", language))
+	return c
+}
+func (c *RoomsLeaveCall) Context(ctx context.Context) *RoomsLeaveCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -5362,46 +5166,24 @@ func (c *RoomsLeaveCall) Language(language string) *RoomsLeaveCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *RoomsLeaveCall) Fields(s ...googleapi.Field) *RoomsLeaveCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *RoomsLeaveCall) Do() (*Room, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.roomleaverequest)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["language"]; ok {
-		params.Set("language", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "rooms/{roomId}/leave")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Room
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"roomId": c.roomId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.roomleaverequest,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Room
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Leave a room. For internal use by the Games SDK only. Calling this method directly is unsupported.",
 	//   "httpMethod": "POST",
@@ -5440,20 +5222,29 @@ func (c *RoomsLeaveCall) Do() (*Room, error) {
 // method id "games.rooms.list":
 
 type RoomsListCall struct {
-	s    *Service
-	opt_ map[string]interface{}
+	s             *Service
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Returns invitations to join rooms.
+
 func (r *RoomsService) List() *RoomsListCall {
-	c := &RoomsListCall{s: r.s, opt_: make(map[string]interface{})}
-	return c
+	return &RoomsListCall{
+		s:             r.s,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "rooms",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Language sets the optional parameter "language": The preferred
 // language to use for strings returned by this method.
 func (c *RoomsListCall) Language(language string) *RoomsListCall {
-	c.opt_["language"] = language
+	c.params_.Set("language", fmt.Sprintf("%v", language))
 	return c
 }
 
@@ -5462,14 +5253,18 @@ func (c *RoomsListCall) Language(language string) *RoomsListCall {
 // response, the actual number of rooms to return may be less than the
 // specified maxResults.
 func (c *RoomsListCall) MaxResults(maxResults int64) *RoomsListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
 // PageToken sets the optional parameter "pageToken": The token returned
 // by the previous request.
 func (c *RoomsListCall) PageToken(pageToken string) *RoomsListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
+	return c
+}
+func (c *RoomsListCall) Context(ctx context.Context) *RoomsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -5477,44 +5272,21 @@ func (c *RoomsListCall) PageToken(pageToken string) *RoomsListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *RoomsListCall) Fields(s ...googleapi.Field) *RoomsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *RoomsListCall) Do() (*RoomList, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["language"]; ok {
-		params.Set("language", fmt.Sprintf("%v", v))
+	var returnValue *RoomList
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "rooms")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *RoomList
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Returns invitations to join rooms.",
 	//   "httpMethod": "GET",
@@ -5557,23 +5329,36 @@ type RoomsReportStatusCall struct {
 	s               *Service
 	roomId          string
 	roomp2pstatuses *RoomP2PStatuses
-	opt_            map[string]interface{}
+	caller_         googleapi.Caller
+	params_         url.Values
+	pathTemplate_   string
+	context_        context.Context
 }
 
 // ReportStatus: Updates sent by a client reporting the status of peers
 // in a room. For internal use by the Games SDK only. Calling this
 // method directly is unsupported.
+
 func (r *RoomsService) ReportStatus(roomId string, roomp2pstatuses *RoomP2PStatuses) *RoomsReportStatusCall {
-	c := &RoomsReportStatusCall{s: r.s, opt_: make(map[string]interface{})}
-	c.roomId = roomId
-	c.roomp2pstatuses = roomp2pstatuses
-	return c
+	return &RoomsReportStatusCall{
+		s:               r.s,
+		roomId:          roomId,
+		roomp2pstatuses: roomp2pstatuses,
+		caller_:         googleapi.JSONCall{},
+		params_:         make(map[string][]string),
+		pathTemplate_:   "rooms/{roomId}/reportstatus",
+		context_:        googleapi.NoContext,
+	}
 }
 
 // Language sets the optional parameter "language": The preferred
 // language to use for strings returned by this method.
 func (c *RoomsReportStatusCall) Language(language string) *RoomsReportStatusCall {
-	c.opt_["language"] = language
+	c.params_.Set("language", fmt.Sprintf("%v", language))
+	return c
+}
+func (c *RoomsReportStatusCall) Context(ctx context.Context) *RoomsReportStatusCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -5581,46 +5366,24 @@ func (c *RoomsReportStatusCall) Language(language string) *RoomsReportStatusCall
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *RoomsReportStatusCall) Fields(s ...googleapi.Field) *RoomsReportStatusCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *RoomsReportStatusCall) Do() (*RoomStatus, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.roomp2pstatuses)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["language"]; ok {
-		params.Set("language", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "rooms/{roomId}/reportstatus")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *RoomStatus
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"roomId": c.roomId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.roomp2pstatuses,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *RoomStatus
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates sent by a client reporting the status of peers in a room. For internal use by the Games SDK only. Calling this method directly is unsupported.",
 	//   "httpMethod": "POST",
@@ -5663,7 +5426,10 @@ type ScoresGetCall struct {
 	playerId      string
 	leaderboardId string
 	timeSpan      string
-	opt_          map[string]interface{}
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Get high scores, and optionally ranks, in leaderboards for the
@@ -5673,26 +5439,32 @@ type ScoresGetCall struct {
 // NOTE: You cannot ask for 'ALL' leaderboards and
 // 'ALL' timeSpans in the same request; only one parameter may be set to
 // 'ALL'.
+
 func (r *ScoresService) Get(playerId string, leaderboardId string, timeSpan string) *ScoresGetCall {
-	c := &ScoresGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.playerId = playerId
-	c.leaderboardId = leaderboardId
-	c.timeSpan = timeSpan
-	return c
+	return &ScoresGetCall{
+		s:             r.s,
+		playerId:      playerId,
+		leaderboardId: leaderboardId,
+		timeSpan:      timeSpan,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "players/{playerId}/leaderboards/{leaderboardId}/scores/{timeSpan}",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // IncludeRankType sets the optional parameter "includeRankType": The
 // types of ranks to return. If the parameter is omitted, no ranks will
 // be returned.
 func (c *ScoresGetCall) IncludeRankType(includeRankType string) *ScoresGetCall {
-	c.opt_["includeRankType"] = includeRankType
+	c.params_.Set("includeRankType", fmt.Sprintf("%v", includeRankType))
 	return c
 }
 
 // Language sets the optional parameter "language": The preferred
 // language to use for strings returned by this method.
 func (c *ScoresGetCall) Language(language string) *ScoresGetCall {
-	c.opt_["language"] = language
+	c.params_.Set("language", fmt.Sprintf("%v", language))
 	return c
 }
 
@@ -5701,14 +5473,18 @@ func (c *ScoresGetCall) Language(language string) *ScoresGetCall {
 // response, the actual number of leaderboard scores returned may be
 // less than the specified maxResults.
 func (c *ScoresGetCall) MaxResults(maxResults int64) *ScoresGetCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
 // PageToken sets the optional parameter "pageToken": The token returned
 // by the previous request.
 func (c *ScoresGetCall) PageToken(pageToken string) *ScoresGetCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
+	return c
+}
+func (c *ScoresGetCall) Context(ctx context.Context) *ScoresGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -5716,51 +5492,25 @@ func (c *ScoresGetCall) PageToken(pageToken string) *ScoresGetCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ScoresGetCall) Fields(s ...googleapi.Field) *ScoresGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ScoresGetCall) Do() (*PlayerLeaderboardScoreListResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["includeRankType"]; ok {
-		params.Set("includeRankType", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["language"]; ok {
-		params.Set("language", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "players/{playerId}/leaderboards/{leaderboardId}/scores/{timeSpan}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *PlayerLeaderboardScoreListResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"playerId":      c.playerId,
 		"leaderboardId": c.leaderboardId,
 		"timeSpan":      c.timeSpan,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *PlayerLeaderboardScoreListResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Get high scores, and optionally ranks, in leaderboards for the currently authenticated player. For a specific time span, leaderboardId can be set to ALL to retrieve data for all leaderboards in a given time span.\nNOTE: You cannot ask for 'ALL' leaderboards and 'ALL' timeSpans in the same request; only one parameter may be set to 'ALL'.",
 	//   "httpMethod": "GET",
@@ -5854,22 +5604,31 @@ type ScoresListCall struct {
 	leaderboardId string
 	collection    string
 	timeSpan      string
-	opt_          map[string]interface{}
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Lists the scores in a leaderboard, starting from the top.
+
 func (r *ScoresService) List(leaderboardId string, collection string, timeSpan string) *ScoresListCall {
-	c := &ScoresListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.leaderboardId = leaderboardId
-	c.collection = collection
-	c.timeSpan = timeSpan
-	return c
+	return &ScoresListCall{
+		s:             r.s,
+		leaderboardId: leaderboardId,
+		collection:    collection,
+		timeSpan:      timeSpan,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "leaderboards/{leaderboardId}/scores/{collection}",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Language sets the optional parameter "language": The preferred
 // language to use for strings returned by this method.
 func (c *ScoresListCall) Language(language string) *ScoresListCall {
-	c.opt_["language"] = language
+	c.params_.Set("language", fmt.Sprintf("%v", language))
 	return c
 }
 
@@ -5878,14 +5637,18 @@ func (c *ScoresListCall) Language(language string) *ScoresListCall {
 // response, the actual number of leaderboard scores returned may be
 // less than the specified maxResults.
 func (c *ScoresListCall) MaxResults(maxResults int64) *ScoresListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
 // PageToken sets the optional parameter "pageToken": The token returned
 // by the previous request.
 func (c *ScoresListCall) PageToken(pageToken string) *ScoresListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
+	return c
+}
+func (c *ScoresListCall) Context(ctx context.Context) *ScoresListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -5893,48 +5656,25 @@ func (c *ScoresListCall) PageToken(pageToken string) *ScoresListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ScoresListCall) Fields(s ...googleapi.Field) *ScoresListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ScoresListCall) Do() (*LeaderboardScores, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("timeSpan", fmt.Sprintf("%v", c.timeSpan))
-	if v, ok := c.opt_["language"]; ok {
-		params.Set("language", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "leaderboards/{leaderboardId}/scores/{collection}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *LeaderboardScores
+	c.params_.Set("timeSpan", fmt.Sprintf("%v", c.timeSpan))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"leaderboardId": c.leaderboardId,
 		"collection":    c.collection,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *LeaderboardScores
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Lists the scores in a leaderboard, starting from the top.",
 	//   "httpMethod": "GET",
@@ -6019,23 +5759,32 @@ type ScoresListWindowCall struct {
 	leaderboardId string
 	collection    string
 	timeSpan      string
-	opt_          map[string]interface{}
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // ListWindow: Lists the scores in a leaderboard around (and including)
 // a player's score.
+
 func (r *ScoresService) ListWindow(leaderboardId string, collection string, timeSpan string) *ScoresListWindowCall {
-	c := &ScoresListWindowCall{s: r.s, opt_: make(map[string]interface{})}
-	c.leaderboardId = leaderboardId
-	c.collection = collection
-	c.timeSpan = timeSpan
-	return c
+	return &ScoresListWindowCall{
+		s:             r.s,
+		leaderboardId: leaderboardId,
+		collection:    collection,
+		timeSpan:      timeSpan,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "leaderboards/{leaderboardId}/window/{collection}",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Language sets the optional parameter "language": The preferred
 // language to use for strings returned by this method.
 func (c *ScoresListWindowCall) Language(language string) *ScoresListWindowCall {
-	c.opt_["language"] = language
+	c.params_.Set("language", fmt.Sprintf("%v", language))
 	return c
 }
 
@@ -6044,14 +5793,14 @@ func (c *ScoresListWindowCall) Language(language string) *ScoresListWindowCall {
 // response, the actual number of leaderboard scores returned may be
 // less than the specified maxResults.
 func (c *ScoresListWindowCall) MaxResults(maxResults int64) *ScoresListWindowCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
 // PageToken sets the optional parameter "pageToken": The token returned
 // by the previous request.
 func (c *ScoresListWindowCall) PageToken(pageToken string) *ScoresListWindowCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
 	return c
 }
 
@@ -6061,7 +5810,7 @@ func (c *ScoresListWindowCall) PageToken(pageToken string) *ScoresListWindowCall
 // leaderboard; fewer may be returned if the player is at the top. Must
 // be less than or equal to maxResults.
 func (c *ScoresListWindowCall) ResultsAbove(resultsAbove int64) *ScoresListWindowCall {
-	c.opt_["resultsAbove"] = resultsAbove
+	c.params_.Set("resultsAbove", fmt.Sprintf("%v", resultsAbove))
 	return c
 }
 
@@ -6069,7 +5818,11 @@ func (c *ScoresListWindowCall) ResultsAbove(resultsAbove int64) *ScoresListWindo
 // True if the top scores should be returned when the player is not in
 // the leaderboard. Defaults to true.
 func (c *ScoresListWindowCall) ReturnTopIfAbsent(returnTopIfAbsent bool) *ScoresListWindowCall {
-	c.opt_["returnTopIfAbsent"] = returnTopIfAbsent
+	c.params_.Set("returnTopIfAbsent", fmt.Sprintf("%v", returnTopIfAbsent))
+	return c
+}
+func (c *ScoresListWindowCall) Context(ctx context.Context) *ScoresListWindowCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -6077,54 +5830,25 @@ func (c *ScoresListWindowCall) ReturnTopIfAbsent(returnTopIfAbsent bool) *Scores
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ScoresListWindowCall) Fields(s ...googleapi.Field) *ScoresListWindowCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ScoresListWindowCall) Do() (*LeaderboardScores, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("timeSpan", fmt.Sprintf("%v", c.timeSpan))
-	if v, ok := c.opt_["language"]; ok {
-		params.Set("language", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["resultsAbove"]; ok {
-		params.Set("resultsAbove", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["returnTopIfAbsent"]; ok {
-		params.Set("returnTopIfAbsent", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "leaderboards/{leaderboardId}/window/{collection}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *LeaderboardScores
+	c.params_.Set("timeSpan", fmt.Sprintf("%v", c.timeSpan))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"leaderboardId": c.leaderboardId,
 		"collection":    c.collection,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *LeaderboardScores
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Lists the scores in a leaderboard around (and including) a player's score.",
 	//   "httpMethod": "GET",
@@ -6219,21 +5943,30 @@ type ScoresSubmitCall struct {
 	s             *Service
 	leaderboardId string
 	score         int64
-	opt_          map[string]interface{}
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Submit: Submits a score to the specified leaderboard.
+
 func (r *ScoresService) Submit(leaderboardId string, score int64) *ScoresSubmitCall {
-	c := &ScoresSubmitCall{s: r.s, opt_: make(map[string]interface{})}
-	c.leaderboardId = leaderboardId
-	c.score = score
-	return c
+	return &ScoresSubmitCall{
+		s:             r.s,
+		leaderboardId: leaderboardId,
+		score:         score,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "leaderboards/{leaderboardId}/scores",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Language sets the optional parameter "language": The preferred
 // language to use for strings returned by this method.
 func (c *ScoresSubmitCall) Language(language string) *ScoresSubmitCall {
-	c.opt_["language"] = language
+	c.params_.Set("language", fmt.Sprintf("%v", language))
 	return c
 }
 
@@ -6242,7 +5975,11 @@ func (c *ScoresSubmitCall) Language(language string) *ScoresSubmitCall {
 // more than 64 URI-safe characters as defined by section 2.3 of RFC
 // 3986.
 func (c *ScoresSubmitCall) ScoreTag(scoreTag string) *ScoresSubmitCall {
-	c.opt_["scoreTag"] = scoreTag
+	c.params_.Set("scoreTag", fmt.Sprintf("%v", scoreTag))
+	return c
+}
+func (c *ScoresSubmitCall) Context(ctx context.Context) *ScoresSubmitCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -6250,44 +5987,24 @@ func (c *ScoresSubmitCall) ScoreTag(scoreTag string) *ScoresSubmitCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ScoresSubmitCall) Fields(s ...googleapi.Field) *ScoresSubmitCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ScoresSubmitCall) Do() (*PlayerScoreResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("score", fmt.Sprintf("%v", c.score))
-	if v, ok := c.opt_["language"]; ok {
-		params.Set("language", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["scoreTag"]; ok {
-		params.Set("scoreTag", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "leaderboards/{leaderboardId}/scores")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *PlayerScoreResponse
+	c.params_.Set("score", fmt.Sprintf("%v", c.score))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"leaderboardId": c.leaderboardId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "POST",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *PlayerScoreResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Submits a score to the specified leaderboard.",
 	//   "httpMethod": "POST",
@@ -6339,20 +6056,33 @@ func (c *ScoresSubmitCall) Do() (*PlayerScoreResponse, error) {
 type ScoresSubmitMultipleCall struct {
 	s                         *Service
 	playerscoresubmissionlist *PlayerScoreSubmissionList
-	opt_                      map[string]interface{}
+	caller_                   googleapi.Caller
+	params_                   url.Values
+	pathTemplate_             string
+	context_                  context.Context
 }
 
 // SubmitMultiple: Submits multiple scores to leaderboards.
+
 func (r *ScoresService) SubmitMultiple(playerscoresubmissionlist *PlayerScoreSubmissionList) *ScoresSubmitMultipleCall {
-	c := &ScoresSubmitMultipleCall{s: r.s, opt_: make(map[string]interface{})}
-	c.playerscoresubmissionlist = playerscoresubmissionlist
-	return c
+	return &ScoresSubmitMultipleCall{
+		s: r.s,
+		playerscoresubmissionlist: playerscoresubmissionlist,
+		caller_:                   googleapi.JSONCall{},
+		params_:                   make(map[string][]string),
+		pathTemplate_:             "leaderboards/scores",
+		context_:                  googleapi.NoContext,
+	}
 }
 
 // Language sets the optional parameter "language": The preferred
 // language to use for strings returned by this method.
 func (c *ScoresSubmitMultipleCall) Language(language string) *ScoresSubmitMultipleCall {
-	c.opt_["language"] = language
+	c.params_.Set("language", fmt.Sprintf("%v", language))
+	return c
+}
+func (c *ScoresSubmitMultipleCall) Context(ctx context.Context) *ScoresSubmitMultipleCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -6360,44 +6090,22 @@ func (c *ScoresSubmitMultipleCall) Language(language string) *ScoresSubmitMultip
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ScoresSubmitMultipleCall) Fields(s ...googleapi.Field) *ScoresSubmitMultipleCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ScoresSubmitMultipleCall) Do() (*PlayerScoreListResponse, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.playerscoresubmissionlist)
-	if err != nil {
-		return nil, err
+	var returnValue *PlayerScoreListResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.playerscoresubmissionlist,
+		Result:  &returnValue,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["language"]; ok {
-		params.Set("language", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "leaderboards/scores")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *PlayerScoreListResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Submits multiple scores to leaderboards.",
 	//   "httpMethod": "POST",
@@ -6427,22 +6135,35 @@ func (c *ScoresSubmitMultipleCall) Do() (*PlayerScoreListResponse, error) {
 // method id "games.snapshots.get":
 
 type SnapshotsGetCall struct {
-	s          *Service
-	snapshotId string
-	opt_       map[string]interface{}
+	s             *Service
+	snapshotId    string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Retrieves the metadata for a given snapshot ID.
+
 func (r *SnapshotsService) Get(snapshotId string) *SnapshotsGetCall {
-	c := &SnapshotsGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.snapshotId = snapshotId
-	return c
+	return &SnapshotsGetCall{
+		s:             r.s,
+		snapshotId:    snapshotId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "snapshots/{snapshotId}",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Language sets the optional parameter "language": The preferred
 // language to use for strings returned by this method.
 func (c *SnapshotsGetCall) Language(language string) *SnapshotsGetCall {
-	c.opt_["language"] = language
+	c.params_.Set("language", fmt.Sprintf("%v", language))
+	return c
+}
+func (c *SnapshotsGetCall) Context(ctx context.Context) *SnapshotsGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -6450,40 +6171,23 @@ func (c *SnapshotsGetCall) Language(language string) *SnapshotsGetCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *SnapshotsGetCall) Fields(s ...googleapi.Field) *SnapshotsGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *SnapshotsGetCall) Do() (*Snapshot, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["language"]; ok {
-		params.Set("language", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "snapshots/{snapshotId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Snapshot
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"snapshotId": c.snapshotId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Snapshot
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves the metadata for a given snapshot ID.",
 	//   "httpMethod": "GET",
@@ -6520,23 +6224,32 @@ func (c *SnapshotsGetCall) Do() (*Snapshot, error) {
 // method id "games.snapshots.list":
 
 type SnapshotsListCall struct {
-	s        *Service
-	playerId string
-	opt_     map[string]interface{}
+	s             *Service
+	playerId      string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Retrieves a list of snapshots created by your application for
 // the player corresponding to the player ID.
+
 func (r *SnapshotsService) List(playerId string) *SnapshotsListCall {
-	c := &SnapshotsListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.playerId = playerId
-	return c
+	return &SnapshotsListCall{
+		s:             r.s,
+		playerId:      playerId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "players/{playerId}/snapshots",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Language sets the optional parameter "language": The preferred
 // language to use for strings returned by this method.
 func (c *SnapshotsListCall) Language(language string) *SnapshotsListCall {
-	c.opt_["language"] = language
+	c.params_.Set("language", fmt.Sprintf("%v", language))
 	return c
 }
 
@@ -6545,14 +6258,18 @@ func (c *SnapshotsListCall) Language(language string) *SnapshotsListCall {
 // paging. For any response, the actual number of snapshot resources
 // returned may be less than the specified maxResults.
 func (c *SnapshotsListCall) MaxResults(maxResults int64) *SnapshotsListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
 // PageToken sets the optional parameter "pageToken": The token returned
 // by the previous request.
 func (c *SnapshotsListCall) PageToken(pageToken string) *SnapshotsListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
+	return c
+}
+func (c *SnapshotsListCall) Context(ctx context.Context) *SnapshotsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -6560,46 +6277,23 @@ func (c *SnapshotsListCall) PageToken(pageToken string) *SnapshotsListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *SnapshotsListCall) Fields(s ...googleapi.Field) *SnapshotsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *SnapshotsListCall) Do() (*SnapshotListResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["language"]; ok {
-		params.Set("language", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "players/{playerId}/snapshots")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *SnapshotListResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"playerId": c.playerId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *SnapshotListResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves a list of snapshots created by your application for the player corresponding to the player ID.",
 	//   "httpMethod": "GET",
@@ -6649,49 +6343,42 @@ func (c *SnapshotsListCall) Do() (*SnapshotListResponse, error) {
 // method id "games.turnBasedMatches.cancel":
 
 type TurnBasedMatchesCancelCall struct {
-	s       *Service
-	matchId string
-	opt_    map[string]interface{}
+	s             *Service
+	matchId       string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Cancel: Cancel a turn-based match.
-func (r *TurnBasedMatchesService) Cancel(matchId string) *TurnBasedMatchesCancelCall {
-	c := &TurnBasedMatchesCancelCall{s: r.s, opt_: make(map[string]interface{})}
-	c.matchId = matchId
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *TurnBasedMatchesCancelCall) Fields(s ...googleapi.Field) *TurnBasedMatchesCancelCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *TurnBasedMatchesService) Cancel(matchId string) *TurnBasedMatchesCancelCall {
+	return &TurnBasedMatchesCancelCall{
+		s:             r.s,
+		matchId:       matchId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "turnbasedmatches/{matchId}/cancel",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *TurnBasedMatchesCancelCall) Context(ctx context.Context) *TurnBasedMatchesCancelCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *TurnBasedMatchesCancelCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "turnbasedmatches/{matchId}/cancel")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"matchId": c.matchId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "PUT",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Cancel a turn-based match.",
 	//   "httpMethod": "PUT",
@@ -6721,20 +6408,33 @@ func (c *TurnBasedMatchesCancelCall) Do() error {
 type TurnBasedMatchesCreateCall struct {
 	s                           *Service
 	turnbasedmatchcreaterequest *TurnBasedMatchCreateRequest
-	opt_                        map[string]interface{}
+	caller_                     googleapi.Caller
+	params_                     url.Values
+	pathTemplate_               string
+	context_                    context.Context
 }
 
 // Create: Create a turn-based match.
+
 func (r *TurnBasedMatchesService) Create(turnbasedmatchcreaterequest *TurnBasedMatchCreateRequest) *TurnBasedMatchesCreateCall {
-	c := &TurnBasedMatchesCreateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.turnbasedmatchcreaterequest = turnbasedmatchcreaterequest
-	return c
+	return &TurnBasedMatchesCreateCall{
+		s: r.s,
+		turnbasedmatchcreaterequest: turnbasedmatchcreaterequest,
+		caller_:                     googleapi.JSONCall{},
+		params_:                     make(map[string][]string),
+		pathTemplate_:               "turnbasedmatches/create",
+		context_:                    googleapi.NoContext,
+	}
 }
 
 // Language sets the optional parameter "language": The preferred
 // language to use for strings returned by this method.
 func (c *TurnBasedMatchesCreateCall) Language(language string) *TurnBasedMatchesCreateCall {
-	c.opt_["language"] = language
+	c.params_.Set("language", fmt.Sprintf("%v", language))
+	return c
+}
+func (c *TurnBasedMatchesCreateCall) Context(ctx context.Context) *TurnBasedMatchesCreateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -6742,44 +6442,22 @@ func (c *TurnBasedMatchesCreateCall) Language(language string) *TurnBasedMatches
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *TurnBasedMatchesCreateCall) Fields(s ...googleapi.Field) *TurnBasedMatchesCreateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *TurnBasedMatchesCreateCall) Do() (*TurnBasedMatch, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.turnbasedmatchcreaterequest)
-	if err != nil {
-		return nil, err
+	var returnValue *TurnBasedMatch
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.turnbasedmatchcreaterequest,
+		Result:  &returnValue,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["language"]; ok {
-		params.Set("language", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "turnbasedmatches/create")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *TurnBasedMatch
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Create a turn-based match.",
 	//   "httpMethod": "POST",
@@ -6809,22 +6487,35 @@ func (c *TurnBasedMatchesCreateCall) Do() (*TurnBasedMatch, error) {
 // method id "games.turnBasedMatches.decline":
 
 type TurnBasedMatchesDeclineCall struct {
-	s       *Service
-	matchId string
-	opt_    map[string]interface{}
+	s             *Service
+	matchId       string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Decline: Decline an invitation to play a turn-based match.
+
 func (r *TurnBasedMatchesService) Decline(matchId string) *TurnBasedMatchesDeclineCall {
-	c := &TurnBasedMatchesDeclineCall{s: r.s, opt_: make(map[string]interface{})}
-	c.matchId = matchId
-	return c
+	return &TurnBasedMatchesDeclineCall{
+		s:             r.s,
+		matchId:       matchId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "turnbasedmatches/{matchId}/decline",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Language sets the optional parameter "language": The preferred
 // language to use for strings returned by this method.
 func (c *TurnBasedMatchesDeclineCall) Language(language string) *TurnBasedMatchesDeclineCall {
-	c.opt_["language"] = language
+	c.params_.Set("language", fmt.Sprintf("%v", language))
+	return c
+}
+func (c *TurnBasedMatchesDeclineCall) Context(ctx context.Context) *TurnBasedMatchesDeclineCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -6832,40 +6523,23 @@ func (c *TurnBasedMatchesDeclineCall) Language(language string) *TurnBasedMatche
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *TurnBasedMatchesDeclineCall) Fields(s ...googleapi.Field) *TurnBasedMatchesDeclineCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *TurnBasedMatchesDeclineCall) Do() (*TurnBasedMatch, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["language"]; ok {
-		params.Set("language", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "turnbasedmatches/{matchId}/decline")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *TurnBasedMatch
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"matchId": c.matchId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "PUT",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *TurnBasedMatch
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Decline an invitation to play a turn-based match.",
 	//   "httpMethod": "PUT",
@@ -6901,51 +6575,44 @@ func (c *TurnBasedMatchesDeclineCall) Do() (*TurnBasedMatch, error) {
 // method id "games.turnBasedMatches.dismiss":
 
 type TurnBasedMatchesDismissCall struct {
-	s       *Service
-	matchId string
-	opt_    map[string]interface{}
+	s             *Service
+	matchId       string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Dismiss: Dismiss a turn-based match from the match list. The match
 // will no longer show up in the list and will not generate
 // notifications.
-func (r *TurnBasedMatchesService) Dismiss(matchId string) *TurnBasedMatchesDismissCall {
-	c := &TurnBasedMatchesDismissCall{s: r.s, opt_: make(map[string]interface{})}
-	c.matchId = matchId
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *TurnBasedMatchesDismissCall) Fields(s ...googleapi.Field) *TurnBasedMatchesDismissCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *TurnBasedMatchesService) Dismiss(matchId string) *TurnBasedMatchesDismissCall {
+	return &TurnBasedMatchesDismissCall{
+		s:             r.s,
+		matchId:       matchId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "turnbasedmatches/{matchId}/dismiss",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *TurnBasedMatchesDismissCall) Context(ctx context.Context) *TurnBasedMatchesDismissCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *TurnBasedMatchesDismissCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "turnbasedmatches/{matchId}/dismiss")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"matchId": c.matchId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "PUT",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Dismiss a turn-based match from the match list. The match will no longer show up in the list and will not generate notifications.",
 	//   "httpMethod": "PUT",
@@ -6976,23 +6643,36 @@ type TurnBasedMatchesFinishCall struct {
 	s                     *Service
 	matchId               string
 	turnbasedmatchresults *TurnBasedMatchResults
-	opt_                  map[string]interface{}
+	caller_               googleapi.Caller
+	params_               url.Values
+	pathTemplate_         string
+	context_              context.Context
 }
 
 // Finish: Finish a turn-based match. Each player should make this call
 // once, after all results are in. Only the player whose turn it is may
 // make the first call to Finish, and can pass in the final match state.
+
 func (r *TurnBasedMatchesService) Finish(matchId string, turnbasedmatchresults *TurnBasedMatchResults) *TurnBasedMatchesFinishCall {
-	c := &TurnBasedMatchesFinishCall{s: r.s, opt_: make(map[string]interface{})}
-	c.matchId = matchId
-	c.turnbasedmatchresults = turnbasedmatchresults
-	return c
+	return &TurnBasedMatchesFinishCall{
+		s:                     r.s,
+		matchId:               matchId,
+		turnbasedmatchresults: turnbasedmatchresults,
+		caller_:               googleapi.JSONCall{},
+		params_:               make(map[string][]string),
+		pathTemplate_:         "turnbasedmatches/{matchId}/finish",
+		context_:              googleapi.NoContext,
+	}
 }
 
 // Language sets the optional parameter "language": The preferred
 // language to use for strings returned by this method.
 func (c *TurnBasedMatchesFinishCall) Language(language string) *TurnBasedMatchesFinishCall {
-	c.opt_["language"] = language
+	c.params_.Set("language", fmt.Sprintf("%v", language))
+	return c
+}
+func (c *TurnBasedMatchesFinishCall) Context(ctx context.Context) *TurnBasedMatchesFinishCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -7000,46 +6680,24 @@ func (c *TurnBasedMatchesFinishCall) Language(language string) *TurnBasedMatches
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *TurnBasedMatchesFinishCall) Fields(s ...googleapi.Field) *TurnBasedMatchesFinishCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *TurnBasedMatchesFinishCall) Do() (*TurnBasedMatch, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.turnbasedmatchresults)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["language"]; ok {
-		params.Set("language", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "turnbasedmatches/{matchId}/finish")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *TurnBasedMatch
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"matchId": c.matchId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.turnbasedmatchresults,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *TurnBasedMatch
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Finish a turn-based match. Each player should make this call once, after all results are in. Only the player whose turn it is may make the first call to Finish, and can pass in the final match state.",
 	//   "httpMethod": "PUT",
@@ -7078,29 +6736,42 @@ func (c *TurnBasedMatchesFinishCall) Do() (*TurnBasedMatch, error) {
 // method id "games.turnBasedMatches.get":
 
 type TurnBasedMatchesGetCall struct {
-	s       *Service
-	matchId string
-	opt_    map[string]interface{}
+	s             *Service
+	matchId       string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Get the data for a turn-based match.
+
 func (r *TurnBasedMatchesService) Get(matchId string) *TurnBasedMatchesGetCall {
-	c := &TurnBasedMatchesGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.matchId = matchId
-	return c
+	return &TurnBasedMatchesGetCall{
+		s:             r.s,
+		matchId:       matchId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "turnbasedmatches/{matchId}",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // IncludeMatchData sets the optional parameter "includeMatchData": Get
 // match data along with metadata.
 func (c *TurnBasedMatchesGetCall) IncludeMatchData(includeMatchData bool) *TurnBasedMatchesGetCall {
-	c.opt_["includeMatchData"] = includeMatchData
+	c.params_.Set("includeMatchData", fmt.Sprintf("%v", includeMatchData))
 	return c
 }
 
 // Language sets the optional parameter "language": The preferred
 // language to use for strings returned by this method.
 func (c *TurnBasedMatchesGetCall) Language(language string) *TurnBasedMatchesGetCall {
-	c.opt_["language"] = language
+	c.params_.Set("language", fmt.Sprintf("%v", language))
+	return c
+}
+func (c *TurnBasedMatchesGetCall) Context(ctx context.Context) *TurnBasedMatchesGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -7108,43 +6779,23 @@ func (c *TurnBasedMatchesGetCall) Language(language string) *TurnBasedMatchesGet
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *TurnBasedMatchesGetCall) Fields(s ...googleapi.Field) *TurnBasedMatchesGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *TurnBasedMatchesGetCall) Do() (*TurnBasedMatch, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["includeMatchData"]; ok {
-		params.Set("includeMatchData", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["language"]; ok {
-		params.Set("language", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "turnbasedmatches/{matchId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *TurnBasedMatch
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"matchId": c.matchId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *TurnBasedMatch
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Get the data for a turn-based match.",
 	//   "httpMethod": "GET",
@@ -7185,22 +6836,35 @@ func (c *TurnBasedMatchesGetCall) Do() (*TurnBasedMatch, error) {
 // method id "games.turnBasedMatches.join":
 
 type TurnBasedMatchesJoinCall struct {
-	s       *Service
-	matchId string
-	opt_    map[string]interface{}
+	s             *Service
+	matchId       string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Join: Join a turn-based match.
+
 func (r *TurnBasedMatchesService) Join(matchId string) *TurnBasedMatchesJoinCall {
-	c := &TurnBasedMatchesJoinCall{s: r.s, opt_: make(map[string]interface{})}
-	c.matchId = matchId
-	return c
+	return &TurnBasedMatchesJoinCall{
+		s:             r.s,
+		matchId:       matchId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "turnbasedmatches/{matchId}/join",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Language sets the optional parameter "language": The preferred
 // language to use for strings returned by this method.
 func (c *TurnBasedMatchesJoinCall) Language(language string) *TurnBasedMatchesJoinCall {
-	c.opt_["language"] = language
+	c.params_.Set("language", fmt.Sprintf("%v", language))
+	return c
+}
+func (c *TurnBasedMatchesJoinCall) Context(ctx context.Context) *TurnBasedMatchesJoinCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -7208,40 +6872,23 @@ func (c *TurnBasedMatchesJoinCall) Language(language string) *TurnBasedMatchesJo
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *TurnBasedMatchesJoinCall) Fields(s ...googleapi.Field) *TurnBasedMatchesJoinCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *TurnBasedMatchesJoinCall) Do() (*TurnBasedMatch, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["language"]; ok {
-		params.Set("language", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "turnbasedmatches/{matchId}/join")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *TurnBasedMatch
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"matchId": c.matchId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "PUT",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *TurnBasedMatch
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Join a turn-based match.",
 	//   "httpMethod": "PUT",
@@ -7277,23 +6924,36 @@ func (c *TurnBasedMatchesJoinCall) Do() (*TurnBasedMatch, error) {
 // method id "games.turnBasedMatches.leave":
 
 type TurnBasedMatchesLeaveCall struct {
-	s       *Service
-	matchId string
-	opt_    map[string]interface{}
+	s             *Service
+	matchId       string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Leave: Leave a turn-based match when it is not the current player's
 // turn, without canceling the match.
+
 func (r *TurnBasedMatchesService) Leave(matchId string) *TurnBasedMatchesLeaveCall {
-	c := &TurnBasedMatchesLeaveCall{s: r.s, opt_: make(map[string]interface{})}
-	c.matchId = matchId
-	return c
+	return &TurnBasedMatchesLeaveCall{
+		s:             r.s,
+		matchId:       matchId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "turnbasedmatches/{matchId}/leave",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Language sets the optional parameter "language": The preferred
 // language to use for strings returned by this method.
 func (c *TurnBasedMatchesLeaveCall) Language(language string) *TurnBasedMatchesLeaveCall {
-	c.opt_["language"] = language
+	c.params_.Set("language", fmt.Sprintf("%v", language))
+	return c
+}
+func (c *TurnBasedMatchesLeaveCall) Context(ctx context.Context) *TurnBasedMatchesLeaveCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -7301,40 +6961,23 @@ func (c *TurnBasedMatchesLeaveCall) Language(language string) *TurnBasedMatchesL
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *TurnBasedMatchesLeaveCall) Fields(s ...googleapi.Field) *TurnBasedMatchesLeaveCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *TurnBasedMatchesLeaveCall) Do() (*TurnBasedMatch, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["language"]; ok {
-		params.Set("language", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "turnbasedmatches/{matchId}/leave")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *TurnBasedMatch
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"matchId": c.matchId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "PUT",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *TurnBasedMatch
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Leave a turn-based match when it is not the current player's turn, without canceling the match.",
 	//   "httpMethod": "PUT",
@@ -7370,25 +7013,34 @@ func (c *TurnBasedMatchesLeaveCall) Do() (*TurnBasedMatch, error) {
 // method id "games.turnBasedMatches.leaveTurn":
 
 type TurnBasedMatchesLeaveTurnCall struct {
-	s            *Service
-	matchId      string
-	matchVersion int64
-	opt_         map[string]interface{}
+	s             *Service
+	matchId       string
+	matchVersion  int64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // LeaveTurn: Leave a turn-based match during the current player's turn,
 // without canceling the match.
+
 func (r *TurnBasedMatchesService) LeaveTurn(matchId string, matchVersion int64) *TurnBasedMatchesLeaveTurnCall {
-	c := &TurnBasedMatchesLeaveTurnCall{s: r.s, opt_: make(map[string]interface{})}
-	c.matchId = matchId
-	c.matchVersion = matchVersion
-	return c
+	return &TurnBasedMatchesLeaveTurnCall{
+		s:             r.s,
+		matchId:       matchId,
+		matchVersion:  matchVersion,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "turnbasedmatches/{matchId}/leaveTurn",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Language sets the optional parameter "language": The preferred
 // language to use for strings returned by this method.
 func (c *TurnBasedMatchesLeaveTurnCall) Language(language string) *TurnBasedMatchesLeaveTurnCall {
-	c.opt_["language"] = language
+	c.params_.Set("language", fmt.Sprintf("%v", language))
 	return c
 }
 
@@ -7398,7 +7050,11 @@ func (c *TurnBasedMatchesLeaveTurnCall) Language(language string) *TurnBasedMatc
 // to join via automatching; this is only valid if automatch criteria is
 // set on the match with remaining slots for automatched players.
 func (c *TurnBasedMatchesLeaveTurnCall) PendingParticipantId(pendingParticipantId string) *TurnBasedMatchesLeaveTurnCall {
-	c.opt_["pendingParticipantId"] = pendingParticipantId
+	c.params_.Set("pendingParticipantId", fmt.Sprintf("%v", pendingParticipantId))
+	return c
+}
+func (c *TurnBasedMatchesLeaveTurnCall) Context(ctx context.Context) *TurnBasedMatchesLeaveTurnCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -7406,44 +7062,24 @@ func (c *TurnBasedMatchesLeaveTurnCall) PendingParticipantId(pendingParticipantI
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *TurnBasedMatchesLeaveTurnCall) Fields(s ...googleapi.Field) *TurnBasedMatchesLeaveTurnCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *TurnBasedMatchesLeaveTurnCall) Do() (*TurnBasedMatch, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("matchVersion", fmt.Sprintf("%v", c.matchVersion))
-	if v, ok := c.opt_["language"]; ok {
-		params.Set("language", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pendingParticipantId"]; ok {
-		params.Set("pendingParticipantId", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "turnbasedmatches/{matchId}/leaveTurn")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *TurnBasedMatch
+	c.params_.Set("matchVersion", fmt.Sprintf("%v", c.matchVersion))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"matchId": c.matchId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "PUT",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *TurnBasedMatch
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Leave a turn-based match during the current player's turn, without canceling the match.",
 	//   "httpMethod": "PUT",
@@ -7492,14 +7128,23 @@ func (c *TurnBasedMatchesLeaveTurnCall) Do() (*TurnBasedMatch, error) {
 // method id "games.turnBasedMatches.list":
 
 type TurnBasedMatchesListCall struct {
-	s    *Service
-	opt_ map[string]interface{}
+	s             *Service
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Returns turn-based matches the player is or was involved in.
+
 func (r *TurnBasedMatchesService) List() *TurnBasedMatchesListCall {
-	c := &TurnBasedMatchesListCall{s: r.s, opt_: make(map[string]interface{})}
-	return c
+	return &TurnBasedMatchesListCall{
+		s:             r.s,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "turnbasedmatches",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // IncludeMatchData sets the optional parameter "includeMatchData": True
@@ -7509,14 +7154,14 @@ func (r *TurnBasedMatchesService) List() *TurnBasedMatchesListCall {
 // limit download size for the client. The remainder of the data for
 // these matches will be retrievable on request.
 func (c *TurnBasedMatchesListCall) IncludeMatchData(includeMatchData bool) *TurnBasedMatchesListCall {
-	c.opt_["includeMatchData"] = includeMatchData
+	c.params_.Set("includeMatchData", fmt.Sprintf("%v", includeMatchData))
 	return c
 }
 
 // Language sets the optional parameter "language": The preferred
 // language to use for strings returned by this method.
 func (c *TurnBasedMatchesListCall) Language(language string) *TurnBasedMatchesListCall {
-	c.opt_["language"] = language
+	c.params_.Set("language", fmt.Sprintf("%v", language))
 	return c
 }
 
@@ -7525,7 +7170,7 @@ func (c *TurnBasedMatchesListCall) Language(language string) *TurnBasedMatchesLi
 // matches to return in the response. If not set, all matches returned
 // could be completed or canceled.
 func (c *TurnBasedMatchesListCall) MaxCompletedMatches(maxCompletedMatches int64) *TurnBasedMatchesListCall {
-	c.opt_["maxCompletedMatches"] = maxCompletedMatches
+	c.params_.Set("maxCompletedMatches", fmt.Sprintf("%v", maxCompletedMatches))
 	return c
 }
 
@@ -7534,14 +7179,18 @@ func (c *TurnBasedMatchesListCall) MaxCompletedMatches(maxCompletedMatches int64
 // response, the actual number of matches to return may be less than the
 // specified maxResults.
 func (c *TurnBasedMatchesListCall) MaxResults(maxResults int64) *TurnBasedMatchesListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
 // PageToken sets the optional parameter "pageToken": The token returned
 // by the previous request.
 func (c *TurnBasedMatchesListCall) PageToken(pageToken string) *TurnBasedMatchesListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
+	return c
+}
+func (c *TurnBasedMatchesListCall) Context(ctx context.Context) *TurnBasedMatchesListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -7549,50 +7198,21 @@ func (c *TurnBasedMatchesListCall) PageToken(pageToken string) *TurnBasedMatches
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *TurnBasedMatchesListCall) Fields(s ...googleapi.Field) *TurnBasedMatchesListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *TurnBasedMatchesListCall) Do() (*TurnBasedMatchList, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["includeMatchData"]; ok {
-		params.Set("includeMatchData", fmt.Sprintf("%v", v))
+	var returnValue *TurnBasedMatchList
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	if v, ok := c.opt_["language"]; ok {
-		params.Set("language", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["maxCompletedMatches"]; ok {
-		params.Set("maxCompletedMatches", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "turnbasedmatches")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *TurnBasedMatchList
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Returns turn-based matches the player is or was involved in.",
 	//   "httpMethod": "GET",
@@ -7645,25 +7265,34 @@ func (c *TurnBasedMatchesListCall) Do() (*TurnBasedMatchList, error) {
 // method id "games.turnBasedMatches.rematch":
 
 type TurnBasedMatchesRematchCall struct {
-	s       *Service
-	matchId string
-	opt_    map[string]interface{}
+	s             *Service
+	matchId       string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Rematch: Create a rematch of a match that was previously completed,
 // with the same participants. This can be called by only one player on
 // a match still in their list; the player must have called Finish
 // first. Returns the newly created match; it will be the caller's turn.
+
 func (r *TurnBasedMatchesService) Rematch(matchId string) *TurnBasedMatchesRematchCall {
-	c := &TurnBasedMatchesRematchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.matchId = matchId
-	return c
+	return &TurnBasedMatchesRematchCall{
+		s:             r.s,
+		matchId:       matchId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "turnbasedmatches/{matchId}/rematch",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Language sets the optional parameter "language": The preferred
 // language to use for strings returned by this method.
 func (c *TurnBasedMatchesRematchCall) Language(language string) *TurnBasedMatchesRematchCall {
-	c.opt_["language"] = language
+	c.params_.Set("language", fmt.Sprintf("%v", language))
 	return c
 }
 
@@ -7672,7 +7301,11 @@ func (c *TurnBasedMatchesRematchCall) Language(language string) *TurnBasedMatche
 // number is used at the server to ensure that the request is handled
 // correctly across retries.
 func (c *TurnBasedMatchesRematchCall) RequestId(requestId int64) *TurnBasedMatchesRematchCall {
-	c.opt_["requestId"] = requestId
+	c.params_.Set("requestId", fmt.Sprintf("%v", requestId))
+	return c
+}
+func (c *TurnBasedMatchesRematchCall) Context(ctx context.Context) *TurnBasedMatchesRematchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -7680,43 +7313,23 @@ func (c *TurnBasedMatchesRematchCall) RequestId(requestId int64) *TurnBasedMatch
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *TurnBasedMatchesRematchCall) Fields(s ...googleapi.Field) *TurnBasedMatchesRematchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *TurnBasedMatchesRematchCall) Do() (*TurnBasedMatchRematch, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["language"]; ok {
-		params.Set("language", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["requestId"]; ok {
-		params.Set("requestId", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "turnbasedmatches/{matchId}/rematch")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *TurnBasedMatchRematch
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"matchId": c.matchId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "POST",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *TurnBasedMatchRematch
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Create a rematch of a match that was previously completed, with the same participants. This can be called by only one player on a match still in their list; the player must have called Finish first. Returns the newly created match; it will be the caller's turn.",
 	//   "httpMethod": "POST",
@@ -7758,17 +7371,26 @@ func (c *TurnBasedMatchesRematchCall) Do() (*TurnBasedMatchRematch, error) {
 // method id "games.turnBasedMatches.sync":
 
 type TurnBasedMatchesSyncCall struct {
-	s    *Service
-	opt_ map[string]interface{}
+	s             *Service
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Sync: Returns turn-based matches the player is or was involved in
 // that changed since the last sync call, with the least recent changes
 // coming first. Matches that should be removed from the local cache
 // will have a status of MATCH_DELETED.
+
 func (r *TurnBasedMatchesService) Sync() *TurnBasedMatchesSyncCall {
-	c := &TurnBasedMatchesSyncCall{s: r.s, opt_: make(map[string]interface{})}
-	return c
+	return &TurnBasedMatchesSyncCall{
+		s:             r.s,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "turnbasedmatches/sync",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // IncludeMatchData sets the optional parameter "includeMatchData": True
@@ -7778,14 +7400,14 @@ func (r *TurnBasedMatchesService) Sync() *TurnBasedMatchesSyncCall {
 // limit download size for the client. The remainder of the data for
 // these matches will be retrievable on request.
 func (c *TurnBasedMatchesSyncCall) IncludeMatchData(includeMatchData bool) *TurnBasedMatchesSyncCall {
-	c.opt_["includeMatchData"] = includeMatchData
+	c.params_.Set("includeMatchData", fmt.Sprintf("%v", includeMatchData))
 	return c
 }
 
 // Language sets the optional parameter "language": The preferred
 // language to use for strings returned by this method.
 func (c *TurnBasedMatchesSyncCall) Language(language string) *TurnBasedMatchesSyncCall {
-	c.opt_["language"] = language
+	c.params_.Set("language", fmt.Sprintf("%v", language))
 	return c
 }
 
@@ -7794,7 +7416,7 @@ func (c *TurnBasedMatchesSyncCall) Language(language string) *TurnBasedMatchesSy
 // matches to return in the response. If not set, all matches returned
 // could be completed or canceled.
 func (c *TurnBasedMatchesSyncCall) MaxCompletedMatches(maxCompletedMatches int64) *TurnBasedMatchesSyncCall {
-	c.opt_["maxCompletedMatches"] = maxCompletedMatches
+	c.params_.Set("maxCompletedMatches", fmt.Sprintf("%v", maxCompletedMatches))
 	return c
 }
 
@@ -7803,14 +7425,18 @@ func (c *TurnBasedMatchesSyncCall) MaxCompletedMatches(maxCompletedMatches int64
 // response, the actual number of matches to return may be less than the
 // specified maxResults.
 func (c *TurnBasedMatchesSyncCall) MaxResults(maxResults int64) *TurnBasedMatchesSyncCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
 // PageToken sets the optional parameter "pageToken": The token returned
 // by the previous request.
 func (c *TurnBasedMatchesSyncCall) PageToken(pageToken string) *TurnBasedMatchesSyncCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
+	return c
+}
+func (c *TurnBasedMatchesSyncCall) Context(ctx context.Context) *TurnBasedMatchesSyncCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -7818,50 +7444,21 @@ func (c *TurnBasedMatchesSyncCall) PageToken(pageToken string) *TurnBasedMatches
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *TurnBasedMatchesSyncCall) Fields(s ...googleapi.Field) *TurnBasedMatchesSyncCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *TurnBasedMatchesSyncCall) Do() (*TurnBasedMatchSync, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["includeMatchData"]; ok {
-		params.Set("includeMatchData", fmt.Sprintf("%v", v))
+	var returnValue *TurnBasedMatchSync
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	if v, ok := c.opt_["language"]; ok {
-		params.Set("language", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["maxCompletedMatches"]; ok {
-		params.Set("maxCompletedMatches", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "turnbasedmatches/sync")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *TurnBasedMatchSync
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Returns turn-based matches the player is or was involved in that changed since the last sync call, with the least recent changes coming first. Matches that should be removed from the local cache will have a status of MATCH_DELETED.",
 	//   "httpMethod": "GET",
@@ -7917,21 +7514,34 @@ type TurnBasedMatchesTakeTurnCall struct {
 	s                  *Service
 	matchId            string
 	turnbasedmatchturn *TurnBasedMatchTurn
-	opt_               map[string]interface{}
+	caller_            googleapi.Caller
+	params_            url.Values
+	pathTemplate_      string
+	context_           context.Context
 }
 
 // TakeTurn: Commit the results of a player turn.
+
 func (r *TurnBasedMatchesService) TakeTurn(matchId string, turnbasedmatchturn *TurnBasedMatchTurn) *TurnBasedMatchesTakeTurnCall {
-	c := &TurnBasedMatchesTakeTurnCall{s: r.s, opt_: make(map[string]interface{})}
-	c.matchId = matchId
-	c.turnbasedmatchturn = turnbasedmatchturn
-	return c
+	return &TurnBasedMatchesTakeTurnCall{
+		s:                  r.s,
+		matchId:            matchId,
+		turnbasedmatchturn: turnbasedmatchturn,
+		caller_:            googleapi.JSONCall{},
+		params_:            make(map[string][]string),
+		pathTemplate_:      "turnbasedmatches/{matchId}/turn",
+		context_:           googleapi.NoContext,
+	}
 }
 
 // Language sets the optional parameter "language": The preferred
 // language to use for strings returned by this method.
 func (c *TurnBasedMatchesTakeTurnCall) Language(language string) *TurnBasedMatchesTakeTurnCall {
-	c.opt_["language"] = language
+	c.params_.Set("language", fmt.Sprintf("%v", language))
+	return c
+}
+func (c *TurnBasedMatchesTakeTurnCall) Context(ctx context.Context) *TurnBasedMatchesTakeTurnCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -7939,46 +7549,24 @@ func (c *TurnBasedMatchesTakeTurnCall) Language(language string) *TurnBasedMatch
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *TurnBasedMatchesTakeTurnCall) Fields(s ...googleapi.Field) *TurnBasedMatchesTakeTurnCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *TurnBasedMatchesTakeTurnCall) Do() (*TurnBasedMatch, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.turnbasedmatchturn)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["language"]; ok {
-		params.Set("language", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "turnbasedmatches/{matchId}/turn")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *TurnBasedMatch
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"matchId": c.matchId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.turnbasedmatchturn,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *TurnBasedMatch
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Commit the results of a player turn.",
 	//   "httpMethod": "PUT",

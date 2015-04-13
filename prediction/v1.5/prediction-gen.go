@@ -4,18 +4,16 @@
 //
 // Usage example:
 //
-//   import "google.golang.org/api/prediction/v1.5"
+//   import "github.com/jfcote87/api2/prediction/v1.5"
 //   ...
 //   predictionService, err := prediction.New(oauthHttpClient)
 package prediction
 
 import (
-	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/jfcote87/api2/googleapi"
 	"golang.org/x/net/context"
-	"google.golang.org/api/googleapi"
 	"io"
 	"net/http"
 	"net/url"
@@ -25,10 +23,8 @@ import (
 
 // Always reference these packages, just in case the auto-generated code
 // below doesn't.
-var _ = bytes.NewBuffer
 var _ = strconv.Itoa
 var _ = fmt.Sprintf
-var _ = json.NewDecoder
 var _ = io.Copy
 var _ = url.Parse
 var _ = googleapi.Version
@@ -39,7 +35,8 @@ var _ = context.Background
 const apiId = "prediction:v1.5"
 const apiName = "prediction"
 const apiVersion = "v1.5"
-const basePath = "https://www.googleapis.com/prediction/v1.5/"
+
+var baseURL *url.URL = &url.URL{Scheme: "https", Host: "www.googleapis.com", Path: "/prediction/v1.5/"}
 
 // OAuth2 scopes used by this API.
 const (
@@ -60,27 +57,18 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
+	s := &Service{client: client}
 	s.Hostedmodels = NewHostedmodelsService(s)
 	s.Trainedmodels = NewTrainedmodelsService(s)
 	return s, nil
 }
 
 type Service struct {
-	client    *http.Client
-	BasePath  string // API endpoint base URL
-	UserAgent string // optional additional User-Agent fragment
+	client *http.Client
 
 	Hostedmodels *HostedmodelsService
 
 	Trainedmodels *TrainedmodelsService
-}
-
-func (s *Service) userAgent() string {
-	if s.UserAgent == "" {
-		return googleapi.UserAgent
-	}
-	return googleapi.UserAgent + " " + s.UserAgent
 }
 
 func NewHostedmodelsService(s *Service) *HostedmodelsService {
@@ -386,14 +374,27 @@ type HostedmodelsPredictCall struct {
 	s               *Service
 	hostedModelName string
 	input           *Input
-	opt_            map[string]interface{}
+	caller_         googleapi.Caller
+	params_         url.Values
+	pathTemplate_   string
+	context_        context.Context
 }
 
 // Predict: Submit input and request an output against a hosted model.
+
 func (r *HostedmodelsService) Predict(hostedModelName string, input *Input) *HostedmodelsPredictCall {
-	c := &HostedmodelsPredictCall{s: r.s, opt_: make(map[string]interface{})}
-	c.hostedModelName = hostedModelName
-	c.input = input
+	return &HostedmodelsPredictCall{
+		s:               r.s,
+		hostedModelName: hostedModelName,
+		input:           input,
+		caller_:         googleapi.JSONCall{},
+		params_:         make(map[string][]string),
+		pathTemplate_:   "hostedmodels/{hostedModelName}/predict",
+		context_:        googleapi.NoContext,
+	}
+}
+func (c *HostedmodelsPredictCall) Context(ctx context.Context) *HostedmodelsPredictCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -401,43 +402,24 @@ func (r *HostedmodelsService) Predict(hostedModelName string, input *Input) *Hos
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *HostedmodelsPredictCall) Fields(s ...googleapi.Field) *HostedmodelsPredictCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *HostedmodelsPredictCall) Do() (*Output, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.input)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "hostedmodels/{hostedModelName}/predict")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Output
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"hostedModelName": c.hostedModelName,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.input,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Output
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Submit input and request an output against a hosted model.",
 	//   "httpMethod": "POST",
@@ -470,16 +452,29 @@ func (c *HostedmodelsPredictCall) Do() (*Output, error) {
 // method id "prediction.trainedmodels.analyze":
 
 type TrainedmodelsAnalyzeCall struct {
-	s    *Service
-	id   string
-	opt_ map[string]interface{}
+	s             *Service
+	id            string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Analyze: Get analysis of the model and the data the model was trained
 // on.
+
 func (r *TrainedmodelsService) Analyze(id string) *TrainedmodelsAnalyzeCall {
-	c := &TrainedmodelsAnalyzeCall{s: r.s, opt_: make(map[string]interface{})}
-	c.id = id
+	return &TrainedmodelsAnalyzeCall{
+		s:             r.s,
+		id:            id,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "trainedmodels/{id}/analyze",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *TrainedmodelsAnalyzeCall) Context(ctx context.Context) *TrainedmodelsAnalyzeCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -487,37 +482,23 @@ func (r *TrainedmodelsService) Analyze(id string) *TrainedmodelsAnalyzeCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *TrainedmodelsAnalyzeCall) Fields(s ...googleapi.Field) *TrainedmodelsAnalyzeCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *TrainedmodelsAnalyzeCall) Do() (*Analyze, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "trainedmodels/{id}/analyze")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Analyze
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"id": c.id,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Analyze
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Get analysis of the model and the data the model was trained on.",
 	//   "httpMethod": "GET",
@@ -547,49 +528,42 @@ func (c *TrainedmodelsAnalyzeCall) Do() (*Analyze, error) {
 // method id "prediction.trainedmodels.delete":
 
 type TrainedmodelsDeleteCall struct {
-	s    *Service
-	id   string
-	opt_ map[string]interface{}
+	s             *Service
+	id            string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Delete: Delete a trained model.
-func (r *TrainedmodelsService) Delete(id string) *TrainedmodelsDeleteCall {
-	c := &TrainedmodelsDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.id = id
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *TrainedmodelsDeleteCall) Fields(s ...googleapi.Field) *TrainedmodelsDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *TrainedmodelsService) Delete(id string) *TrainedmodelsDeleteCall {
+	return &TrainedmodelsDeleteCall{
+		s:             r.s,
+		id:            id,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "trainedmodels/{id}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *TrainedmodelsDeleteCall) Context(ctx context.Context) *TrainedmodelsDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *TrainedmodelsDeleteCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "trainedmodels/{id}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"id": c.id,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Delete a trained model.",
 	//   "httpMethod": "DELETE",
@@ -616,15 +590,28 @@ func (c *TrainedmodelsDeleteCall) Do() error {
 // method id "prediction.trainedmodels.get":
 
 type TrainedmodelsGetCall struct {
-	s    *Service
-	id   string
-	opt_ map[string]interface{}
+	s             *Service
+	id            string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Check training status of your model.
+
 func (r *TrainedmodelsService) Get(id string) *TrainedmodelsGetCall {
-	c := &TrainedmodelsGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.id = id
+	return &TrainedmodelsGetCall{
+		s:             r.s,
+		id:            id,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "trainedmodels/{id}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *TrainedmodelsGetCall) Context(ctx context.Context) *TrainedmodelsGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -632,37 +619,23 @@ func (r *TrainedmodelsService) Get(id string) *TrainedmodelsGetCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *TrainedmodelsGetCall) Fields(s ...googleapi.Field) *TrainedmodelsGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *TrainedmodelsGetCall) Do() (*Training, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "trainedmodels/{id}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Training
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"id": c.id,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Training
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Check training status of your model.",
 	//   "httpMethod": "GET",
@@ -692,15 +665,28 @@ func (c *TrainedmodelsGetCall) Do() (*Training, error) {
 // method id "prediction.trainedmodels.insert":
 
 type TrainedmodelsInsertCall struct {
-	s        *Service
-	training *Training
-	opt_     map[string]interface{}
+	s             *Service
+	training      *Training
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Insert: Begin training your model.
+
 func (r *TrainedmodelsService) Insert(training *Training) *TrainedmodelsInsertCall {
-	c := &TrainedmodelsInsertCall{s: r.s, opt_: make(map[string]interface{})}
-	c.training = training
+	return &TrainedmodelsInsertCall{
+		s:             r.s,
+		training:      training,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "trainedmodels",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *TrainedmodelsInsertCall) Context(ctx context.Context) *TrainedmodelsInsertCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -708,41 +694,22 @@ func (r *TrainedmodelsService) Insert(training *Training) *TrainedmodelsInsertCa
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *TrainedmodelsInsertCall) Fields(s ...googleapi.Field) *TrainedmodelsInsertCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *TrainedmodelsInsertCall) Do() (*Training, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.training)
-	if err != nil {
-		return nil, err
+	var returnValue *Training
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.training,
+		Result:  &returnValue,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "trainedmodels")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Training
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Begin training your model.",
 	//   "httpMethod": "POST",
@@ -767,26 +734,39 @@ func (c *TrainedmodelsInsertCall) Do() (*Training, error) {
 // method id "prediction.trainedmodels.list":
 
 type TrainedmodelsListCall struct {
-	s    *Service
-	opt_ map[string]interface{}
+	s             *Service
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: List available models.
+
 func (r *TrainedmodelsService) List() *TrainedmodelsListCall {
-	c := &TrainedmodelsListCall{s: r.s, opt_: make(map[string]interface{})}
-	return c
+	return &TrainedmodelsListCall{
+		s:             r.s,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "trainedmodels/list",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // MaxResults sets the optional parameter "maxResults": Maximum number
 // of results to return
 func (c *TrainedmodelsListCall) MaxResults(maxResults int64) *TrainedmodelsListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
 // PageToken sets the optional parameter "pageToken": Pagination token
 func (c *TrainedmodelsListCall) PageToken(pageToken string) *TrainedmodelsListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
+	return c
+}
+func (c *TrainedmodelsListCall) Context(ctx context.Context) *TrainedmodelsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -794,41 +774,21 @@ func (c *TrainedmodelsListCall) PageToken(pageToken string) *TrainedmodelsListCa
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *TrainedmodelsListCall) Fields(s ...googleapi.Field) *TrainedmodelsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *TrainedmodelsListCall) Do() (*List, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
+	var returnValue *List
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "trainedmodels/list")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *List
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "List available models.",
 	//   "httpMethod": "GET",
@@ -861,17 +821,30 @@ func (c *TrainedmodelsListCall) Do() (*List, error) {
 // method id "prediction.trainedmodels.predict":
 
 type TrainedmodelsPredictCall struct {
-	s     *Service
-	id    string
-	input *Input
-	opt_  map[string]interface{}
+	s             *Service
+	id            string
+	input         *Input
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Predict: Submit model id and request a prediction.
+
 func (r *TrainedmodelsService) Predict(id string, input *Input) *TrainedmodelsPredictCall {
-	c := &TrainedmodelsPredictCall{s: r.s, opt_: make(map[string]interface{})}
-	c.id = id
-	c.input = input
+	return &TrainedmodelsPredictCall{
+		s:             r.s,
+		id:            id,
+		input:         input,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "trainedmodels/{id}/predict",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *TrainedmodelsPredictCall) Context(ctx context.Context) *TrainedmodelsPredictCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -879,43 +852,24 @@ func (r *TrainedmodelsService) Predict(id string, input *Input) *TrainedmodelsPr
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *TrainedmodelsPredictCall) Fields(s ...googleapi.Field) *TrainedmodelsPredictCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *TrainedmodelsPredictCall) Do() (*Output, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.input)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "trainedmodels/{id}/predict")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Output
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"id": c.id,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.input,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Output
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Submit model id and request a prediction.",
 	//   "httpMethod": "POST",
@@ -948,17 +902,30 @@ func (c *TrainedmodelsPredictCall) Do() (*Output, error) {
 // method id "prediction.trainedmodels.update":
 
 type TrainedmodelsUpdateCall struct {
-	s      *Service
-	id     string
-	update *Update
-	opt_   map[string]interface{}
+	s             *Service
+	id            string
+	update        *Update
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Update: Add new data to a trained model.
+
 func (r *TrainedmodelsService) Update(id string, update *Update) *TrainedmodelsUpdateCall {
-	c := &TrainedmodelsUpdateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.id = id
-	c.update = update
+	return &TrainedmodelsUpdateCall{
+		s:             r.s,
+		id:            id,
+		update:        update,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "trainedmodels/{id}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *TrainedmodelsUpdateCall) Context(ctx context.Context) *TrainedmodelsUpdateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -966,43 +933,24 @@ func (r *TrainedmodelsService) Update(id string, update *Update) *TrainedmodelsU
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *TrainedmodelsUpdateCall) Fields(s ...googleapi.Field) *TrainedmodelsUpdateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *TrainedmodelsUpdateCall) Do() (*Training, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.update)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "trainedmodels/{id}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Training
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"id": c.id,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.update,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Training
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Add new data to a trained model.",
 	//   "httpMethod": "PUT",

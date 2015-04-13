@@ -4,18 +4,16 @@
 //
 // Usage example:
 //
-//   import "google.golang.org/api/mirror/v1"
+//   import "github.com/jfcote87/api2/mirror/v1"
 //   ...
 //   mirrorService, err := mirror.New(oauthHttpClient)
 package mirror
 
 import (
-	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/jfcote87/api2/googleapi"
 	"golang.org/x/net/context"
-	"google.golang.org/api/googleapi"
 	"io"
 	"net/http"
 	"net/url"
@@ -25,10 +23,8 @@ import (
 
 // Always reference these packages, just in case the auto-generated code
 // below doesn't.
-var _ = bytes.NewBuffer
 var _ = strconv.Itoa
 var _ = fmt.Sprintf
-var _ = json.NewDecoder
 var _ = io.Copy
 var _ = url.Parse
 var _ = googleapi.Version
@@ -39,7 +35,8 @@ var _ = context.Background
 const apiId = "mirror:v1"
 const apiName = "mirror"
 const apiVersion = "v1"
-const basePath = "https://www.googleapis.com/mirror/v1/"
+
+var baseURL *url.URL = &url.URL{Scheme: "https", Host: "www.googleapis.com", Path: "/mirror/v1/"}
 
 // OAuth2 scopes used by this API.
 const (
@@ -54,7 +51,7 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
+	s := &Service{client: client}
 	s.Accounts = NewAccountsService(s)
 	s.Contacts = NewContactsService(s)
 	s.Locations = NewLocationsService(s)
@@ -65,9 +62,7 @@ func New(client *http.Client) (*Service, error) {
 }
 
 type Service struct {
-	client    *http.Client
-	BasePath  string // API endpoint base URL
-	UserAgent string // optional additional User-Agent fragment
+	client *http.Client
 
 	Accounts *AccountsService
 
@@ -80,13 +75,6 @@ type Service struct {
 	Subscriptions *SubscriptionsService
 
 	Timeline *TimelineService
-}
-
-func (s *Service) userAgent() string {
-	if s.UserAgent == "" {
-		return googleapi.UserAgent
-	}
-	return googleapi.UserAgent + " " + s.UserAgent
 }
 
 func NewAccountsService(s *Service) *AccountsService {
@@ -747,21 +735,34 @@ type UserData struct {
 // method id "mirror.accounts.insert":
 
 type AccountsInsertCall struct {
-	s           *Service
-	userToken   string
-	accountType string
-	accountName string
-	account     *Account
-	opt_        map[string]interface{}
+	s             *Service
+	userToken     string
+	accountType   string
+	accountName   string
+	account       *Account
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Insert: Inserts a new account for a user
+
 func (r *AccountsService) Insert(userToken string, accountType string, accountName string, account *Account) *AccountsInsertCall {
-	c := &AccountsInsertCall{s: r.s, opt_: make(map[string]interface{})}
-	c.userToken = userToken
-	c.accountType = accountType
-	c.accountName = accountName
-	c.account = account
+	return &AccountsInsertCall{
+		s:             r.s,
+		userToken:     userToken,
+		accountType:   accountType,
+		accountName:   accountName,
+		account:       account,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "accounts/{userToken}/{accountType}/{accountName}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *AccountsInsertCall) Context(ctx context.Context) *AccountsInsertCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -769,45 +770,26 @@ func (r *AccountsService) Insert(userToken string, accountType string, accountNa
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AccountsInsertCall) Fields(s ...googleapi.Field) *AccountsInsertCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AccountsInsertCall) Do() (*Account, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.account)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "accounts/{userToken}/{accountType}/{accountName}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Account
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"userToken":   c.userToken,
 		"accountType": c.accountType,
 		"accountName": c.accountName,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.account,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Account
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Inserts a new account for a user",
 	//   "httpMethod": "POST",
@@ -851,49 +833,42 @@ func (c *AccountsInsertCall) Do() (*Account, error) {
 // method id "mirror.contacts.delete":
 
 type ContactsDeleteCall struct {
-	s    *Service
-	id   string
-	opt_ map[string]interface{}
+	s             *Service
+	id            string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Delete: Deletes a contact.
-func (r *ContactsService) Delete(id string) *ContactsDeleteCall {
-	c := &ContactsDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.id = id
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *ContactsDeleteCall) Fields(s ...googleapi.Field) *ContactsDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *ContactsService) Delete(id string) *ContactsDeleteCall {
+	return &ContactsDeleteCall{
+		s:             r.s,
+		id:            id,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "contacts/{id}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *ContactsDeleteCall) Context(ctx context.Context) *ContactsDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *ContactsDeleteCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "contacts/{id}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"id": c.id,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Deletes a contact.",
 	//   "httpMethod": "DELETE",
@@ -920,15 +895,28 @@ func (c *ContactsDeleteCall) Do() error {
 // method id "mirror.contacts.get":
 
 type ContactsGetCall struct {
-	s    *Service
-	id   string
-	opt_ map[string]interface{}
+	s             *Service
+	id            string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Gets a single contact by ID.
+
 func (r *ContactsService) Get(id string) *ContactsGetCall {
-	c := &ContactsGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.id = id
+	return &ContactsGetCall{
+		s:             r.s,
+		id:            id,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "contacts/{id}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *ContactsGetCall) Context(ctx context.Context) *ContactsGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -936,37 +924,23 @@ func (r *ContactsService) Get(id string) *ContactsGetCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ContactsGetCall) Fields(s ...googleapi.Field) *ContactsGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ContactsGetCall) Do() (*Contact, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "contacts/{id}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Contact
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"id": c.id,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Contact
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Gets a single contact by ID.",
 	//   "httpMethod": "GET",
@@ -996,15 +970,28 @@ func (c *ContactsGetCall) Do() (*Contact, error) {
 // method id "mirror.contacts.insert":
 
 type ContactsInsertCall struct {
-	s       *Service
-	contact *Contact
-	opt_    map[string]interface{}
+	s             *Service
+	contact       *Contact
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Insert: Inserts a new contact.
+
 func (r *ContactsService) Insert(contact *Contact) *ContactsInsertCall {
-	c := &ContactsInsertCall{s: r.s, opt_: make(map[string]interface{})}
-	c.contact = contact
+	return &ContactsInsertCall{
+		s:             r.s,
+		contact:       contact,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "contacts",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *ContactsInsertCall) Context(ctx context.Context) *ContactsInsertCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1012,41 +999,22 @@ func (r *ContactsService) Insert(contact *Contact) *ContactsInsertCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ContactsInsertCall) Fields(s ...googleapi.Field) *ContactsInsertCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ContactsInsertCall) Do() (*Contact, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.contact)
-	if err != nil {
-		return nil, err
+	var returnValue *Contact
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.contact,
+		Result:  &returnValue,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "contacts")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Contact
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Inserts a new contact.",
 	//   "httpMethod": "POST",
@@ -1068,13 +1036,26 @@ func (c *ContactsInsertCall) Do() (*Contact, error) {
 // method id "mirror.contacts.list":
 
 type ContactsListCall struct {
-	s    *Service
-	opt_ map[string]interface{}
+	s             *Service
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Retrieves a list of contacts for the authenticated user.
+
 func (r *ContactsService) List() *ContactsListCall {
-	c := &ContactsListCall{s: r.s, opt_: make(map[string]interface{})}
+	return &ContactsListCall{
+		s:             r.s,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "contacts",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *ContactsListCall) Context(ctx context.Context) *ContactsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1082,35 +1063,21 @@ func (r *ContactsService) List() *ContactsListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ContactsListCall) Fields(s ...googleapi.Field) *ContactsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ContactsListCall) Do() (*ContactsListResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
+	var returnValue *ContactsListResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "contacts")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ContactsListResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves a list of contacts for the authenticated user.",
 	//   "httpMethod": "GET",
@@ -1129,18 +1096,31 @@ func (c *ContactsListCall) Do() (*ContactsListResponse, error) {
 // method id "mirror.contacts.patch":
 
 type ContactsPatchCall struct {
-	s       *Service
-	id      string
-	contact *Contact
-	opt_    map[string]interface{}
+	s             *Service
+	id            string
+	contact       *Contact
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Patch: Updates a contact in place. This method supports patch
 // semantics.
+
 func (r *ContactsService) Patch(id string, contact *Contact) *ContactsPatchCall {
-	c := &ContactsPatchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.id = id
-	c.contact = contact
+	return &ContactsPatchCall{
+		s:             r.s,
+		id:            id,
+		contact:       contact,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "contacts/{id}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *ContactsPatchCall) Context(ctx context.Context) *ContactsPatchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1148,43 +1128,24 @@ func (r *ContactsService) Patch(id string, contact *Contact) *ContactsPatchCall 
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ContactsPatchCall) Fields(s ...googleapi.Field) *ContactsPatchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ContactsPatchCall) Do() (*Contact, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.contact)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "contacts/{id}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PATCH", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Contact
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"id": c.id,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PATCH",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.contact,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Contact
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates a contact in place. This method supports patch semantics.",
 	//   "httpMethod": "PATCH",
@@ -1217,17 +1178,30 @@ func (c *ContactsPatchCall) Do() (*Contact, error) {
 // method id "mirror.contacts.update":
 
 type ContactsUpdateCall struct {
-	s       *Service
-	id      string
-	contact *Contact
-	opt_    map[string]interface{}
+	s             *Service
+	id            string
+	contact       *Contact
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Update: Updates a contact in place.
+
 func (r *ContactsService) Update(id string, contact *Contact) *ContactsUpdateCall {
-	c := &ContactsUpdateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.id = id
-	c.contact = contact
+	return &ContactsUpdateCall{
+		s:             r.s,
+		id:            id,
+		contact:       contact,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "contacts/{id}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *ContactsUpdateCall) Context(ctx context.Context) *ContactsUpdateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1235,43 +1209,24 @@ func (r *ContactsService) Update(id string, contact *Contact) *ContactsUpdateCal
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ContactsUpdateCall) Fields(s ...googleapi.Field) *ContactsUpdateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ContactsUpdateCall) Do() (*Contact, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.contact)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "contacts/{id}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Contact
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"id": c.id,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.contact,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Contact
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates a contact in place.",
 	//   "httpMethod": "PUT",
@@ -1304,15 +1259,28 @@ func (c *ContactsUpdateCall) Do() (*Contact, error) {
 // method id "mirror.locations.get":
 
 type LocationsGetCall struct {
-	s    *Service
-	id   string
-	opt_ map[string]interface{}
+	s             *Service
+	id            string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Gets a single location by ID.
+
 func (r *LocationsService) Get(id string) *LocationsGetCall {
-	c := &LocationsGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.id = id
+	return &LocationsGetCall{
+		s:             r.s,
+		id:            id,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "locations/{id}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *LocationsGetCall) Context(ctx context.Context) *LocationsGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1320,37 +1288,23 @@ func (r *LocationsService) Get(id string) *LocationsGetCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *LocationsGetCall) Fields(s ...googleapi.Field) *LocationsGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *LocationsGetCall) Do() (*Location, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "locations/{id}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Location
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"id": c.id,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Location
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Gets a single location by ID.",
 	//   "httpMethod": "GET",
@@ -1381,13 +1335,26 @@ func (c *LocationsGetCall) Do() (*Location, error) {
 // method id "mirror.locations.list":
 
 type LocationsListCall struct {
-	s    *Service
-	opt_ map[string]interface{}
+	s             *Service
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Retrieves a list of locations for the user.
+
 func (r *LocationsService) List() *LocationsListCall {
-	c := &LocationsListCall{s: r.s, opt_: make(map[string]interface{})}
+	return &LocationsListCall{
+		s:             r.s,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "locations",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *LocationsListCall) Context(ctx context.Context) *LocationsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1395,35 +1362,21 @@ func (r *LocationsService) List() *LocationsListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *LocationsListCall) Fields(s ...googleapi.Field) *LocationsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *LocationsListCall) Do() (*LocationsListResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
+	var returnValue *LocationsListResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "locations")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *LocationsListResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves a list of locations for the user.",
 	//   "httpMethod": "GET",
@@ -1443,15 +1396,28 @@ func (c *LocationsListCall) Do() (*LocationsListResponse, error) {
 // method id "mirror.settings.get":
 
 type SettingsGetCall struct {
-	s    *Service
-	id   string
-	opt_ map[string]interface{}
+	s             *Service
+	id            string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Gets a single setting by ID.
+
 func (r *SettingsService) Get(id string) *SettingsGetCall {
-	c := &SettingsGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.id = id
+	return &SettingsGetCall{
+		s:             r.s,
+		id:            id,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "settings/{id}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *SettingsGetCall) Context(ctx context.Context) *SettingsGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1459,37 +1425,23 @@ func (r *SettingsService) Get(id string) *SettingsGetCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *SettingsGetCall) Fields(s ...googleapi.Field) *SettingsGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *SettingsGetCall) Do() (*Setting, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "settings/{id}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Setting
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"id": c.id,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Setting
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Gets a single setting by ID.",
 	//   "httpMethod": "GET",
@@ -1519,49 +1471,42 @@ func (c *SettingsGetCall) Do() (*Setting, error) {
 // method id "mirror.subscriptions.delete":
 
 type SubscriptionsDeleteCall struct {
-	s    *Service
-	id   string
-	opt_ map[string]interface{}
+	s             *Service
+	id            string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Delete: Deletes a subscription.
-func (r *SubscriptionsService) Delete(id string) *SubscriptionsDeleteCall {
-	c := &SubscriptionsDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.id = id
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *SubscriptionsDeleteCall) Fields(s ...googleapi.Field) *SubscriptionsDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *SubscriptionsService) Delete(id string) *SubscriptionsDeleteCall {
+	return &SubscriptionsDeleteCall{
+		s:             r.s,
+		id:            id,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "subscriptions/{id}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *SubscriptionsDeleteCall) Context(ctx context.Context) *SubscriptionsDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *SubscriptionsDeleteCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "subscriptions/{id}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"id": c.id,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Deletes a subscription.",
 	//   "httpMethod": "DELETE",
@@ -1588,15 +1533,28 @@ func (c *SubscriptionsDeleteCall) Do() error {
 // method id "mirror.subscriptions.insert":
 
 type SubscriptionsInsertCall struct {
-	s            *Service
-	subscription *Subscription
-	opt_         map[string]interface{}
+	s             *Service
+	subscription  *Subscription
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Insert: Creates a new subscription.
+
 func (r *SubscriptionsService) Insert(subscription *Subscription) *SubscriptionsInsertCall {
-	c := &SubscriptionsInsertCall{s: r.s, opt_: make(map[string]interface{})}
-	c.subscription = subscription
+	return &SubscriptionsInsertCall{
+		s:             r.s,
+		subscription:  subscription,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "subscriptions",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *SubscriptionsInsertCall) Context(ctx context.Context) *SubscriptionsInsertCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1604,41 +1562,22 @@ func (r *SubscriptionsService) Insert(subscription *Subscription) *Subscriptions
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *SubscriptionsInsertCall) Fields(s ...googleapi.Field) *SubscriptionsInsertCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *SubscriptionsInsertCall) Do() (*Subscription, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.subscription)
-	if err != nil {
-		return nil, err
+	var returnValue *Subscription
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.subscription,
+		Result:  &returnValue,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "subscriptions")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Subscription
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Creates a new subscription.",
 	//   "httpMethod": "POST",
@@ -1660,14 +1599,27 @@ func (c *SubscriptionsInsertCall) Do() (*Subscription, error) {
 // method id "mirror.subscriptions.list":
 
 type SubscriptionsListCall struct {
-	s    *Service
-	opt_ map[string]interface{}
+	s             *Service
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Retrieves a list of subscriptions for the authenticated user
 // and service.
+
 func (r *SubscriptionsService) List() *SubscriptionsListCall {
-	c := &SubscriptionsListCall{s: r.s, opt_: make(map[string]interface{})}
+	return &SubscriptionsListCall{
+		s:             r.s,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "subscriptions",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *SubscriptionsListCall) Context(ctx context.Context) *SubscriptionsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1675,35 +1627,21 @@ func (r *SubscriptionsService) List() *SubscriptionsListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *SubscriptionsListCall) Fields(s ...googleapi.Field) *SubscriptionsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *SubscriptionsListCall) Do() (*SubscriptionsListResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
+	var returnValue *SubscriptionsListResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "subscriptions")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *SubscriptionsListResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves a list of subscriptions for the authenticated user and service.",
 	//   "httpMethod": "GET",
@@ -1722,17 +1660,30 @@ func (c *SubscriptionsListCall) Do() (*SubscriptionsListResponse, error) {
 // method id "mirror.subscriptions.update":
 
 type SubscriptionsUpdateCall struct {
-	s            *Service
-	id           string
-	subscription *Subscription
-	opt_         map[string]interface{}
+	s             *Service
+	id            string
+	subscription  *Subscription
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Update: Updates an existing subscription in place.
+
 func (r *SubscriptionsService) Update(id string, subscription *Subscription) *SubscriptionsUpdateCall {
-	c := &SubscriptionsUpdateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.id = id
-	c.subscription = subscription
+	return &SubscriptionsUpdateCall{
+		s:             r.s,
+		id:            id,
+		subscription:  subscription,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "subscriptions/{id}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *SubscriptionsUpdateCall) Context(ctx context.Context) *SubscriptionsUpdateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1740,43 +1691,24 @@ func (r *SubscriptionsService) Update(id string, subscription *Subscription) *Su
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *SubscriptionsUpdateCall) Fields(s ...googleapi.Field) *SubscriptionsUpdateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *SubscriptionsUpdateCall) Do() (*Subscription, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.subscription)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "subscriptions/{id}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Subscription
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"id": c.id,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.subscription,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Subscription
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates an existing subscription in place.",
 	//   "httpMethod": "PUT",
@@ -1809,49 +1741,42 @@ func (c *SubscriptionsUpdateCall) Do() (*Subscription, error) {
 // method id "mirror.timeline.delete":
 
 type TimelineDeleteCall struct {
-	s    *Service
-	id   string
-	opt_ map[string]interface{}
+	s             *Service
+	id            string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Delete: Deletes a timeline item.
-func (r *TimelineService) Delete(id string) *TimelineDeleteCall {
-	c := &TimelineDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.id = id
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *TimelineDeleteCall) Fields(s ...googleapi.Field) *TimelineDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *TimelineService) Delete(id string) *TimelineDeleteCall {
+	return &TimelineDeleteCall{
+		s:             r.s,
+		id:            id,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "timeline/{id}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *TimelineDeleteCall) Context(ctx context.Context) *TimelineDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *TimelineDeleteCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "timeline/{id}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"id": c.id,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Deletes a timeline item.",
 	//   "httpMethod": "DELETE",
@@ -1879,15 +1804,28 @@ func (c *TimelineDeleteCall) Do() error {
 // method id "mirror.timeline.get":
 
 type TimelineGetCall struct {
-	s    *Service
-	id   string
-	opt_ map[string]interface{}
+	s             *Service
+	id            string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Gets a single timeline item by ID.
+
 func (r *TimelineService) Get(id string) *TimelineGetCall {
-	c := &TimelineGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.id = id
+	return &TimelineGetCall{
+		s:             r.s,
+		id:            id,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "timeline/{id}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *TimelineGetCall) Context(ctx context.Context) *TimelineGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1895,37 +1833,23 @@ func (r *TimelineService) Get(id string) *TimelineGetCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *TimelineGetCall) Fields(s ...googleapi.Field) *TimelineGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *TimelineGetCall) Do() (*TimelineItem, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "timeline/{id}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *TimelineItem
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"id": c.id,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *TimelineItem
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Gets a single timeline item by ID.",
 	//   "httpMethod": "GET",
@@ -1956,28 +1880,53 @@ func (c *TimelineGetCall) Do() (*TimelineItem, error) {
 // method id "mirror.timeline.insert":
 
 type TimelineInsertCall struct {
-	s            *Service
-	timelineitem *TimelineItem
-	opt_         map[string]interface{}
-	media_       io.Reader
-	resumable_   googleapi.SizeReaderAt
-	mediaType_   string
-	ctx_         context.Context
-	protocol_    string
+	s             *Service
+	timelineitem  *TimelineItem
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
+	callback_     googleapi.ProgressUpdater
 }
 
 // Insert: Inserts a new item into the timeline.
+
 func (r *TimelineService) Insert(timelineitem *TimelineItem) *TimelineInsertCall {
-	c := &TimelineInsertCall{s: r.s, opt_: make(map[string]interface{})}
-	c.timelineitem = timelineitem
+	return &TimelineInsertCall{
+		s:             r.s,
+		timelineitem:  timelineitem,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "timeline",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *TimelineInsertCall) Context(ctx context.Context) *TimelineInsertCall {
+	c.context_ = ctx
+	return c
+}
+
+// MediaUpload takes a context and UploadCaller interface
+func (c *TimelineInsertCall) Upload(ctx context.Context, u googleapi.UploadCaller) *TimelineInsertCall {
+	c.caller_ = u
+	c.context_ = ctx
+	switch u.(type) {
+	case *googleapi.MediaUpload:
+		c.pathTemplate_ = "/upload/mirror/v1/timeline"
+	case *googleapi.ResumableUpload:
+		c.pathTemplate_ = "/resumable/upload/mirror/v1/timeline"
+	}
 	return c
 }
 
 // Media specifies the media to upload in a single chunk.
 // At most one of Media and ResumableMedia may be set.
+// The mime type type will be auto-detected unless r is a googleapi.ContentTyper as well.
 func (c *TimelineInsertCall) Media(r io.Reader) *TimelineInsertCall {
-	c.media_ = r
-	c.protocol_ = "multipart"
+	c.caller_ = &googleapi.MediaUpload{
+		Media: r,
+	}
+	c.pathTemplate_ = "/upload/mirror/v1/timeline"
 	return c
 }
 
@@ -1986,10 +1935,14 @@ func (c *TimelineInsertCall) Media(r io.Reader) *TimelineInsertCall {
 // mediaType identifies the MIME media type of the upload, such as "image/png".
 // If mediaType is "", it will be auto-detected.
 func (c *TimelineInsertCall) ResumableMedia(ctx context.Context, r io.ReaderAt, size int64, mediaType string) *TimelineInsertCall {
-	c.ctx_ = ctx
-	c.resumable_ = io.NewSectionReader(r, 0, size)
-	c.mediaType_ = mediaType
-	c.protocol_ = "resumable"
+	c.caller_ = &googleapi.ResumableUpload{
+		Media:         io.NewSectionReader(r, 0, size),
+		MediaType:     mediaType,
+		ContentLength: size,
+		Callback:      c.callback_,
+	}
+	c.pathTemplate_ = "/resumable/upload/mirror/v1/timeline"
+	c.context_ = ctx
 	return c
 }
 
@@ -1997,7 +1950,10 @@ func (c *TimelineInsertCall) ResumableMedia(ctx context.Context, r io.ReaderAt, 
 // It should be a low-latency function in order to not slow down the upload operation.
 // This should only be called when using ResumableMedia (as opposed to Media).
 func (c *TimelineInsertCall) ProgressUpdater(pu googleapi.ProgressUpdater) *TimelineInsertCall {
-	c.opt_["progressUpdater"] = pu
+	c.callback_ = pu
+	if rx, ok := c.caller_.(*googleapi.ResumableUpload); ok {
+		rx.Callback = pu
+	}
 	return c
 }
 
@@ -2005,84 +1961,22 @@ func (c *TimelineInsertCall) ProgressUpdater(pu googleapi.ProgressUpdater) *Time
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *TimelineInsertCall) Fields(s ...googleapi.Field) *TimelineInsertCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *TimelineInsertCall) Do() (*TimelineItem, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.timelineitem)
-	if err != nil {
-		return nil, err
+	var returnValue *TimelineItem
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.timelineitem,
+		Result:  &returnValue,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "timeline")
-	var progressUpdater_ googleapi.ProgressUpdater
-	if v, ok := c.opt_["progressUpdater"]; ok {
-		if pu, ok := v.(googleapi.ProgressUpdater); ok {
-			progressUpdater_ = pu
-		}
-	}
-	if c.media_ != nil || c.resumable_ != nil {
-		urls = strings.Replace(urls, "https://www.googleapis.com/", "https://www.googleapis.com/upload/", 1)
-		params.Set("uploadType", c.protocol_)
-	}
-	urls += "?" + params.Encode()
-	if c.protocol_ != "resumable" {
-		var cancel func()
-		cancel, _ = googleapi.ConditionallyIncludeMedia(c.media_, &body, &ctype)
-		if cancel != nil {
-			defer cancel()
-		}
-	}
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	if c.protocol_ == "resumable" {
-		req.ContentLength = 0
-		if c.mediaType_ == "" {
-			c.mediaType_ = googleapi.DetectMediaType(c.resumable_)
-		}
-		req.Header.Set("X-Upload-Content-Type", c.mediaType_)
-		req.Body = nil
-	} else {
-		req.Header.Set("Content-Type", ctype)
-	}
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	if c.protocol_ == "resumable" {
-		loc := res.Header.Get("Location")
-		rx := &googleapi.ResumableUpload{
-			Client:        c.s.client,
-			UserAgent:     c.s.userAgent(),
-			URI:           loc,
-			Media:         c.resumable_,
-			MediaType:     c.mediaType_,
-			ContentLength: c.resumable_.Size(),
-			Callback:      progressUpdater_,
-		}
-		res, err = rx.Upload(c.ctx_)
-		if err != nil {
-			return nil, err
-		}
-		defer res.Body.Close()
-	}
-	var ret *TimelineItem
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Inserts a new item into the timeline.",
 	//   "httpMethod": "POST",
@@ -2124,62 +2018,75 @@ func (c *TimelineInsertCall) Do() (*TimelineItem, error) {
 // method id "mirror.timeline.list":
 
 type TimelineListCall struct {
-	s    *Service
-	opt_ map[string]interface{}
+	s             *Service
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Retrieves a list of timeline items for the authenticated user.
+
 func (r *TimelineService) List() *TimelineListCall {
-	c := &TimelineListCall{s: r.s, opt_: make(map[string]interface{})}
-	return c
+	return &TimelineListCall{
+		s:             r.s,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "timeline",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // BundleId sets the optional parameter "bundleId": If provided, only
 // items with the given bundleId will be returned.
 func (c *TimelineListCall) BundleId(bundleId string) *TimelineListCall {
-	c.opt_["bundleId"] = bundleId
+	c.params_.Set("bundleId", fmt.Sprintf("%v", bundleId))
 	return c
 }
 
 // IncludeDeleted sets the optional parameter "includeDeleted": If true,
 // tombstone records for deleted items will be returned.
 func (c *TimelineListCall) IncludeDeleted(includeDeleted bool) *TimelineListCall {
-	c.opt_["includeDeleted"] = includeDeleted
+	c.params_.Set("includeDeleted", fmt.Sprintf("%v", includeDeleted))
 	return c
 }
 
 // MaxResults sets the optional parameter "maxResults": The maximum
 // number of items to include in the response, used for paging.
 func (c *TimelineListCall) MaxResults(maxResults int64) *TimelineListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
 // OrderBy sets the optional parameter "orderBy": Controls the order in
 // which timeline items are returned.
 func (c *TimelineListCall) OrderBy(orderBy string) *TimelineListCall {
-	c.opt_["orderBy"] = orderBy
+	c.params_.Set("orderBy", fmt.Sprintf("%v", orderBy))
 	return c
 }
 
 // PageToken sets the optional parameter "pageToken": Token for the page
 // of results to return.
 func (c *TimelineListCall) PageToken(pageToken string) *TimelineListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
 	return c
 }
 
 // PinnedOnly sets the optional parameter "pinnedOnly": If true, only
 // pinned items will be returned.
 func (c *TimelineListCall) PinnedOnly(pinnedOnly bool) *TimelineListCall {
-	c.opt_["pinnedOnly"] = pinnedOnly
+	c.params_.Set("pinnedOnly", fmt.Sprintf("%v", pinnedOnly))
 	return c
 }
 
 // SourceItemId sets the optional parameter "sourceItemId": If provided,
 // only items with the given sourceItemId will be returned.
 func (c *TimelineListCall) SourceItemId(sourceItemId string) *TimelineListCall {
-	c.opt_["sourceItemId"] = sourceItemId
+	c.params_.Set("sourceItemId", fmt.Sprintf("%v", sourceItemId))
+	return c
+}
+func (c *TimelineListCall) Context(ctx context.Context) *TimelineListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2187,56 +2094,21 @@ func (c *TimelineListCall) SourceItemId(sourceItemId string) *TimelineListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *TimelineListCall) Fields(s ...googleapi.Field) *TimelineListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *TimelineListCall) Do() (*TimelineListResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["bundleId"]; ok {
-		params.Set("bundleId", fmt.Sprintf("%v", v))
+	var returnValue *TimelineListResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	if v, ok := c.opt_["includeDeleted"]; ok {
-		params.Set("includeDeleted", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["orderBy"]; ok {
-		params.Set("orderBy", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pinnedOnly"]; ok {
-		params.Set("pinnedOnly", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["sourceItemId"]; ok {
-		params.Set("sourceItemId", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "timeline")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *TimelineListResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves a list of timeline items for the authenticated user.",
 	//   "httpMethod": "GET",
@@ -2302,18 +2174,31 @@ func (c *TimelineListCall) Do() (*TimelineListResponse, error) {
 // method id "mirror.timeline.patch":
 
 type TimelinePatchCall struct {
-	s            *Service
-	id           string
-	timelineitem *TimelineItem
-	opt_         map[string]interface{}
+	s             *Service
+	id            string
+	timelineitem  *TimelineItem
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Patch: Updates a timeline item in place. This method supports patch
 // semantics.
+
 func (r *TimelineService) Patch(id string, timelineitem *TimelineItem) *TimelinePatchCall {
-	c := &TimelinePatchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.id = id
-	c.timelineitem = timelineitem
+	return &TimelinePatchCall{
+		s:             r.s,
+		id:            id,
+		timelineitem:  timelineitem,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "timeline/{id}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *TimelinePatchCall) Context(ctx context.Context) *TimelinePatchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2321,43 +2206,24 @@ func (r *TimelineService) Patch(id string, timelineitem *TimelineItem) *Timeline
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *TimelinePatchCall) Fields(s ...googleapi.Field) *TimelinePatchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *TimelinePatchCall) Do() (*TimelineItem, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.timelineitem)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "timeline/{id}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PATCH", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *TimelineItem
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"id": c.id,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PATCH",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.timelineitem,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *TimelineItem
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates a timeline item in place. This method supports patch semantics.",
 	//   "httpMethod": "PATCH",
@@ -2391,30 +2257,55 @@ func (c *TimelinePatchCall) Do() (*TimelineItem, error) {
 // method id "mirror.timeline.update":
 
 type TimelineUpdateCall struct {
-	s            *Service
-	id           string
-	timelineitem *TimelineItem
-	opt_         map[string]interface{}
-	media_       io.Reader
-	resumable_   googleapi.SizeReaderAt
-	mediaType_   string
-	ctx_         context.Context
-	protocol_    string
+	s             *Service
+	id            string
+	timelineitem  *TimelineItem
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
+	callback_     googleapi.ProgressUpdater
 }
 
 // Update: Updates a timeline item in place.
+
 func (r *TimelineService) Update(id string, timelineitem *TimelineItem) *TimelineUpdateCall {
-	c := &TimelineUpdateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.id = id
-	c.timelineitem = timelineitem
+	return &TimelineUpdateCall{
+		s:             r.s,
+		id:            id,
+		timelineitem:  timelineitem,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "timeline/{id}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *TimelineUpdateCall) Context(ctx context.Context) *TimelineUpdateCall {
+	c.context_ = ctx
+	return c
+}
+
+// MediaUpload takes a context and UploadCaller interface
+func (c *TimelineUpdateCall) Upload(ctx context.Context, u googleapi.UploadCaller) *TimelineUpdateCall {
+	c.caller_ = u
+	c.context_ = ctx
+	switch u.(type) {
+	case *googleapi.MediaUpload:
+		c.pathTemplate_ = "/upload/mirror/v1/timeline/{id}"
+	case *googleapi.ResumableUpload:
+		c.pathTemplate_ = "/resumable/upload/mirror/v1/timeline/{id}"
+	}
 	return c
 }
 
 // Media specifies the media to upload in a single chunk.
 // At most one of Media and ResumableMedia may be set.
+// The mime type type will be auto-detected unless r is a googleapi.ContentTyper as well.
 func (c *TimelineUpdateCall) Media(r io.Reader) *TimelineUpdateCall {
-	c.media_ = r
-	c.protocol_ = "multipart"
+	c.caller_ = &googleapi.MediaUpload{
+		Media: r,
+	}
+	c.pathTemplate_ = "/upload/mirror/v1/timeline/{id}"
 	return c
 }
 
@@ -2423,10 +2314,14 @@ func (c *TimelineUpdateCall) Media(r io.Reader) *TimelineUpdateCall {
 // mediaType identifies the MIME media type of the upload, such as "image/png".
 // If mediaType is "", it will be auto-detected.
 func (c *TimelineUpdateCall) ResumableMedia(ctx context.Context, r io.ReaderAt, size int64, mediaType string) *TimelineUpdateCall {
-	c.ctx_ = ctx
-	c.resumable_ = io.NewSectionReader(r, 0, size)
-	c.mediaType_ = mediaType
-	c.protocol_ = "resumable"
+	c.caller_ = &googleapi.ResumableUpload{
+		Media:         io.NewSectionReader(r, 0, size),
+		MediaType:     mediaType,
+		ContentLength: size,
+		Callback:      c.callback_,
+	}
+	c.pathTemplate_ = "/resumable/upload/mirror/v1/timeline/{id}"
+	c.context_ = ctx
 	return c
 }
 
@@ -2434,7 +2329,10 @@ func (c *TimelineUpdateCall) ResumableMedia(ctx context.Context, r io.ReaderAt, 
 // It should be a low-latency function in order to not slow down the upload operation.
 // This should only be called when using ResumableMedia (as opposed to Media).
 func (c *TimelineUpdateCall) ProgressUpdater(pu googleapi.ProgressUpdater) *TimelineUpdateCall {
-	c.opt_["progressUpdater"] = pu
+	c.callback_ = pu
+	if rx, ok := c.caller_.(*googleapi.ResumableUpload); ok {
+		rx.Callback = pu
+	}
 	return c
 }
 
@@ -2442,86 +2340,24 @@ func (c *TimelineUpdateCall) ProgressUpdater(pu googleapi.ProgressUpdater) *Time
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *TimelineUpdateCall) Fields(s ...googleapi.Field) *TimelineUpdateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *TimelineUpdateCall) Do() (*TimelineItem, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.timelineitem)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "timeline/{id}")
-	var progressUpdater_ googleapi.ProgressUpdater
-	if v, ok := c.opt_["progressUpdater"]; ok {
-		if pu, ok := v.(googleapi.ProgressUpdater); ok {
-			progressUpdater_ = pu
-		}
-	}
-	if c.media_ != nil || c.resumable_ != nil {
-		urls = strings.Replace(urls, "https://www.googleapis.com/", "https://www.googleapis.com/upload/", 1)
-		params.Set("uploadType", c.protocol_)
-	}
-	urls += "?" + params.Encode()
-	if c.protocol_ != "resumable" {
-		var cancel func()
-		cancel, _ = googleapi.ConditionallyIncludeMedia(c.media_, &body, &ctype)
-		if cancel != nil {
-			defer cancel()
-		}
-	}
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *TimelineItem
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"id": c.id,
 	})
-	if c.protocol_ == "resumable" {
-		req.ContentLength = 0
-		if c.mediaType_ == "" {
-			c.mediaType_ = googleapi.DetectMediaType(c.resumable_)
-		}
-		req.Header.Set("X-Upload-Content-Type", c.mediaType_)
-		req.Body = nil
-	} else {
-		req.Header.Set("Content-Type", ctype)
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.timelineitem,
+		Result:  &returnValue,
 	}
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	if c.protocol_ == "resumable" {
-		loc := res.Header.Get("Location")
-		rx := &googleapi.ResumableUpload{
-			Client:        c.s.client,
-			UserAgent:     c.s.userAgent(),
-			URI:           loc,
-			Media:         c.resumable_,
-			MediaType:     c.mediaType_,
-			ContentLength: c.resumable_.Size(),
-			Callback:      progressUpdater_,
-		}
-		res, err = rx.Upload(c.ctx_)
-		if err != nil {
-			return nil, err
-		}
-		defer res.Body.Close()
-	}
-	var ret *TimelineItem
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates a timeline item in place.",
 	//   "httpMethod": "PUT",
@@ -2574,52 +2410,45 @@ func (c *TimelineUpdateCall) Do() (*TimelineItem, error) {
 // method id "mirror.timeline.attachments.delete":
 
 type TimelineAttachmentsDeleteCall struct {
-	s            *Service
-	itemId       string
-	attachmentId string
-	opt_         map[string]interface{}
+	s             *Service
+	itemId        string
+	attachmentId  string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Delete: Deletes an attachment from a timeline item.
-func (r *TimelineAttachmentsService) Delete(itemId string, attachmentId string) *TimelineAttachmentsDeleteCall {
-	c := &TimelineAttachmentsDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.itemId = itemId
-	c.attachmentId = attachmentId
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *TimelineAttachmentsDeleteCall) Fields(s ...googleapi.Field) *TimelineAttachmentsDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *TimelineAttachmentsService) Delete(itemId string, attachmentId string) *TimelineAttachmentsDeleteCall {
+	return &TimelineAttachmentsDeleteCall{
+		s:             r.s,
+		itemId:        itemId,
+		attachmentId:  attachmentId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "timeline/{itemId}/attachments/{attachmentId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *TimelineAttachmentsDeleteCall) Context(ctx context.Context) *TimelineAttachmentsDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *TimelineAttachmentsDeleteCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "timeline/{itemId}/attachments/{attachmentId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"itemId":       c.itemId,
 		"attachmentId": c.attachmentId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Deletes an attachment from a timeline item.",
 	//   "httpMethod": "DELETE",
@@ -2653,18 +2482,31 @@ func (c *TimelineAttachmentsDeleteCall) Do() error {
 // method id "mirror.timeline.attachments.get":
 
 type TimelineAttachmentsGetCall struct {
-	s            *Service
-	itemId       string
-	attachmentId string
-	opt_         map[string]interface{}
+	s             *Service
+	itemId        string
+	attachmentId  string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Retrieves an attachment on a timeline item by item ID and
 // attachment ID.
+
 func (r *TimelineAttachmentsService) Get(itemId string, attachmentId string) *TimelineAttachmentsGetCall {
-	c := &TimelineAttachmentsGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.itemId = itemId
-	c.attachmentId = attachmentId
+	return &TimelineAttachmentsGetCall{
+		s:             r.s,
+		itemId:        itemId,
+		attachmentId:  attachmentId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "timeline/{itemId}/attachments/{attachmentId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *TimelineAttachmentsGetCall) Context(ctx context.Context) *TimelineAttachmentsGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2672,38 +2514,43 @@ func (r *TimelineAttachmentsService) Get(itemId string, attachmentId string) *Ti
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *TimelineAttachmentsGetCall) Fields(s ...googleapi.Field) *TimelineAttachmentsGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
-func (c *TimelineAttachmentsGetCall) Do() (*Attachment, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "timeline/{itemId}/attachments/{attachmentId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+// GetResponse sets alt=media creating a file download request. The body
+// of the *http.Response contains the media.  You should close the response
+// body when finished reading.
+
+func (c *TimelineAttachmentsGetCall) GetResponse() (*http.Response, error) {
+	var res *http.Response
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"itemId":       c.itemId,
 		"attachmentId": c.attachmentId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &res,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
+	return res, c.caller_.Do(c.context_, c.s.client, call)
+}
+
+func (c *TimelineAttachmentsGetCall) Do() (*Attachment, error) {
+	var returnValue *Attachment
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
+		"itemId":       c.itemId,
+		"attachmentId": c.attachmentId,
+	})
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	var ret *Attachment
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves an attachment on a timeline item by item ID and attachment ID.",
 	//   "httpMethod": "GET",
@@ -2741,28 +2588,53 @@ func (c *TimelineAttachmentsGetCall) Do() (*Attachment, error) {
 // method id "mirror.timeline.attachments.insert":
 
 type TimelineAttachmentsInsertCall struct {
-	s          *Service
-	itemId     string
-	opt_       map[string]interface{}
-	media_     io.Reader
-	resumable_ googleapi.SizeReaderAt
-	mediaType_ string
-	ctx_       context.Context
-	protocol_  string
+	s             *Service
+	itemId        string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
+	callback_     googleapi.ProgressUpdater
 }
 
 // Insert: Adds a new attachment to a timeline item.
+
 func (r *TimelineAttachmentsService) Insert(itemId string) *TimelineAttachmentsInsertCall {
-	c := &TimelineAttachmentsInsertCall{s: r.s, opt_: make(map[string]interface{})}
-	c.itemId = itemId
+	return &TimelineAttachmentsInsertCall{
+		s:             r.s,
+		itemId:        itemId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "timeline/{itemId}/attachments",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *TimelineAttachmentsInsertCall) Context(ctx context.Context) *TimelineAttachmentsInsertCall {
+	c.context_ = ctx
+	return c
+}
+
+// MediaUpload takes a context and UploadCaller interface
+func (c *TimelineAttachmentsInsertCall) Upload(ctx context.Context, u googleapi.UploadCaller) *TimelineAttachmentsInsertCall {
+	c.caller_ = u
+	c.context_ = ctx
+	switch u.(type) {
+	case *googleapi.MediaUpload:
+		c.pathTemplate_ = "/upload/mirror/v1/timeline/{itemId}/attachments"
+	case *googleapi.ResumableUpload:
+		c.pathTemplate_ = "/resumable/upload/mirror/v1/timeline/{itemId}/attachments"
+	}
 	return c
 }
 
 // Media specifies the media to upload in a single chunk.
 // At most one of Media and ResumableMedia may be set.
+// The mime type type will be auto-detected unless r is a googleapi.ContentTyper as well.
 func (c *TimelineAttachmentsInsertCall) Media(r io.Reader) *TimelineAttachmentsInsertCall {
-	c.media_ = r
-	c.protocol_ = "multipart"
+	c.caller_ = &googleapi.MediaUpload{
+		Media: r,
+	}
+	c.pathTemplate_ = "/upload/mirror/v1/timeline/{itemId}/attachments"
 	return c
 }
 
@@ -2771,10 +2643,14 @@ func (c *TimelineAttachmentsInsertCall) Media(r io.Reader) *TimelineAttachmentsI
 // mediaType identifies the MIME media type of the upload, such as "image/png".
 // If mediaType is "", it will be auto-detected.
 func (c *TimelineAttachmentsInsertCall) ResumableMedia(ctx context.Context, r io.ReaderAt, size int64, mediaType string) *TimelineAttachmentsInsertCall {
-	c.ctx_ = ctx
-	c.resumable_ = io.NewSectionReader(r, 0, size)
-	c.mediaType_ = mediaType
-	c.protocol_ = "resumable"
+	c.caller_ = &googleapi.ResumableUpload{
+		Media:         io.NewSectionReader(r, 0, size),
+		MediaType:     mediaType,
+		ContentLength: size,
+		Callback:      c.callback_,
+	}
+	c.pathTemplate_ = "/resumable/upload/mirror/v1/timeline/{itemId}/attachments"
+	c.context_ = ctx
 	return c
 }
 
@@ -2782,7 +2658,10 @@ func (c *TimelineAttachmentsInsertCall) ResumableMedia(ctx context.Context, r io
 // It should be a low-latency function in order to not slow down the upload operation.
 // This should only be called when using ResumableMedia (as opposed to Media).
 func (c *TimelineAttachmentsInsertCall) ProgressUpdater(pu googleapi.ProgressUpdater) *TimelineAttachmentsInsertCall {
-	c.opt_["progressUpdater"] = pu
+	c.callback_ = pu
+	if rx, ok := c.caller_.(*googleapi.ResumableUpload); ok {
+		rx.Callback = pu
+	}
 	return c
 }
 
@@ -2790,83 +2669,23 @@ func (c *TimelineAttachmentsInsertCall) ProgressUpdater(pu googleapi.ProgressUpd
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *TimelineAttachmentsInsertCall) Fields(s ...googleapi.Field) *TimelineAttachmentsInsertCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *TimelineAttachmentsInsertCall) Do() (*Attachment, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "timeline/{itemId}/attachments")
-	var progressUpdater_ googleapi.ProgressUpdater
-	if v, ok := c.opt_["progressUpdater"]; ok {
-		if pu, ok := v.(googleapi.ProgressUpdater); ok {
-			progressUpdater_ = pu
-		}
-	}
-	if c.media_ != nil || c.resumable_ != nil {
-		urls = strings.Replace(urls, "https://www.googleapis.com/", "https://www.googleapis.com/upload/", 1)
-		params.Set("uploadType", c.protocol_)
-	}
-	urls += "?" + params.Encode()
-	body = new(bytes.Buffer)
-	ctype := "application/json"
-	if c.protocol_ != "resumable" {
-		var cancel func()
-		cancel, _ = googleapi.ConditionallyIncludeMedia(c.media_, &body, &ctype)
-		if cancel != nil {
-			defer cancel()
-		}
-	}
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Attachment
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"itemId": c.itemId,
 	})
-	if c.protocol_ == "resumable" {
-		req.ContentLength = 0
-		if c.mediaType_ == "" {
-			c.mediaType_ = googleapi.DetectMediaType(c.resumable_)
-		}
-		req.Header.Set("X-Upload-Content-Type", c.mediaType_)
-		req.Body = nil
-	} else {
-		req.Header.Set("Content-Type", ctype)
+	call := &googleapi.Call{
+		Method: "POST",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	if c.protocol_ == "resumable" {
-		loc := res.Header.Get("Location")
-		rx := &googleapi.ResumableUpload{
-			Client:        c.s.client,
-			UserAgent:     c.s.userAgent(),
-			URI:           loc,
-			Media:         c.resumable_,
-			MediaType:     c.mediaType_,
-			ContentLength: c.resumable_.Size(),
-			Callback:      progressUpdater_,
-		}
-		res, err = rx.Upload(c.ctx_)
-		if err != nil {
-			return nil, err
-		}
-		defer res.Body.Close()
-	}
-	var ret *Attachment
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Adds a new attachment to a timeline item.",
 	//   "httpMethod": "POST",
@@ -2915,15 +2734,28 @@ func (c *TimelineAttachmentsInsertCall) Do() (*Attachment, error) {
 // method id "mirror.timeline.attachments.list":
 
 type TimelineAttachmentsListCall struct {
-	s      *Service
-	itemId string
-	opt_   map[string]interface{}
+	s             *Service
+	itemId        string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Returns a list of attachments for a timeline item.
+
 func (r *TimelineAttachmentsService) List(itemId string) *TimelineAttachmentsListCall {
-	c := &TimelineAttachmentsListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.itemId = itemId
+	return &TimelineAttachmentsListCall{
+		s:             r.s,
+		itemId:        itemId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "timeline/{itemId}/attachments",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *TimelineAttachmentsListCall) Context(ctx context.Context) *TimelineAttachmentsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2931,37 +2763,23 @@ func (r *TimelineAttachmentsService) List(itemId string) *TimelineAttachmentsLis
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *TimelineAttachmentsListCall) Fields(s ...googleapi.Field) *TimelineAttachmentsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *TimelineAttachmentsListCall) Do() (*AttachmentsListResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "timeline/{itemId}/attachments")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *AttachmentsListResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"itemId": c.itemId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *AttachmentsListResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Returns a list of attachments for a timeline item.",
 	//   "httpMethod": "GET",

@@ -4,18 +4,16 @@
 //
 // Usage example:
 //
-//   import "google.golang.org/api/gmail/v1"
+//   import "github.com/jfcote87/api2/gmail/v1"
 //   ...
 //   gmailService, err := gmail.New(oauthHttpClient)
 package gmail
 
 import (
-	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/jfcote87/api2/googleapi"
 	"golang.org/x/net/context"
-	"google.golang.org/api/googleapi"
 	"io"
 	"net/http"
 	"net/url"
@@ -25,10 +23,8 @@ import (
 
 // Always reference these packages, just in case the auto-generated code
 // below doesn't.
-var _ = bytes.NewBuffer
 var _ = strconv.Itoa
 var _ = fmt.Sprintf
-var _ = json.NewDecoder
 var _ = io.Copy
 var _ = url.Parse
 var _ = googleapi.Version
@@ -39,7 +35,8 @@ var _ = context.Background
 const apiId = "gmail:v1"
 const apiName = "gmail"
 const apiVersion = "v1"
-const basePath = "https://www.googleapis.com/gmail/v1/users/"
+
+var baseURL *url.URL = &url.URL{Scheme: "https", Host: "www.googleapis.com", Path: "/gmail/v1/users/"}
 
 // OAuth2 scopes used by this API.
 const (
@@ -48,6 +45,12 @@ const (
 
 	// Manage drafts and send emails
 	GmailComposeScope = "https://www.googleapis.com/auth/gmail.compose"
+
+	// Insert mail into your mailbox
+	GmailInsertScope = "https://www.googleapis.com/auth/gmail.insert"
+
+	// Manage mailbox labels
+	GmailLabelsScope = "https://www.googleapis.com/auth/gmail.labels"
 
 	// View and modify but not delete your email
 	GmailModifyScope = "https://www.googleapis.com/auth/gmail.modify"
@@ -60,24 +63,15 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
+	s := &Service{client: client}
 	s.Users = NewUsersService(s)
 	return s, nil
 }
 
 type Service struct {
-	client    *http.Client
-	BasePath  string // API endpoint base URL
-	UserAgent string // optional additional User-Agent fragment
+	client *http.Client
 
 	Users *UsersService
-}
-
-func (s *Service) userAgent() string {
-	if s.UserAgent == "" {
-		return googleapi.UserAgent
-	}
-	return googleapi.UserAgent + " " + s.UserAgent
 }
 
 func NewUsersService(s *Service) *UsersService {
@@ -447,15 +441,28 @@ type Thread struct {
 // method id "gmail.users.getProfile":
 
 type UsersGetProfileCall struct {
-	s      *Service
-	userId string
-	opt_   map[string]interface{}
+	s             *Service
+	userId        string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // GetProfile: Gets the current user's Gmail profile.
+
 func (r *UsersService) GetProfile(userId string) *UsersGetProfileCall {
-	c := &UsersGetProfileCall{s: r.s, opt_: make(map[string]interface{})}
-	c.userId = userId
+	return &UsersGetProfileCall{
+		s:             r.s,
+		userId:        userId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{userId}/profile",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *UsersGetProfileCall) Context(ctx context.Context) *UsersGetProfileCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -463,37 +470,23 @@ func (r *UsersService) GetProfile(userId string) *UsersGetProfileCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *UsersGetProfileCall) Fields(s ...googleapi.Field) *UsersGetProfileCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *UsersGetProfileCall) Do() (*Profile, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{userId}/profile")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Profile
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"userId": c.userId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Profile
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Gets the current user's Gmail profile.",
 	//   "httpMethod": "GET",
@@ -527,30 +520,55 @@ func (c *UsersGetProfileCall) Do() (*Profile, error) {
 // method id "gmail.users.drafts.create":
 
 type UsersDraftsCreateCall struct {
-	s          *Service
-	userId     string
-	draft      *Draft
-	opt_       map[string]interface{}
-	media_     io.Reader
-	resumable_ googleapi.SizeReaderAt
-	mediaType_ string
-	ctx_       context.Context
-	protocol_  string
+	s             *Service
+	userId        string
+	draft         *Draft
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
+	callback_     googleapi.ProgressUpdater
 }
 
 // Create: Creates a new draft with the DRAFT label.
+
 func (r *UsersDraftsService) Create(userId string, draft *Draft) *UsersDraftsCreateCall {
-	c := &UsersDraftsCreateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.userId = userId
-	c.draft = draft
+	return &UsersDraftsCreateCall{
+		s:             r.s,
+		userId:        userId,
+		draft:         draft,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{userId}/drafts",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *UsersDraftsCreateCall) Context(ctx context.Context) *UsersDraftsCreateCall {
+	c.context_ = ctx
+	return c
+}
+
+// MediaUpload takes a context and UploadCaller interface
+func (c *UsersDraftsCreateCall) Upload(ctx context.Context, u googleapi.UploadCaller) *UsersDraftsCreateCall {
+	c.caller_ = u
+	c.context_ = ctx
+	switch u.(type) {
+	case *googleapi.MediaUpload:
+		c.pathTemplate_ = "/upload/gmail/v1/users/{userId}/drafts"
+	case *googleapi.ResumableUpload:
+		c.pathTemplate_ = "/resumable/upload/gmail/v1/users/{userId}/drafts"
+	}
 	return c
 }
 
 // Media specifies the media to upload in a single chunk.
 // At most one of Media and ResumableMedia may be set.
+// The mime type type will be auto-detected unless r is a googleapi.ContentTyper as well.
 func (c *UsersDraftsCreateCall) Media(r io.Reader) *UsersDraftsCreateCall {
-	c.media_ = r
-	c.protocol_ = "multipart"
+	c.caller_ = &googleapi.MediaUpload{
+		Media: r,
+	}
+	c.pathTemplate_ = "/upload/gmail/v1/users/{userId}/drafts"
 	return c
 }
 
@@ -559,10 +577,14 @@ func (c *UsersDraftsCreateCall) Media(r io.Reader) *UsersDraftsCreateCall {
 // mediaType identifies the MIME media type of the upload, such as "image/png".
 // If mediaType is "", it will be auto-detected.
 func (c *UsersDraftsCreateCall) ResumableMedia(ctx context.Context, r io.ReaderAt, size int64, mediaType string) *UsersDraftsCreateCall {
-	c.ctx_ = ctx
-	c.resumable_ = io.NewSectionReader(r, 0, size)
-	c.mediaType_ = mediaType
-	c.protocol_ = "resumable"
+	c.caller_ = &googleapi.ResumableUpload{
+		Media:         io.NewSectionReader(r, 0, size),
+		MediaType:     mediaType,
+		ContentLength: size,
+		Callback:      c.callback_,
+	}
+	c.pathTemplate_ = "/resumable/upload/gmail/v1/users/{userId}/drafts"
+	c.context_ = ctx
 	return c
 }
 
@@ -570,7 +592,10 @@ func (c *UsersDraftsCreateCall) ResumableMedia(ctx context.Context, r io.ReaderA
 // It should be a low-latency function in order to not slow down the upload operation.
 // This should only be called when using ResumableMedia (as opposed to Media).
 func (c *UsersDraftsCreateCall) ProgressUpdater(pu googleapi.ProgressUpdater) *UsersDraftsCreateCall {
-	c.opt_["progressUpdater"] = pu
+	c.callback_ = pu
+	if rx, ok := c.caller_.(*googleapi.ResumableUpload); ok {
+		rx.Callback = pu
+	}
 	return c
 }
 
@@ -578,86 +603,24 @@ func (c *UsersDraftsCreateCall) ProgressUpdater(pu googleapi.ProgressUpdater) *U
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *UsersDraftsCreateCall) Fields(s ...googleapi.Field) *UsersDraftsCreateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *UsersDraftsCreateCall) Do() (*Draft, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.draft)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{userId}/drafts")
-	var progressUpdater_ googleapi.ProgressUpdater
-	if v, ok := c.opt_["progressUpdater"]; ok {
-		if pu, ok := v.(googleapi.ProgressUpdater); ok {
-			progressUpdater_ = pu
-		}
-	}
-	if c.media_ != nil || c.resumable_ != nil {
-		urls = strings.Replace(urls, "https://www.googleapis.com/", "https://www.googleapis.com/upload/", 1)
-		params.Set("uploadType", c.protocol_)
-	}
-	urls += "?" + params.Encode()
-	if c.protocol_ != "resumable" {
-		var cancel func()
-		cancel, _ = googleapi.ConditionallyIncludeMedia(c.media_, &body, &ctype)
-		if cancel != nil {
-			defer cancel()
-		}
-	}
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Draft
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"userId": c.userId,
 	})
-	if c.protocol_ == "resumable" {
-		req.ContentLength = 0
-		if c.mediaType_ == "" {
-			c.mediaType_ = googleapi.DetectMediaType(c.resumable_)
-		}
-		req.Header.Set("X-Upload-Content-Type", c.mediaType_)
-		req.Body = nil
-	} else {
-		req.Header.Set("Content-Type", ctype)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.draft,
+		Result:  &returnValue,
 	}
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	if c.protocol_ == "resumable" {
-		loc := res.Header.Get("Location")
-		rx := &googleapi.ResumableUpload{
-			Client:        c.s.client,
-			UserAgent:     c.s.userAgent(),
-			URI:           loc,
-			Media:         c.resumable_,
-			MediaType:     c.mediaType_,
-			ContentLength: c.resumable_.Size(),
-			Callback:      progressUpdater_,
-		}
-		res, err = rx.Upload(c.ctx_)
-		if err != nil {
-			return nil, err
-		}
-		defer res.Body.Close()
-	}
-	var ret *Draft
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Creates a new draft with the DRAFT label.",
 	//   "httpMethod": "POST",
@@ -710,53 +673,46 @@ func (c *UsersDraftsCreateCall) Do() (*Draft, error) {
 // method id "gmail.users.drafts.delete":
 
 type UsersDraftsDeleteCall struct {
-	s      *Service
-	userId string
-	id     string
-	opt_   map[string]interface{}
+	s             *Service
+	userId        string
+	id            string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Delete: Immediately and permanently deletes the specified draft. Does
 // not simply trash it.
-func (r *UsersDraftsService) Delete(userId string, id string) *UsersDraftsDeleteCall {
-	c := &UsersDraftsDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.userId = userId
-	c.id = id
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *UsersDraftsDeleteCall) Fields(s ...googleapi.Field) *UsersDraftsDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *UsersDraftsService) Delete(userId string, id string) *UsersDraftsDeleteCall {
+	return &UsersDraftsDeleteCall{
+		s:             r.s,
+		userId:        userId,
+		id:            id,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{userId}/drafts/{id}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *UsersDraftsDeleteCall) Context(ctx context.Context) *UsersDraftsDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *UsersDraftsDeleteCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{userId}/drafts/{id}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"userId": c.userId,
 		"id":     c.id,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Immediately and permanently deletes the specified draft. Does not simply trash it.",
 	//   "httpMethod": "DELETE",
@@ -793,24 +749,37 @@ func (c *UsersDraftsDeleteCall) Do() error {
 // method id "gmail.users.drafts.get":
 
 type UsersDraftsGetCall struct {
-	s      *Service
-	userId string
-	id     string
-	opt_   map[string]interface{}
+	s             *Service
+	userId        string
+	id            string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Gets the specified draft.
+
 func (r *UsersDraftsService) Get(userId string, id string) *UsersDraftsGetCall {
-	c := &UsersDraftsGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.userId = userId
-	c.id = id
-	return c
+	return &UsersDraftsGetCall{
+		s:             r.s,
+		userId:        userId,
+		id:            id,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{userId}/drafts/{id}",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Format sets the optional parameter "format": The format to return the
 // draft in.
 func (c *UsersDraftsGetCall) Format(format string) *UsersDraftsGetCall {
-	c.opt_["format"] = format
+	c.params_.Set("format", fmt.Sprintf("%v", format))
+	return c
+}
+func (c *UsersDraftsGetCall) Context(ctx context.Context) *UsersDraftsGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -818,41 +787,24 @@ func (c *UsersDraftsGetCall) Format(format string) *UsersDraftsGetCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *UsersDraftsGetCall) Fields(s ...googleapi.Field) *UsersDraftsGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *UsersDraftsGetCall) Do() (*Draft, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["format"]; ok {
-		params.Set("format", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{userId}/drafts/{id}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Draft
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"userId": c.userId,
 		"id":     c.id,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Draft
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Gets the specified draft.",
 	//   "httpMethod": "GET",
@@ -911,29 +863,42 @@ func (c *UsersDraftsGetCall) Do() (*Draft, error) {
 // method id "gmail.users.drafts.list":
 
 type UsersDraftsListCall struct {
-	s      *Service
-	userId string
-	opt_   map[string]interface{}
+	s             *Service
+	userId        string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Lists the drafts in the user's mailbox.
+
 func (r *UsersDraftsService) List(userId string) *UsersDraftsListCall {
-	c := &UsersDraftsListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.userId = userId
-	return c
+	return &UsersDraftsListCall{
+		s:             r.s,
+		userId:        userId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{userId}/drafts",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // MaxResults sets the optional parameter "maxResults": Maximum number
 // of drafts to return.
 func (c *UsersDraftsListCall) MaxResults(maxResults int64) *UsersDraftsListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
 // PageToken sets the optional parameter "pageToken": Page token to
 // retrieve a specific page of results in the list.
 func (c *UsersDraftsListCall) PageToken(pageToken string) *UsersDraftsListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
+	return c
+}
+func (c *UsersDraftsListCall) Context(ctx context.Context) *UsersDraftsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -941,43 +906,23 @@ func (c *UsersDraftsListCall) PageToken(pageToken string) *UsersDraftsListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *UsersDraftsListCall) Fields(s ...googleapi.Field) *UsersDraftsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *UsersDraftsListCall) Do() (*ListDraftsResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{userId}/drafts")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *ListDraftsResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"userId": c.userId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ListDraftsResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Lists the drafts in the user's mailbox.",
 	//   "httpMethod": "GET",
@@ -1023,31 +968,56 @@ func (c *UsersDraftsListCall) Do() (*ListDraftsResponse, error) {
 // method id "gmail.users.drafts.send":
 
 type UsersDraftsSendCall struct {
-	s          *Service
-	userId     string
-	draft      *Draft
-	opt_       map[string]interface{}
-	media_     io.Reader
-	resumable_ googleapi.SizeReaderAt
-	mediaType_ string
-	ctx_       context.Context
-	protocol_  string
+	s             *Service
+	userId        string
+	draft         *Draft
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
+	callback_     googleapi.ProgressUpdater
 }
 
 // Send: Sends the specified, existing draft to the recipients in the
 // To, Cc, and Bcc headers.
+
 func (r *UsersDraftsService) Send(userId string, draft *Draft) *UsersDraftsSendCall {
-	c := &UsersDraftsSendCall{s: r.s, opt_: make(map[string]interface{})}
-	c.userId = userId
-	c.draft = draft
+	return &UsersDraftsSendCall{
+		s:             r.s,
+		userId:        userId,
+		draft:         draft,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{userId}/drafts/send",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *UsersDraftsSendCall) Context(ctx context.Context) *UsersDraftsSendCall {
+	c.context_ = ctx
+	return c
+}
+
+// MediaUpload takes a context and UploadCaller interface
+func (c *UsersDraftsSendCall) Upload(ctx context.Context, u googleapi.UploadCaller) *UsersDraftsSendCall {
+	c.caller_ = u
+	c.context_ = ctx
+	switch u.(type) {
+	case *googleapi.MediaUpload:
+		c.pathTemplate_ = "/upload/gmail/v1/users/{userId}/drafts/send"
+	case *googleapi.ResumableUpload:
+		c.pathTemplate_ = "/resumable/upload/gmail/v1/users/{userId}/drafts/send"
+	}
 	return c
 }
 
 // Media specifies the media to upload in a single chunk.
 // At most one of Media and ResumableMedia may be set.
+// The mime type type will be auto-detected unless r is a googleapi.ContentTyper as well.
 func (c *UsersDraftsSendCall) Media(r io.Reader) *UsersDraftsSendCall {
-	c.media_ = r
-	c.protocol_ = "multipart"
+	c.caller_ = &googleapi.MediaUpload{
+		Media: r,
+	}
+	c.pathTemplate_ = "/upload/gmail/v1/users/{userId}/drafts/send"
 	return c
 }
 
@@ -1056,10 +1026,14 @@ func (c *UsersDraftsSendCall) Media(r io.Reader) *UsersDraftsSendCall {
 // mediaType identifies the MIME media type of the upload, such as "image/png".
 // If mediaType is "", it will be auto-detected.
 func (c *UsersDraftsSendCall) ResumableMedia(ctx context.Context, r io.ReaderAt, size int64, mediaType string) *UsersDraftsSendCall {
-	c.ctx_ = ctx
-	c.resumable_ = io.NewSectionReader(r, 0, size)
-	c.mediaType_ = mediaType
-	c.protocol_ = "resumable"
+	c.caller_ = &googleapi.ResumableUpload{
+		Media:         io.NewSectionReader(r, 0, size),
+		MediaType:     mediaType,
+		ContentLength: size,
+		Callback:      c.callback_,
+	}
+	c.pathTemplate_ = "/resumable/upload/gmail/v1/users/{userId}/drafts/send"
+	c.context_ = ctx
 	return c
 }
 
@@ -1067,7 +1041,10 @@ func (c *UsersDraftsSendCall) ResumableMedia(ctx context.Context, r io.ReaderAt,
 // It should be a low-latency function in order to not slow down the upload operation.
 // This should only be called when using ResumableMedia (as opposed to Media).
 func (c *UsersDraftsSendCall) ProgressUpdater(pu googleapi.ProgressUpdater) *UsersDraftsSendCall {
-	c.opt_["progressUpdater"] = pu
+	c.callback_ = pu
+	if rx, ok := c.caller_.(*googleapi.ResumableUpload); ok {
+		rx.Callback = pu
+	}
 	return c
 }
 
@@ -1075,86 +1052,24 @@ func (c *UsersDraftsSendCall) ProgressUpdater(pu googleapi.ProgressUpdater) *Use
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *UsersDraftsSendCall) Fields(s ...googleapi.Field) *UsersDraftsSendCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *UsersDraftsSendCall) Do() (*Message, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.draft)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{userId}/drafts/send")
-	var progressUpdater_ googleapi.ProgressUpdater
-	if v, ok := c.opt_["progressUpdater"]; ok {
-		if pu, ok := v.(googleapi.ProgressUpdater); ok {
-			progressUpdater_ = pu
-		}
-	}
-	if c.media_ != nil || c.resumable_ != nil {
-		urls = strings.Replace(urls, "https://www.googleapis.com/", "https://www.googleapis.com/upload/", 1)
-		params.Set("uploadType", c.protocol_)
-	}
-	urls += "?" + params.Encode()
-	if c.protocol_ != "resumable" {
-		var cancel func()
-		cancel, _ = googleapi.ConditionallyIncludeMedia(c.media_, &body, &ctype)
-		if cancel != nil {
-			defer cancel()
-		}
-	}
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Message
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"userId": c.userId,
 	})
-	if c.protocol_ == "resumable" {
-		req.ContentLength = 0
-		if c.mediaType_ == "" {
-			c.mediaType_ = googleapi.DetectMediaType(c.resumable_)
-		}
-		req.Header.Set("X-Upload-Content-Type", c.mediaType_)
-		req.Body = nil
-	} else {
-		req.Header.Set("Content-Type", ctype)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.draft,
+		Result:  &returnValue,
 	}
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	if c.protocol_ == "resumable" {
-		loc := res.Header.Get("Location")
-		rx := &googleapi.ResumableUpload{
-			Client:        c.s.client,
-			UserAgent:     c.s.userAgent(),
-			URI:           loc,
-			Media:         c.resumable_,
-			MediaType:     c.mediaType_,
-			ContentLength: c.resumable_.Size(),
-			Callback:      progressUpdater_,
-		}
-		res, err = rx.Upload(c.ctx_)
-		if err != nil {
-			return nil, err
-		}
-		defer res.Body.Close()
-	}
-	var ret *Message
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Sends the specified, existing draft to the recipients in the To, Cc, and Bcc headers.",
 	//   "httpMethod": "POST",
@@ -1207,32 +1122,57 @@ func (c *UsersDraftsSendCall) Do() (*Message, error) {
 // method id "gmail.users.drafts.update":
 
 type UsersDraftsUpdateCall struct {
-	s          *Service
-	userId     string
-	id         string
-	draft      *Draft
-	opt_       map[string]interface{}
-	media_     io.Reader
-	resumable_ googleapi.SizeReaderAt
-	mediaType_ string
-	ctx_       context.Context
-	protocol_  string
+	s             *Service
+	userId        string
+	id            string
+	draft         *Draft
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
+	callback_     googleapi.ProgressUpdater
 }
 
 // Update: Replaces a draft's content.
+
 func (r *UsersDraftsService) Update(userId string, id string, draft *Draft) *UsersDraftsUpdateCall {
-	c := &UsersDraftsUpdateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.userId = userId
-	c.id = id
-	c.draft = draft
+	return &UsersDraftsUpdateCall{
+		s:             r.s,
+		userId:        userId,
+		id:            id,
+		draft:         draft,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{userId}/drafts/{id}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *UsersDraftsUpdateCall) Context(ctx context.Context) *UsersDraftsUpdateCall {
+	c.context_ = ctx
+	return c
+}
+
+// MediaUpload takes a context and UploadCaller interface
+func (c *UsersDraftsUpdateCall) Upload(ctx context.Context, u googleapi.UploadCaller) *UsersDraftsUpdateCall {
+	c.caller_ = u
+	c.context_ = ctx
+	switch u.(type) {
+	case *googleapi.MediaUpload:
+		c.pathTemplate_ = "/upload/gmail/v1/users/{userId}/drafts/{id}"
+	case *googleapi.ResumableUpload:
+		c.pathTemplate_ = "/resumable/upload/gmail/v1/users/{userId}/drafts/{id}"
+	}
 	return c
 }
 
 // Media specifies the media to upload in a single chunk.
 // At most one of Media and ResumableMedia may be set.
+// The mime type type will be auto-detected unless r is a googleapi.ContentTyper as well.
 func (c *UsersDraftsUpdateCall) Media(r io.Reader) *UsersDraftsUpdateCall {
-	c.media_ = r
-	c.protocol_ = "multipart"
+	c.caller_ = &googleapi.MediaUpload{
+		Media: r,
+	}
+	c.pathTemplate_ = "/upload/gmail/v1/users/{userId}/drafts/{id}"
 	return c
 }
 
@@ -1241,10 +1181,14 @@ func (c *UsersDraftsUpdateCall) Media(r io.Reader) *UsersDraftsUpdateCall {
 // mediaType identifies the MIME media type of the upload, such as "image/png".
 // If mediaType is "", it will be auto-detected.
 func (c *UsersDraftsUpdateCall) ResumableMedia(ctx context.Context, r io.ReaderAt, size int64, mediaType string) *UsersDraftsUpdateCall {
-	c.ctx_ = ctx
-	c.resumable_ = io.NewSectionReader(r, 0, size)
-	c.mediaType_ = mediaType
-	c.protocol_ = "resumable"
+	c.caller_ = &googleapi.ResumableUpload{
+		Media:         io.NewSectionReader(r, 0, size),
+		MediaType:     mediaType,
+		ContentLength: size,
+		Callback:      c.callback_,
+	}
+	c.pathTemplate_ = "/resumable/upload/gmail/v1/users/{userId}/drafts/{id}"
+	c.context_ = ctx
 	return c
 }
 
@@ -1252,7 +1196,10 @@ func (c *UsersDraftsUpdateCall) ResumableMedia(ctx context.Context, r io.ReaderA
 // It should be a low-latency function in order to not slow down the upload operation.
 // This should only be called when using ResumableMedia (as opposed to Media).
 func (c *UsersDraftsUpdateCall) ProgressUpdater(pu googleapi.ProgressUpdater) *UsersDraftsUpdateCall {
-	c.opt_["progressUpdater"] = pu
+	c.callback_ = pu
+	if rx, ok := c.caller_.(*googleapi.ResumableUpload); ok {
+		rx.Callback = pu
+	}
 	return c
 }
 
@@ -1260,87 +1207,25 @@ func (c *UsersDraftsUpdateCall) ProgressUpdater(pu googleapi.ProgressUpdater) *U
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *UsersDraftsUpdateCall) Fields(s ...googleapi.Field) *UsersDraftsUpdateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *UsersDraftsUpdateCall) Do() (*Draft, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.draft)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{userId}/drafts/{id}")
-	var progressUpdater_ googleapi.ProgressUpdater
-	if v, ok := c.opt_["progressUpdater"]; ok {
-		if pu, ok := v.(googleapi.ProgressUpdater); ok {
-			progressUpdater_ = pu
-		}
-	}
-	if c.media_ != nil || c.resumable_ != nil {
-		urls = strings.Replace(urls, "https://www.googleapis.com/", "https://www.googleapis.com/upload/", 1)
-		params.Set("uploadType", c.protocol_)
-	}
-	urls += "?" + params.Encode()
-	if c.protocol_ != "resumable" {
-		var cancel func()
-		cancel, _ = googleapi.ConditionallyIncludeMedia(c.media_, &body, &ctype)
-		if cancel != nil {
-			defer cancel()
-		}
-	}
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Draft
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"userId": c.userId,
 		"id":     c.id,
 	})
-	if c.protocol_ == "resumable" {
-		req.ContentLength = 0
-		if c.mediaType_ == "" {
-			c.mediaType_ = googleapi.DetectMediaType(c.resumable_)
-		}
-		req.Header.Set("X-Upload-Content-Type", c.mediaType_)
-		req.Body = nil
-	} else {
-		req.Header.Set("Content-Type", ctype)
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.draft,
+		Result:  &returnValue,
 	}
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	if c.protocol_ == "resumable" {
-		loc := res.Header.Get("Location")
-		rx := &googleapi.ResumableUpload{
-			Client:        c.s.client,
-			UserAgent:     c.s.userAgent(),
-			URI:           loc,
-			Media:         c.resumable_,
-			MediaType:     c.mediaType_,
-			ContentLength: c.resumable_.Size(),
-			Callback:      progressUpdater_,
-		}
-		res, err = rx.Upload(c.ctx_)
-		if err != nil {
-			return nil, err
-		}
-		defer res.Body.Close()
-	}
-	var ret *Draft
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Replaces a draft's content.",
 	//   "httpMethod": "PUT",
@@ -1400,37 +1285,46 @@ func (c *UsersDraftsUpdateCall) Do() (*Draft, error) {
 // method id "gmail.users.history.list":
 
 type UsersHistoryListCall struct {
-	s      *Service
-	userId string
-	opt_   map[string]interface{}
+	s             *Service
+	userId        string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Lists the history of all changes to the given mailbox. History
 // results are returned in chronological order (increasing historyId).
+
 func (r *UsersHistoryService) List(userId string) *UsersHistoryListCall {
-	c := &UsersHistoryListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.userId = userId
-	return c
+	return &UsersHistoryListCall{
+		s:             r.s,
+		userId:        userId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{userId}/history",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // LabelId sets the optional parameter "labelId": Only return messages
 // with a label matching the ID.
 func (c *UsersHistoryListCall) LabelId(labelId string) *UsersHistoryListCall {
-	c.opt_["labelId"] = labelId
+	c.params_.Set("labelId", fmt.Sprintf("%v", labelId))
 	return c
 }
 
 // MaxResults sets the optional parameter "maxResults": The maximum
 // number of history records to return.
 func (c *UsersHistoryListCall) MaxResults(maxResults int64) *UsersHistoryListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
 // PageToken sets the optional parameter "pageToken": Page token to
 // retrieve a specific page of results in the list.
 func (c *UsersHistoryListCall) PageToken(pageToken string) *UsersHistoryListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
 	return c
 }
 
@@ -1447,7 +1341,11 @@ func (c *UsersHistoryListCall) PageToken(pageToken string) *UsersHistoryListCall
 // nextPageToken in the response, there are no updates to retrieve and
 // you can store the returned historyId for a future request.
 func (c *UsersHistoryListCall) StartHistoryId(startHistoryId uint64) *UsersHistoryListCall {
-	c.opt_["startHistoryId"] = startHistoryId
+	c.params_.Set("startHistoryId", fmt.Sprintf("%v", startHistoryId))
+	return c
+}
+func (c *UsersHistoryListCall) Context(ctx context.Context) *UsersHistoryListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1455,49 +1353,23 @@ func (c *UsersHistoryListCall) StartHistoryId(startHistoryId uint64) *UsersHisto
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *UsersHistoryListCall) Fields(s ...googleapi.Field) *UsersHistoryListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *UsersHistoryListCall) Do() (*ListHistoryResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["labelId"]; ok {
-		params.Set("labelId", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["startHistoryId"]; ok {
-		params.Set("startHistoryId", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{userId}/history")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *ListHistoryResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"userId": c.userId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ListHistoryResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Lists the history of all changes to the given mailbox. History results are returned in chronological order (increasing historyId).",
 	//   "httpMethod": "GET",
@@ -1553,17 +1425,30 @@ func (c *UsersHistoryListCall) Do() (*ListHistoryResponse, error) {
 // method id "gmail.users.labels.create":
 
 type UsersLabelsCreateCall struct {
-	s      *Service
-	userId string
-	label  *Label
-	opt_   map[string]interface{}
+	s             *Service
+	userId        string
+	label         *Label
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Create: Creates a new label.
+
 func (r *UsersLabelsService) Create(userId string, label *Label) *UsersLabelsCreateCall {
-	c := &UsersLabelsCreateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.userId = userId
-	c.label = label
+	return &UsersLabelsCreateCall{
+		s:             r.s,
+		userId:        userId,
+		label:         label,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{userId}/labels",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *UsersLabelsCreateCall) Context(ctx context.Context) *UsersLabelsCreateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1571,43 +1456,24 @@ func (r *UsersLabelsService) Create(userId string, label *Label) *UsersLabelsCre
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *UsersLabelsCreateCall) Fields(s ...googleapi.Field) *UsersLabelsCreateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *UsersLabelsCreateCall) Do() (*Label, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.label)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{userId}/labels")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Label
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"userId": c.userId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.label,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Label
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Creates a new label.",
 	//   "httpMethod": "POST",
@@ -1633,6 +1499,7 @@ func (c *UsersLabelsCreateCall) Do() (*Label, error) {
 	//   },
 	//   "scopes": [
 	//     "https://mail.google.com/",
+	//     "https://www.googleapis.com/auth/gmail.labels",
 	//     "https://www.googleapis.com/auth/gmail.modify"
 	//   ]
 	// }
@@ -1642,53 +1509,46 @@ func (c *UsersLabelsCreateCall) Do() (*Label, error) {
 // method id "gmail.users.labels.delete":
 
 type UsersLabelsDeleteCall struct {
-	s      *Service
-	userId string
-	id     string
-	opt_   map[string]interface{}
+	s             *Service
+	userId        string
+	id            string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Delete: Immediately and permanently deletes the specified label and
 // removes it from any messages and threads that it is applied to.
-func (r *UsersLabelsService) Delete(userId string, id string) *UsersLabelsDeleteCall {
-	c := &UsersLabelsDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.userId = userId
-	c.id = id
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *UsersLabelsDeleteCall) Fields(s ...googleapi.Field) *UsersLabelsDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *UsersLabelsService) Delete(userId string, id string) *UsersLabelsDeleteCall {
+	return &UsersLabelsDeleteCall{
+		s:             r.s,
+		userId:        userId,
+		id:            id,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{userId}/labels/{id}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *UsersLabelsDeleteCall) Context(ctx context.Context) *UsersLabelsDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *UsersLabelsDeleteCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{userId}/labels/{id}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"userId": c.userId,
 		"id":     c.id,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Immediately and permanently deletes the specified label and removes it from any messages and threads that it is applied to.",
 	//   "httpMethod": "DELETE",
@@ -1715,6 +1575,7 @@ func (c *UsersLabelsDeleteCall) Do() error {
 	//   "path": "{userId}/labels/{id}",
 	//   "scopes": [
 	//     "https://mail.google.com/",
+	//     "https://www.googleapis.com/auth/gmail.labels",
 	//     "https://www.googleapis.com/auth/gmail.modify"
 	//   ]
 	// }
@@ -1724,17 +1585,30 @@ func (c *UsersLabelsDeleteCall) Do() error {
 // method id "gmail.users.labels.get":
 
 type UsersLabelsGetCall struct {
-	s      *Service
-	userId string
-	id     string
-	opt_   map[string]interface{}
+	s             *Service
+	userId        string
+	id            string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Gets the specified label.
+
 func (r *UsersLabelsService) Get(userId string, id string) *UsersLabelsGetCall {
-	c := &UsersLabelsGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.userId = userId
-	c.id = id
+	return &UsersLabelsGetCall{
+		s:             r.s,
+		userId:        userId,
+		id:            id,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{userId}/labels/{id}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *UsersLabelsGetCall) Context(ctx context.Context) *UsersLabelsGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1742,38 +1616,24 @@ func (r *UsersLabelsService) Get(userId string, id string) *UsersLabelsGetCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *UsersLabelsGetCall) Fields(s ...googleapi.Field) *UsersLabelsGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *UsersLabelsGetCall) Do() (*Label, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{userId}/labels/{id}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Label
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"userId": c.userId,
 		"id":     c.id,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Label
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Gets the specified label.",
 	//   "httpMethod": "GET",
@@ -1803,6 +1663,7 @@ func (c *UsersLabelsGetCall) Do() (*Label, error) {
 	//   },
 	//   "scopes": [
 	//     "https://mail.google.com/",
+	//     "https://www.googleapis.com/auth/gmail.labels",
 	//     "https://www.googleapis.com/auth/gmail.modify",
 	//     "https://www.googleapis.com/auth/gmail.readonly"
 	//   ]
@@ -1813,15 +1674,28 @@ func (c *UsersLabelsGetCall) Do() (*Label, error) {
 // method id "gmail.users.labels.list":
 
 type UsersLabelsListCall struct {
-	s      *Service
-	userId string
-	opt_   map[string]interface{}
+	s             *Service
+	userId        string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Lists all labels in the user's mailbox.
+
 func (r *UsersLabelsService) List(userId string) *UsersLabelsListCall {
-	c := &UsersLabelsListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.userId = userId
+	return &UsersLabelsListCall{
+		s:             r.s,
+		userId:        userId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{userId}/labels",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *UsersLabelsListCall) Context(ctx context.Context) *UsersLabelsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1829,37 +1703,23 @@ func (r *UsersLabelsService) List(userId string) *UsersLabelsListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *UsersLabelsListCall) Fields(s ...googleapi.Field) *UsersLabelsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *UsersLabelsListCall) Do() (*ListLabelsResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{userId}/labels")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *ListLabelsResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"userId": c.userId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ListLabelsResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Lists all labels in the user's mailbox.",
 	//   "httpMethod": "GET",
@@ -1882,6 +1742,7 @@ func (c *UsersLabelsListCall) Do() (*ListLabelsResponse, error) {
 	//   },
 	//   "scopes": [
 	//     "https://mail.google.com/",
+	//     "https://www.googleapis.com/auth/gmail.labels",
 	//     "https://www.googleapis.com/auth/gmail.modify",
 	//     "https://www.googleapis.com/auth/gmail.readonly"
 	//   ]
@@ -1892,20 +1753,33 @@ func (c *UsersLabelsListCall) Do() (*ListLabelsResponse, error) {
 // method id "gmail.users.labels.patch":
 
 type UsersLabelsPatchCall struct {
-	s      *Service
-	userId string
-	id     string
-	label  *Label
-	opt_   map[string]interface{}
+	s             *Service
+	userId        string
+	id            string
+	label         *Label
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Patch: Updates the specified label. This method supports patch
 // semantics.
+
 func (r *UsersLabelsService) Patch(userId string, id string, label *Label) *UsersLabelsPatchCall {
-	c := &UsersLabelsPatchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.userId = userId
-	c.id = id
-	c.label = label
+	return &UsersLabelsPatchCall{
+		s:             r.s,
+		userId:        userId,
+		id:            id,
+		label:         label,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{userId}/labels/{id}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *UsersLabelsPatchCall) Context(ctx context.Context) *UsersLabelsPatchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1913,44 +1787,25 @@ func (r *UsersLabelsService) Patch(userId string, id string, label *Label) *User
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *UsersLabelsPatchCall) Fields(s ...googleapi.Field) *UsersLabelsPatchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *UsersLabelsPatchCall) Do() (*Label, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.label)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{userId}/labels/{id}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PATCH", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Label
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"userId": c.userId,
 		"id":     c.id,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PATCH",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.label,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Label
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates the specified label. This method supports patch semantics.",
 	//   "httpMethod": "PATCH",
@@ -1983,6 +1838,7 @@ func (c *UsersLabelsPatchCall) Do() (*Label, error) {
 	//   },
 	//   "scopes": [
 	//     "https://mail.google.com/",
+	//     "https://www.googleapis.com/auth/gmail.labels",
 	//     "https://www.googleapis.com/auth/gmail.modify"
 	//   ]
 	// }
@@ -1992,19 +1848,32 @@ func (c *UsersLabelsPatchCall) Do() (*Label, error) {
 // method id "gmail.users.labels.update":
 
 type UsersLabelsUpdateCall struct {
-	s      *Service
-	userId string
-	id     string
-	label  *Label
-	opt_   map[string]interface{}
+	s             *Service
+	userId        string
+	id            string
+	label         *Label
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Update: Updates the specified label.
+
 func (r *UsersLabelsService) Update(userId string, id string, label *Label) *UsersLabelsUpdateCall {
-	c := &UsersLabelsUpdateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.userId = userId
-	c.id = id
-	c.label = label
+	return &UsersLabelsUpdateCall{
+		s:             r.s,
+		userId:        userId,
+		id:            id,
+		label:         label,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{userId}/labels/{id}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *UsersLabelsUpdateCall) Context(ctx context.Context) *UsersLabelsUpdateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2012,44 +1881,25 @@ func (r *UsersLabelsService) Update(userId string, id string, label *Label) *Use
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *UsersLabelsUpdateCall) Fields(s ...googleapi.Field) *UsersLabelsUpdateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *UsersLabelsUpdateCall) Do() (*Label, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.label)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{userId}/labels/{id}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Label
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"userId": c.userId,
 		"id":     c.id,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.label,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Label
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates the specified label.",
 	//   "httpMethod": "PUT",
@@ -2082,6 +1932,7 @@ func (c *UsersLabelsUpdateCall) Do() (*Label, error) {
 	//   },
 	//   "scopes": [
 	//     "https://mail.google.com/",
+	//     "https://www.googleapis.com/auth/gmail.labels",
 	//     "https://www.googleapis.com/auth/gmail.modify"
 	//   ]
 	// }
@@ -2091,53 +1942,46 @@ func (c *UsersLabelsUpdateCall) Do() (*Label, error) {
 // method id "gmail.users.messages.delete":
 
 type UsersMessagesDeleteCall struct {
-	s      *Service
-	userId string
-	id     string
-	opt_   map[string]interface{}
+	s             *Service
+	userId        string
+	id            string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Delete: Immediately and permanently deletes the specified message.
 // This operation cannot be undone. Prefer messages.trash instead.
-func (r *UsersMessagesService) Delete(userId string, id string) *UsersMessagesDeleteCall {
-	c := &UsersMessagesDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.userId = userId
-	c.id = id
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *UsersMessagesDeleteCall) Fields(s ...googleapi.Field) *UsersMessagesDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *UsersMessagesService) Delete(userId string, id string) *UsersMessagesDeleteCall {
+	return &UsersMessagesDeleteCall{
+		s:             r.s,
+		userId:        userId,
+		id:            id,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{userId}/messages/{id}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *UsersMessagesDeleteCall) Context(ctx context.Context) *UsersMessagesDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *UsersMessagesDeleteCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{userId}/messages/{id}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"userId": c.userId,
 		"id":     c.id,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Immediately and permanently deletes the specified message. This operation cannot be undone. Prefer messages.trash instead.",
 	//   "httpMethod": "DELETE",
@@ -2172,31 +2016,44 @@ func (c *UsersMessagesDeleteCall) Do() error {
 // method id "gmail.users.messages.get":
 
 type UsersMessagesGetCall struct {
-	s      *Service
-	userId string
-	id     string
-	opt_   map[string]interface{}
+	s             *Service
+	userId        string
+	id            string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Gets the specified message.
+
 func (r *UsersMessagesService) Get(userId string, id string) *UsersMessagesGetCall {
-	c := &UsersMessagesGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.userId = userId
-	c.id = id
-	return c
+	return &UsersMessagesGetCall{
+		s:             r.s,
+		userId:        userId,
+		id:            id,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{userId}/messages/{id}",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Format sets the optional parameter "format": The format to return the
 // message in.
 func (c *UsersMessagesGetCall) Format(format string) *UsersMessagesGetCall {
-	c.opt_["format"] = format
+	c.params_.Set("format", fmt.Sprintf("%v", format))
 	return c
 }
 
 // MetadataHeaders sets the optional parameter "metadataHeaders": When
 // given and format is METADATA, only include headers specified.
-func (c *UsersMessagesGetCall) MetadataHeaders(metadataHeaders string) *UsersMessagesGetCall {
-	c.opt_["metadataHeaders"] = metadataHeaders
+func (c *UsersMessagesGetCall) MetadataHeaders(metadataHeaders ...string) *UsersMessagesGetCall {
+	c.params_["metadataHeaders"] = metadataHeaders
+	return c
+}
+func (c *UsersMessagesGetCall) Context(ctx context.Context) *UsersMessagesGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2204,44 +2061,24 @@ func (c *UsersMessagesGetCall) MetadataHeaders(metadataHeaders string) *UsersMes
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *UsersMessagesGetCall) Fields(s ...googleapi.Field) *UsersMessagesGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *UsersMessagesGetCall) Do() (*Message, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["format"]; ok {
-		params.Set("format", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["metadataHeaders"]; ok {
-		params.Set("metadataHeaders", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{userId}/messages/{id}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Message
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"userId": c.userId,
 		"id":     c.id,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Message
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Gets the specified message.",
 	//   "httpMethod": "GET",
@@ -2305,25 +2142,30 @@ func (c *UsersMessagesGetCall) Do() (*Message, error) {
 // method id "gmail.users.messages.import":
 
 type UsersMessagesImportCall struct {
-	s          *Service
-	userId     string
-	message    *Message
-	opt_       map[string]interface{}
-	media_     io.Reader
-	resumable_ googleapi.SizeReaderAt
-	mediaType_ string
-	ctx_       context.Context
-	protocol_  string
+	s             *Service
+	userId        string
+	message       *Message
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
+	callback_     googleapi.ProgressUpdater
 }
 
 // Import: Imports a message into only this user's mailbox, with
 // standard email delivery scanning and classification similar to
 // receiving via SMTP. Does not send a message.
+
 func (r *UsersMessagesService) Import(userId string, message *Message) *UsersMessagesImportCall {
-	c := &UsersMessagesImportCall{s: r.s, opt_: make(map[string]interface{})}
-	c.userId = userId
-	c.message = message
-	return c
+	return &UsersMessagesImportCall{
+		s:             r.s,
+		userId:        userId,
+		message:       message,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{userId}/messages/import",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Deleted sets the optional parameter "deleted": Mark the email as
@@ -2331,14 +2173,14 @@ func (r *UsersMessagesService) Import(userId string, message *Message) *UsersMes
 // to a Vault administrator. Only used for Google Apps for Work
 // accounts.
 func (c *UsersMessagesImportCall) Deleted(deleted bool) *UsersMessagesImportCall {
-	c.opt_["deleted"] = deleted
+	c.params_.Set("deleted", fmt.Sprintf("%v", deleted))
 	return c
 }
 
 // InternalDateSource sets the optional parameter "internalDateSource":
 // Source for Gmail's internal date of the message.
 func (c *UsersMessagesImportCall) InternalDateSource(internalDateSource string) *UsersMessagesImportCall {
-	c.opt_["internalDateSource"] = internalDateSource
+	c.params_.Set("internalDateSource", fmt.Sprintf("%v", internalDateSource))
 	return c
 }
 
@@ -2346,7 +2188,7 @@ func (c *UsersMessagesImportCall) InternalDateSource(internalDateSource string) 
 // Gmail spam classifier decision and never mark this email as SPAM in
 // the mailbox.
 func (c *UsersMessagesImportCall) NeverMarkSpam(neverMarkSpam bool) *UsersMessagesImportCall {
-	c.opt_["neverMarkSpam"] = neverMarkSpam
+	c.params_.Set("neverMarkSpam", fmt.Sprintf("%v", neverMarkSpam))
 	return c
 }
 
@@ -2354,15 +2196,35 @@ func (c *UsersMessagesImportCall) NeverMarkSpam(neverMarkSpam bool) *UsersMessag
 // Process calendar invites in the email and add any extracted meetings
 // to the Google Calendar for this user.
 func (c *UsersMessagesImportCall) ProcessForCalendar(processForCalendar bool) *UsersMessagesImportCall {
-	c.opt_["processForCalendar"] = processForCalendar
+	c.params_.Set("processForCalendar", fmt.Sprintf("%v", processForCalendar))
+	return c
+}
+func (c *UsersMessagesImportCall) Context(ctx context.Context) *UsersMessagesImportCall {
+	c.context_ = ctx
+	return c
+}
+
+// MediaUpload takes a context and UploadCaller interface
+func (c *UsersMessagesImportCall) Upload(ctx context.Context, u googleapi.UploadCaller) *UsersMessagesImportCall {
+	c.caller_ = u
+	c.context_ = ctx
+	switch u.(type) {
+	case *googleapi.MediaUpload:
+		c.pathTemplate_ = "/upload/gmail/v1/users/{userId}/messages/import"
+	case *googleapi.ResumableUpload:
+		c.pathTemplate_ = "/resumable/upload/gmail/v1/users/{userId}/messages/import"
+	}
 	return c
 }
 
 // Media specifies the media to upload in a single chunk.
 // At most one of Media and ResumableMedia may be set.
+// The mime type type will be auto-detected unless r is a googleapi.ContentTyper as well.
 func (c *UsersMessagesImportCall) Media(r io.Reader) *UsersMessagesImportCall {
-	c.media_ = r
-	c.protocol_ = "multipart"
+	c.caller_ = &googleapi.MediaUpload{
+		Media: r,
+	}
+	c.pathTemplate_ = "/upload/gmail/v1/users/{userId}/messages/import"
 	return c
 }
 
@@ -2371,10 +2233,14 @@ func (c *UsersMessagesImportCall) Media(r io.Reader) *UsersMessagesImportCall {
 // mediaType identifies the MIME media type of the upload, such as "image/png".
 // If mediaType is "", it will be auto-detected.
 func (c *UsersMessagesImportCall) ResumableMedia(ctx context.Context, r io.ReaderAt, size int64, mediaType string) *UsersMessagesImportCall {
-	c.ctx_ = ctx
-	c.resumable_ = io.NewSectionReader(r, 0, size)
-	c.mediaType_ = mediaType
-	c.protocol_ = "resumable"
+	c.caller_ = &googleapi.ResumableUpload{
+		Media:         io.NewSectionReader(r, 0, size),
+		MediaType:     mediaType,
+		ContentLength: size,
+		Callback:      c.callback_,
+	}
+	c.pathTemplate_ = "/resumable/upload/gmail/v1/users/{userId}/messages/import"
+	c.context_ = ctx
 	return c
 }
 
@@ -2382,7 +2248,10 @@ func (c *UsersMessagesImportCall) ResumableMedia(ctx context.Context, r io.Reade
 // It should be a low-latency function in order to not slow down the upload operation.
 // This should only be called when using ResumableMedia (as opposed to Media).
 func (c *UsersMessagesImportCall) ProgressUpdater(pu googleapi.ProgressUpdater) *UsersMessagesImportCall {
-	c.opt_["progressUpdater"] = pu
+	c.callback_ = pu
+	if rx, ok := c.caller_.(*googleapi.ResumableUpload); ok {
+		rx.Callback = pu
+	}
 	return c
 }
 
@@ -2390,98 +2259,24 @@ func (c *UsersMessagesImportCall) ProgressUpdater(pu googleapi.ProgressUpdater) 
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *UsersMessagesImportCall) Fields(s ...googleapi.Field) *UsersMessagesImportCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *UsersMessagesImportCall) Do() (*Message, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.message)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["deleted"]; ok {
-		params.Set("deleted", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["internalDateSource"]; ok {
-		params.Set("internalDateSource", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["neverMarkSpam"]; ok {
-		params.Set("neverMarkSpam", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["processForCalendar"]; ok {
-		params.Set("processForCalendar", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{userId}/messages/import")
-	var progressUpdater_ googleapi.ProgressUpdater
-	if v, ok := c.opt_["progressUpdater"]; ok {
-		if pu, ok := v.(googleapi.ProgressUpdater); ok {
-			progressUpdater_ = pu
-		}
-	}
-	if c.media_ != nil || c.resumable_ != nil {
-		urls = strings.Replace(urls, "https://www.googleapis.com/", "https://www.googleapis.com/upload/", 1)
-		params.Set("uploadType", c.protocol_)
-	}
-	urls += "?" + params.Encode()
-	if c.protocol_ != "resumable" {
-		var cancel func()
-		cancel, _ = googleapi.ConditionallyIncludeMedia(c.media_, &body, &ctype)
-		if cancel != nil {
-			defer cancel()
-		}
-	}
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Message
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"userId": c.userId,
 	})
-	if c.protocol_ == "resumable" {
-		req.ContentLength = 0
-		if c.mediaType_ == "" {
-			c.mediaType_ = googleapi.DetectMediaType(c.resumable_)
-		}
-		req.Header.Set("X-Upload-Content-Type", c.mediaType_)
-		req.Body = nil
-	} else {
-		req.Header.Set("Content-Type", ctype)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.message,
+		Result:  &returnValue,
 	}
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	if c.protocol_ == "resumable" {
-		loc := res.Header.Get("Location")
-		rx := &googleapi.ResumableUpload{
-			Client:        c.s.client,
-			UserAgent:     c.s.userAgent(),
-			URI:           loc,
-			Media:         c.resumable_,
-			MediaType:     c.mediaType_,
-			ContentLength: c.resumable_.Size(),
-			Callback:      progressUpdater_,
-		}
-		res, err = rx.Upload(c.ctx_)
-		if err != nil {
-			return nil, err
-		}
-		defer res.Body.Close()
-	}
-	var ret *Message
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Imports a message into only this user's mailbox, with standard email delivery scanning and classification similar to receiving via SMTP. Does not send a message.",
 	//   "httpMethod": "POST",
@@ -2555,6 +2350,7 @@ func (c *UsersMessagesImportCall) Do() (*Message, error) {
 	//   },
 	//   "scopes": [
 	//     "https://mail.google.com/",
+	//     "https://www.googleapis.com/auth/gmail.insert",
 	//     "https://www.googleapis.com/auth/gmail.modify"
 	//   ],
 	//   "supportsMediaUpload": true
@@ -2565,25 +2361,30 @@ func (c *UsersMessagesImportCall) Do() (*Message, error) {
 // method id "gmail.users.messages.insert":
 
 type UsersMessagesInsertCall struct {
-	s          *Service
-	userId     string
-	message    *Message
-	opt_       map[string]interface{}
-	media_     io.Reader
-	resumable_ googleapi.SizeReaderAt
-	mediaType_ string
-	ctx_       context.Context
-	protocol_  string
+	s             *Service
+	userId        string
+	message       *Message
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
+	callback_     googleapi.ProgressUpdater
 }
 
 // Insert: Directly inserts a message into only this user's mailbox
 // similar to IMAP APPEND, bypassing most scanning and classification.
 // Does not send a message.
+
 func (r *UsersMessagesService) Insert(userId string, message *Message) *UsersMessagesInsertCall {
-	c := &UsersMessagesInsertCall{s: r.s, opt_: make(map[string]interface{})}
-	c.userId = userId
-	c.message = message
-	return c
+	return &UsersMessagesInsertCall{
+		s:             r.s,
+		userId:        userId,
+		message:       message,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{userId}/messages",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Deleted sets the optional parameter "deleted": Mark the email as
@@ -2591,22 +2392,42 @@ func (r *UsersMessagesService) Insert(userId string, message *Message) *UsersMes
 // to a Vault administrator. Only used for Google Apps for Work
 // accounts.
 func (c *UsersMessagesInsertCall) Deleted(deleted bool) *UsersMessagesInsertCall {
-	c.opt_["deleted"] = deleted
+	c.params_.Set("deleted", fmt.Sprintf("%v", deleted))
 	return c
 }
 
 // InternalDateSource sets the optional parameter "internalDateSource":
 // Source for Gmail's internal date of the message.
 func (c *UsersMessagesInsertCall) InternalDateSource(internalDateSource string) *UsersMessagesInsertCall {
-	c.opt_["internalDateSource"] = internalDateSource
+	c.params_.Set("internalDateSource", fmt.Sprintf("%v", internalDateSource))
+	return c
+}
+func (c *UsersMessagesInsertCall) Context(ctx context.Context) *UsersMessagesInsertCall {
+	c.context_ = ctx
+	return c
+}
+
+// MediaUpload takes a context and UploadCaller interface
+func (c *UsersMessagesInsertCall) Upload(ctx context.Context, u googleapi.UploadCaller) *UsersMessagesInsertCall {
+	c.caller_ = u
+	c.context_ = ctx
+	switch u.(type) {
+	case *googleapi.MediaUpload:
+		c.pathTemplate_ = "/upload/gmail/v1/users/{userId}/messages"
+	case *googleapi.ResumableUpload:
+		c.pathTemplate_ = "/resumable/upload/gmail/v1/users/{userId}/messages"
+	}
 	return c
 }
 
 // Media specifies the media to upload in a single chunk.
 // At most one of Media and ResumableMedia may be set.
+// The mime type type will be auto-detected unless r is a googleapi.ContentTyper as well.
 func (c *UsersMessagesInsertCall) Media(r io.Reader) *UsersMessagesInsertCall {
-	c.media_ = r
-	c.protocol_ = "multipart"
+	c.caller_ = &googleapi.MediaUpload{
+		Media: r,
+	}
+	c.pathTemplate_ = "/upload/gmail/v1/users/{userId}/messages"
 	return c
 }
 
@@ -2615,10 +2436,14 @@ func (c *UsersMessagesInsertCall) Media(r io.Reader) *UsersMessagesInsertCall {
 // mediaType identifies the MIME media type of the upload, such as "image/png".
 // If mediaType is "", it will be auto-detected.
 func (c *UsersMessagesInsertCall) ResumableMedia(ctx context.Context, r io.ReaderAt, size int64, mediaType string) *UsersMessagesInsertCall {
-	c.ctx_ = ctx
-	c.resumable_ = io.NewSectionReader(r, 0, size)
-	c.mediaType_ = mediaType
-	c.protocol_ = "resumable"
+	c.caller_ = &googleapi.ResumableUpload{
+		Media:         io.NewSectionReader(r, 0, size),
+		MediaType:     mediaType,
+		ContentLength: size,
+		Callback:      c.callback_,
+	}
+	c.pathTemplate_ = "/resumable/upload/gmail/v1/users/{userId}/messages"
+	c.context_ = ctx
 	return c
 }
 
@@ -2626,7 +2451,10 @@ func (c *UsersMessagesInsertCall) ResumableMedia(ctx context.Context, r io.Reade
 // It should be a low-latency function in order to not slow down the upload operation.
 // This should only be called when using ResumableMedia (as opposed to Media).
 func (c *UsersMessagesInsertCall) ProgressUpdater(pu googleapi.ProgressUpdater) *UsersMessagesInsertCall {
-	c.opt_["progressUpdater"] = pu
+	c.callback_ = pu
+	if rx, ok := c.caller_.(*googleapi.ResumableUpload); ok {
+		rx.Callback = pu
+	}
 	return c
 }
 
@@ -2634,92 +2462,24 @@ func (c *UsersMessagesInsertCall) ProgressUpdater(pu googleapi.ProgressUpdater) 
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *UsersMessagesInsertCall) Fields(s ...googleapi.Field) *UsersMessagesInsertCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *UsersMessagesInsertCall) Do() (*Message, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.message)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["deleted"]; ok {
-		params.Set("deleted", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["internalDateSource"]; ok {
-		params.Set("internalDateSource", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{userId}/messages")
-	var progressUpdater_ googleapi.ProgressUpdater
-	if v, ok := c.opt_["progressUpdater"]; ok {
-		if pu, ok := v.(googleapi.ProgressUpdater); ok {
-			progressUpdater_ = pu
-		}
-	}
-	if c.media_ != nil || c.resumable_ != nil {
-		urls = strings.Replace(urls, "https://www.googleapis.com/", "https://www.googleapis.com/upload/", 1)
-		params.Set("uploadType", c.protocol_)
-	}
-	urls += "?" + params.Encode()
-	if c.protocol_ != "resumable" {
-		var cancel func()
-		cancel, _ = googleapi.ConditionallyIncludeMedia(c.media_, &body, &ctype)
-		if cancel != nil {
-			defer cancel()
-		}
-	}
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Message
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"userId": c.userId,
 	})
-	if c.protocol_ == "resumable" {
-		req.ContentLength = 0
-		if c.mediaType_ == "" {
-			c.mediaType_ = googleapi.DetectMediaType(c.resumable_)
-		}
-		req.Header.Set("X-Upload-Content-Type", c.mediaType_)
-		req.Body = nil
-	} else {
-		req.Header.Set("Content-Type", ctype)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.message,
+		Result:  &returnValue,
 	}
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	if c.protocol_ == "resumable" {
-		loc := res.Header.Get("Location")
-		rx := &googleapi.ResumableUpload{
-			Client:        c.s.client,
-			UserAgent:     c.s.userAgent(),
-			URI:           loc,
-			Media:         c.resumable_,
-			MediaType:     c.mediaType_,
-			ContentLength: c.resumable_.Size(),
-			Callback:      progressUpdater_,
-		}
-		res, err = rx.Upload(c.ctx_)
-		if err != nil {
-			return nil, err
-		}
-		defer res.Body.Close()
-	}
-	var ret *Message
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Directly inserts a message into only this user's mailbox similar to IMAP APPEND, bypassing most scanning and classification. Does not send a message.",
 	//   "httpMethod": "POST",
@@ -2781,6 +2541,7 @@ func (c *UsersMessagesInsertCall) Do() (*Message, error) {
 	//   },
 	//   "scopes": [
 	//     "https://mail.google.com/",
+	//     "https://www.googleapis.com/auth/gmail.insert",
 	//     "https://www.googleapis.com/auth/gmail.modify"
 	//   ],
 	//   "supportsMediaUpload": true
@@ -2791,43 +2552,52 @@ func (c *UsersMessagesInsertCall) Do() (*Message, error) {
 // method id "gmail.users.messages.list":
 
 type UsersMessagesListCall struct {
-	s      *Service
-	userId string
-	opt_   map[string]interface{}
+	s             *Service
+	userId        string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Lists the messages in the user's mailbox.
+
 func (r *UsersMessagesService) List(userId string) *UsersMessagesListCall {
-	c := &UsersMessagesListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.userId = userId
-	return c
+	return &UsersMessagesListCall{
+		s:             r.s,
+		userId:        userId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{userId}/messages",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // IncludeSpamTrash sets the optional parameter "includeSpamTrash":
 // Include messages from SPAM and TRASH in the results.
 func (c *UsersMessagesListCall) IncludeSpamTrash(includeSpamTrash bool) *UsersMessagesListCall {
-	c.opt_["includeSpamTrash"] = includeSpamTrash
+	c.params_.Set("includeSpamTrash", fmt.Sprintf("%v", includeSpamTrash))
 	return c
 }
 
 // LabelIds sets the optional parameter "labelIds": Only return messages
 // with labels that match all of the specified label IDs.
-func (c *UsersMessagesListCall) LabelIds(labelIds string) *UsersMessagesListCall {
-	c.opt_["labelIds"] = labelIds
+func (c *UsersMessagesListCall) LabelIds(labelIds ...string) *UsersMessagesListCall {
+	c.params_["labelIds"] = labelIds
 	return c
 }
 
 // MaxResults sets the optional parameter "maxResults": Maximum number
 // of messages to return.
 func (c *UsersMessagesListCall) MaxResults(maxResults int64) *UsersMessagesListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
 // PageToken sets the optional parameter "pageToken": Page token to
 // retrieve a specific page of results in the list.
 func (c *UsersMessagesListCall) PageToken(pageToken string) *UsersMessagesListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
 	return c
 }
 
@@ -2835,7 +2605,11 @@ func (c *UsersMessagesListCall) PageToken(pageToken string) *UsersMessagesListCa
 // specified query. Supports the same query format as the Gmail search
 // box. For example, "from:someuser@example.com rfc822msgid: is:unread".
 func (c *UsersMessagesListCall) Q(q string) *UsersMessagesListCall {
-	c.opt_["q"] = q
+	c.params_.Set("q", fmt.Sprintf("%v", q))
+	return c
+}
+func (c *UsersMessagesListCall) Context(ctx context.Context) *UsersMessagesListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2843,52 +2617,23 @@ func (c *UsersMessagesListCall) Q(q string) *UsersMessagesListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *UsersMessagesListCall) Fields(s ...googleapi.Field) *UsersMessagesListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *UsersMessagesListCall) Do() (*ListMessagesResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["includeSpamTrash"]; ok {
-		params.Set("includeSpamTrash", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["labelIds"]; ok {
-		params.Set("labelIds", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["q"]; ok {
-		params.Set("q", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{userId}/messages")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *ListMessagesResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"userId": c.userId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ListMessagesResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Lists the messages in the user's mailbox.",
 	//   "httpMethod": "GET",
@@ -2954,15 +2699,28 @@ type UsersMessagesModifyCall struct {
 	userId               string
 	id                   string
 	modifymessagerequest *ModifyMessageRequest
-	opt_                 map[string]interface{}
+	caller_              googleapi.Caller
+	params_              url.Values
+	pathTemplate_        string
+	context_             context.Context
 }
 
 // Modify: Modifies the labels on the specified message.
+
 func (r *UsersMessagesService) Modify(userId string, id string, modifymessagerequest *ModifyMessageRequest) *UsersMessagesModifyCall {
-	c := &UsersMessagesModifyCall{s: r.s, opt_: make(map[string]interface{})}
-	c.userId = userId
-	c.id = id
-	c.modifymessagerequest = modifymessagerequest
+	return &UsersMessagesModifyCall{
+		s:                    r.s,
+		userId:               userId,
+		id:                   id,
+		modifymessagerequest: modifymessagerequest,
+		caller_:              googleapi.JSONCall{},
+		params_:              make(map[string][]string),
+		pathTemplate_:        "{userId}/messages/{id}/modify",
+		context_:             googleapi.NoContext,
+	}
+}
+func (c *UsersMessagesModifyCall) Context(ctx context.Context) *UsersMessagesModifyCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2970,44 +2728,25 @@ func (r *UsersMessagesService) Modify(userId string, id string, modifymessagereq
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *UsersMessagesModifyCall) Fields(s ...googleapi.Field) *UsersMessagesModifyCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *UsersMessagesModifyCall) Do() (*Message, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.modifymessagerequest)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{userId}/messages/{id}/modify")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Message
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"userId": c.userId,
 		"id":     c.id,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.modifymessagerequest,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Message
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Modifies the labels on the specified message.",
 	//   "httpMethod": "POST",
@@ -3049,31 +2788,56 @@ func (c *UsersMessagesModifyCall) Do() (*Message, error) {
 // method id "gmail.users.messages.send":
 
 type UsersMessagesSendCall struct {
-	s          *Service
-	userId     string
-	message    *Message
-	opt_       map[string]interface{}
-	media_     io.Reader
-	resumable_ googleapi.SizeReaderAt
-	mediaType_ string
-	ctx_       context.Context
-	protocol_  string
+	s             *Service
+	userId        string
+	message       *Message
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
+	callback_     googleapi.ProgressUpdater
 }
 
 // Send: Sends the specified message to the recipients in the To, Cc,
 // and Bcc headers.
+
 func (r *UsersMessagesService) Send(userId string, message *Message) *UsersMessagesSendCall {
-	c := &UsersMessagesSendCall{s: r.s, opt_: make(map[string]interface{})}
-	c.userId = userId
-	c.message = message
+	return &UsersMessagesSendCall{
+		s:             r.s,
+		userId:        userId,
+		message:       message,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{userId}/messages/send",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *UsersMessagesSendCall) Context(ctx context.Context) *UsersMessagesSendCall {
+	c.context_ = ctx
+	return c
+}
+
+// MediaUpload takes a context and UploadCaller interface
+func (c *UsersMessagesSendCall) Upload(ctx context.Context, u googleapi.UploadCaller) *UsersMessagesSendCall {
+	c.caller_ = u
+	c.context_ = ctx
+	switch u.(type) {
+	case *googleapi.MediaUpload:
+		c.pathTemplate_ = "/upload/gmail/v1/users/{userId}/messages/send"
+	case *googleapi.ResumableUpload:
+		c.pathTemplate_ = "/resumable/upload/gmail/v1/users/{userId}/messages/send"
+	}
 	return c
 }
 
 // Media specifies the media to upload in a single chunk.
 // At most one of Media and ResumableMedia may be set.
+// The mime type type will be auto-detected unless r is a googleapi.ContentTyper as well.
 func (c *UsersMessagesSendCall) Media(r io.Reader) *UsersMessagesSendCall {
-	c.media_ = r
-	c.protocol_ = "multipart"
+	c.caller_ = &googleapi.MediaUpload{
+		Media: r,
+	}
+	c.pathTemplate_ = "/upload/gmail/v1/users/{userId}/messages/send"
 	return c
 }
 
@@ -3082,10 +2846,14 @@ func (c *UsersMessagesSendCall) Media(r io.Reader) *UsersMessagesSendCall {
 // mediaType identifies the MIME media type of the upload, such as "image/png".
 // If mediaType is "", it will be auto-detected.
 func (c *UsersMessagesSendCall) ResumableMedia(ctx context.Context, r io.ReaderAt, size int64, mediaType string) *UsersMessagesSendCall {
-	c.ctx_ = ctx
-	c.resumable_ = io.NewSectionReader(r, 0, size)
-	c.mediaType_ = mediaType
-	c.protocol_ = "resumable"
+	c.caller_ = &googleapi.ResumableUpload{
+		Media:         io.NewSectionReader(r, 0, size),
+		MediaType:     mediaType,
+		ContentLength: size,
+		Callback:      c.callback_,
+	}
+	c.pathTemplate_ = "/resumable/upload/gmail/v1/users/{userId}/messages/send"
+	c.context_ = ctx
 	return c
 }
 
@@ -3093,7 +2861,10 @@ func (c *UsersMessagesSendCall) ResumableMedia(ctx context.Context, r io.ReaderA
 // It should be a low-latency function in order to not slow down the upload operation.
 // This should only be called when using ResumableMedia (as opposed to Media).
 func (c *UsersMessagesSendCall) ProgressUpdater(pu googleapi.ProgressUpdater) *UsersMessagesSendCall {
-	c.opt_["progressUpdater"] = pu
+	c.callback_ = pu
+	if rx, ok := c.caller_.(*googleapi.ResumableUpload); ok {
+		rx.Callback = pu
+	}
 	return c
 }
 
@@ -3101,86 +2872,24 @@ func (c *UsersMessagesSendCall) ProgressUpdater(pu googleapi.ProgressUpdater) *U
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *UsersMessagesSendCall) Fields(s ...googleapi.Field) *UsersMessagesSendCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *UsersMessagesSendCall) Do() (*Message, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.message)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{userId}/messages/send")
-	var progressUpdater_ googleapi.ProgressUpdater
-	if v, ok := c.opt_["progressUpdater"]; ok {
-		if pu, ok := v.(googleapi.ProgressUpdater); ok {
-			progressUpdater_ = pu
-		}
-	}
-	if c.media_ != nil || c.resumable_ != nil {
-		urls = strings.Replace(urls, "https://www.googleapis.com/", "https://www.googleapis.com/upload/", 1)
-		params.Set("uploadType", c.protocol_)
-	}
-	urls += "?" + params.Encode()
-	if c.protocol_ != "resumable" {
-		var cancel func()
-		cancel, _ = googleapi.ConditionallyIncludeMedia(c.media_, &body, &ctype)
-		if cancel != nil {
-			defer cancel()
-		}
-	}
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Message
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"userId": c.userId,
 	})
-	if c.protocol_ == "resumable" {
-		req.ContentLength = 0
-		if c.mediaType_ == "" {
-			c.mediaType_ = googleapi.DetectMediaType(c.resumable_)
-		}
-		req.Header.Set("X-Upload-Content-Type", c.mediaType_)
-		req.Body = nil
-	} else {
-		req.Header.Set("Content-Type", ctype)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.message,
+		Result:  &returnValue,
 	}
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	if c.protocol_ == "resumable" {
-		loc := res.Header.Get("Location")
-		rx := &googleapi.ResumableUpload{
-			Client:        c.s.client,
-			UserAgent:     c.s.userAgent(),
-			URI:           loc,
-			Media:         c.resumable_,
-			MediaType:     c.mediaType_,
-			ContentLength: c.resumable_.Size(),
-			Callback:      progressUpdater_,
-		}
-		res, err = rx.Upload(c.ctx_)
-		if err != nil {
-			return nil, err
-		}
-		defer res.Body.Close()
-	}
-	var ret *Message
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Sends the specified message to the recipients in the To, Cc, and Bcc headers.",
 	//   "httpMethod": "POST",
@@ -3233,17 +2942,30 @@ func (c *UsersMessagesSendCall) Do() (*Message, error) {
 // method id "gmail.users.messages.trash":
 
 type UsersMessagesTrashCall struct {
-	s      *Service
-	userId string
-	id     string
-	opt_   map[string]interface{}
+	s             *Service
+	userId        string
+	id            string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Trash: Moves the specified message to the trash.
+
 func (r *UsersMessagesService) Trash(userId string, id string) *UsersMessagesTrashCall {
-	c := &UsersMessagesTrashCall{s: r.s, opt_: make(map[string]interface{})}
-	c.userId = userId
-	c.id = id
+	return &UsersMessagesTrashCall{
+		s:             r.s,
+		userId:        userId,
+		id:            id,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{userId}/messages/{id}/trash",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *UsersMessagesTrashCall) Context(ctx context.Context) *UsersMessagesTrashCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -3251,38 +2973,24 @@ func (r *UsersMessagesService) Trash(userId string, id string) *UsersMessagesTra
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *UsersMessagesTrashCall) Fields(s ...googleapi.Field) *UsersMessagesTrashCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *UsersMessagesTrashCall) Do() (*Message, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{userId}/messages/{id}/trash")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Message
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"userId": c.userId,
 		"id":     c.id,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "POST",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Message
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Moves the specified message to the trash.",
 	//   "httpMethod": "POST",
@@ -3321,17 +3029,30 @@ func (c *UsersMessagesTrashCall) Do() (*Message, error) {
 // method id "gmail.users.messages.untrash":
 
 type UsersMessagesUntrashCall struct {
-	s      *Service
-	userId string
-	id     string
-	opt_   map[string]interface{}
+	s             *Service
+	userId        string
+	id            string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Untrash: Removes the specified message from the trash.
+
 func (r *UsersMessagesService) Untrash(userId string, id string) *UsersMessagesUntrashCall {
-	c := &UsersMessagesUntrashCall{s: r.s, opt_: make(map[string]interface{})}
-	c.userId = userId
-	c.id = id
+	return &UsersMessagesUntrashCall{
+		s:             r.s,
+		userId:        userId,
+		id:            id,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{userId}/messages/{id}/untrash",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *UsersMessagesUntrashCall) Context(ctx context.Context) *UsersMessagesUntrashCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -3339,38 +3060,24 @@ func (r *UsersMessagesService) Untrash(userId string, id string) *UsersMessagesU
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *UsersMessagesUntrashCall) Fields(s ...googleapi.Field) *UsersMessagesUntrashCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *UsersMessagesUntrashCall) Do() (*Message, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{userId}/messages/{id}/untrash")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Message
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"userId": c.userId,
 		"id":     c.id,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "POST",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Message
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Removes the specified message from the trash.",
 	//   "httpMethod": "POST",
@@ -3409,19 +3116,32 @@ func (c *UsersMessagesUntrashCall) Do() (*Message, error) {
 // method id "gmail.users.messages.attachments.get":
 
 type UsersMessagesAttachmentsGetCall struct {
-	s         *Service
-	userId    string
-	messageId string
-	id        string
-	opt_      map[string]interface{}
+	s             *Service
+	userId        string
+	messageId     string
+	id            string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Gets the specified message attachment.
+
 func (r *UsersMessagesAttachmentsService) Get(userId string, messageId string, id string) *UsersMessagesAttachmentsGetCall {
-	c := &UsersMessagesAttachmentsGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.userId = userId
-	c.messageId = messageId
-	c.id = id
+	return &UsersMessagesAttachmentsGetCall{
+		s:             r.s,
+		userId:        userId,
+		messageId:     messageId,
+		id:            id,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{userId}/messages/{messageId}/attachments/{id}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *UsersMessagesAttachmentsGetCall) Context(ctx context.Context) *UsersMessagesAttachmentsGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -3429,39 +3149,25 @@ func (r *UsersMessagesAttachmentsService) Get(userId string, messageId string, i
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *UsersMessagesAttachmentsGetCall) Fields(s ...googleapi.Field) *UsersMessagesAttachmentsGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *UsersMessagesAttachmentsGetCall) Do() (*MessagePartBody, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{userId}/messages/{messageId}/attachments/{id}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *MessagePartBody
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"userId":    c.userId,
 		"messageId": c.messageId,
 		"id":        c.id,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *MessagePartBody
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Gets the specified message attachment.",
 	//   "httpMethod": "GET",
@@ -3508,53 +3214,46 @@ func (c *UsersMessagesAttachmentsGetCall) Do() (*MessagePartBody, error) {
 // method id "gmail.users.threads.delete":
 
 type UsersThreadsDeleteCall struct {
-	s      *Service
-	userId string
-	id     string
-	opt_   map[string]interface{}
+	s             *Service
+	userId        string
+	id            string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Delete: Immediately and permanently deletes the specified thread.
 // This operation cannot be undone. Prefer threads.trash instead.
-func (r *UsersThreadsService) Delete(userId string, id string) *UsersThreadsDeleteCall {
-	c := &UsersThreadsDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.userId = userId
-	c.id = id
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *UsersThreadsDeleteCall) Fields(s ...googleapi.Field) *UsersThreadsDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *UsersThreadsService) Delete(userId string, id string) *UsersThreadsDeleteCall {
+	return &UsersThreadsDeleteCall{
+		s:             r.s,
+		userId:        userId,
+		id:            id,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{userId}/threads/{id}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *UsersThreadsDeleteCall) Context(ctx context.Context) *UsersThreadsDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *UsersThreadsDeleteCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{userId}/threads/{id}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"userId": c.userId,
 		"id":     c.id,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Immediately and permanently deletes the specified thread. This operation cannot be undone. Prefer threads.trash instead.",
 	//   "httpMethod": "DELETE",
@@ -3589,31 +3288,44 @@ func (c *UsersThreadsDeleteCall) Do() error {
 // method id "gmail.users.threads.get":
 
 type UsersThreadsGetCall struct {
-	s      *Service
-	userId string
-	id     string
-	opt_   map[string]interface{}
+	s             *Service
+	userId        string
+	id            string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Gets the specified thread.
+
 func (r *UsersThreadsService) Get(userId string, id string) *UsersThreadsGetCall {
-	c := &UsersThreadsGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.userId = userId
-	c.id = id
-	return c
+	return &UsersThreadsGetCall{
+		s:             r.s,
+		userId:        userId,
+		id:            id,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{userId}/threads/{id}",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Format sets the optional parameter "format": The format to return the
 // messages in.
 func (c *UsersThreadsGetCall) Format(format string) *UsersThreadsGetCall {
-	c.opt_["format"] = format
+	c.params_.Set("format", fmt.Sprintf("%v", format))
 	return c
 }
 
 // MetadataHeaders sets the optional parameter "metadataHeaders": When
 // given and format is METADATA, only include headers specified.
-func (c *UsersThreadsGetCall) MetadataHeaders(metadataHeaders string) *UsersThreadsGetCall {
-	c.opt_["metadataHeaders"] = metadataHeaders
+func (c *UsersThreadsGetCall) MetadataHeaders(metadataHeaders ...string) *UsersThreadsGetCall {
+	c.params_["metadataHeaders"] = metadataHeaders
+	return c
+}
+func (c *UsersThreadsGetCall) Context(ctx context.Context) *UsersThreadsGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -3621,44 +3333,24 @@ func (c *UsersThreadsGetCall) MetadataHeaders(metadataHeaders string) *UsersThre
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *UsersThreadsGetCall) Fields(s ...googleapi.Field) *UsersThreadsGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *UsersThreadsGetCall) Do() (*Thread, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["format"]; ok {
-		params.Set("format", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["metadataHeaders"]; ok {
-		params.Set("metadataHeaders", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{userId}/threads/{id}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Thread
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"userId": c.userId,
 		"id":     c.id,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Thread
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Gets the specified thread.",
 	//   "httpMethod": "GET",
@@ -3720,43 +3412,52 @@ func (c *UsersThreadsGetCall) Do() (*Thread, error) {
 // method id "gmail.users.threads.list":
 
 type UsersThreadsListCall struct {
-	s      *Service
-	userId string
-	opt_   map[string]interface{}
+	s             *Service
+	userId        string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Lists the threads in the user's mailbox.
+
 func (r *UsersThreadsService) List(userId string) *UsersThreadsListCall {
-	c := &UsersThreadsListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.userId = userId
-	return c
+	return &UsersThreadsListCall{
+		s:             r.s,
+		userId:        userId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{userId}/threads",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // IncludeSpamTrash sets the optional parameter "includeSpamTrash":
 // Include threads from SPAM and TRASH in the results.
 func (c *UsersThreadsListCall) IncludeSpamTrash(includeSpamTrash bool) *UsersThreadsListCall {
-	c.opt_["includeSpamTrash"] = includeSpamTrash
+	c.params_.Set("includeSpamTrash", fmt.Sprintf("%v", includeSpamTrash))
 	return c
 }
 
 // LabelIds sets the optional parameter "labelIds": Only return threads
 // with labels that match all of the specified label IDs.
-func (c *UsersThreadsListCall) LabelIds(labelIds string) *UsersThreadsListCall {
-	c.opt_["labelIds"] = labelIds
+func (c *UsersThreadsListCall) LabelIds(labelIds ...string) *UsersThreadsListCall {
+	c.params_["labelIds"] = labelIds
 	return c
 }
 
 // MaxResults sets the optional parameter "maxResults": Maximum number
 // of threads to return.
 func (c *UsersThreadsListCall) MaxResults(maxResults int64) *UsersThreadsListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
 // PageToken sets the optional parameter "pageToken": Page token to
 // retrieve a specific page of results in the list.
 func (c *UsersThreadsListCall) PageToken(pageToken string) *UsersThreadsListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
 	return c
 }
 
@@ -3764,7 +3465,11 @@ func (c *UsersThreadsListCall) PageToken(pageToken string) *UsersThreadsListCall
 // specified query. Supports the same query format as the Gmail search
 // box. For example, "from:someuser@example.com rfc822msgid: is:unread".
 func (c *UsersThreadsListCall) Q(q string) *UsersThreadsListCall {
-	c.opt_["q"] = q
+	c.params_.Set("q", fmt.Sprintf("%v", q))
+	return c
+}
+func (c *UsersThreadsListCall) Context(ctx context.Context) *UsersThreadsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -3772,52 +3477,23 @@ func (c *UsersThreadsListCall) Q(q string) *UsersThreadsListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *UsersThreadsListCall) Fields(s ...googleapi.Field) *UsersThreadsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *UsersThreadsListCall) Do() (*ListThreadsResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["includeSpamTrash"]; ok {
-		params.Set("includeSpamTrash", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["labelIds"]; ok {
-		params.Set("labelIds", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["q"]; ok {
-		params.Set("q", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{userId}/threads")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *ListThreadsResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"userId": c.userId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ListThreadsResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Lists the threads in the user's mailbox.",
 	//   "httpMethod": "GET",
@@ -3883,16 +3559,29 @@ type UsersThreadsModifyCall struct {
 	userId              string
 	id                  string
 	modifythreadrequest *ModifyThreadRequest
-	opt_                map[string]interface{}
+	caller_             googleapi.Caller
+	params_             url.Values
+	pathTemplate_       string
+	context_            context.Context
 }
 
 // Modify: Modifies the labels applied to the thread. This applies to
 // all messages in the thread.
+
 func (r *UsersThreadsService) Modify(userId string, id string, modifythreadrequest *ModifyThreadRequest) *UsersThreadsModifyCall {
-	c := &UsersThreadsModifyCall{s: r.s, opt_: make(map[string]interface{})}
-	c.userId = userId
-	c.id = id
-	c.modifythreadrequest = modifythreadrequest
+	return &UsersThreadsModifyCall{
+		s:                   r.s,
+		userId:              userId,
+		id:                  id,
+		modifythreadrequest: modifythreadrequest,
+		caller_:             googleapi.JSONCall{},
+		params_:             make(map[string][]string),
+		pathTemplate_:       "{userId}/threads/{id}/modify",
+		context_:            googleapi.NoContext,
+	}
+}
+func (c *UsersThreadsModifyCall) Context(ctx context.Context) *UsersThreadsModifyCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -3900,44 +3589,25 @@ func (r *UsersThreadsService) Modify(userId string, id string, modifythreadreque
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *UsersThreadsModifyCall) Fields(s ...googleapi.Field) *UsersThreadsModifyCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *UsersThreadsModifyCall) Do() (*Thread, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.modifythreadrequest)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{userId}/threads/{id}/modify")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Thread
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"userId": c.userId,
 		"id":     c.id,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.modifythreadrequest,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Thread
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Modifies the labels applied to the thread. This applies to all messages in the thread.",
 	//   "httpMethod": "POST",
@@ -3979,17 +3649,30 @@ func (c *UsersThreadsModifyCall) Do() (*Thread, error) {
 // method id "gmail.users.threads.trash":
 
 type UsersThreadsTrashCall struct {
-	s      *Service
-	userId string
-	id     string
-	opt_   map[string]interface{}
+	s             *Service
+	userId        string
+	id            string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Trash: Moves the specified thread to the trash.
+
 func (r *UsersThreadsService) Trash(userId string, id string) *UsersThreadsTrashCall {
-	c := &UsersThreadsTrashCall{s: r.s, opt_: make(map[string]interface{})}
-	c.userId = userId
-	c.id = id
+	return &UsersThreadsTrashCall{
+		s:             r.s,
+		userId:        userId,
+		id:            id,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{userId}/threads/{id}/trash",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *UsersThreadsTrashCall) Context(ctx context.Context) *UsersThreadsTrashCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -3997,38 +3680,24 @@ func (r *UsersThreadsService) Trash(userId string, id string) *UsersThreadsTrash
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *UsersThreadsTrashCall) Fields(s ...googleapi.Field) *UsersThreadsTrashCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *UsersThreadsTrashCall) Do() (*Thread, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{userId}/threads/{id}/trash")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Thread
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"userId": c.userId,
 		"id":     c.id,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "POST",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Thread
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Moves the specified thread to the trash.",
 	//   "httpMethod": "POST",
@@ -4067,17 +3736,30 @@ func (c *UsersThreadsTrashCall) Do() (*Thread, error) {
 // method id "gmail.users.threads.untrash":
 
 type UsersThreadsUntrashCall struct {
-	s      *Service
-	userId string
-	id     string
-	opt_   map[string]interface{}
+	s             *Service
+	userId        string
+	id            string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Untrash: Removes the specified thread from the trash.
+
 func (r *UsersThreadsService) Untrash(userId string, id string) *UsersThreadsUntrashCall {
-	c := &UsersThreadsUntrashCall{s: r.s, opt_: make(map[string]interface{})}
-	c.userId = userId
-	c.id = id
+	return &UsersThreadsUntrashCall{
+		s:             r.s,
+		userId:        userId,
+		id:            id,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{userId}/threads/{id}/untrash",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *UsersThreadsUntrashCall) Context(ctx context.Context) *UsersThreadsUntrashCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -4085,38 +3767,24 @@ func (r *UsersThreadsService) Untrash(userId string, id string) *UsersThreadsUnt
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *UsersThreadsUntrashCall) Fields(s ...googleapi.Field) *UsersThreadsUntrashCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *UsersThreadsUntrashCall) Do() (*Thread, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{userId}/threads/{id}/untrash")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Thread
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"userId": c.userId,
 		"id":     c.id,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "POST",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Thread
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Removes the specified thread from the trash.",
 	//   "httpMethod": "POST",

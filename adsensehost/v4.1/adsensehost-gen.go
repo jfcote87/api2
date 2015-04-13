@@ -4,18 +4,16 @@
 //
 // Usage example:
 //
-//   import "google.golang.org/api/adsensehost/v4.1"
+//   import "github.com/jfcote87/api2/adsensehost/v4.1"
 //   ...
 //   adsensehostService, err := adsensehost.New(oauthHttpClient)
 package adsensehost
 
 import (
-	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/jfcote87/api2/googleapi"
 	"golang.org/x/net/context"
-	"google.golang.org/api/googleapi"
 	"io"
 	"net/http"
 	"net/url"
@@ -25,10 +23,8 @@ import (
 
 // Always reference these packages, just in case the auto-generated code
 // below doesn't.
-var _ = bytes.NewBuffer
 var _ = strconv.Itoa
 var _ = fmt.Sprintf
-var _ = json.NewDecoder
 var _ = io.Copy
 var _ = url.Parse
 var _ = googleapi.Version
@@ -39,7 +35,8 @@ var _ = context.Background
 const apiId = "adsensehost:v4.1"
 const apiName = "adsensehost"
 const apiVersion = "v4.1"
-const basePath = "https://www.googleapis.com/adsensehost/v4.1/"
+
+var baseURL *url.URL = &url.URL{Scheme: "https", Host: "www.googleapis.com", Path: "/adsensehost/v4.1/"}
 
 // OAuth2 scopes used by this API.
 const (
@@ -51,7 +48,7 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
+	s := &Service{client: client}
 	s.Accounts = NewAccountsService(s)
 	s.Adclients = NewAdclientsService(s)
 	s.Associationsessions = NewAssociationsessionsService(s)
@@ -62,9 +59,7 @@ func New(client *http.Client) (*Service, error) {
 }
 
 type Service struct {
-	client    *http.Client
-	BasePath  string // API endpoint base URL
-	UserAgent string // optional additional User-Agent fragment
+	client *http.Client
 
 	Accounts *AccountsService
 
@@ -77,13 +72,6 @@ type Service struct {
 	Reports *ReportsService
 
 	Urlchannels *UrlchannelsService
-}
-
-func (s *Service) userAgent() string {
-	if s.UserAgent == "" {
-		return googleapi.UserAgent
-	}
-	return googleapi.UserAgent + " " + s.UserAgent
 }
 
 func NewAccountsService(s *Service) *AccountsService {
@@ -538,15 +526,28 @@ type UrlChannels struct {
 // method id "adsensehost.accounts.get":
 
 type AccountsGetCall struct {
-	s         *Service
-	accountId string
-	opt_      map[string]interface{}
+	s             *Service
+	accountId     string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Get information about the selected associated AdSense account.
+
 func (r *AccountsService) Get(accountId string) *AccountsGetCall {
-	c := &AccountsGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
+	return &AccountsGetCall{
+		s:             r.s,
+		accountId:     accountId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "accounts/{accountId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *AccountsGetCall) Context(ctx context.Context) *AccountsGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -554,37 +555,23 @@ func (r *AccountsService) Get(accountId string) *AccountsGetCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AccountsGetCall) Fields(s ...googleapi.Field) *AccountsGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AccountsGetCall) Do() (*Account, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "accounts/{accountId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Account
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId": c.accountId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Account
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Get information about the selected associated AdSense account.",
 	//   "httpMethod": "GET",
@@ -616,14 +603,27 @@ func (c *AccountsGetCall) Do() (*Account, error) {
 type AccountsListCall struct {
 	s                *Service
 	filterAdClientId []string
-	opt_             map[string]interface{}
+	caller_          googleapi.Caller
+	params_          url.Values
+	pathTemplate_    string
+	context_         context.Context
 }
 
 // List: List hosted accounts associated with this AdSense account by ad
 // client id.
+
 func (r *AccountsService) List(filterAdClientId []string) *AccountsListCall {
-	c := &AccountsListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.filterAdClientId = filterAdClientId
+	return &AccountsListCall{
+		s:                r.s,
+		filterAdClientId: filterAdClientId,
+		caller_:          googleapi.JSONCall{},
+		params_:          make(map[string][]string),
+		pathTemplate_:    "accounts",
+		context_:         googleapi.NoContext,
+	}
+}
+func (c *AccountsListCall) Context(ctx context.Context) *AccountsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -631,38 +631,25 @@ func (r *AccountsService) List(filterAdClientId []string) *AccountsListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AccountsListCall) Fields(s ...googleapi.Field) *AccountsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AccountsListCall) Do() (*Accounts, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
+	var returnValue *Accounts
+	c.params_.Del("filterAdClientId")
 	for _, v := range c.filterAdClientId {
-		params.Add("filterAdClientId", fmt.Sprintf("%v", v))
+		c.params_.Add("filterAdClientId", fmt.Sprintf("%v", v))
 	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "accounts")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Accounts
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "List hosted accounts associated with this AdSense account by ad client id.",
 	//   "httpMethod": "GET",
@@ -693,18 +680,31 @@ func (c *AccountsListCall) Do() (*Accounts, error) {
 // method id "adsensehost.accounts.adclients.get":
 
 type AccountsAdclientsGetCall struct {
-	s          *Service
-	accountId  string
-	adClientId string
-	opt_       map[string]interface{}
+	s             *Service
+	accountId     string
+	adClientId    string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Get information about one of the ad clients in the specified
 // publisher's AdSense account.
+
 func (r *AccountsAdclientsService) Get(accountId string, adClientId string) *AccountsAdclientsGetCall {
-	c := &AccountsAdclientsGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.adClientId = adClientId
+	return &AccountsAdclientsGetCall{
+		s:             r.s,
+		accountId:     accountId,
+		adClientId:    adClientId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "accounts/{accountId}/adclients/{adClientId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *AccountsAdclientsGetCall) Context(ctx context.Context) *AccountsAdclientsGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -712,38 +712,24 @@ func (r *AccountsAdclientsService) Get(accountId string, adClientId string) *Acc
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AccountsAdclientsGetCall) Fields(s ...googleapi.Field) *AccountsAdclientsGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AccountsAdclientsGetCall) Do() (*AdClient, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "accounts/{accountId}/adclients/{adClientId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *AdClient
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId":  c.accountId,
 		"adClientId": c.adClientId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *AdClient
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Get information about one of the ad clients in the specified publisher's AdSense account.",
 	//   "httpMethod": "GET",
@@ -780,22 +766,31 @@ func (c *AccountsAdclientsGetCall) Do() (*AdClient, error) {
 // method id "adsensehost.accounts.adclients.list":
 
 type AccountsAdclientsListCall struct {
-	s         *Service
-	accountId string
-	opt_      map[string]interface{}
+	s             *Service
+	accountId     string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: List all hosted ad clients in the specified hosted account.
+
 func (r *AccountsAdclientsService) List(accountId string) *AccountsAdclientsListCall {
-	c := &AccountsAdclientsListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	return c
+	return &AccountsAdclientsListCall{
+		s:             r.s,
+		accountId:     accountId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "accounts/{accountId}/adclients",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // MaxResults sets the optional parameter "maxResults": The maximum
 // number of ad clients to include in the response, used for paging.
 func (c *AccountsAdclientsListCall) MaxResults(maxResults int64) *AccountsAdclientsListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
@@ -804,7 +799,11 @@ func (c *AccountsAdclientsListCall) MaxResults(maxResults int64) *AccountsAdclie
 // set this parameter to the value of "nextPageToken" from the previous
 // response.
 func (c *AccountsAdclientsListCall) PageToken(pageToken string) *AccountsAdclientsListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
+	return c
+}
+func (c *AccountsAdclientsListCall) Context(ctx context.Context) *AccountsAdclientsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -812,43 +811,23 @@ func (c *AccountsAdclientsListCall) PageToken(pageToken string) *AccountsAdclien
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AccountsAdclientsListCall) Fields(s ...googleapi.Field) *AccountsAdclientsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AccountsAdclientsListCall) Do() (*AdClients, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "accounts/{accountId}/adclients")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *AdClients
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId": c.accountId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *AdClients
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "List all hosted ad clients in the specified hosted account.",
 	//   "httpMethod": "GET",
@@ -891,20 +870,33 @@ func (c *AccountsAdclientsListCall) Do() (*AdClients, error) {
 // method id "adsensehost.accounts.adunits.delete":
 
 type AccountsAdunitsDeleteCall struct {
-	s          *Service
-	accountId  string
-	adClientId string
-	adUnitId   string
-	opt_       map[string]interface{}
+	s             *Service
+	accountId     string
+	adClientId    string
+	adUnitId      string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Delete: Delete the specified ad unit from the specified publisher
 // AdSense account.
+
 func (r *AccountsAdunitsService) Delete(accountId string, adClientId string, adUnitId string) *AccountsAdunitsDeleteCall {
-	c := &AccountsAdunitsDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.adClientId = adClientId
-	c.adUnitId = adUnitId
+	return &AccountsAdunitsDeleteCall{
+		s:             r.s,
+		accountId:     accountId,
+		adClientId:    adClientId,
+		adUnitId:      adUnitId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "accounts/{accountId}/adclients/{adClientId}/adunits/{adUnitId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *AccountsAdunitsDeleteCall) Context(ctx context.Context) *AccountsAdunitsDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -912,39 +904,25 @@ func (r *AccountsAdunitsService) Delete(accountId string, adClientId string, adU
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AccountsAdunitsDeleteCall) Fields(s ...googleapi.Field) *AccountsAdunitsDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AccountsAdunitsDeleteCall) Do() (*AdUnit, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "accounts/{accountId}/adclients/{adClientId}/adunits/{adUnitId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *AdUnit
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId":  c.accountId,
 		"adClientId": c.adClientId,
 		"adUnitId":   c.adUnitId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *AdUnit
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Delete the specified ad unit from the specified publisher AdSense account.",
 	//   "httpMethod": "DELETE",
@@ -988,19 +966,32 @@ func (c *AccountsAdunitsDeleteCall) Do() (*AdUnit, error) {
 // method id "adsensehost.accounts.adunits.get":
 
 type AccountsAdunitsGetCall struct {
-	s          *Service
-	accountId  string
-	adClientId string
-	adUnitId   string
-	opt_       map[string]interface{}
+	s             *Service
+	accountId     string
+	adClientId    string
+	adUnitId      string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Get the specified host ad unit in this AdSense account.
+
 func (r *AccountsAdunitsService) Get(accountId string, adClientId string, adUnitId string) *AccountsAdunitsGetCall {
-	c := &AccountsAdunitsGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.adClientId = adClientId
-	c.adUnitId = adUnitId
+	return &AccountsAdunitsGetCall{
+		s:             r.s,
+		accountId:     accountId,
+		adClientId:    adClientId,
+		adUnitId:      adUnitId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "accounts/{accountId}/adclients/{adClientId}/adunits/{adUnitId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *AccountsAdunitsGetCall) Context(ctx context.Context) *AccountsAdunitsGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1008,39 +999,25 @@ func (r *AccountsAdunitsService) Get(accountId string, adClientId string, adUnit
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AccountsAdunitsGetCall) Fields(s ...googleapi.Field) *AccountsAdunitsGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AccountsAdunitsGetCall) Do() (*AdUnit, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "accounts/{accountId}/adclients/{adClientId}/adunits/{adUnitId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *AdUnit
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId":  c.accountId,
 		"adClientId": c.adClientId,
 		"adUnitId":   c.adUnitId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *AdUnit
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Get the specified host ad unit in this AdSense account.",
 	//   "httpMethod": "GET",
@@ -1084,27 +1061,40 @@ func (c *AccountsAdunitsGetCall) Do() (*AdUnit, error) {
 // method id "adsensehost.accounts.adunits.getAdCode":
 
 type AccountsAdunitsGetAdCodeCall struct {
-	s          *Service
-	accountId  string
-	adClientId string
-	adUnitId   string
-	opt_       map[string]interface{}
+	s             *Service
+	accountId     string
+	adClientId    string
+	adUnitId      string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // GetAdCode: Get ad code for the specified ad unit, attaching the
 // specified host custom channels.
+
 func (r *AccountsAdunitsService) GetAdCode(accountId string, adClientId string, adUnitId string) *AccountsAdunitsGetAdCodeCall {
-	c := &AccountsAdunitsGetAdCodeCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.adClientId = adClientId
-	c.adUnitId = adUnitId
-	return c
+	return &AccountsAdunitsGetAdCodeCall{
+		s:             r.s,
+		accountId:     accountId,
+		adClientId:    adClientId,
+		adUnitId:      adUnitId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "accounts/{accountId}/adclients/{adClientId}/adunits/{adUnitId}/adcode",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // HostCustomChannelId sets the optional parameter
 // "hostCustomChannelId": Host custom channel to attach to the ad code.
-func (c *AccountsAdunitsGetAdCodeCall) HostCustomChannelId(hostCustomChannelId string) *AccountsAdunitsGetAdCodeCall {
-	c.opt_["hostCustomChannelId"] = hostCustomChannelId
+func (c *AccountsAdunitsGetAdCodeCall) HostCustomChannelId(hostCustomChannelId ...string) *AccountsAdunitsGetAdCodeCall {
+	c.params_["hostCustomChannelId"] = hostCustomChannelId
+	return c
+}
+func (c *AccountsAdunitsGetAdCodeCall) Context(ctx context.Context) *AccountsAdunitsGetAdCodeCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1112,42 +1102,25 @@ func (c *AccountsAdunitsGetAdCodeCall) HostCustomChannelId(hostCustomChannelId s
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AccountsAdunitsGetAdCodeCall) Fields(s ...googleapi.Field) *AccountsAdunitsGetAdCodeCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AccountsAdunitsGetAdCodeCall) Do() (*AdCode, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["hostCustomChannelId"]; ok {
-		params.Set("hostCustomChannelId", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "accounts/{accountId}/adclients/{adClientId}/adunits/{adUnitId}/adcode")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *AdCode
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId":  c.accountId,
 		"adClientId": c.adClientId,
 		"adUnitId":   c.adUnitId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *AdCode
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Get ad code for the specified ad unit, attaching the specified host custom channels.",
 	//   "httpMethod": "GET",
@@ -1197,20 +1170,33 @@ func (c *AccountsAdunitsGetAdCodeCall) Do() (*AdCode, error) {
 // method id "adsensehost.accounts.adunits.insert":
 
 type AccountsAdunitsInsertCall struct {
-	s          *Service
-	accountId  string
-	adClientId string
-	adunit     *AdUnit
-	opt_       map[string]interface{}
+	s             *Service
+	accountId     string
+	adClientId    string
+	adunit        *AdUnit
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Insert: Insert the supplied ad unit into the specified publisher
 // AdSense account.
+
 func (r *AccountsAdunitsService) Insert(accountId string, adClientId string, adunit *AdUnit) *AccountsAdunitsInsertCall {
-	c := &AccountsAdunitsInsertCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.adClientId = adClientId
-	c.adunit = adunit
+	return &AccountsAdunitsInsertCall{
+		s:             r.s,
+		accountId:     accountId,
+		adClientId:    adClientId,
+		adunit:        adunit,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "accounts/{accountId}/adclients/{adClientId}/adunits",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *AccountsAdunitsInsertCall) Context(ctx context.Context) *AccountsAdunitsInsertCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1218,44 +1204,25 @@ func (r *AccountsAdunitsService) Insert(accountId string, adClientId string, adu
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AccountsAdunitsInsertCall) Fields(s ...googleapi.Field) *AccountsAdunitsInsertCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AccountsAdunitsInsertCall) Do() (*AdUnit, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.adunit)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "accounts/{accountId}/adclients/{adClientId}/adunits")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *AdUnit
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId":  c.accountId,
 		"adClientId": c.adClientId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.adunit,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *AdUnit
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Insert the supplied ad unit into the specified publisher AdSense account.",
 	//   "httpMethod": "POST",
@@ -1295,31 +1262,40 @@ func (c *AccountsAdunitsInsertCall) Do() (*AdUnit, error) {
 // method id "adsensehost.accounts.adunits.list":
 
 type AccountsAdunitsListCall struct {
-	s          *Service
-	accountId  string
-	adClientId string
-	opt_       map[string]interface{}
+	s             *Service
+	accountId     string
+	adClientId    string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: List all ad units in the specified publisher's AdSense account.
+
 func (r *AccountsAdunitsService) List(accountId string, adClientId string) *AccountsAdunitsListCall {
-	c := &AccountsAdunitsListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.adClientId = adClientId
-	return c
+	return &AccountsAdunitsListCall{
+		s:             r.s,
+		accountId:     accountId,
+		adClientId:    adClientId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "accounts/{accountId}/adclients/{adClientId}/adunits",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // IncludeInactive sets the optional parameter "includeInactive":
 // Whether to include inactive ad units. Default: true.
 func (c *AccountsAdunitsListCall) IncludeInactive(includeInactive bool) *AccountsAdunitsListCall {
-	c.opt_["includeInactive"] = includeInactive
+	c.params_.Set("includeInactive", fmt.Sprintf("%v", includeInactive))
 	return c
 }
 
 // MaxResults sets the optional parameter "maxResults": The maximum
 // number of ad units to include in the response, used for paging.
 func (c *AccountsAdunitsListCall) MaxResults(maxResults int64) *AccountsAdunitsListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
@@ -1328,7 +1304,11 @@ func (c *AccountsAdunitsListCall) MaxResults(maxResults int64) *AccountsAdunitsL
 // this parameter to the value of "nextPageToken" from the previous
 // response.
 func (c *AccountsAdunitsListCall) PageToken(pageToken string) *AccountsAdunitsListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
+	return c
+}
+func (c *AccountsAdunitsListCall) Context(ctx context.Context) *AccountsAdunitsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1336,47 +1316,24 @@ func (c *AccountsAdunitsListCall) PageToken(pageToken string) *AccountsAdunitsLi
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AccountsAdunitsListCall) Fields(s ...googleapi.Field) *AccountsAdunitsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AccountsAdunitsListCall) Do() (*AdUnits, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["includeInactive"]; ok {
-		params.Set("includeInactive", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "accounts/{accountId}/adclients/{adClientId}/adunits")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *AdUnits
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId":  c.accountId,
 		"adClientId": c.adClientId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *AdUnits
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "List all ad units in the specified publisher's AdSense account.",
 	//   "httpMethod": "GET",
@@ -1431,22 +1388,35 @@ func (c *AccountsAdunitsListCall) Do() (*AdUnits, error) {
 // method id "adsensehost.accounts.adunits.patch":
 
 type AccountsAdunitsPatchCall struct {
-	s          *Service
-	accountId  string
-	adClientId string
-	adUnitId   string
-	adunit     *AdUnit
-	opt_       map[string]interface{}
+	s             *Service
+	accountId     string
+	adClientId    string
+	adUnitId      string
+	adunit        *AdUnit
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Patch: Update the supplied ad unit in the specified publisher AdSense
 // account. This method supports patch semantics.
+
 func (r *AccountsAdunitsService) Patch(accountId string, adClientId string, adUnitId string, adunit *AdUnit) *AccountsAdunitsPatchCall {
-	c := &AccountsAdunitsPatchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.adClientId = adClientId
-	c.adUnitId = adUnitId
-	c.adunit = adunit
+	return &AccountsAdunitsPatchCall{
+		s:             r.s,
+		accountId:     accountId,
+		adClientId:    adClientId,
+		adUnitId:      adUnitId,
+		adunit:        adunit,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "accounts/{accountId}/adclients/{adClientId}/adunits",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *AccountsAdunitsPatchCall) Context(ctx context.Context) *AccountsAdunitsPatchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1454,45 +1424,26 @@ func (r *AccountsAdunitsService) Patch(accountId string, adClientId string, adUn
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AccountsAdunitsPatchCall) Fields(s ...googleapi.Field) *AccountsAdunitsPatchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AccountsAdunitsPatchCall) Do() (*AdUnit, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.adunit)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("adUnitId", fmt.Sprintf("%v", c.adUnitId))
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "accounts/{accountId}/adclients/{adClientId}/adunits")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PATCH", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *AdUnit
+	c.params_.Set("adUnitId", fmt.Sprintf("%v", c.adUnitId))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId":  c.accountId,
 		"adClientId": c.adClientId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PATCH",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.adunit,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *AdUnit
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Update the supplied ad unit in the specified publisher AdSense account. This method supports patch semantics.",
 	//   "httpMethod": "PATCH",
@@ -1539,20 +1490,33 @@ func (c *AccountsAdunitsPatchCall) Do() (*AdUnit, error) {
 // method id "adsensehost.accounts.adunits.update":
 
 type AccountsAdunitsUpdateCall struct {
-	s          *Service
-	accountId  string
-	adClientId string
-	adunit     *AdUnit
-	opt_       map[string]interface{}
+	s             *Service
+	accountId     string
+	adClientId    string
+	adunit        *AdUnit
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Update: Update the supplied ad unit in the specified publisher
 // AdSense account.
+
 func (r *AccountsAdunitsService) Update(accountId string, adClientId string, adunit *AdUnit) *AccountsAdunitsUpdateCall {
-	c := &AccountsAdunitsUpdateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.adClientId = adClientId
-	c.adunit = adunit
+	return &AccountsAdunitsUpdateCall{
+		s:             r.s,
+		accountId:     accountId,
+		adClientId:    adClientId,
+		adunit:        adunit,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "accounts/{accountId}/adclients/{adClientId}/adunits",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *AccountsAdunitsUpdateCall) Context(ctx context.Context) *AccountsAdunitsUpdateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1560,44 +1524,25 @@ func (r *AccountsAdunitsService) Update(accountId string, adClientId string, adu
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AccountsAdunitsUpdateCall) Fields(s ...googleapi.Field) *AccountsAdunitsUpdateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AccountsAdunitsUpdateCall) Do() (*AdUnit, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.adunit)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "accounts/{accountId}/adclients/{adClientId}/adunits")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *AdUnit
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId":  c.accountId,
 		"adClientId": c.adClientId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.adunit,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *AdUnit
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Update the supplied ad unit in the specified publisher AdSense account.",
 	//   "httpMethod": "PUT",
@@ -1637,35 +1582,44 @@ func (c *AccountsAdunitsUpdateCall) Do() (*AdUnit, error) {
 // method id "adsensehost.accounts.reports.generate":
 
 type AccountsReportsGenerateCall struct {
-	s         *Service
-	accountId string
-	startDate string
-	endDate   string
-	opt_      map[string]interface{}
+	s             *Service
+	accountId     string
+	startDate     string
+	endDate       string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Generate: Generate an AdSense report based on the report request sent
 // in the query parameters. Returns the result as JSON; to retrieve
 // output in CSV format specify "alt=csv" as a query parameter.
+
 func (r *AccountsReportsService) Generate(accountId string, startDate string, endDate string) *AccountsReportsGenerateCall {
-	c := &AccountsReportsGenerateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.startDate = startDate
-	c.endDate = endDate
-	return c
+	return &AccountsReportsGenerateCall{
+		s:             r.s,
+		accountId:     accountId,
+		startDate:     startDate,
+		endDate:       endDate,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "accounts/{accountId}/reports",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Dimension sets the optional parameter "dimension": Dimensions to base
 // the report on.
-func (c *AccountsReportsGenerateCall) Dimension(dimension string) *AccountsReportsGenerateCall {
-	c.opt_["dimension"] = dimension
+func (c *AccountsReportsGenerateCall) Dimension(dimension ...string) *AccountsReportsGenerateCall {
+	c.params_["dimension"] = dimension
 	return c
 }
 
 // Filter sets the optional parameter "filter": Filters to be run on the
 // report.
-func (c *AccountsReportsGenerateCall) Filter(filter string) *AccountsReportsGenerateCall {
-	c.opt_["filter"] = filter
+func (c *AccountsReportsGenerateCall) Filter(filter ...string) *AccountsReportsGenerateCall {
+	c.params_["filter"] = filter
 	return c
 }
 
@@ -1673,21 +1627,21 @@ func (c *AccountsReportsGenerateCall) Filter(filter string) *AccountsReportsGene
 // for translating report output to a local language. Defaults to
 // "en_US" if not specified.
 func (c *AccountsReportsGenerateCall) Locale(locale string) *AccountsReportsGenerateCall {
-	c.opt_["locale"] = locale
+	c.params_.Set("locale", fmt.Sprintf("%v", locale))
 	return c
 }
 
 // MaxResults sets the optional parameter "maxResults": The maximum
 // number of rows of report data to return.
 func (c *AccountsReportsGenerateCall) MaxResults(maxResults int64) *AccountsReportsGenerateCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
 // Metric sets the optional parameter "metric": Numeric columns to
 // include in the report.
-func (c *AccountsReportsGenerateCall) Metric(metric string) *AccountsReportsGenerateCall {
-	c.opt_["metric"] = metric
+func (c *AccountsReportsGenerateCall) Metric(metric ...string) *AccountsReportsGenerateCall {
+	c.params_["metric"] = metric
 	return c
 }
 
@@ -1695,15 +1649,19 @@ func (c *AccountsReportsGenerateCall) Metric(metric string) *AccountsReportsGene
 // metric to sort the resulting report on, optionally prefixed with "+"
 // to sort ascending or "-" to sort descending. If no prefix is
 // specified, the column is sorted ascending.
-func (c *AccountsReportsGenerateCall) Sort(sort string) *AccountsReportsGenerateCall {
-	c.opt_["sort"] = sort
+func (c *AccountsReportsGenerateCall) Sort(sort ...string) *AccountsReportsGenerateCall {
+	c.params_["sort"] = sort
 	return c
 }
 
 // StartIndex sets the optional parameter "startIndex": Index of the
 // first row of report data to return.
 func (c *AccountsReportsGenerateCall) StartIndex(startIndex int64) *AccountsReportsGenerateCall {
-	c.opt_["startIndex"] = startIndex
+	c.params_.Set("startIndex", fmt.Sprintf("%v", startIndex))
+	return c
+}
+func (c *AccountsReportsGenerateCall) Context(ctx context.Context) *AccountsReportsGenerateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1711,60 +1669,25 @@ func (c *AccountsReportsGenerateCall) StartIndex(startIndex int64) *AccountsRepo
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AccountsReportsGenerateCall) Fields(s ...googleapi.Field) *AccountsReportsGenerateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AccountsReportsGenerateCall) Do() (*Report, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("endDate", fmt.Sprintf("%v", c.endDate))
-	params.Set("startDate", fmt.Sprintf("%v", c.startDate))
-	if v, ok := c.opt_["dimension"]; ok {
-		params.Set("dimension", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["filter"]; ok {
-		params.Set("filter", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["locale"]; ok {
-		params.Set("locale", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["metric"]; ok {
-		params.Set("metric", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["sort"]; ok {
-		params.Set("sort", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["startIndex"]; ok {
-		params.Set("startIndex", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "accounts/{accountId}/reports")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Report
+	c.params_.Set("endDate", fmt.Sprintf("%v", c.endDate))
+	c.params_.Set("startDate", fmt.Sprintf("%v", c.startDate))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId": c.accountId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Report
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Generate an AdSense report based on the report request sent in the query parameters. Returns the result as JSON; to retrieve output in CSV format specify \"alt=csv\" as a query parameter.",
 	//   "httpMethod": "GET",
@@ -1860,16 +1783,29 @@ func (c *AccountsReportsGenerateCall) Do() (*Report, error) {
 // method id "adsensehost.adclients.get":
 
 type AdclientsGetCall struct {
-	s          *Service
-	adClientId string
-	opt_       map[string]interface{}
+	s             *Service
+	adClientId    string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Get information about one of the ad clients in the Host AdSense
 // account.
+
 func (r *AdclientsService) Get(adClientId string) *AdclientsGetCall {
-	c := &AdclientsGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.adClientId = adClientId
+	return &AdclientsGetCall{
+		s:             r.s,
+		adClientId:    adClientId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "adclients/{adClientId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *AdclientsGetCall) Context(ctx context.Context) *AdclientsGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1877,37 +1813,23 @@ func (r *AdclientsService) Get(adClientId string) *AdclientsGetCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AdclientsGetCall) Fields(s ...googleapi.Field) *AdclientsGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AdclientsGetCall) Do() (*AdClient, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "adclients/{adClientId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *AdClient
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"adClientId": c.adClientId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *AdClient
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Get information about one of the ad clients in the Host AdSense account.",
 	//   "httpMethod": "GET",
@@ -1937,20 +1859,29 @@ func (c *AdclientsGetCall) Do() (*AdClient, error) {
 // method id "adsensehost.adclients.list":
 
 type AdclientsListCall struct {
-	s    *Service
-	opt_ map[string]interface{}
+	s             *Service
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: List all host ad clients in this AdSense account.
+
 func (r *AdclientsService) List() *AdclientsListCall {
-	c := &AdclientsListCall{s: r.s, opt_: make(map[string]interface{})}
-	return c
+	return &AdclientsListCall{
+		s:             r.s,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "adclients",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // MaxResults sets the optional parameter "maxResults": The maximum
 // number of ad clients to include in the response, used for paging.
 func (c *AdclientsListCall) MaxResults(maxResults int64) *AdclientsListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
@@ -1959,7 +1890,11 @@ func (c *AdclientsListCall) MaxResults(maxResults int64) *AdclientsListCall {
 // set this parameter to the value of "nextPageToken" from the previous
 // response.
 func (c *AdclientsListCall) PageToken(pageToken string) *AdclientsListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
+	return c
+}
+func (c *AdclientsListCall) Context(ctx context.Context) *AdclientsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1967,41 +1902,21 @@ func (c *AdclientsListCall) PageToken(pageToken string) *AdclientsListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AdclientsListCall) Fields(s ...googleapi.Field) *AdclientsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AdclientsListCall) Do() (*AdClients, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
+	var returnValue *AdClients
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "adclients")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *AdClients
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "List all host ad clients in this AdSense account.",
 	//   "httpMethod": "GET",
@@ -2035,32 +1950,45 @@ func (c *AdclientsListCall) Do() (*AdClients, error) {
 // method id "adsensehost.associationsessions.start":
 
 type AssociationsessionsStartCall struct {
-	s           *Service
-	productCode []string
-	websiteUrl  string
-	opt_        map[string]interface{}
+	s             *Service
+	productCode   []string
+	websiteUrl    string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Start: Create an association session for initiating an association
 // with an AdSense user.
+
 func (r *AssociationsessionsService) Start(productCode []string, websiteUrl string) *AssociationsessionsStartCall {
-	c := &AssociationsessionsStartCall{s: r.s, opt_: make(map[string]interface{})}
-	c.productCode = productCode
-	c.websiteUrl = websiteUrl
-	return c
+	return &AssociationsessionsStartCall{
+		s:             r.s,
+		productCode:   productCode,
+		websiteUrl:    websiteUrl,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "associationsessions/start",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // UserLocale sets the optional parameter "userLocale": The preferred
 // locale of the user.
 func (c *AssociationsessionsStartCall) UserLocale(userLocale string) *AssociationsessionsStartCall {
-	c.opt_["userLocale"] = userLocale
+	c.params_.Set("userLocale", fmt.Sprintf("%v", userLocale))
 	return c
 }
 
 // WebsiteLocale sets the optional parameter "websiteLocale": The locale
 // of the user's hosted website.
 func (c *AssociationsessionsStartCall) WebsiteLocale(websiteLocale string) *AssociationsessionsStartCall {
-	c.opt_["websiteLocale"] = websiteLocale
+	c.params_.Set("websiteLocale", fmt.Sprintf("%v", websiteLocale))
+	return c
+}
+func (c *AssociationsessionsStartCall) Context(ctx context.Context) *AssociationsessionsStartCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2068,45 +1996,26 @@ func (c *AssociationsessionsStartCall) WebsiteLocale(websiteLocale string) *Asso
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AssociationsessionsStartCall) Fields(s ...googleapi.Field) *AssociationsessionsStartCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AssociationsessionsStartCall) Do() (*AssociationSession, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("websiteUrl", fmt.Sprintf("%v", c.websiteUrl))
+	var returnValue *AssociationSession
+	c.params_.Set("websiteUrl", fmt.Sprintf("%v", c.websiteUrl))
+	c.params_.Del("productCode")
 	for _, v := range c.productCode {
-		params.Add("productCode", fmt.Sprintf("%v", v))
+		c.params_.Add("productCode", fmt.Sprintf("%v", v))
 	}
-	if v, ok := c.opt_["userLocale"]; ok {
-		params.Set("userLocale", fmt.Sprintf("%v", v))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	if v, ok := c.opt_["websiteLocale"]; ok {
-		params.Set("websiteLocale", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "associationsessions/start")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *AssociationSession
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Create an association session for initiating an association with an AdSense user.",
 	//   "httpMethod": "GET",
@@ -2168,16 +2077,29 @@ func (c *AssociationsessionsStartCall) Do() (*AssociationSession, error) {
 // method id "adsensehost.associationsessions.verify":
 
 type AssociationsessionsVerifyCall struct {
-	s     *Service
-	token string
-	opt_  map[string]interface{}
+	s             *Service
+	token         string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Verify: Verify an association session after the association callback
 // returns from AdSense signup.
+
 func (r *AssociationsessionsService) Verify(token string) *AssociationsessionsVerifyCall {
-	c := &AssociationsessionsVerifyCall{s: r.s, opt_: make(map[string]interface{})}
-	c.token = token
+	return &AssociationsessionsVerifyCall{
+		s:             r.s,
+		token:         token,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "associationsessions/verify",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *AssociationsessionsVerifyCall) Context(ctx context.Context) *AssociationsessionsVerifyCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2185,36 +2107,22 @@ func (r *AssociationsessionsService) Verify(token string) *AssociationsessionsVe
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AssociationsessionsVerifyCall) Fields(s ...googleapi.Field) *AssociationsessionsVerifyCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AssociationsessionsVerifyCall) Do() (*AssociationSession, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("token", fmt.Sprintf("%v", c.token))
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
+	var returnValue *AssociationSession
+	c.params_.Set("token", fmt.Sprintf("%v", c.token))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "associationsessions/verify")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *AssociationSession
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Verify an association session after the association callback returns from AdSense signup.",
 	//   "httpMethod": "GET",
@@ -2247,15 +2155,28 @@ type CustomchannelsDeleteCall struct {
 	s               *Service
 	adClientId      string
 	customChannelId string
-	opt_            map[string]interface{}
+	caller_         googleapi.Caller
+	params_         url.Values
+	pathTemplate_   string
+	context_        context.Context
 }
 
 // Delete: Delete a specific custom channel from the host AdSense
 // account.
+
 func (r *CustomchannelsService) Delete(adClientId string, customChannelId string) *CustomchannelsDeleteCall {
-	c := &CustomchannelsDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.adClientId = adClientId
-	c.customChannelId = customChannelId
+	return &CustomchannelsDeleteCall{
+		s:               r.s,
+		adClientId:      adClientId,
+		customChannelId: customChannelId,
+		caller_:         googleapi.JSONCall{},
+		params_:         make(map[string][]string),
+		pathTemplate_:   "adclients/{adClientId}/customchannels/{customChannelId}",
+		context_:        googleapi.NoContext,
+	}
+}
+func (c *CustomchannelsDeleteCall) Context(ctx context.Context) *CustomchannelsDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2263,38 +2184,24 @@ func (r *CustomchannelsService) Delete(adClientId string, customChannelId string
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *CustomchannelsDeleteCall) Fields(s ...googleapi.Field) *CustomchannelsDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *CustomchannelsDeleteCall) Do() (*CustomChannel, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "adclients/{adClientId}/customchannels/{customChannelId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *CustomChannel
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"adClientId":      c.adClientId,
 		"customChannelId": c.customChannelId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *CustomChannel
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Delete a specific custom channel from the host AdSense account.",
 	//   "httpMethod": "DELETE",
@@ -2334,14 +2241,27 @@ type CustomchannelsGetCall struct {
 	s               *Service
 	adClientId      string
 	customChannelId string
-	opt_            map[string]interface{}
+	caller_         googleapi.Caller
+	params_         url.Values
+	pathTemplate_   string
+	context_        context.Context
 }
 
 // Get: Get a specific custom channel from the host AdSense account.
+
 func (r *CustomchannelsService) Get(adClientId string, customChannelId string) *CustomchannelsGetCall {
-	c := &CustomchannelsGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.adClientId = adClientId
-	c.customChannelId = customChannelId
+	return &CustomchannelsGetCall{
+		s:               r.s,
+		adClientId:      adClientId,
+		customChannelId: customChannelId,
+		caller_:         googleapi.JSONCall{},
+		params_:         make(map[string][]string),
+		pathTemplate_:   "adclients/{adClientId}/customchannels/{customChannelId}",
+		context_:        googleapi.NoContext,
+	}
+}
+func (c *CustomchannelsGetCall) Context(ctx context.Context) *CustomchannelsGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2349,38 +2269,24 @@ func (r *CustomchannelsService) Get(adClientId string, customChannelId string) *
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *CustomchannelsGetCall) Fields(s ...googleapi.Field) *CustomchannelsGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *CustomchannelsGetCall) Do() (*CustomChannel, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "adclients/{adClientId}/customchannels/{customChannelId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *CustomChannel
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"adClientId":      c.adClientId,
 		"customChannelId": c.customChannelId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *CustomChannel
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Get a specific custom channel from the host AdSense account.",
 	//   "httpMethod": "GET",
@@ -2420,14 +2326,27 @@ type CustomchannelsInsertCall struct {
 	s             *Service
 	adClientId    string
 	customchannel *CustomChannel
-	opt_          map[string]interface{}
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Insert: Add a new custom channel to the host AdSense account.
+
 func (r *CustomchannelsService) Insert(adClientId string, customchannel *CustomChannel) *CustomchannelsInsertCall {
-	c := &CustomchannelsInsertCall{s: r.s, opt_: make(map[string]interface{})}
-	c.adClientId = adClientId
-	c.customchannel = customchannel
+	return &CustomchannelsInsertCall{
+		s:             r.s,
+		adClientId:    adClientId,
+		customchannel: customchannel,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "adclients/{adClientId}/customchannels",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *CustomchannelsInsertCall) Context(ctx context.Context) *CustomchannelsInsertCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2435,43 +2354,24 @@ func (r *CustomchannelsService) Insert(adClientId string, customchannel *CustomC
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *CustomchannelsInsertCall) Fields(s ...googleapi.Field) *CustomchannelsInsertCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *CustomchannelsInsertCall) Do() (*CustomChannel, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.customchannel)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "adclients/{adClientId}/customchannels")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *CustomChannel
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"adClientId": c.adClientId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.customchannel,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *CustomChannel
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Add a new custom channel to the host AdSense account.",
 	//   "httpMethod": "POST",
@@ -2504,23 +2404,32 @@ func (c *CustomchannelsInsertCall) Do() (*CustomChannel, error) {
 // method id "adsensehost.customchannels.list":
 
 type CustomchannelsListCall struct {
-	s          *Service
-	adClientId string
-	opt_       map[string]interface{}
+	s             *Service
+	adClientId    string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: List all host custom channels in this AdSense account.
+
 func (r *CustomchannelsService) List(adClientId string) *CustomchannelsListCall {
-	c := &CustomchannelsListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.adClientId = adClientId
-	return c
+	return &CustomchannelsListCall{
+		s:             r.s,
+		adClientId:    adClientId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "adclients/{adClientId}/customchannels",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // MaxResults sets the optional parameter "maxResults": The maximum
 // number of custom channels to include in the response, used for
 // paging.
 func (c *CustomchannelsListCall) MaxResults(maxResults int64) *CustomchannelsListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
@@ -2529,7 +2438,11 @@ func (c *CustomchannelsListCall) MaxResults(maxResults int64) *CustomchannelsLis
 // page, set this parameter to the value of "nextPageToken" from the
 // previous response.
 func (c *CustomchannelsListCall) PageToken(pageToken string) *CustomchannelsListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
+	return c
+}
+func (c *CustomchannelsListCall) Context(ctx context.Context) *CustomchannelsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2537,43 +2450,23 @@ func (c *CustomchannelsListCall) PageToken(pageToken string) *CustomchannelsList
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *CustomchannelsListCall) Fields(s ...googleapi.Field) *CustomchannelsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *CustomchannelsListCall) Do() (*CustomChannels, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "adclients/{adClientId}/customchannels")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *CustomChannels
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"adClientId": c.adClientId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *CustomChannels
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "List all host custom channels in this AdSense account.",
 	//   "httpMethod": "GET",
@@ -2620,16 +2513,29 @@ type CustomchannelsPatchCall struct {
 	adClientId      string
 	customChannelId string
 	customchannel   *CustomChannel
-	opt_            map[string]interface{}
+	caller_         googleapi.Caller
+	params_         url.Values
+	pathTemplate_   string
+	context_        context.Context
 }
 
 // Patch: Update a custom channel in the host AdSense account. This
 // method supports patch semantics.
+
 func (r *CustomchannelsService) Patch(adClientId string, customChannelId string, customchannel *CustomChannel) *CustomchannelsPatchCall {
-	c := &CustomchannelsPatchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.adClientId = adClientId
-	c.customChannelId = customChannelId
-	c.customchannel = customchannel
+	return &CustomchannelsPatchCall{
+		s:               r.s,
+		adClientId:      adClientId,
+		customChannelId: customChannelId,
+		customchannel:   customchannel,
+		caller_:         googleapi.JSONCall{},
+		params_:         make(map[string][]string),
+		pathTemplate_:   "adclients/{adClientId}/customchannels",
+		context_:        googleapi.NoContext,
+	}
+}
+func (c *CustomchannelsPatchCall) Context(ctx context.Context) *CustomchannelsPatchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2637,44 +2543,25 @@ func (r *CustomchannelsService) Patch(adClientId string, customChannelId string,
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *CustomchannelsPatchCall) Fields(s ...googleapi.Field) *CustomchannelsPatchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *CustomchannelsPatchCall) Do() (*CustomChannel, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.customchannel)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("customChannelId", fmt.Sprintf("%v", c.customChannelId))
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "adclients/{adClientId}/customchannels")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PATCH", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *CustomChannel
+	c.params_.Set("customChannelId", fmt.Sprintf("%v", c.customChannelId))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"adClientId": c.adClientId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PATCH",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.customchannel,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *CustomChannel
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Update a custom channel in the host AdSense account. This method supports patch semantics.",
 	//   "httpMethod": "PATCH",
@@ -2717,14 +2604,27 @@ type CustomchannelsUpdateCall struct {
 	s             *Service
 	adClientId    string
 	customchannel *CustomChannel
-	opt_          map[string]interface{}
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Update: Update a custom channel in the host AdSense account.
+
 func (r *CustomchannelsService) Update(adClientId string, customchannel *CustomChannel) *CustomchannelsUpdateCall {
-	c := &CustomchannelsUpdateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.adClientId = adClientId
-	c.customchannel = customchannel
+	return &CustomchannelsUpdateCall{
+		s:             r.s,
+		adClientId:    adClientId,
+		customchannel: customchannel,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "adclients/{adClientId}/customchannels",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *CustomchannelsUpdateCall) Context(ctx context.Context) *CustomchannelsUpdateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2732,43 +2632,24 @@ func (r *CustomchannelsService) Update(adClientId string, customchannel *CustomC
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *CustomchannelsUpdateCall) Fields(s ...googleapi.Field) *CustomchannelsUpdateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *CustomchannelsUpdateCall) Do() (*CustomChannel, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.customchannel)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "adclients/{adClientId}/customchannels")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *CustomChannel
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"adClientId": c.adClientId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.customchannel,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *CustomChannel
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Update a custom channel in the host AdSense account.",
 	//   "httpMethod": "PUT",
@@ -2801,33 +2682,42 @@ func (c *CustomchannelsUpdateCall) Do() (*CustomChannel, error) {
 // method id "adsensehost.reports.generate":
 
 type ReportsGenerateCall struct {
-	s         *Service
-	startDate string
-	endDate   string
-	opt_      map[string]interface{}
+	s             *Service
+	startDate     string
+	endDate       string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Generate: Generate an AdSense report based on the report request sent
 // in the query parameters. Returns the result as JSON; to retrieve
 // output in CSV format specify "alt=csv" as a query parameter.
+
 func (r *ReportsService) Generate(startDate string, endDate string) *ReportsGenerateCall {
-	c := &ReportsGenerateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.startDate = startDate
-	c.endDate = endDate
-	return c
+	return &ReportsGenerateCall{
+		s:             r.s,
+		startDate:     startDate,
+		endDate:       endDate,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "reports",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Dimension sets the optional parameter "dimension": Dimensions to base
 // the report on.
-func (c *ReportsGenerateCall) Dimension(dimension string) *ReportsGenerateCall {
-	c.opt_["dimension"] = dimension
+func (c *ReportsGenerateCall) Dimension(dimension ...string) *ReportsGenerateCall {
+	c.params_["dimension"] = dimension
 	return c
 }
 
 // Filter sets the optional parameter "filter": Filters to be run on the
 // report.
-func (c *ReportsGenerateCall) Filter(filter string) *ReportsGenerateCall {
-	c.opt_["filter"] = filter
+func (c *ReportsGenerateCall) Filter(filter ...string) *ReportsGenerateCall {
+	c.params_["filter"] = filter
 	return c
 }
 
@@ -2835,21 +2725,21 @@ func (c *ReportsGenerateCall) Filter(filter string) *ReportsGenerateCall {
 // for translating report output to a local language. Defaults to
 // "en_US" if not specified.
 func (c *ReportsGenerateCall) Locale(locale string) *ReportsGenerateCall {
-	c.opt_["locale"] = locale
+	c.params_.Set("locale", fmt.Sprintf("%v", locale))
 	return c
 }
 
 // MaxResults sets the optional parameter "maxResults": The maximum
 // number of rows of report data to return.
 func (c *ReportsGenerateCall) MaxResults(maxResults int64) *ReportsGenerateCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
 // Metric sets the optional parameter "metric": Numeric columns to
 // include in the report.
-func (c *ReportsGenerateCall) Metric(metric string) *ReportsGenerateCall {
-	c.opt_["metric"] = metric
+func (c *ReportsGenerateCall) Metric(metric ...string) *ReportsGenerateCall {
+	c.params_["metric"] = metric
 	return c
 }
 
@@ -2857,15 +2747,19 @@ func (c *ReportsGenerateCall) Metric(metric string) *ReportsGenerateCall {
 // metric to sort the resulting report on, optionally prefixed with "+"
 // to sort ascending or "-" to sort descending. If no prefix is
 // specified, the column is sorted ascending.
-func (c *ReportsGenerateCall) Sort(sort string) *ReportsGenerateCall {
-	c.opt_["sort"] = sort
+func (c *ReportsGenerateCall) Sort(sort ...string) *ReportsGenerateCall {
+	c.params_["sort"] = sort
 	return c
 }
 
 // StartIndex sets the optional parameter "startIndex": Index of the
 // first row of report data to return.
 func (c *ReportsGenerateCall) StartIndex(startIndex int64) *ReportsGenerateCall {
-	c.opt_["startIndex"] = startIndex
+	c.params_.Set("startIndex", fmt.Sprintf("%v", startIndex))
+	return c
+}
+func (c *ReportsGenerateCall) Context(ctx context.Context) *ReportsGenerateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2873,58 +2767,23 @@ func (c *ReportsGenerateCall) StartIndex(startIndex int64) *ReportsGenerateCall 
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ReportsGenerateCall) Fields(s ...googleapi.Field) *ReportsGenerateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ReportsGenerateCall) Do() (*Report, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("endDate", fmt.Sprintf("%v", c.endDate))
-	params.Set("startDate", fmt.Sprintf("%v", c.startDate))
-	if v, ok := c.opt_["dimension"]; ok {
-		params.Set("dimension", fmt.Sprintf("%v", v))
+	var returnValue *Report
+	c.params_.Set("endDate", fmt.Sprintf("%v", c.endDate))
+	c.params_.Set("startDate", fmt.Sprintf("%v", c.startDate))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	if v, ok := c.opt_["filter"]; ok {
-		params.Set("filter", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["locale"]; ok {
-		params.Set("locale", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["metric"]; ok {
-		params.Set("metric", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["sort"]; ok {
-		params.Set("sort", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["startIndex"]; ok {
-		params.Set("startIndex", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "reports")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Report
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Generate an AdSense report based on the report request sent in the query parameters. Returns the result as JSON; to retrieve output in CSV format specify \"alt=csv\" as a query parameter.",
 	//   "httpMethod": "GET",
@@ -3013,17 +2872,30 @@ func (c *ReportsGenerateCall) Do() (*Report, error) {
 // method id "adsensehost.urlchannels.delete":
 
 type UrlchannelsDeleteCall struct {
-	s            *Service
-	adClientId   string
-	urlChannelId string
-	opt_         map[string]interface{}
+	s             *Service
+	adClientId    string
+	urlChannelId  string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Delete: Delete a URL channel from the host AdSense account.
+
 func (r *UrlchannelsService) Delete(adClientId string, urlChannelId string) *UrlchannelsDeleteCall {
-	c := &UrlchannelsDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.adClientId = adClientId
-	c.urlChannelId = urlChannelId
+	return &UrlchannelsDeleteCall{
+		s:             r.s,
+		adClientId:    adClientId,
+		urlChannelId:  urlChannelId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "adclients/{adClientId}/urlchannels/{urlChannelId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *UrlchannelsDeleteCall) Context(ctx context.Context) *UrlchannelsDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -3031,38 +2903,24 @@ func (r *UrlchannelsService) Delete(adClientId string, urlChannelId string) *Url
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *UrlchannelsDeleteCall) Fields(s ...googleapi.Field) *UrlchannelsDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *UrlchannelsDeleteCall) Do() (*UrlChannel, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "adclients/{adClientId}/urlchannels/{urlChannelId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *UrlChannel
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"adClientId":   c.adClientId,
 		"urlChannelId": c.urlChannelId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *UrlChannel
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Delete a URL channel from the host AdSense account.",
 	//   "httpMethod": "DELETE",
@@ -3099,17 +2957,30 @@ func (c *UrlchannelsDeleteCall) Do() (*UrlChannel, error) {
 // method id "adsensehost.urlchannels.insert":
 
 type UrlchannelsInsertCall struct {
-	s          *Service
-	adClientId string
-	urlchannel *UrlChannel
-	opt_       map[string]interface{}
+	s             *Service
+	adClientId    string
+	urlchannel    *UrlChannel
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Insert: Add a new URL channel to the host AdSense account.
+
 func (r *UrlchannelsService) Insert(adClientId string, urlchannel *UrlChannel) *UrlchannelsInsertCall {
-	c := &UrlchannelsInsertCall{s: r.s, opt_: make(map[string]interface{})}
-	c.adClientId = adClientId
-	c.urlchannel = urlchannel
+	return &UrlchannelsInsertCall{
+		s:             r.s,
+		adClientId:    adClientId,
+		urlchannel:    urlchannel,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "adclients/{adClientId}/urlchannels",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *UrlchannelsInsertCall) Context(ctx context.Context) *UrlchannelsInsertCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -3117,43 +2988,24 @@ func (r *UrlchannelsService) Insert(adClientId string, urlchannel *UrlChannel) *
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *UrlchannelsInsertCall) Fields(s ...googleapi.Field) *UrlchannelsInsertCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *UrlchannelsInsertCall) Do() (*UrlChannel, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.urlchannel)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "adclients/{adClientId}/urlchannels")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *UrlChannel
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"adClientId": c.adClientId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.urlchannel,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *UrlChannel
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Add a new URL channel to the host AdSense account.",
 	//   "httpMethod": "POST",
@@ -3186,22 +3038,31 @@ func (c *UrlchannelsInsertCall) Do() (*UrlChannel, error) {
 // method id "adsensehost.urlchannels.list":
 
 type UrlchannelsListCall struct {
-	s          *Service
-	adClientId string
-	opt_       map[string]interface{}
+	s             *Service
+	adClientId    string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: List all host URL channels in the host AdSense account.
+
 func (r *UrlchannelsService) List(adClientId string) *UrlchannelsListCall {
-	c := &UrlchannelsListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.adClientId = adClientId
-	return c
+	return &UrlchannelsListCall{
+		s:             r.s,
+		adClientId:    adClientId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "adclients/{adClientId}/urlchannels",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // MaxResults sets the optional parameter "maxResults": The maximum
 // number of URL channels to include in the response, used for paging.
 func (c *UrlchannelsListCall) MaxResults(maxResults int64) *UrlchannelsListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
@@ -3210,7 +3071,11 @@ func (c *UrlchannelsListCall) MaxResults(maxResults int64) *UrlchannelsListCall 
 // set this parameter to the value of "nextPageToken" from the previous
 // response.
 func (c *UrlchannelsListCall) PageToken(pageToken string) *UrlchannelsListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
+	return c
+}
+func (c *UrlchannelsListCall) Context(ctx context.Context) *UrlchannelsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -3218,43 +3083,23 @@ func (c *UrlchannelsListCall) PageToken(pageToken string) *UrlchannelsListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *UrlchannelsListCall) Fields(s ...googleapi.Field) *UrlchannelsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *UrlchannelsListCall) Do() (*UrlChannels, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "adclients/{adClientId}/urlchannels")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *UrlChannels
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"adClientId": c.adClientId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *UrlChannels
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "List all host URL channels in the host AdSense account.",
 	//   "httpMethod": "GET",

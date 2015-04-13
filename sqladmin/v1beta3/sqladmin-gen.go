@@ -4,18 +4,16 @@
 //
 // Usage example:
 //
-//   import "google.golang.org/api/sqladmin/v1beta3"
+//   import "github.com/jfcote87/api2/sqladmin/v1beta3"
 //   ...
 //   sqladminService, err := sqladmin.New(oauthHttpClient)
 package sqladmin
 
 import (
-	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/jfcote87/api2/googleapi"
 	"golang.org/x/net/context"
-	"google.golang.org/api/googleapi"
 	"io"
 	"net/http"
 	"net/url"
@@ -25,10 +23,8 @@ import (
 
 // Always reference these packages, just in case the auto-generated code
 // below doesn't.
-var _ = bytes.NewBuffer
 var _ = strconv.Itoa
 var _ = fmt.Sprintf
-var _ = json.NewDecoder
 var _ = io.Copy
 var _ = url.Parse
 var _ = googleapi.Version
@@ -39,7 +35,8 @@ var _ = context.Background
 const apiId = "sqladmin:v1beta3"
 const apiName = "sqladmin"
 const apiVersion = "v1beta3"
-const basePath = "https://www.googleapis.com/sql/v1beta3/"
+
+var baseURL *url.URL = &url.URL{Scheme: "https", Host: "www.googleapis.com", Path: "/sql/v1beta3/"}
 
 // OAuth2 scopes used by this API.
 const (
@@ -54,7 +51,7 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
+	s := &Service{client: client}
 	s.BackupRuns = NewBackupRunsService(s)
 	s.Flags = NewFlagsService(s)
 	s.Instances = NewInstancesService(s)
@@ -65,9 +62,7 @@ func New(client *http.Client) (*Service, error) {
 }
 
 type Service struct {
-	client    *http.Client
-	BasePath  string // API endpoint base URL
-	UserAgent string // optional additional User-Agent fragment
+	client *http.Client
 
 	BackupRuns *BackupRunsService
 
@@ -80,13 +75,6 @@ type Service struct {
 	SslCerts *SslCertsService
 
 	Tiers *TiersService
-}
-
-func (s *Service) userAgent() string {
-	if s.UserAgent == "" {
-		return googleapi.UserAgent
-	}
-	return googleapi.UserAgent + " " + s.UserAgent
 }
 
 func NewBackupRunsService(s *Service) *BackupRunsService {
@@ -244,24 +232,13 @@ type DatabaseFlags struct {
 	// Name: The name of the flag. These flags are passed at instance
 	// startup, so include both MySQL server options and MySQL system
 	// variables. Flags should be specified with underscores, not hyphens.
-	// Refer to the official MySQL documentation on server options and
-	// system variables for descriptions of what these flags do. Acceptable
-	// values are:  character_set_server utf8 or utf8mb4 event_scheduler on
-	// or off (Note: The event scheduler will only work reliably if the
-	// instance activationPolicy is set to ALWAYS) general_log on or off
-	// group_concat_max_len 4..17179869184 innodb_flush_log_at_trx_commit
-	// 0..2 innodb_lock_wait_timeout 1..1073741824
-	// log_bin_trust_function_creators on or off log_output Can be either
-	// TABLE or NONE, FILE is not supported log_queries_not_using_indexes on
-	// or off long_query_time 0..30000000 lower_case_table_names 0..2
-	// max_allowed_packet 16384..1073741824 read_only on or off
-	// skip_show_database on or off slow_query_log on or off. If set to on,
-	// you must also set the log_output flag to TABLE to receive logs.
-	// wait_timeout 1..31536000
+	// For more information, see Configuring MySQL Flags in the Google Cloud
+	// SQL documentation, as well as the official MySQL documentation for
+	// server options and system variables.
 	Name string `json:"name,omitempty"`
 
-	// Value: The value of the flag. Booleans should be set using 1 for
-	// true, and 0 for false. This field must be omitted if the flag doesn't
+	// Value: The value of the flag. Booleans should be set to on for true
+	// and off for false. This field must be omitted if the flag doesn't
 	// take a value.
 	Value string `json:"value,omitempty"`
 }
@@ -842,17 +819,30 @@ type BackupRunsGetCall struct {
 	instance            string
 	backupConfiguration string
 	dueTime             string
-	opt_                map[string]interface{}
+	caller_             googleapi.Caller
+	params_             url.Values
+	pathTemplate_       string
+	context_            context.Context
 }
 
 // Get: Retrieves information about a specified backup run for a Cloud
 // SQL instance.
+
 func (r *BackupRunsService) Get(project string, instance string, backupConfiguration string, dueTime string) *BackupRunsGetCall {
-	c := &BackupRunsGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.project = project
-	c.instance = instance
-	c.backupConfiguration = backupConfiguration
-	c.dueTime = dueTime
+	return &BackupRunsGetCall{
+		s:                   r.s,
+		project:             project,
+		instance:            instance,
+		backupConfiguration: backupConfiguration,
+		dueTime:             dueTime,
+		caller_:             googleapi.JSONCall{},
+		params_:             make(map[string][]string),
+		pathTemplate_:       "projects/{project}/instances/{instance}/backupRuns/{backupConfiguration}",
+		context_:            googleapi.NoContext,
+	}
+}
+func (c *BackupRunsGetCall) Context(ctx context.Context) *BackupRunsGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -860,40 +850,26 @@ func (r *BackupRunsService) Get(project string, instance string, backupConfigura
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *BackupRunsGetCall) Fields(s ...googleapi.Field) *BackupRunsGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *BackupRunsGetCall) Do() (*BackupRun, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("dueTime", fmt.Sprintf("%v", c.dueTime))
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "projects/{project}/instances/{instance}/backupRuns/{backupConfiguration}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *BackupRun
+	c.params_.Set("dueTime", fmt.Sprintf("%v", c.dueTime))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"project":             c.project,
 		"instance":            c.instance,
 		"backupConfiguration": c.backupConfiguration,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *BackupRun
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves information about a specified backup run for a Cloud SQL instance.",
 	//   "httpMethod": "GET",
@@ -949,22 +925,31 @@ type BackupRunsListCall struct {
 	project             string
 	instance            string
 	backupConfiguration string
-	opt_                map[string]interface{}
+	caller_             googleapi.Caller
+	params_             url.Values
+	pathTemplate_       string
+	context_            context.Context
 }
 
 // List: Lists all backup runs associated with a Cloud SQL instance.
+
 func (r *BackupRunsService) List(project string, instance string, backupConfiguration string) *BackupRunsListCall {
-	c := &BackupRunsListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.project = project
-	c.instance = instance
-	c.backupConfiguration = backupConfiguration
-	return c
+	return &BackupRunsListCall{
+		s:                   r.s,
+		project:             project,
+		instance:            instance,
+		backupConfiguration: backupConfiguration,
+		caller_:             googleapi.JSONCall{},
+		params_:             make(map[string][]string),
+		pathTemplate_:       "projects/{project}/instances/{instance}/backupRuns",
+		context_:            googleapi.NoContext,
+	}
 }
 
 // MaxResults sets the optional parameter "maxResults": Maximum number
 // of backup runs per response.
 func (c *BackupRunsListCall) MaxResults(maxResults int64) *BackupRunsListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
@@ -972,7 +957,11 @@ func (c *BackupRunsListCall) MaxResults(maxResults int64) *BackupRunsListCall {
 // previously-returned page token representing part of the larger set of
 // results to view.
 func (c *BackupRunsListCall) PageToken(pageToken string) *BackupRunsListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
+	return c
+}
+func (c *BackupRunsListCall) Context(ctx context.Context) *BackupRunsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -980,45 +969,25 @@ func (c *BackupRunsListCall) PageToken(pageToken string) *BackupRunsListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *BackupRunsListCall) Fields(s ...googleapi.Field) *BackupRunsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *BackupRunsListCall) Do() (*BackupRunsListResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("backupConfiguration", fmt.Sprintf("%v", c.backupConfiguration))
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "projects/{project}/instances/{instance}/backupRuns")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *BackupRunsListResponse
+	c.params_.Set("backupConfiguration", fmt.Sprintf("%v", c.backupConfiguration))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"project":  c.project,
 		"instance": c.instance,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *BackupRunsListResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Lists all backup runs associated with a Cloud SQL instance.",
 	//   "httpMethod": "GET",
@@ -1074,14 +1043,27 @@ func (c *BackupRunsListCall) Do() (*BackupRunsListResponse, error) {
 // method id "sql.flags.list":
 
 type FlagsListCall struct {
-	s    *Service
-	opt_ map[string]interface{}
+	s             *Service
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Lists all database flags that can be set for Google Cloud SQL
 // instances.
+
 func (r *FlagsService) List() *FlagsListCall {
-	c := &FlagsListCall{s: r.s, opt_: make(map[string]interface{})}
+	return &FlagsListCall{
+		s:             r.s,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "flags",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *FlagsListCall) Context(ctx context.Context) *FlagsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1089,35 +1071,21 @@ func (r *FlagsService) List() *FlagsListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *FlagsListCall) Fields(s ...googleapi.Field) *FlagsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *FlagsListCall) Do() (*FlagsListResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
+	var returnValue *FlagsListResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "flags")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *FlagsListResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Lists all database flags that can be set for Google Cloud SQL instances.",
 	//   "httpMethod": "GET",
@@ -1140,14 +1108,27 @@ type InstancesCloneCall struct {
 	s                     *Service
 	project               string
 	instancesclonerequest *InstancesCloneRequest
-	opt_                  map[string]interface{}
+	caller_               googleapi.Caller
+	params_               url.Values
+	pathTemplate_         string
+	context_              context.Context
 }
 
 // Clone: Creates a Cloud SQL instance as a clone of a source instance.
+
 func (r *InstancesService) Clone(project string, instancesclonerequest *InstancesCloneRequest) *InstancesCloneCall {
-	c := &InstancesCloneCall{s: r.s, opt_: make(map[string]interface{})}
-	c.project = project
-	c.instancesclonerequest = instancesclonerequest
+	return &InstancesCloneCall{
+		s:                     r.s,
+		project:               project,
+		instancesclonerequest: instancesclonerequest,
+		caller_:               googleapi.JSONCall{},
+		params_:               make(map[string][]string),
+		pathTemplate_:         "projects/{project}/instances/clone",
+		context_:              googleapi.NoContext,
+	}
+}
+func (c *InstancesCloneCall) Context(ctx context.Context) *InstancesCloneCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1155,43 +1136,24 @@ func (r *InstancesService) Clone(project string, instancesclonerequest *Instance
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *InstancesCloneCall) Fields(s ...googleapi.Field) *InstancesCloneCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *InstancesCloneCall) Do() (*InstancesCloneResponse, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.instancesclonerequest)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "projects/{project}/instances/clone")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *InstancesCloneResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"project": c.project,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.instancesclonerequest,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *InstancesCloneResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Creates a Cloud SQL instance as a clone of a source instance.",
 	//   "httpMethod": "POST",
@@ -1225,17 +1187,30 @@ func (c *InstancesCloneCall) Do() (*InstancesCloneResponse, error) {
 // method id "sql.instances.delete":
 
 type InstancesDeleteCall struct {
-	s        *Service
-	project  string
-	instance string
-	opt_     map[string]interface{}
+	s             *Service
+	project       string
+	instance      string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Delete: Deletes a Cloud SQL instance.
+
 func (r *InstancesService) Delete(project string, instance string) *InstancesDeleteCall {
-	c := &InstancesDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.project = project
-	c.instance = instance
+	return &InstancesDeleteCall{
+		s:             r.s,
+		project:       project,
+		instance:      instance,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "projects/{project}/instances/{instance}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *InstancesDeleteCall) Context(ctx context.Context) *InstancesDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1243,38 +1218,24 @@ func (r *InstancesService) Delete(project string, instance string) *InstancesDel
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *InstancesDeleteCall) Fields(s ...googleapi.Field) *InstancesDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *InstancesDeleteCall) Do() (*InstancesDeleteResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "projects/{project}/instances/{instance}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *InstancesDeleteResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"project":  c.project,
 		"instance": c.instance,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *InstancesDeleteResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Deletes a Cloud SQL instance.",
 	//   "httpMethod": "DELETE",
@@ -1316,16 +1277,29 @@ type InstancesExportCall struct {
 	project                string
 	instance               string
 	instancesexportrequest *InstancesExportRequest
-	opt_                   map[string]interface{}
+	caller_                googleapi.Caller
+	params_                url.Values
+	pathTemplate_          string
+	context_               context.Context
 }
 
 // Export: Exports data from a Cloud SQL instance to a Google Cloud
 // Storage bucket as a MySQL dump file.
+
 func (r *InstancesService) Export(project string, instance string, instancesexportrequest *InstancesExportRequest) *InstancesExportCall {
-	c := &InstancesExportCall{s: r.s, opt_: make(map[string]interface{})}
-	c.project = project
-	c.instance = instance
-	c.instancesexportrequest = instancesexportrequest
+	return &InstancesExportCall{
+		s:                      r.s,
+		project:                project,
+		instance:               instance,
+		instancesexportrequest: instancesexportrequest,
+		caller_:                googleapi.JSONCall{},
+		params_:                make(map[string][]string),
+		pathTemplate_:          "projects/{project}/instances/{instance}/export",
+		context_:               googleapi.NoContext,
+	}
+}
+func (c *InstancesExportCall) Context(ctx context.Context) *InstancesExportCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1333,44 +1307,25 @@ func (r *InstancesService) Export(project string, instance string, instancesexpo
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *InstancesExportCall) Fields(s ...googleapi.Field) *InstancesExportCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *InstancesExportCall) Do() (*InstancesExportResponse, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.instancesexportrequest)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "projects/{project}/instances/{instance}/export")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *InstancesExportResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"project":  c.project,
 		"instance": c.instance,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.instancesexportrequest,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *InstancesExportResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Exports data from a Cloud SQL instance to a Google Cloud Storage bucket as a MySQL dump file.",
 	//   "httpMethod": "POST",
@@ -1410,17 +1365,30 @@ func (c *InstancesExportCall) Do() (*InstancesExportResponse, error) {
 // method id "sql.instances.get":
 
 type InstancesGetCall struct {
-	s        *Service
-	project  string
-	instance string
-	opt_     map[string]interface{}
+	s             *Service
+	project       string
+	instance      string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Retrieves information about a Cloud SQL instance.
+
 func (r *InstancesService) Get(project string, instance string) *InstancesGetCall {
-	c := &InstancesGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.project = project
-	c.instance = instance
+	return &InstancesGetCall{
+		s:             r.s,
+		project:       project,
+		instance:      instance,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "projects/{project}/instances/{instance}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *InstancesGetCall) Context(ctx context.Context) *InstancesGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1428,38 +1396,24 @@ func (r *InstancesService) Get(project string, instance string) *InstancesGetCal
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *InstancesGetCall) Fields(s ...googleapi.Field) *InstancesGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *InstancesGetCall) Do() (*DatabaseInstance, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "projects/{project}/instances/{instance}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *DatabaseInstance
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"project":  c.project,
 		"instance": c.instance,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *DatabaseInstance
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves information about a Cloud SQL instance.",
 	//   "httpMethod": "GET",
@@ -1501,16 +1455,29 @@ type InstancesImportCall struct {
 	project                string
 	instance               string
 	instancesimportrequest *InstancesImportRequest
-	opt_                   map[string]interface{}
+	caller_                googleapi.Caller
+	params_                url.Values
+	pathTemplate_          string
+	context_               context.Context
 }
 
 // Import: Imports data into a Cloud SQL instance from a MySQL dump file
 // stored in a Google Cloud Storage bucket.
+
 func (r *InstancesService) Import(project string, instance string, instancesimportrequest *InstancesImportRequest) *InstancesImportCall {
-	c := &InstancesImportCall{s: r.s, opt_: make(map[string]interface{})}
-	c.project = project
-	c.instance = instance
-	c.instancesimportrequest = instancesimportrequest
+	return &InstancesImportCall{
+		s:                      r.s,
+		project:                project,
+		instance:               instance,
+		instancesimportrequest: instancesimportrequest,
+		caller_:                googleapi.JSONCall{},
+		params_:                make(map[string][]string),
+		pathTemplate_:          "projects/{project}/instances/{instance}/import",
+		context_:               googleapi.NoContext,
+	}
+}
+func (c *InstancesImportCall) Context(ctx context.Context) *InstancesImportCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1518,44 +1485,25 @@ func (r *InstancesService) Import(project string, instance string, instancesimpo
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *InstancesImportCall) Fields(s ...googleapi.Field) *InstancesImportCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *InstancesImportCall) Do() (*InstancesImportResponse, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.instancesimportrequest)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "projects/{project}/instances/{instance}/import")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *InstancesImportResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"project":  c.project,
 		"instance": c.instance,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.instancesimportrequest,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *InstancesImportResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Imports data into a Cloud SQL instance from a MySQL dump file stored in a Google Cloud Storage bucket.",
 	//   "httpMethod": "POST",
@@ -1598,14 +1546,27 @@ type InstancesInsertCall struct {
 	s                *Service
 	project          string
 	databaseinstance *DatabaseInstance
-	opt_             map[string]interface{}
+	caller_          googleapi.Caller
+	params_          url.Values
+	pathTemplate_    string
+	context_         context.Context
 }
 
 // Insert: Creates a new Cloud SQL instance.
+
 func (r *InstancesService) Insert(project string, databaseinstance *DatabaseInstance) *InstancesInsertCall {
-	c := &InstancesInsertCall{s: r.s, opt_: make(map[string]interface{})}
-	c.project = project
-	c.databaseinstance = databaseinstance
+	return &InstancesInsertCall{
+		s:                r.s,
+		project:          project,
+		databaseinstance: databaseinstance,
+		caller_:          googleapi.JSONCall{},
+		params_:          make(map[string][]string),
+		pathTemplate_:    "projects/{project}/instances",
+		context_:         googleapi.NoContext,
+	}
+}
+func (c *InstancesInsertCall) Context(ctx context.Context) *InstancesInsertCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1613,43 +1574,24 @@ func (r *InstancesService) Insert(project string, databaseinstance *DatabaseInst
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *InstancesInsertCall) Fields(s ...googleapi.Field) *InstancesInsertCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *InstancesInsertCall) Do() (*InstancesInsertResponse, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.databaseinstance)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "projects/{project}/instances")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *InstancesInsertResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"project": c.project,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.databaseinstance,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *InstancesInsertResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Creates a new Cloud SQL instance.",
 	//   "httpMethod": "POST",
@@ -1683,23 +1625,32 @@ func (c *InstancesInsertCall) Do() (*InstancesInsertResponse, error) {
 // method id "sql.instances.list":
 
 type InstancesListCall struct {
-	s       *Service
-	project string
-	opt_    map[string]interface{}
+	s             *Service
+	project       string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Lists instances for a given project, in alphabetical order by
 // instance name.
+
 func (r *InstancesService) List(project string) *InstancesListCall {
-	c := &InstancesListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.project = project
-	return c
+	return &InstancesListCall{
+		s:             r.s,
+		project:       project,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "projects/{project}/instances",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // MaxResults sets the optional parameter "maxResults": The maximum
 // number of results to return per response.
 func (c *InstancesListCall) MaxResults(maxResults int64) *InstancesListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
@@ -1707,7 +1658,11 @@ func (c *InstancesListCall) MaxResults(maxResults int64) *InstancesListCall {
 // previously-returned page token representing part of the larger set of
 // results to view.
 func (c *InstancesListCall) PageToken(pageToken string) *InstancesListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
+	return c
+}
+func (c *InstancesListCall) Context(ctx context.Context) *InstancesListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1715,43 +1670,23 @@ func (c *InstancesListCall) PageToken(pageToken string) *InstancesListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *InstancesListCall) Fields(s ...googleapi.Field) *InstancesListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *InstancesListCall) Do() (*InstancesListResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "projects/{project}/instances")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *InstancesListResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"project": c.project,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *InstancesListResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Lists instances for a given project, in alphabetical order by instance name.",
 	//   "httpMethod": "GET",
@@ -1797,16 +1732,29 @@ type InstancesPatchCall struct {
 	project          string
 	instance         string
 	databaseinstance *DatabaseInstance
-	opt_             map[string]interface{}
+	caller_          googleapi.Caller
+	params_          url.Values
+	pathTemplate_    string
+	context_         context.Context
 }
 
 // Patch: Updates the settings of a Cloud SQL instance. This method
 // supports patch semantics.
+
 func (r *InstancesService) Patch(project string, instance string, databaseinstance *DatabaseInstance) *InstancesPatchCall {
-	c := &InstancesPatchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.project = project
-	c.instance = instance
-	c.databaseinstance = databaseinstance
+	return &InstancesPatchCall{
+		s:                r.s,
+		project:          project,
+		instance:         instance,
+		databaseinstance: databaseinstance,
+		caller_:          googleapi.JSONCall{},
+		params_:          make(map[string][]string),
+		pathTemplate_:    "projects/{project}/instances/{instance}",
+		context_:         googleapi.NoContext,
+	}
+}
+func (c *InstancesPatchCall) Context(ctx context.Context) *InstancesPatchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1814,44 +1762,25 @@ func (r *InstancesService) Patch(project string, instance string, databaseinstan
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *InstancesPatchCall) Fields(s ...googleapi.Field) *InstancesPatchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *InstancesPatchCall) Do() (*InstancesUpdateResponse, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.databaseinstance)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "projects/{project}/instances/{instance}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PATCH", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *InstancesUpdateResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"project":  c.project,
 		"instance": c.instance,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PATCH",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.databaseinstance,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *InstancesUpdateResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates the settings of a Cloud SQL instance. This method supports patch semantics.",
 	//   "httpMethod": "PATCH",
@@ -1892,18 +1821,31 @@ func (c *InstancesPatchCall) Do() (*InstancesUpdateResponse, error) {
 // method id "sql.instances.promoteReplica":
 
 type InstancesPromoteReplicaCall struct {
-	s        *Service
-	project  string
-	instance string
-	opt_     map[string]interface{}
+	s             *Service
+	project       string
+	instance      string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // PromoteReplica: Promotes the read replica instance to be a
 // stand-alone Cloud SQL instance.
+
 func (r *InstancesService) PromoteReplica(project string, instance string) *InstancesPromoteReplicaCall {
-	c := &InstancesPromoteReplicaCall{s: r.s, opt_: make(map[string]interface{})}
-	c.project = project
-	c.instance = instance
+	return &InstancesPromoteReplicaCall{
+		s:             r.s,
+		project:       project,
+		instance:      instance,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "projects/{project}/instances/{instance}/promoteReplica",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *InstancesPromoteReplicaCall) Context(ctx context.Context) *InstancesPromoteReplicaCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1911,38 +1853,24 @@ func (r *InstancesService) PromoteReplica(project string, instance string) *Inst
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *InstancesPromoteReplicaCall) Fields(s ...googleapi.Field) *InstancesPromoteReplicaCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *InstancesPromoteReplicaCall) Do() (*InstancesPromoteReplicaResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "projects/{project}/instances/{instance}/promoteReplica")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *InstancesPromoteReplicaResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"project":  c.project,
 		"instance": c.instance,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "POST",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *InstancesPromoteReplicaResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Promotes the read replica instance to be a stand-alone Cloud SQL instance.",
 	//   "httpMethod": "POST",
@@ -1980,18 +1908,31 @@ func (c *InstancesPromoteReplicaCall) Do() (*InstancesPromoteReplicaResponse, er
 // method id "sql.instances.resetSslConfig":
 
 type InstancesResetSslConfigCall struct {
-	s        *Service
-	project  string
-	instance string
-	opt_     map[string]interface{}
+	s             *Service
+	project       string
+	instance      string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // ResetSslConfig: Deletes all client certificates and generates a new
 // server SSL certificate for a Cloud SQL instance.
+
 func (r *InstancesService) ResetSslConfig(project string, instance string) *InstancesResetSslConfigCall {
-	c := &InstancesResetSslConfigCall{s: r.s, opt_: make(map[string]interface{})}
-	c.project = project
-	c.instance = instance
+	return &InstancesResetSslConfigCall{
+		s:             r.s,
+		project:       project,
+		instance:      instance,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "projects/{project}/instances/{instance}/resetSslConfig",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *InstancesResetSslConfigCall) Context(ctx context.Context) *InstancesResetSslConfigCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1999,38 +1940,24 @@ func (r *InstancesService) ResetSslConfig(project string, instance string) *Inst
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *InstancesResetSslConfigCall) Fields(s ...googleapi.Field) *InstancesResetSslConfigCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *InstancesResetSslConfigCall) Do() (*InstancesResetSslConfigResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "projects/{project}/instances/{instance}/resetSslConfig")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *InstancesResetSslConfigResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"project":  c.project,
 		"instance": c.instance,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "POST",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *InstancesResetSslConfigResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Deletes all client certificates and generates a new server SSL certificate for a Cloud SQL instance.",
 	//   "httpMethod": "POST",
@@ -2068,17 +1995,30 @@ func (c *InstancesResetSslConfigCall) Do() (*InstancesResetSslConfigResponse, er
 // method id "sql.instances.restart":
 
 type InstancesRestartCall struct {
-	s        *Service
-	project  string
-	instance string
-	opt_     map[string]interface{}
+	s             *Service
+	project       string
+	instance      string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Restart: Restarts a Cloud SQL instance.
+
 func (r *InstancesService) Restart(project string, instance string) *InstancesRestartCall {
-	c := &InstancesRestartCall{s: r.s, opt_: make(map[string]interface{})}
-	c.project = project
-	c.instance = instance
+	return &InstancesRestartCall{
+		s:             r.s,
+		project:       project,
+		instance:      instance,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "projects/{project}/instances/{instance}/restart",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *InstancesRestartCall) Context(ctx context.Context) *InstancesRestartCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2086,38 +2026,24 @@ func (r *InstancesService) Restart(project string, instance string) *InstancesRe
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *InstancesRestartCall) Fields(s ...googleapi.Field) *InstancesRestartCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *InstancesRestartCall) Do() (*InstancesRestartResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "projects/{project}/instances/{instance}/restart")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *InstancesRestartResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"project":  c.project,
 		"instance": c.instance,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "POST",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *InstancesRestartResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Restarts a Cloud SQL instance.",
 	//   "httpMethod": "POST",
@@ -2160,16 +2086,29 @@ type InstancesRestoreBackupCall struct {
 	instance              string
 	backupConfigurationid string
 	dueTime               string
-	opt_                  map[string]interface{}
+	caller_               googleapi.Caller
+	params_               url.Values
+	pathTemplate_         string
+	context_              context.Context
 }
 
 // RestoreBackup: Restores a backup of a Cloud SQL instance.
+
 func (r *InstancesService) RestoreBackup(project string, instance string, backupConfigurationid string, dueTime string) *InstancesRestoreBackupCall {
-	c := &InstancesRestoreBackupCall{s: r.s, opt_: make(map[string]interface{})}
-	c.project = project
-	c.instance = instance
-	c.backupConfigurationid = backupConfigurationid
-	c.dueTime = dueTime
+	return &InstancesRestoreBackupCall{
+		s:                     r.s,
+		project:               project,
+		instance:              instance,
+		backupConfigurationid: backupConfigurationid,
+		dueTime:               dueTime,
+		caller_:               googleapi.JSONCall{},
+		params_:               make(map[string][]string),
+		pathTemplate_:         "projects/{project}/instances/{instance}/restoreBackup",
+		context_:              googleapi.NoContext,
+	}
+}
+func (c *InstancesRestoreBackupCall) Context(ctx context.Context) *InstancesRestoreBackupCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2177,40 +2116,26 @@ func (r *InstancesService) RestoreBackup(project string, instance string, backup
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *InstancesRestoreBackupCall) Fields(s ...googleapi.Field) *InstancesRestoreBackupCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *InstancesRestoreBackupCall) Do() (*InstancesRestoreBackupResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("backupConfiguration", fmt.Sprintf("%v", c.backupConfigurationid))
-	params.Set("dueTime", fmt.Sprintf("%v", c.dueTime))
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "projects/{project}/instances/{instance}/restoreBackup")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *InstancesRestoreBackupResponse
+	c.params_.Set("backupConfiguration", fmt.Sprintf("%v", c.backupConfigurationid))
+	c.params_.Set("dueTime", fmt.Sprintf("%v", c.dueTime))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"project":  c.project,
 		"instance": c.instance,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "POST",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *InstancesRestoreBackupResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Restores a backup of a Cloud SQL instance.",
 	//   "httpMethod": "POST",
@@ -2266,16 +2191,29 @@ type InstancesSetRootPasswordCall struct {
 	project                        string
 	instance                       string
 	instancesetrootpasswordrequest *InstanceSetRootPasswordRequest
-	opt_                           map[string]interface{}
+	caller_                        googleapi.Caller
+	params_                        url.Values
+	pathTemplate_                  string
+	context_                       context.Context
 }
 
 // SetRootPassword: Sets the password for the root user of the specified
 // Cloud SQL instance.
+
 func (r *InstancesService) SetRootPassword(project string, instance string, instancesetrootpasswordrequest *InstanceSetRootPasswordRequest) *InstancesSetRootPasswordCall {
-	c := &InstancesSetRootPasswordCall{s: r.s, opt_: make(map[string]interface{})}
-	c.project = project
-	c.instance = instance
-	c.instancesetrootpasswordrequest = instancesetrootpasswordrequest
+	return &InstancesSetRootPasswordCall{
+		s:                              r.s,
+		project:                        project,
+		instance:                       instance,
+		instancesetrootpasswordrequest: instancesetrootpasswordrequest,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "projects/{project}/instances/{instance}/setRootPassword",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *InstancesSetRootPasswordCall) Context(ctx context.Context) *InstancesSetRootPasswordCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2283,44 +2221,25 @@ func (r *InstancesService) SetRootPassword(project string, instance string, inst
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *InstancesSetRootPasswordCall) Fields(s ...googleapi.Field) *InstancesSetRootPasswordCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *InstancesSetRootPasswordCall) Do() (*InstancesSetRootPasswordResponse, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.instancesetrootpasswordrequest)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "projects/{project}/instances/{instance}/setRootPassword")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *InstancesSetRootPasswordResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"project":  c.project,
 		"instance": c.instance,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.instancesetrootpasswordrequest,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *InstancesSetRootPasswordResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Sets the password for the root user of the specified Cloud SQL instance.",
 	//   "httpMethod": "POST",
@@ -2365,15 +2284,28 @@ type InstancesUpdateCall struct {
 	project          string
 	instance         string
 	databaseinstance *DatabaseInstance
-	opt_             map[string]interface{}
+	caller_          googleapi.Caller
+	params_          url.Values
+	pathTemplate_    string
+	context_         context.Context
 }
 
 // Update: Updates the settings of a Cloud SQL instance.
+
 func (r *InstancesService) Update(project string, instance string, databaseinstance *DatabaseInstance) *InstancesUpdateCall {
-	c := &InstancesUpdateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.project = project
-	c.instance = instance
-	c.databaseinstance = databaseinstance
+	return &InstancesUpdateCall{
+		s:                r.s,
+		project:          project,
+		instance:         instance,
+		databaseinstance: databaseinstance,
+		caller_:          googleapi.JSONCall{},
+		params_:          make(map[string][]string),
+		pathTemplate_:    "projects/{project}/instances/{instance}",
+		context_:         googleapi.NoContext,
+	}
+}
+func (c *InstancesUpdateCall) Context(ctx context.Context) *InstancesUpdateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2381,44 +2313,25 @@ func (r *InstancesService) Update(project string, instance string, databaseinsta
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *InstancesUpdateCall) Fields(s ...googleapi.Field) *InstancesUpdateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *InstancesUpdateCall) Do() (*InstancesUpdateResponse, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.databaseinstance)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "projects/{project}/instances/{instance}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *InstancesUpdateResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"project":  c.project,
 		"instance": c.instance,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.databaseinstance,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *InstancesUpdateResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates the settings of a Cloud SQL instance.",
 	//   "etagRequired": true,
@@ -2460,20 +2373,33 @@ func (c *InstancesUpdateCall) Do() (*InstancesUpdateResponse, error) {
 // method id "sql.operations.get":
 
 type OperationsGetCall struct {
-	s         *Service
-	project   string
-	instance  string
-	operation string
-	opt_      map[string]interface{}
+	s             *Service
+	project       string
+	instance      string
+	operation     string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Retrieves information about a specific operation that was
 // performed on a Cloud SQL instance.
+
 func (r *OperationsService) Get(project string, instance string, operation string) *OperationsGetCall {
-	c := &OperationsGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.project = project
-	c.instance = instance
-	c.operation = operation
+	return &OperationsGetCall{
+		s:             r.s,
+		project:       project,
+		instance:      instance,
+		operation:     operation,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "projects/{project}/instances/{instance}/operations/{operation}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *OperationsGetCall) Context(ctx context.Context) *OperationsGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2481,39 +2407,25 @@ func (r *OperationsService) Get(project string, instance string, operation strin
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *OperationsGetCall) Fields(s ...googleapi.Field) *OperationsGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *OperationsGetCall) Do() (*InstanceOperation, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "projects/{project}/instances/{instance}/operations/{operation}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *InstanceOperation
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"project":   c.project,
 		"instance":  c.instance,
 		"operation": c.operation,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *InstanceOperation
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves information about a specific operation that was performed on a Cloud SQL instance.",
 	//   "httpMethod": "GET",
@@ -2558,25 +2470,34 @@ func (c *OperationsGetCall) Do() (*InstanceOperation, error) {
 // method id "sql.operations.list":
 
 type OperationsListCall struct {
-	s        *Service
-	project  string
-	instance string
-	opt_     map[string]interface{}
+	s             *Service
+	project       string
+	instance      string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Lists all operations that have been performed on a Cloud SQL
 // instance.
+
 func (r *OperationsService) List(project string, instance string) *OperationsListCall {
-	c := &OperationsListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.project = project
-	c.instance = instance
-	return c
+	return &OperationsListCall{
+		s:             r.s,
+		project:       project,
+		instance:      instance,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "projects/{project}/instances/{instance}/operations",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // MaxResults sets the optional parameter "maxResults": Maximum number
 // of operations per response.
 func (c *OperationsListCall) MaxResults(maxResults int64) *OperationsListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
@@ -2584,7 +2505,11 @@ func (c *OperationsListCall) MaxResults(maxResults int64) *OperationsListCall {
 // previously-returned page token representing part of the larger set of
 // results to view.
 func (c *OperationsListCall) PageToken(pageToken string) *OperationsListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
+	return c
+}
+func (c *OperationsListCall) Context(ctx context.Context) *OperationsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2592,44 +2517,24 @@ func (c *OperationsListCall) PageToken(pageToken string) *OperationsListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *OperationsListCall) Fields(s ...googleapi.Field) *OperationsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *OperationsListCall) Do() (*OperationsListResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "projects/{project}/instances/{instance}/operations")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *OperationsListResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"project":  c.project,
 		"instance": c.instance,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *OperationsListResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Lists all operations that have been performed on a Cloud SQL instance.",
 	//   "httpMethod": "GET",
@@ -2682,15 +2587,28 @@ type SslCertsDeleteCall struct {
 	project         string
 	instance        string
 	sha1Fingerprint string
-	opt_            map[string]interface{}
+	caller_         googleapi.Caller
+	params_         url.Values
+	pathTemplate_   string
+	context_        context.Context
 }
 
 // Delete: Deletes an SSL certificate from a Cloud SQL instance.
+
 func (r *SslCertsService) Delete(project string, instance string, sha1Fingerprint string) *SslCertsDeleteCall {
-	c := &SslCertsDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.project = project
-	c.instance = instance
-	c.sha1Fingerprint = sha1Fingerprint
+	return &SslCertsDeleteCall{
+		s:               r.s,
+		project:         project,
+		instance:        instance,
+		sha1Fingerprint: sha1Fingerprint,
+		caller_:         googleapi.JSONCall{},
+		params_:         make(map[string][]string),
+		pathTemplate_:   "projects/{project}/instances/{instance}/sslCerts/{sha1Fingerprint}",
+		context_:        googleapi.NoContext,
+	}
+}
+func (c *SslCertsDeleteCall) Context(ctx context.Context) *SslCertsDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2698,39 +2616,25 @@ func (r *SslCertsService) Delete(project string, instance string, sha1Fingerprin
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *SslCertsDeleteCall) Fields(s ...googleapi.Field) *SslCertsDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *SslCertsDeleteCall) Do() (*SslCertsDeleteResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "projects/{project}/instances/{instance}/sslCerts/{sha1Fingerprint}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *SslCertsDeleteResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"project":         c.project,
 		"instance":        c.instance,
 		"sha1Fingerprint": c.sha1Fingerprint,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *SslCertsDeleteResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Deletes an SSL certificate from a Cloud SQL instance.",
 	//   "httpMethod": "DELETE",
@@ -2779,16 +2683,29 @@ type SslCertsGetCall struct {
 	project         string
 	instance        string
 	sha1Fingerprint string
-	opt_            map[string]interface{}
+	caller_         googleapi.Caller
+	params_         url.Values
+	pathTemplate_   string
+	context_        context.Context
 }
 
 // Get: Retrieves an SSL certificate as specified by its SHA-1
 // fingerprint.
+
 func (r *SslCertsService) Get(project string, instance string, sha1Fingerprint string) *SslCertsGetCall {
-	c := &SslCertsGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.project = project
-	c.instance = instance
-	c.sha1Fingerprint = sha1Fingerprint
+	return &SslCertsGetCall{
+		s:               r.s,
+		project:         project,
+		instance:        instance,
+		sha1Fingerprint: sha1Fingerprint,
+		caller_:         googleapi.JSONCall{},
+		params_:         make(map[string][]string),
+		pathTemplate_:   "projects/{project}/instances/{instance}/sslCerts/{sha1Fingerprint}",
+		context_:        googleapi.NoContext,
+	}
+}
+func (c *SslCertsGetCall) Context(ctx context.Context) *SslCertsGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2796,39 +2713,25 @@ func (r *SslCertsService) Get(project string, instance string, sha1Fingerprint s
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *SslCertsGetCall) Fields(s ...googleapi.Field) *SslCertsGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *SslCertsGetCall) Do() (*SslCert, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "projects/{project}/instances/{instance}/sslCerts/{sha1Fingerprint}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *SslCert
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"project":         c.project,
 		"instance":        c.instance,
 		"sha1Fingerprint": c.sha1Fingerprint,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *SslCert
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves an SSL certificate as specified by its SHA-1 fingerprint.",
 	//   "httpMethod": "GET",
@@ -2877,16 +2780,29 @@ type SslCertsInsertCall struct {
 	project               string
 	instance              string
 	sslcertsinsertrequest *SslCertsInsertRequest
-	opt_                  map[string]interface{}
+	caller_               googleapi.Caller
+	params_               url.Values
+	pathTemplate_         string
+	context_              context.Context
 }
 
 // Insert: Creates an SSL certificate and returns the certificate, the
 // associated private key, and the server certificate authority.
+
 func (r *SslCertsService) Insert(project string, instance string, sslcertsinsertrequest *SslCertsInsertRequest) *SslCertsInsertCall {
-	c := &SslCertsInsertCall{s: r.s, opt_: make(map[string]interface{})}
-	c.project = project
-	c.instance = instance
-	c.sslcertsinsertrequest = sslcertsinsertrequest
+	return &SslCertsInsertCall{
+		s:                     r.s,
+		project:               project,
+		instance:              instance,
+		sslcertsinsertrequest: sslcertsinsertrequest,
+		caller_:               googleapi.JSONCall{},
+		params_:               make(map[string][]string),
+		pathTemplate_:         "projects/{project}/instances/{instance}/sslCerts",
+		context_:              googleapi.NoContext,
+	}
+}
+func (c *SslCertsInsertCall) Context(ctx context.Context) *SslCertsInsertCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2894,44 +2810,25 @@ func (r *SslCertsService) Insert(project string, instance string, sslcertsinsert
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *SslCertsInsertCall) Fields(s ...googleapi.Field) *SslCertsInsertCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *SslCertsInsertCall) Do() (*SslCertsInsertResponse, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.sslcertsinsertrequest)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "projects/{project}/instances/{instance}/sslCerts")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *SslCertsInsertResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"project":  c.project,
 		"instance": c.instance,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.sslcertsinsertrequest,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *SslCertsInsertResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Creates an SSL certificate and returns the certificate, the associated private key, and the server certificate authority.",
 	//   "httpMethod": "POST",
@@ -2972,18 +2869,31 @@ func (c *SslCertsInsertCall) Do() (*SslCertsInsertResponse, error) {
 // method id "sql.sslCerts.list":
 
 type SslCertsListCall struct {
-	s        *Service
-	project  string
-	instance string
-	opt_     map[string]interface{}
+	s             *Service
+	project       string
+	instance      string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Lists all of the current SSL certificates defined for a Cloud
 // SQL instance.
+
 func (r *SslCertsService) List(project string, instance string) *SslCertsListCall {
-	c := &SslCertsListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.project = project
-	c.instance = instance
+	return &SslCertsListCall{
+		s:             r.s,
+		project:       project,
+		instance:      instance,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "projects/{project}/instances/{instance}/sslCerts",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *SslCertsListCall) Context(ctx context.Context) *SslCertsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2991,38 +2901,24 @@ func (r *SslCertsService) List(project string, instance string) *SslCertsListCal
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *SslCertsListCall) Fields(s ...googleapi.Field) *SslCertsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *SslCertsListCall) Do() (*SslCertsListResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "projects/{project}/instances/{instance}/sslCerts")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *SslCertsListResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"project":  c.project,
 		"instance": c.instance,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *SslCertsListResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Lists all of the current SSL certificates defined for a Cloud SQL instance.",
 	//   "httpMethod": "GET",
@@ -3060,16 +2956,29 @@ func (c *SslCertsListCall) Do() (*SslCertsListResponse, error) {
 // method id "sql.tiers.list":
 
 type TiersListCall struct {
-	s       *Service
-	project string
-	opt_    map[string]interface{}
+	s             *Service
+	project       string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Lists service tiers that can be used to create Google Cloud SQL
 // instances.
+
 func (r *TiersService) List(project string) *TiersListCall {
-	c := &TiersListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.project = project
+	return &TiersListCall{
+		s:             r.s,
+		project:       project,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "projects/{project}/tiers",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *TiersListCall) Context(ctx context.Context) *TiersListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -3077,37 +2986,23 @@ func (r *TiersService) List(project string) *TiersListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *TiersListCall) Fields(s ...googleapi.Field) *TiersListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *TiersListCall) Do() (*TiersListResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "projects/{project}/tiers")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *TiersListResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"project": c.project,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *TiersListResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Lists service tiers that can be used to create Google Cloud SQL instances.",
 	//   "httpMethod": "GET",

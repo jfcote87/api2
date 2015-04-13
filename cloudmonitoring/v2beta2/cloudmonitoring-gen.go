@@ -4,18 +4,16 @@
 //
 // Usage example:
 //
-//   import "google.golang.org/api/cloudmonitoring/v2beta2"
+//   import "github.com/jfcote87/api2/cloudmonitoring/v2beta2"
 //   ...
 //   cloudmonitoringService, err := cloudmonitoring.New(oauthHttpClient)
 package cloudmonitoring
 
 import (
-	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/jfcote87/api2/googleapi"
 	"golang.org/x/net/context"
-	"google.golang.org/api/googleapi"
 	"io"
 	"net/http"
 	"net/url"
@@ -25,10 +23,8 @@ import (
 
 // Always reference these packages, just in case the auto-generated code
 // below doesn't.
-var _ = bytes.NewBuffer
 var _ = strconv.Itoa
 var _ = fmt.Sprintf
-var _ = json.NewDecoder
 var _ = io.Copy
 var _ = url.Parse
 var _ = googleapi.Version
@@ -39,7 +35,8 @@ var _ = context.Background
 const apiId = "cloudmonitoring:v2beta2"
 const apiName = "cloudmonitoring"
 const apiVersion = "v2beta2"
-const basePath = "https://www.googleapis.com/cloudmonitoring/v2beta2/projects/"
+
+var baseURL *url.URL = &url.URL{Scheme: "https", Host: "www.googleapis.com", Path: "/cloudmonitoring/v2beta2/projects/"}
 
 // OAuth2 scopes used by this API.
 const (
@@ -52,7 +49,7 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
+	s := &Service{client: client}
 	s.MetricDescriptors = NewMetricDescriptorsService(s)
 	s.Timeseries = NewTimeseriesService(s)
 	s.TimeseriesDescriptors = NewTimeseriesDescriptorsService(s)
@@ -60,22 +57,13 @@ func New(client *http.Client) (*Service, error) {
 }
 
 type Service struct {
-	client    *http.Client
-	BasePath  string // API endpoint base URL
-	UserAgent string // optional additional User-Agent fragment
+	client *http.Client
 
 	MetricDescriptors *MetricDescriptorsService
 
 	Timeseries *TimeseriesService
 
 	TimeseriesDescriptors *TimeseriesDescriptorsService
-}
-
-func (s *Service) userAgent() string {
-	if s.UserAgent == "" {
-		return googleapi.UserAgent
-	}
-	return googleapi.UserAgent + " " + s.UserAgent
 }
 
 func NewMetricDescriptorsService(s *Service) *MetricDescriptorsService {
@@ -366,14 +354,27 @@ type MetricDescriptorsCreateCall struct {
 	s                *Service
 	project          string
 	metricdescriptor *MetricDescriptor
-	opt_             map[string]interface{}
+	caller_          googleapi.Caller
+	params_          url.Values
+	pathTemplate_    string
+	context_         context.Context
 }
 
 // Create: Create a new metric.
+
 func (r *MetricDescriptorsService) Create(project string, metricdescriptor *MetricDescriptor) *MetricDescriptorsCreateCall {
-	c := &MetricDescriptorsCreateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.project = project
-	c.metricdescriptor = metricdescriptor
+	return &MetricDescriptorsCreateCall{
+		s:                r.s,
+		project:          project,
+		metricdescriptor: metricdescriptor,
+		caller_:          googleapi.JSONCall{},
+		params_:          make(map[string][]string),
+		pathTemplate_:    "{project}/metricDescriptors",
+		context_:         googleapi.NoContext,
+	}
+}
+func (c *MetricDescriptorsCreateCall) Context(ctx context.Context) *MetricDescriptorsCreateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -381,43 +382,24 @@ func (r *MetricDescriptorsService) Create(project string, metricdescriptor *Metr
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *MetricDescriptorsCreateCall) Fields(s ...googleapi.Field) *MetricDescriptorsCreateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *MetricDescriptorsCreateCall) Do() (*MetricDescriptor, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.metricdescriptor)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{project}/metricDescriptors")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *MetricDescriptor
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"project": c.project,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.metricdescriptor,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *MetricDescriptor
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Create a new metric.",
 	//   "httpMethod": "POST",
@@ -450,17 +432,30 @@ func (c *MetricDescriptorsCreateCall) Do() (*MetricDescriptor, error) {
 // method id "cloudmonitoring.metricDescriptors.delete":
 
 type MetricDescriptorsDeleteCall struct {
-	s       *Service
-	project string
-	metric  string
-	opt_    map[string]interface{}
+	s             *Service
+	project       string
+	metric        string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Delete: Delete an existing metric.
+
 func (r *MetricDescriptorsService) Delete(project string, metric string) *MetricDescriptorsDeleteCall {
-	c := &MetricDescriptorsDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.project = project
-	c.metric = metric
+	return &MetricDescriptorsDeleteCall{
+		s:             r.s,
+		project:       project,
+		metric:        metric,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{project}/metricDescriptors/{metric}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *MetricDescriptorsDeleteCall) Context(ctx context.Context) *MetricDescriptorsDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -468,38 +463,24 @@ func (r *MetricDescriptorsService) Delete(project string, metric string) *Metric
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *MetricDescriptorsDeleteCall) Fields(s ...googleapi.Field) *MetricDescriptorsDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *MetricDescriptorsDeleteCall) Do() (*DeleteMetricDescriptorResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{project}/metricDescriptors/{metric}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *DeleteMetricDescriptorResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"project": c.project,
 		"metric":  c.metric,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *DeleteMetricDescriptorResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Delete an existing metric.",
 	//   "httpMethod": "DELETE",
@@ -539,7 +520,10 @@ type MetricDescriptorsListCall struct {
 	s                            *Service
 	project                      string
 	listmetricdescriptorsrequest *ListMetricDescriptorsRequest
-	opt_                         map[string]interface{}
+	caller_                      googleapi.Caller
+	params_                      url.Values
+	pathTemplate_                string
+	context_                     context.Context
 }
 
 // List: List metric descriptors that match the query. If the query is
@@ -547,18 +531,24 @@ type MetricDescriptorsListCall struct {
 // responses will be paginated, use the nextPageToken returned in the
 // response to request subsequent pages of results by setting the
 // pageToken query parameter to the value of the nextPageToken.
+
 func (r *MetricDescriptorsService) List(project string, listmetricdescriptorsrequest *ListMetricDescriptorsRequest) *MetricDescriptorsListCall {
-	c := &MetricDescriptorsListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.project = project
-	c.listmetricdescriptorsrequest = listmetricdescriptorsrequest
-	return c
+	return &MetricDescriptorsListCall{
+		s:       r.s,
+		project: project,
+		listmetricdescriptorsrequest: listmetricdescriptorsrequest,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{project}/metricDescriptors",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Count sets the optional parameter "count": Maximum number of metric
 // descriptors per page. Used for pagination. If not specified, count =
 // 100.
 func (c *MetricDescriptorsListCall) Count(count int64) *MetricDescriptorsListCall {
-	c.opt_["count"] = count
+	c.params_.Set("count", fmt.Sprintf("%v", count))
 	return c
 }
 
@@ -567,7 +557,7 @@ func (c *MetricDescriptorsListCall) Count(count int64) *MetricDescriptorsListCal
 // value to the value of the nextPageToken to retrieve the next page of
 // results.
 func (c *MetricDescriptorsListCall) PageToken(pageToken string) *MetricDescriptorsListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
 	return c
 }
 
@@ -578,7 +568,11 @@ func (c *MetricDescriptorsListCall) PageToken(pageToken string) *MetricDescripto
 // returned. If an empty string is passed with this field, no metrics
 // are returned.
 func (c *MetricDescriptorsListCall) Query(query string) *MetricDescriptorsListCall {
-	c.opt_["query"] = query
+	c.params_.Set("query", fmt.Sprintf("%v", query))
+	return c
+}
+func (c *MetricDescriptorsListCall) Context(ctx context.Context) *MetricDescriptorsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -586,46 +580,24 @@ func (c *MetricDescriptorsListCall) Query(query string) *MetricDescriptorsListCa
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *MetricDescriptorsListCall) Fields(s ...googleapi.Field) *MetricDescriptorsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *MetricDescriptorsListCall) Do() (*ListMetricDescriptorsResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["count"]; ok {
-		params.Set("count", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["query"]; ok {
-		params.Set("query", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{project}/metricDescriptors")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *ListMetricDescriptorsResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"project": c.project,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "GET",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.listmetricdescriptorsrequest,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ListMetricDescriptorsResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "List metric descriptors that match the query. If the query is not set, then all of the metric descriptors will be returned. Large responses will be paginated, use the nextPageToken returned in the response to request subsequent pages of results by setting the pageToken query parameter to the value of the nextPageToken.",
 	//   "httpMethod": "GET",
@@ -682,7 +654,10 @@ type TimeseriesListCall struct {
 	metric                string
 	youngest              string
 	listtimeseriesrequest *ListTimeseriesRequest
-	opt_                  map[string]interface{}
+	caller_               googleapi.Caller
+	params_               url.Values
+	pathTemplate_         string
+	context_              context.Context
 }
 
 // List: List the data points of the time series that match the metric
@@ -690,27 +665,34 @@ type TimeseriesListCall struct {
 // responses are paginated; use the nextPageToken returned in the
 // response to request subsequent pages of results by setting the
 // pageToken query parameter to the value of the nextPageToken.
+
 func (r *TimeseriesService) List(project string, metric string, youngest string, listtimeseriesrequest *ListTimeseriesRequest) *TimeseriesListCall {
-	c := &TimeseriesListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.project = project
-	c.metric = metric
-	c.youngest = youngest
-	c.listtimeseriesrequest = listtimeseriesrequest
-	return c
+	return &TimeseriesListCall{
+		s:                     r.s,
+		project:               project,
+		metric:                metric,
+		youngest:              youngest,
+		listtimeseriesrequest: listtimeseriesrequest,
+		caller_:               googleapi.JSONCall{},
+		params_:               make(map[string][]string),
+		pathTemplate_:         "{project}/timeseries/{metric}",
+		context_:              googleapi.NoContext,
+	}
 }
 
 // Aggregator sets the optional parameter "aggregator": The aggregation
 // function that will reduce the data points in each window to a single
-// point. This parameter is only valid for non-cumulative metric types.
+// point. This parameter is only valid for non-cumulative metrics with a
+// value type of INT64 or DOUBLE.
 func (c *TimeseriesListCall) Aggregator(aggregator string) *TimeseriesListCall {
-	c.opt_["aggregator"] = aggregator
+	c.params_.Set("aggregator", fmt.Sprintf("%v", aggregator))
 	return c
 }
 
 // Count sets the optional parameter "count": Maximum number of data
 // points per page, which is used for pagination of results.
 func (c *TimeseriesListCall) Count(count int64) *TimeseriesListCall {
-	c.opt_["count"] = count
+	c.params_.Set("count", fmt.Sprintf("%v", count))
 	return c
 }
 
@@ -726,8 +708,8 @@ func (c *TimeseriesListCall) Count(count int64) *TimeseriesListCall {
 // series descriptors for the region us-central1, you could
 // specify:
 // label=cloud.googleapis.com%2Flocation=~us-central1.*
-func (c *TimeseriesListCall) Labels(labels string) *TimeseriesListCall {
-	c.opt_["labels"] = labels
+func (c *TimeseriesListCall) Labels(labels ...string) *TimeseriesListCall {
+	c.params_["labels"] = labels
 	return c
 }
 
@@ -736,7 +718,7 @@ func (c *TimeseriesListCall) Labels(labels string) *TimeseriesListCall {
 // neither oldest nor timespan is specified, the default time interval
 // will be (youngest - 4 hours, youngest]
 func (c *TimeseriesListCall) Oldest(oldest string) *TimeseriesListCall {
-	c.opt_["oldest"] = oldest
+	c.params_.Set("oldest", fmt.Sprintf("%v", oldest))
 	return c
 }
 
@@ -745,7 +727,7 @@ func (c *TimeseriesListCall) Oldest(oldest string) *TimeseriesListCall {
 // value to the value of the nextPageToken to retrieve the next page of
 // results.
 func (c *TimeseriesListCall) PageToken(pageToken string) *TimeseriesListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
 	return c
 }
 
@@ -765,7 +747,7 @@ func (c *TimeseriesListCall) PageToken(pageToken string) *TimeseriesListCall {
 // If neither oldest nor timespan is specified, the
 // default time interval will be (youngest - 4 hours, youngest].
 func (c *TimeseriesListCall) Timespan(timespan string) *TimeseriesListCall {
-	c.opt_["timespan"] = timespan
+	c.params_.Set("timespan", fmt.Sprintf("%v", timespan))
 	return c
 }
 
@@ -780,7 +762,11 @@ func (c *TimeseriesListCall) Timespan(timespan string) *TimeseriesListCall {
 // Examples: 3m, 4w. Only one unit is allowed, for example: 2w3d is not
 // allowed; you should use 17d instead.
 func (c *TimeseriesListCall) Window(window string) *TimeseriesListCall {
-	c.opt_["window"] = window
+	c.params_.Set("window", fmt.Sprintf("%v", window))
+	return c
+}
+func (c *TimeseriesListCall) Context(ctx context.Context) *TimeseriesListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -788,60 +774,26 @@ func (c *TimeseriesListCall) Window(window string) *TimeseriesListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *TimeseriesListCall) Fields(s ...googleapi.Field) *TimeseriesListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *TimeseriesListCall) Do() (*ListTimeseriesResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("youngest", fmt.Sprintf("%v", c.youngest))
-	if v, ok := c.opt_["aggregator"]; ok {
-		params.Set("aggregator", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["count"]; ok {
-		params.Set("count", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["labels"]; ok {
-		params.Set("labels", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["oldest"]; ok {
-		params.Set("oldest", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["timespan"]; ok {
-		params.Set("timespan", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["window"]; ok {
-		params.Set("window", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{project}/timeseries/{metric}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *ListTimeseriesResponse
+	c.params_.Set("youngest", fmt.Sprintf("%v", c.youngest))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"project": c.project,
 		"metric":  c.metric,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "GET",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.listtimeseriesrequest,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ListTimeseriesResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "List the data points of the time series that match the metric and labels values and that have data points in the interval. Large responses are paginated; use the nextPageToken returned in the response to request subsequent pages of results by setting the pageToken query parameter to the value of the nextPageToken.",
 	//   "httpMethod": "GET",
@@ -853,7 +805,7 @@ func (c *TimeseriesListCall) Do() (*ListTimeseriesResponse, error) {
 	//   ],
 	//   "parameters": {
 	//     "aggregator": {
-	//       "description": "The aggregation function that will reduce the data points in each window to a single point. This parameter is only valid for non-cumulative metric types.",
+	//       "description": "The aggregation function that will reduce the data points in each window to a single point. This parameter is only valid for non-cumulative metrics with a value type of INT64 or DOUBLE.",
 	//       "enum": [
 	//         "max",
 	//         "mean",
@@ -946,7 +898,10 @@ type TimeseriesWriteCall struct {
 	s                      *Service
 	project                string
 	writetimeseriesrequest *WriteTimeseriesRequest
-	opt_                   map[string]interface{}
+	caller_                googleapi.Caller
+	params_                url.Values
+	pathTemplate_          string
+	context_               context.Context
 }
 
 // Write: Put data points to one or more time series for one or more
@@ -957,10 +912,20 @@ type TimeseriesWriteCall struct {
 // discarded silently. Therefore, users should make sure that points of
 // a time series are written sequentially in the order of their end
 // time.
+
 func (r *TimeseriesService) Write(project string, writetimeseriesrequest *WriteTimeseriesRequest) *TimeseriesWriteCall {
-	c := &TimeseriesWriteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.project = project
-	c.writetimeseriesrequest = writetimeseriesrequest
+	return &TimeseriesWriteCall{
+		s:                      r.s,
+		project:                project,
+		writetimeseriesrequest: writetimeseriesrequest,
+		caller_:                googleapi.JSONCall{},
+		params_:                make(map[string][]string),
+		pathTemplate_:          "{project}/timeseries:write",
+		context_:               googleapi.NoContext,
+	}
+}
+func (c *TimeseriesWriteCall) Context(ctx context.Context) *TimeseriesWriteCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -968,43 +933,24 @@ func (r *TimeseriesService) Write(project string, writetimeseriesrequest *WriteT
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *TimeseriesWriteCall) Fields(s ...googleapi.Field) *TimeseriesWriteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *TimeseriesWriteCall) Do() (*WriteTimeseriesResponse, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.writetimeseriesrequest)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{project}/timeseries:write")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *WriteTimeseriesResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"project": c.project,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.writetimeseriesrequest,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *WriteTimeseriesResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Put data points to one or more time series for one or more metrics. If a time series does not exist, a new time series will be created. It is not allowed to write a time series point that is older than the existing youngest point of that time series. Points that are older than the existing youngest point of that time series will be discarded silently. Therefore, users should make sure that points of a time series are written sequentially in the order of their end time.",
 	//   "httpMethod": "POST",
@@ -1042,7 +988,10 @@ type TimeseriesDescriptorsListCall struct {
 	metric                           string
 	youngest                         string
 	listtimeseriesdescriptorsrequest *ListTimeseriesDescriptorsRequest
-	opt_                             map[string]interface{}
+	caller_                          googleapi.Caller
+	params_                          url.Values
+	pathTemplate_                    string
+	context_                         context.Context
 }
 
 // List: List the descriptors of the time series that match the metric
@@ -1050,20 +999,27 @@ type TimeseriesDescriptorsListCall struct {
 // responses are paginated; use the nextPageToken returned in the
 // response to request subsequent pages of results by setting the
 // pageToken query parameter to the value of the nextPageToken.
+
 func (r *TimeseriesDescriptorsService) List(project string, metric string, youngest string, listtimeseriesdescriptorsrequest *ListTimeseriesDescriptorsRequest) *TimeseriesDescriptorsListCall {
-	c := &TimeseriesDescriptorsListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.project = project
-	c.metric = metric
-	c.youngest = youngest
-	c.listtimeseriesdescriptorsrequest = listtimeseriesdescriptorsrequest
-	return c
+	return &TimeseriesDescriptorsListCall{
+		s:        r.s,
+		project:  project,
+		metric:   metric,
+		youngest: youngest,
+		listtimeseriesdescriptorsrequest: listtimeseriesdescriptorsrequest,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{project}/timeseriesDescriptors/{metric}",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Aggregator sets the optional parameter "aggregator": The aggregation
 // function that will reduce the data points in each window to a single
-// point. This parameter is only valid for non-cumulative metric types.
+// point. This parameter is only valid for non-cumulative metrics with a
+// value type of INT64 or DOUBLE.
 func (c *TimeseriesDescriptorsListCall) Aggregator(aggregator string) *TimeseriesDescriptorsListCall {
-	c.opt_["aggregator"] = aggregator
+	c.params_.Set("aggregator", fmt.Sprintf("%v", aggregator))
 	return c
 }
 
@@ -1071,7 +1027,7 @@ func (c *TimeseriesDescriptorsListCall) Aggregator(aggregator string) *Timeserie
 // series descriptors per page. Used for pagination. If not specified,
 // count = 100.
 func (c *TimeseriesDescriptorsListCall) Count(count int64) *TimeseriesDescriptorsListCall {
-	c.opt_["count"] = count
+	c.params_.Set("count", fmt.Sprintf("%v", count))
 	return c
 }
 
@@ -1087,8 +1043,8 @@ func (c *TimeseriesDescriptorsListCall) Count(count int64) *TimeseriesDescriptor
 // series descriptors for the region us-central1, you could
 // specify:
 // label=cloud.googleapis.com%2Flocation=~us-central1.*
-func (c *TimeseriesDescriptorsListCall) Labels(labels string) *TimeseriesDescriptorsListCall {
-	c.opt_["labels"] = labels
+func (c *TimeseriesDescriptorsListCall) Labels(labels ...string) *TimeseriesDescriptorsListCall {
+	c.params_["labels"] = labels
 	return c
 }
 
@@ -1097,7 +1053,7 @@ func (c *TimeseriesDescriptorsListCall) Labels(labels string) *TimeseriesDescrip
 // neither oldest nor timespan is specified, the default time interval
 // will be (youngest - 4 hours, youngest]
 func (c *TimeseriesDescriptorsListCall) Oldest(oldest string) *TimeseriesDescriptorsListCall {
-	c.opt_["oldest"] = oldest
+	c.params_.Set("oldest", fmt.Sprintf("%v", oldest))
 	return c
 }
 
@@ -1106,7 +1062,7 @@ func (c *TimeseriesDescriptorsListCall) Oldest(oldest string) *TimeseriesDescrip
 // value to the value of the nextPageToken to retrieve the next page of
 // results.
 func (c *TimeseriesDescriptorsListCall) PageToken(pageToken string) *TimeseriesDescriptorsListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
 	return c
 }
 
@@ -1126,7 +1082,7 @@ func (c *TimeseriesDescriptorsListCall) PageToken(pageToken string) *TimeseriesD
 // If neither oldest nor timespan is specified, the
 // default time interval will be (youngest - 4 hours, youngest].
 func (c *TimeseriesDescriptorsListCall) Timespan(timespan string) *TimeseriesDescriptorsListCall {
-	c.opt_["timespan"] = timespan
+	c.params_.Set("timespan", fmt.Sprintf("%v", timespan))
 	return c
 }
 
@@ -1141,7 +1097,11 @@ func (c *TimeseriesDescriptorsListCall) Timespan(timespan string) *TimeseriesDes
 // Examples: 3m, 4w. Only one unit is allowed, for example: 2w3d is not
 // allowed; you should use 17d instead.
 func (c *TimeseriesDescriptorsListCall) Window(window string) *TimeseriesDescriptorsListCall {
-	c.opt_["window"] = window
+	c.params_.Set("window", fmt.Sprintf("%v", window))
+	return c
+}
+func (c *TimeseriesDescriptorsListCall) Context(ctx context.Context) *TimeseriesDescriptorsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1149,60 +1109,26 @@ func (c *TimeseriesDescriptorsListCall) Window(window string) *TimeseriesDescrip
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *TimeseriesDescriptorsListCall) Fields(s ...googleapi.Field) *TimeseriesDescriptorsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *TimeseriesDescriptorsListCall) Do() (*ListTimeseriesDescriptorsResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("youngest", fmt.Sprintf("%v", c.youngest))
-	if v, ok := c.opt_["aggregator"]; ok {
-		params.Set("aggregator", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["count"]; ok {
-		params.Set("count", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["labels"]; ok {
-		params.Set("labels", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["oldest"]; ok {
-		params.Set("oldest", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["timespan"]; ok {
-		params.Set("timespan", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["window"]; ok {
-		params.Set("window", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{project}/timeseriesDescriptors/{metric}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *ListTimeseriesDescriptorsResponse
+	c.params_.Set("youngest", fmt.Sprintf("%v", c.youngest))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"project": c.project,
 		"metric":  c.metric,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "GET",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.listtimeseriesdescriptorsrequest,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ListTimeseriesDescriptorsResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "List the descriptors of the time series that match the metric and labels values and that have data points in the interval. Large responses are paginated; use the nextPageToken returned in the response to request subsequent pages of results by setting the pageToken query parameter to the value of the nextPageToken.",
 	//   "httpMethod": "GET",
@@ -1214,7 +1140,7 @@ func (c *TimeseriesDescriptorsListCall) Do() (*ListTimeseriesDescriptorsResponse
 	//   ],
 	//   "parameters": {
 	//     "aggregator": {
-	//       "description": "The aggregation function that will reduce the data points in each window to a single point. This parameter is only valid for non-cumulative metric types.",
+	//       "description": "The aggregation function that will reduce the data points in each window to a single point. This parameter is only valid for non-cumulative metrics with a value type of INT64 or DOUBLE.",
 	//       "enum": [
 	//         "max",
 	//         "mean",

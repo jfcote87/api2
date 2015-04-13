@@ -4,18 +4,16 @@
 //
 // Usage example:
 //
-//   import "google.golang.org/api/appsactivity/v1"
+//   import "github.com/jfcote87/api2/appsactivity/v1"
 //   ...
 //   appsactivityService, err := appsactivity.New(oauthHttpClient)
 package appsactivity
 
 import (
-	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/jfcote87/api2/googleapi"
 	"golang.org/x/net/context"
-	"google.golang.org/api/googleapi"
 	"io"
 	"net/http"
 	"net/url"
@@ -25,10 +23,8 @@ import (
 
 // Always reference these packages, just in case the auto-generated code
 // below doesn't.
-var _ = bytes.NewBuffer
 var _ = strconv.Itoa
 var _ = fmt.Sprintf
-var _ = json.NewDecoder
 var _ = io.Copy
 var _ = url.Parse
 var _ = googleapi.Version
@@ -39,7 +35,8 @@ var _ = context.Background
 const apiId = "appsactivity:v1"
 const apiName = "appsactivity"
 const apiVersion = "v1"
-const basePath = "https://www.googleapis.com/appsactivity/v1/"
+
+var baseURL *url.URL = &url.URL{Scheme: "https", Host: "www.googleapis.com", Path: "/appsactivity/v1/"}
 
 // OAuth2 scopes used by this API.
 const (
@@ -60,24 +57,15 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
+	s := &Service{client: client}
 	s.Activities = NewActivitiesService(s)
 	return s, nil
 }
 
 type Service struct {
-	client    *http.Client
-	BasePath  string // API endpoint base URL
-	UserAgent string // optional additional User-Agent fragment
+	client *http.Client
 
 	Activities *ActivitiesService
-}
-
-func (s *Service) userAgent() string {
-	if s.UserAgent == "" {
-		return googleapi.UserAgent
-	}
-	return googleapi.UserAgent + " " + s.UserAgent
 }
 
 func NewActivitiesService(s *Service) *ActivitiesService {
@@ -231,8 +219,11 @@ type User struct {
 // method id "appsactivity.activities.list":
 
 type ActivitiesListCall struct {
-	s    *Service
-	opt_ map[string]interface{}
+	s             *Service
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Returns a list of activities visible to the current logged in
@@ -241,23 +232,29 @@ type ActivitiesListCall struct {
 // activity is a record of past events. Multiple events may be merged if
 // they are similar. A request is scoped to activities from a given
 // Google service using the source parameter.
+
 func (r *ActivitiesService) List() *ActivitiesListCall {
-	c := &ActivitiesListCall{s: r.s, opt_: make(map[string]interface{})}
-	return c
+	return &ActivitiesListCall{
+		s:             r.s,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "activities",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // DriveAncestorId sets the optional parameter "drive.ancestorId":
 // Identifies the Drive folder containing the items for which to return
 // activities.
 func (c *ActivitiesListCall) DriveAncestorId(driveAncestorId string) *ActivitiesListCall {
-	c.opt_["drive.ancestorId"] = driveAncestorId
+	c.params_.Set("drive.ancestorId", fmt.Sprintf("%v", driveAncestorId))
 	return c
 }
 
 // DriveFileId sets the optional parameter "drive.fileId": Identifies
 // the Drive item to return activities for.
 func (c *ActivitiesListCall) DriveFileId(driveFileId string) *ActivitiesListCall {
-	c.opt_["drive.fileId"] = driveFileId
+	c.params_.Set("drive.fileId", fmt.Sprintf("%v", driveFileId))
 	return c
 }
 
@@ -265,7 +262,7 @@ func (c *ActivitiesListCall) DriveFileId(driveFileId string) *ActivitiesListCall
 // Indicates the strategy to use when grouping singleEvents items in the
 // associated combinedEvent object.
 func (c *ActivitiesListCall) GroupingStrategy(groupingStrategy string) *ActivitiesListCall {
-	c.opt_["groupingStrategy"] = groupingStrategy
+	c.params_.Set("groupingStrategy", fmt.Sprintf("%v", groupingStrategy))
 	return c
 }
 
@@ -273,14 +270,14 @@ func (c *ActivitiesListCall) GroupingStrategy(groupingStrategy string) *Activiti
 // of events to return on a page. The response includes a continuation
 // token if there are more events.
 func (c *ActivitiesListCall) PageSize(pageSize int64) *ActivitiesListCall {
-	c.opt_["pageSize"] = pageSize
+	c.params_.Set("pageSize", fmt.Sprintf("%v", pageSize))
 	return c
 }
 
 // PageToken sets the optional parameter "pageToken": A token to
 // retrieve a specific page of results.
 func (c *ActivitiesListCall) PageToken(pageToken string) *ActivitiesListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
 	return c
 }
 
@@ -289,7 +286,7 @@ func (c *ActivitiesListCall) PageToken(pageToken string) *ActivitiesListCall {
 // -
 // drive.google.com
 func (c *ActivitiesListCall) Source(source string) *ActivitiesListCall {
-	c.opt_["source"] = source
+	c.params_.Set("source", fmt.Sprintf("%v", source))
 	return c
 }
 
@@ -297,7 +294,11 @@ func (c *ActivitiesListCall) Source(source string) *ActivitiesListCall {
 // return activity for. Use the special value me to indicate the
 // currently authenticated user.
 func (c *ActivitiesListCall) UserId(userId string) *ActivitiesListCall {
-	c.opt_["userId"] = userId
+	c.params_.Set("userId", fmt.Sprintf("%v", userId))
+	return c
+}
+func (c *ActivitiesListCall) Context(ctx context.Context) *ActivitiesListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -305,56 +306,21 @@ func (c *ActivitiesListCall) UserId(userId string) *ActivitiesListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ActivitiesListCall) Fields(s ...googleapi.Field) *ActivitiesListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ActivitiesListCall) Do() (*ListActivitiesResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["drive.ancestorId"]; ok {
-		params.Set("drive.ancestorId", fmt.Sprintf("%v", v))
+	var returnValue *ListActivitiesResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	if v, ok := c.opt_["drive.fileId"]; ok {
-		params.Set("drive.fileId", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["groupingStrategy"]; ok {
-		params.Set("groupingStrategy", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageSize"]; ok {
-		params.Set("pageSize", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["source"]; ok {
-		params.Set("source", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["userId"]; ok {
-		params.Set("userId", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "activities")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ListActivitiesResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Returns a list of activities visible to the current logged in user. Visible activities are determined by the visiblity settings of the object that was acted on, e.g. Drive files a user can see. An activity is a record of past events. Multiple events may be merged if they are similar. A request is scoped to activities from a given Google service using the source parameter.",
 	//   "httpMethod": "GET",

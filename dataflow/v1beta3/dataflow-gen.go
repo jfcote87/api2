@@ -2,18 +2,16 @@
 //
 // Usage example:
 //
-//   import "google.golang.org/api/dataflow/v1beta3"
+//   import "github.com/jfcote87/api2/dataflow/v1beta3"
 //   ...
 //   dataflowService, err := dataflow.New(oauthHttpClient)
 package dataflow
 
 import (
-	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/jfcote87/api2/googleapi"
 	"golang.org/x/net/context"
-	"google.golang.org/api/googleapi"
 	"io"
 	"net/http"
 	"net/url"
@@ -23,10 +21,8 @@ import (
 
 // Always reference these packages, just in case the auto-generated code
 // below doesn't.
-var _ = bytes.NewBuffer
 var _ = strconv.Itoa
 var _ = fmt.Sprintf
-var _ = json.NewDecoder
 var _ = io.Copy
 var _ = url.Parse
 var _ = googleapi.Version
@@ -37,7 +33,8 @@ var _ = context.Background
 const apiId = "dataflow:v1beta3"
 const apiName = "dataflow"
 const apiVersion = "v1beta3"
-const basePath = "https://www.googleapis.com/dataflow/v1b3/projects/"
+
+var baseURL *url.URL = &url.URL{Scheme: "https", Host: "www.googleapis.com", Path: "/dataflow/v1b3/projects/"}
 
 // OAuth2 scopes used by this API.
 const (
@@ -52,24 +49,15 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
+	s := &Service{client: client}
 	s.V1b3 = NewV1b3Service(s)
 	return s, nil
 }
 
 type Service struct {
-	client    *http.Client
-	BasePath  string // API endpoint base URL
-	UserAgent string // optional additional User-Agent fragment
+	client *http.Client
 
 	V1b3 *V1b3Service
-}
-
-func (s *Service) userAgent() string {
-	if s.UserAgent == "" {
-		return googleapi.UserAgent
-	}
-	return googleapi.UserAgent + " " + s.UserAgent
 }
 
 func NewV1b3Service(s *Service) *V1b3Service {
@@ -159,12 +147,24 @@ type DataDiskAssignment struct {
 	VmInstance string `json:"vmInstance,omitempty"`
 }
 
+type DerivedSource struct {
+	DerivationMode string `json:"derivationMode,omitempty"`
+
+	Source *Source `json:"source,omitempty"`
+}
+
 type Disk struct {
 	DiskType string `json:"diskType,omitempty"`
 
 	MountPoint string `json:"mountPoint,omitempty"`
 
 	SizeGb int64 `json:"sizeGb,omitempty"`
+}
+
+type DynamicSourceSplit struct {
+	Primary *DerivedSource `json:"primary,omitempty"`
+
+	Residual *DerivedSource `json:"residual,omitempty"`
 }
 
 type Environment struct {
@@ -263,6 +263,14 @@ type JobMetrics struct {
 	Metrics []*MetricUpdate `json:"metrics,omitempty"`
 }
 
+type KeyRangeDataDiskAssignment struct {
+	DataDisk string `json:"dataDisk,omitempty"`
+
+	End string `json:"end,omitempty"`
+
+	Start string `json:"start,omitempty"`
+}
+
 type KeyRangeLocation struct {
 	DataDisk string `json:"dataDisk,omitempty"`
 
@@ -339,6 +347,10 @@ type MetricUpdate struct {
 	UpdateTime string `json:"updateTime,omitempty"`
 }
 
+type MountedDataDisk struct {
+	DataDisk string `json:"dataDisk,omitempty"`
+}
+
 type MultiOutputInfo struct {
 	Tag string `json:"tag,omitempty"`
 }
@@ -386,9 +398,14 @@ type PartialGroupByKeyInstruction struct {
 	Input *InstructionInput `json:"input,omitempty"`
 
 	InputElementCodec *PartialGroupByKeyInstructionInputElementCodec `json:"inputElementCodec,omitempty"`
+
+	ValueCombiningFn *PartialGroupByKeyInstructionValueCombiningFn `json:"valueCombiningFn,omitempty"`
 }
 
 type PartialGroupByKeyInstructionInputElementCodec struct {
+}
+
+type PartialGroupByKeyInstructionValueCombiningFn struct {
 }
 
 type Position struct {
@@ -413,6 +430,8 @@ type PubsubLocation struct {
 	TimestampLabel string `json:"timestampLabel,omitempty"`
 
 	Topic string `json:"topic,omitempty"`
+
+	TrackingSubscription string `json:"trackingSubscription,omitempty"`
 }
 
 type ReadInstruction struct {
@@ -507,7 +526,11 @@ type SourceSpec struct {
 type SourceFork struct {
 	Primary *SourceSplitShard `json:"primary,omitempty"`
 
+	PrimarySource *DerivedSource `json:"primarySource,omitempty"`
+
 	Residual *SourceSplitShard `json:"residual,omitempty"`
+
+	ResidualSource *DerivedSource `json:"residualSource,omitempty"`
 }
 
 type SourceGetMetadataRequest struct {
@@ -539,6 +562,8 @@ type SourceOperationResponse struct {
 }
 
 type SourceSplitOptions struct {
+	DesiredBundleSizeBytes int64 `json:"desiredBundleSizeBytes,omitempty,string"`
+
 	DesiredShardSizeBytes int64 `json:"desiredShardSizeBytes,omitempty,string"`
 }
 
@@ -549,6 +574,8 @@ type SourceSplitRequest struct {
 }
 
 type SourceSplitResponse struct {
+	Bundles []*DerivedSource `json:"bundles,omitempty"`
+
 	Outcome string `json:"outcome,omitempty"`
 
 	Shards []*SourceSplitShard `json:"shards,omitempty"`
@@ -585,7 +612,23 @@ type StepProperties struct {
 type StreamLocation struct {
 	PubsubLocation *PubsubLocation `json:"pubsubLocation,omitempty"`
 
+	SideInputLocation *StreamingSideInputLocation `json:"sideInputLocation,omitempty"`
+
 	StreamingStageLocation *StreamingStageLocation `json:"streamingStageLocation,omitempty"`
+}
+
+type StreamingComputationRanges struct {
+	ComputationId string `json:"computationId,omitempty"`
+
+	RangeAssignments []*KeyRangeDataDiskAssignment `json:"rangeAssignments,omitempty"`
+}
+
+type StreamingComputationTask struct {
+	ComputationRanges []*StreamingComputationRanges `json:"computationRanges,omitempty"`
+
+	DataDisks []*MountedDataDisk `json:"dataDisks,omitempty"`
+
+	TaskType string `json:"taskType,omitempty"`
 }
 
 type StreamingSetupTask struct {
@@ -594,6 +637,10 @@ type StreamingSetupTask struct {
 	StreamingComputationTopology *TopologyConfig `json:"streamingComputationTopology,omitempty"`
 
 	WorkerHarnessPort int64 `json:"workerHarnessPort,omitempty"`
+}
+
+type StreamingSideInputLocation struct {
+	Tag string `json:"tag,omitempty"`
 }
 
 type StreamingStageLocation struct {
@@ -651,6 +698,8 @@ type WorkItem struct {
 
 	Id int64 `json:"id,omitempty,string"`
 
+	InitialReportIndex int64 `json:"initialReportIndex,omitempty,string"`
+
 	JobId string `json:"jobId,omitempty"`
 
 	LeaseExpireTime string `json:"leaseExpireTime,omitempty"`
@@ -669,6 +718,8 @@ type WorkItem struct {
 
 	SourceOperationTask *SourceOperationRequest `json:"sourceOperationTask,omitempty"`
 
+	StreamingComputationTask *StreamingComputationTask `json:"streamingComputationTask,omitempty"`
+
 	StreamingSetupTask *StreamingSetupTask `json:"streamingSetupTask,omitempty"`
 }
 
@@ -676,6 +727,8 @@ type WorkItemServiceState struct {
 	HarnessData *WorkItemServiceStateHarnessData `json:"harnessData,omitempty"`
 
 	LeaseExpireTime string `json:"leaseExpireTime,omitempty"`
+
+	NextReportIndex int64 `json:"nextReportIndex,omitempty,string"`
 
 	ReportStatusInterval string `json:"reportStatusInterval,omitempty"`
 
@@ -689,6 +742,8 @@ type WorkItemServiceStateHarnessData struct {
 
 type WorkItemStatus struct {
 	Completed bool `json:"completed,omitempty"`
+
+	DynamicSourceSplit *DynamicSourceSplit `json:"dynamicSourceSplit,omitempty"`
 
 	Errors []*Status `json:"errors,omitempty"`
 
@@ -732,11 +787,16 @@ type WorkerPool struct {
 
 	Packages []*Package `json:"packages,omitempty"`
 
+	PoolArgs *WorkerPoolPoolArgs `json:"poolArgs,omitempty"`
+
 	TaskrunnerSettings *TaskRunnerSettings `json:"taskrunnerSettings,omitempty"`
 
 	TeardownPolicy string `json:"teardownPolicy,omitempty"`
 
 	Zone string `json:"zone,omitempty"`
+}
+
+type WorkerPoolPoolArgs struct {
 }
 
 type WorkerSettings struct {
@@ -762,23 +822,36 @@ type WriteInstruction struct {
 // method id "dataflow.v1b3.projects.jobs.create":
 
 type V1b3ProjectsJobsCreateCall struct {
-	s         *Service
-	projectId string
-	job       *Job
-	opt_      map[string]interface{}
+	s             *Service
+	projectId     string
+	job           *Job
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Create: Creates a dataflow job.
+
 func (r *V1b3ProjectsJobsService) Create(projectId string, job *Job) *V1b3ProjectsJobsCreateCall {
-	c := &V1b3ProjectsJobsCreateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.projectId = projectId
-	c.job = job
-	return c
+	return &V1b3ProjectsJobsCreateCall{
+		s:             r.s,
+		projectId:     projectId,
+		job:           job,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{projectId}/jobs",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // View sets the optional parameter "view":
 func (c *V1b3ProjectsJobsCreateCall) View(view string) *V1b3ProjectsJobsCreateCall {
-	c.opt_["view"] = view
+	c.params_.Set("view", fmt.Sprintf("%v", view))
+	return c
+}
+func (c *V1b3ProjectsJobsCreateCall) Context(ctx context.Context) *V1b3ProjectsJobsCreateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -786,46 +859,24 @@ func (c *V1b3ProjectsJobsCreateCall) View(view string) *V1b3ProjectsJobsCreateCa
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *V1b3ProjectsJobsCreateCall) Fields(s ...googleapi.Field) *V1b3ProjectsJobsCreateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *V1b3ProjectsJobsCreateCall) Do() (*Job, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.job)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["view"]; ok {
-		params.Set("view", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{projectId}/jobs")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Job
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"projectId": c.projectId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.job,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Job
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Creates a dataflow job.",
 	//   "httpMethod": "POST",
@@ -872,23 +923,36 @@ func (c *V1b3ProjectsJobsCreateCall) Do() (*Job, error) {
 // method id "dataflow.v1b3.projects.jobs.get":
 
 type V1b3ProjectsJobsGetCall struct {
-	s         *Service
-	projectId string
-	jobId     string
-	opt_      map[string]interface{}
+	s             *Service
+	projectId     string
+	jobId         string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Gets the state of the specified dataflow job.
+
 func (r *V1b3ProjectsJobsService) Get(projectId string, jobId string) *V1b3ProjectsJobsGetCall {
-	c := &V1b3ProjectsJobsGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.projectId = projectId
-	c.jobId = jobId
-	return c
+	return &V1b3ProjectsJobsGetCall{
+		s:             r.s,
+		projectId:     projectId,
+		jobId:         jobId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{projectId}/jobs/{jobId}",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // View sets the optional parameter "view":
 func (c *V1b3ProjectsJobsGetCall) View(view string) *V1b3ProjectsJobsGetCall {
-	c.opt_["view"] = view
+	c.params_.Set("view", fmt.Sprintf("%v", view))
+	return c
+}
+func (c *V1b3ProjectsJobsGetCall) Context(ctx context.Context) *V1b3ProjectsJobsGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -896,41 +960,24 @@ func (c *V1b3ProjectsJobsGetCall) View(view string) *V1b3ProjectsJobsGetCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *V1b3ProjectsJobsGetCall) Fields(s ...googleapi.Field) *V1b3ProjectsJobsGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *V1b3ProjectsJobsGetCall) Do() (*Job, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["view"]; ok {
-		params.Set("view", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{projectId}/jobs/{jobId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Job
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"projectId": c.projectId,
 		"jobId":     c.jobId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Job
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Gets the state of the specified dataflow job.",
 	//   "httpMethod": "GET",
@@ -980,23 +1027,36 @@ func (c *V1b3ProjectsJobsGetCall) Do() (*Job, error) {
 // method id "dataflow.v1b3.projects.jobs.getMetrics":
 
 type V1b3ProjectsJobsGetMetricsCall struct {
-	s         *Service
-	projectId string
-	jobId     string
-	opt_      map[string]interface{}
+	s             *Service
+	projectId     string
+	jobId         string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // GetMetrics: Request the job status.
+
 func (r *V1b3ProjectsJobsService) GetMetrics(projectId string, jobId string) *V1b3ProjectsJobsGetMetricsCall {
-	c := &V1b3ProjectsJobsGetMetricsCall{s: r.s, opt_: make(map[string]interface{})}
-	c.projectId = projectId
-	c.jobId = jobId
-	return c
+	return &V1b3ProjectsJobsGetMetricsCall{
+		s:             r.s,
+		projectId:     projectId,
+		jobId:         jobId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{projectId}/jobs/{jobId}/metrics",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // StartTime sets the optional parameter "startTime":
 func (c *V1b3ProjectsJobsGetMetricsCall) StartTime(startTime string) *V1b3ProjectsJobsGetMetricsCall {
-	c.opt_["startTime"] = startTime
+	c.params_.Set("startTime", fmt.Sprintf("%v", startTime))
+	return c
+}
+func (c *V1b3ProjectsJobsGetMetricsCall) Context(ctx context.Context) *V1b3ProjectsJobsGetMetricsCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1004,41 +1064,24 @@ func (c *V1b3ProjectsJobsGetMetricsCall) StartTime(startTime string) *V1b3Projec
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *V1b3ProjectsJobsGetMetricsCall) Fields(s ...googleapi.Field) *V1b3ProjectsJobsGetMetricsCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *V1b3ProjectsJobsGetMetricsCall) Do() (*JobMetrics, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["startTime"]; ok {
-		params.Set("startTime", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{projectId}/jobs/{jobId}/metrics")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *JobMetrics
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"projectId": c.projectId,
 		"jobId":     c.jobId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *JobMetrics
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Request the job status.",
 	//   "httpMethod": "GET",
@@ -1078,33 +1121,46 @@ func (c *V1b3ProjectsJobsGetMetricsCall) Do() (*JobMetrics, error) {
 // method id "dataflow.v1b3.projects.jobs.list":
 
 type V1b3ProjectsJobsListCall struct {
-	s         *Service
-	projectId string
-	opt_      map[string]interface{}
+	s             *Service
+	projectId     string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: List the jobs of a project
+
 func (r *V1b3ProjectsJobsService) List(projectId string) *V1b3ProjectsJobsListCall {
-	c := &V1b3ProjectsJobsListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.projectId = projectId
-	return c
+	return &V1b3ProjectsJobsListCall{
+		s:             r.s,
+		projectId:     projectId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{projectId}/jobs",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // PageSize sets the optional parameter "pageSize":
 func (c *V1b3ProjectsJobsListCall) PageSize(pageSize int64) *V1b3ProjectsJobsListCall {
-	c.opt_["pageSize"] = pageSize
+	c.params_.Set("pageSize", fmt.Sprintf("%v", pageSize))
 	return c
 }
 
 // PageToken sets the optional parameter "pageToken":
 func (c *V1b3ProjectsJobsListCall) PageToken(pageToken string) *V1b3ProjectsJobsListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
 	return c
 }
 
 // View sets the optional parameter "view":
 func (c *V1b3ProjectsJobsListCall) View(view string) *V1b3ProjectsJobsListCall {
-	c.opt_["view"] = view
+	c.params_.Set("view", fmt.Sprintf("%v", view))
+	return c
+}
+func (c *V1b3ProjectsJobsListCall) Context(ctx context.Context) *V1b3ProjectsJobsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1112,46 +1168,23 @@ func (c *V1b3ProjectsJobsListCall) View(view string) *V1b3ProjectsJobsListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *V1b3ProjectsJobsListCall) Fields(s ...googleapi.Field) *V1b3ProjectsJobsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *V1b3ProjectsJobsListCall) Do() (*ListJobsResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["pageSize"]; ok {
-		params.Set("pageSize", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["view"]; ok {
-		params.Set("view", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{projectId}/jobs")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *ListJobsResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"projectId": c.projectId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ListJobsResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "List the jobs of a project",
 	//   "httpMethod": "GET",
@@ -1204,20 +1237,33 @@ func (c *V1b3ProjectsJobsListCall) Do() (*ListJobsResponse, error) {
 // method id "dataflow.v1b3.projects.jobs.patch":
 
 type V1b3ProjectsJobsPatchCall struct {
-	s         *Service
-	projectId string
-	jobId     string
-	job       *Job
-	opt_      map[string]interface{}
+	s             *Service
+	projectId     string
+	jobId         string
+	job           *Job
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Patch: Updates the state of an existing dataflow job. This method
 // supports patch semantics.
+
 func (r *V1b3ProjectsJobsService) Patch(projectId string, jobId string, job *Job) *V1b3ProjectsJobsPatchCall {
-	c := &V1b3ProjectsJobsPatchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.projectId = projectId
-	c.jobId = jobId
-	c.job = job
+	return &V1b3ProjectsJobsPatchCall{
+		s:             r.s,
+		projectId:     projectId,
+		jobId:         jobId,
+		job:           job,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{projectId}/jobs/{jobId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *V1b3ProjectsJobsPatchCall) Context(ctx context.Context) *V1b3ProjectsJobsPatchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1225,44 +1271,25 @@ func (r *V1b3ProjectsJobsService) Patch(projectId string, jobId string, job *Job
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *V1b3ProjectsJobsPatchCall) Fields(s ...googleapi.Field) *V1b3ProjectsJobsPatchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *V1b3ProjectsJobsPatchCall) Do() (*Job, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.job)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{projectId}/jobs/{jobId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PATCH", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Job
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"projectId": c.projectId,
 		"jobId":     c.jobId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PATCH",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.job,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Job
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates the state of an existing dataflow job. This method supports patch semantics.",
 	//   "httpMethod": "PATCH",
@@ -1301,19 +1328,32 @@ func (c *V1b3ProjectsJobsPatchCall) Do() (*Job, error) {
 // method id "dataflow.v1b3.projects.jobs.update":
 
 type V1b3ProjectsJobsUpdateCall struct {
-	s         *Service
-	projectId string
-	jobId     string
-	job       *Job
-	opt_      map[string]interface{}
+	s             *Service
+	projectId     string
+	jobId         string
+	job           *Job
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Update: Updates the state of an existing dataflow job.
+
 func (r *V1b3ProjectsJobsService) Update(projectId string, jobId string, job *Job) *V1b3ProjectsJobsUpdateCall {
-	c := &V1b3ProjectsJobsUpdateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.projectId = projectId
-	c.jobId = jobId
-	c.job = job
+	return &V1b3ProjectsJobsUpdateCall{
+		s:             r.s,
+		projectId:     projectId,
+		jobId:         jobId,
+		job:           job,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{projectId}/jobs/{jobId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *V1b3ProjectsJobsUpdateCall) Context(ctx context.Context) *V1b3ProjectsJobsUpdateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1321,44 +1361,25 @@ func (r *V1b3ProjectsJobsService) Update(projectId string, jobId string, job *Jo
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *V1b3ProjectsJobsUpdateCall) Fields(s ...googleapi.Field) *V1b3ProjectsJobsUpdateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *V1b3ProjectsJobsUpdateCall) Do() (*Job, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.job)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{projectId}/jobs/{jobId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Job
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"projectId": c.projectId,
 		"jobId":     c.jobId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.job,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Job
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates the state of an existing dataflow job.",
 	//   "httpMethod": "PUT",
@@ -1397,47 +1418,60 @@ func (c *V1b3ProjectsJobsUpdateCall) Do() (*Job, error) {
 // method id "dataflow.v1b3.projects.jobs.messages.list":
 
 type V1b3ProjectsJobsMessagesListCall struct {
-	s         *Service
-	projectId string
-	jobId     string
-	opt_      map[string]interface{}
+	s             *Service
+	projectId     string
+	jobId         string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Request the job status.
+
 func (r *V1b3ProjectsJobsMessagesService) List(projectId string, jobId string) *V1b3ProjectsJobsMessagesListCall {
-	c := &V1b3ProjectsJobsMessagesListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.projectId = projectId
-	c.jobId = jobId
-	return c
+	return &V1b3ProjectsJobsMessagesListCall{
+		s:             r.s,
+		projectId:     projectId,
+		jobId:         jobId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{projectId}/jobs/{jobId}/messages",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // EndTime sets the optional parameter "endTime":
 func (c *V1b3ProjectsJobsMessagesListCall) EndTime(endTime string) *V1b3ProjectsJobsMessagesListCall {
-	c.opt_["endTime"] = endTime
+	c.params_.Set("endTime", fmt.Sprintf("%v", endTime))
 	return c
 }
 
 // MinimumImportance sets the optional parameter "minimumImportance":
 func (c *V1b3ProjectsJobsMessagesListCall) MinimumImportance(minimumImportance string) *V1b3ProjectsJobsMessagesListCall {
-	c.opt_["minimumImportance"] = minimumImportance
+	c.params_.Set("minimumImportance", fmt.Sprintf("%v", minimumImportance))
 	return c
 }
 
 // PageSize sets the optional parameter "pageSize":
 func (c *V1b3ProjectsJobsMessagesListCall) PageSize(pageSize int64) *V1b3ProjectsJobsMessagesListCall {
-	c.opt_["pageSize"] = pageSize
+	c.params_.Set("pageSize", fmt.Sprintf("%v", pageSize))
 	return c
 }
 
 // PageToken sets the optional parameter "pageToken":
 func (c *V1b3ProjectsJobsMessagesListCall) PageToken(pageToken string) *V1b3ProjectsJobsMessagesListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
 	return c
 }
 
 // StartTime sets the optional parameter "startTime":
 func (c *V1b3ProjectsJobsMessagesListCall) StartTime(startTime string) *V1b3ProjectsJobsMessagesListCall {
-	c.opt_["startTime"] = startTime
+	c.params_.Set("startTime", fmt.Sprintf("%v", startTime))
+	return c
+}
+func (c *V1b3ProjectsJobsMessagesListCall) Context(ctx context.Context) *V1b3ProjectsJobsMessagesListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1445,53 +1479,24 @@ func (c *V1b3ProjectsJobsMessagesListCall) StartTime(startTime string) *V1b3Proj
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *V1b3ProjectsJobsMessagesListCall) Fields(s ...googleapi.Field) *V1b3ProjectsJobsMessagesListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *V1b3ProjectsJobsMessagesListCall) Do() (*ListJobMessagesResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["endTime"]; ok {
-		params.Set("endTime", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["minimumImportance"]; ok {
-		params.Set("minimumImportance", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageSize"]; ok {
-		params.Set("pageSize", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["startTime"]; ok {
-		params.Set("startTime", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{projectId}/jobs/{jobId}/messages")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *ListJobMessagesResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"projectId": c.projectId,
 		"jobId":     c.jobId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ListJobMessagesResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Request the job status.",
 	//   "httpMethod": "GET",
@@ -1566,15 +1571,28 @@ type V1b3ProjectsJobsWorkItemsLeaseCall struct {
 	projectId            string
 	jobId                string
 	leaseworkitemrequest *LeaseWorkItemRequest
-	opt_                 map[string]interface{}
+	caller_              googleapi.Caller
+	params_              url.Values
+	pathTemplate_        string
+	context_             context.Context
 }
 
 // Lease: Leases a dataflow WorkItem to run.
+
 func (r *V1b3ProjectsJobsWorkItemsService) Lease(projectId string, jobId string, leaseworkitemrequest *LeaseWorkItemRequest) *V1b3ProjectsJobsWorkItemsLeaseCall {
-	c := &V1b3ProjectsJobsWorkItemsLeaseCall{s: r.s, opt_: make(map[string]interface{})}
-	c.projectId = projectId
-	c.jobId = jobId
-	c.leaseworkitemrequest = leaseworkitemrequest
+	return &V1b3ProjectsJobsWorkItemsLeaseCall{
+		s:                    r.s,
+		projectId:            projectId,
+		jobId:                jobId,
+		leaseworkitemrequest: leaseworkitemrequest,
+		caller_:              googleapi.JSONCall{},
+		params_:              make(map[string][]string),
+		pathTemplate_:        "{projectId}/jobs/{jobId}/workItems:lease",
+		context_:             googleapi.NoContext,
+	}
+}
+func (c *V1b3ProjectsJobsWorkItemsLeaseCall) Context(ctx context.Context) *V1b3ProjectsJobsWorkItemsLeaseCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1582,44 +1600,25 @@ func (r *V1b3ProjectsJobsWorkItemsService) Lease(projectId string, jobId string,
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *V1b3ProjectsJobsWorkItemsLeaseCall) Fields(s ...googleapi.Field) *V1b3ProjectsJobsWorkItemsLeaseCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *V1b3ProjectsJobsWorkItemsLeaseCall) Do() (*LeaseWorkItemResponse, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.leaseworkitemrequest)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{projectId}/jobs/{jobId}/workItems:lease")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *LeaseWorkItemResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"projectId": c.projectId,
 		"jobId":     c.jobId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.leaseworkitemrequest,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *LeaseWorkItemResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Leases a dataflow WorkItem to run.",
 	//   "httpMethod": "POST",
@@ -1662,16 +1661,29 @@ type V1b3ProjectsJobsWorkItemsReportStatusCall struct {
 	projectId                   string
 	jobId                       string
 	reportworkitemstatusrequest *ReportWorkItemStatusRequest
-	opt_                        map[string]interface{}
+	caller_                     googleapi.Caller
+	params_                     url.Values
+	pathTemplate_               string
+	context_                    context.Context
 }
 
 // ReportStatus: Reports the status of dataflow WorkItems leased by a
 // worker.
+
 func (r *V1b3ProjectsJobsWorkItemsService) ReportStatus(projectId string, jobId string, reportworkitemstatusrequest *ReportWorkItemStatusRequest) *V1b3ProjectsJobsWorkItemsReportStatusCall {
-	c := &V1b3ProjectsJobsWorkItemsReportStatusCall{s: r.s, opt_: make(map[string]interface{})}
-	c.projectId = projectId
-	c.jobId = jobId
-	c.reportworkitemstatusrequest = reportworkitemstatusrequest
+	return &V1b3ProjectsJobsWorkItemsReportStatusCall{
+		s:         r.s,
+		projectId: projectId,
+		jobId:     jobId,
+		reportworkitemstatusrequest: reportworkitemstatusrequest,
+		caller_:                     googleapi.JSONCall{},
+		params_:                     make(map[string][]string),
+		pathTemplate_:               "{projectId}/jobs/{jobId}/workItems:reportStatus",
+		context_:                    googleapi.NoContext,
+	}
+}
+func (c *V1b3ProjectsJobsWorkItemsReportStatusCall) Context(ctx context.Context) *V1b3ProjectsJobsWorkItemsReportStatusCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1679,44 +1691,25 @@ func (r *V1b3ProjectsJobsWorkItemsService) ReportStatus(projectId string, jobId 
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *V1b3ProjectsJobsWorkItemsReportStatusCall) Fields(s ...googleapi.Field) *V1b3ProjectsJobsWorkItemsReportStatusCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *V1b3ProjectsJobsWorkItemsReportStatusCall) Do() (*ReportWorkItemStatusResponse, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.reportworkitemstatusrequest)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{projectId}/jobs/{jobId}/workItems:reportStatus")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *ReportWorkItemStatusResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"projectId": c.projectId,
 		"jobId":     c.jobId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.reportworkitemstatusrequest,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ReportWorkItemStatusResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Reports the status of dataflow WorkItems leased by a worker.",
 	//   "httpMethod": "POST",

@@ -4,18 +4,16 @@
 //
 // Usage example:
 //
-//   import "google.golang.org/api/analytics/v2.4"
+//   import "github.com/jfcote87/api2/analytics/v2.4"
 //   ...
 //   analyticsService, err := analytics.New(oauthHttpClient)
 package analytics
 
 import (
-	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/jfcote87/api2/googleapi"
 	"golang.org/x/net/context"
-	"google.golang.org/api/googleapi"
 	"io"
 	"net/http"
 	"net/url"
@@ -25,10 +23,8 @@ import (
 
 // Always reference these packages, just in case the auto-generated code
 // below doesn't.
-var _ = bytes.NewBuffer
 var _ = strconv.Itoa
 var _ = fmt.Sprintf
-var _ = json.NewDecoder
 var _ = io.Copy
 var _ = url.Parse
 var _ = googleapi.Version
@@ -39,7 +35,8 @@ var _ = context.Background
 const apiId = "analytics:v2.4"
 const apiName = "analytics"
 const apiVersion = "v2.4"
-const basePath = "https://www.googleapis.com/analytics/v2.4/"
+
+var baseURL *url.URL = &url.URL{Scheme: "https", Host: "www.googleapis.com", Path: "/analytics/v2.4/"}
 
 // OAuth2 scopes used by this API.
 const (
@@ -54,27 +51,18 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
+	s := &Service{client: client}
 	s.Data = NewDataService(s)
 	s.Management = NewManagementService(s)
 	return s, nil
 }
 
 type Service struct {
-	client    *http.Client
-	BasePath  string // API endpoint base URL
-	UserAgent string // optional additional User-Agent fragment
+	client *http.Client
 
 	Data *DataService
 
 	Management *ManagementService
-}
-
-func (s *Service) userAgent() string {
-	if s.UserAgent == "" {
-		return googleapi.UserAgent
-	}
-	return googleapi.UserAgent + " " + s.UserAgent
 }
 
 func NewDataService(s *Service) *DataService {
@@ -158,50 +146,59 @@ type ManagementWebpropertiesService struct {
 // method id "analytics.data.get":
 
 type DataGetCall struct {
-	s         *Service
-	ids       string
-	startDate string
-	endDate   string
-	metrics   string
-	opt_      map[string]interface{}
+	s             *Service
+	ids           string
+	startDate     string
+	endDate       string
+	metrics       string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Returns Analytics report data for a view (profile).
+
 func (r *DataService) Get(ids string, startDate string, endDate string, metrics string) *DataGetCall {
-	c := &DataGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.ids = ids
-	c.startDate = startDate
-	c.endDate = endDate
-	c.metrics = metrics
-	return c
+	return &DataGetCall{
+		s:             r.s,
+		ids:           ids,
+		startDate:     startDate,
+		endDate:       endDate,
+		metrics:       metrics,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "data",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Dimensions sets the optional parameter "dimensions": A
 // comma-separated list of Analytics dimensions. E.g.,
 // 'ga:browser,ga:city'.
 func (c *DataGetCall) Dimensions(dimensions string) *DataGetCall {
-	c.opt_["dimensions"] = dimensions
+	c.params_.Set("dimensions", fmt.Sprintf("%v", dimensions))
 	return c
 }
 
 // Filters sets the optional parameter "filters": A comma-separated list
 // of dimension or metric filters to be applied to the report data.
 func (c *DataGetCall) Filters(filters string) *DataGetCall {
-	c.opt_["filters"] = filters
+	c.params_.Set("filters", fmt.Sprintf("%v", filters))
 	return c
 }
 
 // MaxResults sets the optional parameter "max-results": The maximum
 // number of entries to include in this feed.
 func (c *DataGetCall) MaxResults(maxResults int64) *DataGetCall {
-	c.opt_["max-results"] = maxResults
+	c.params_.Set("max-results", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
 // Segment sets the optional parameter "segment": An Analytics advanced
 // segment to be applied to the report data.
 func (c *DataGetCall) Segment(segment string) *DataGetCall {
-	c.opt_["segment"] = segment
+	c.params_.Set("segment", fmt.Sprintf("%v", segment))
 	return c
 }
 
@@ -209,7 +206,7 @@ func (c *DataGetCall) Segment(segment string) *DataGetCall {
 // dimensions or metrics that determine the sort order for the report
 // data.
 func (c *DataGetCall) Sort(sort string) *DataGetCall {
-	c.opt_["sort"] = sort
+	c.params_.Set("sort", fmt.Sprintf("%v", sort))
 	return c
 }
 
@@ -217,61 +214,27 @@ func (c *DataGetCall) Sort(sort string) *DataGetCall {
 // first entity to retrieve. Use this parameter as a pagination
 // mechanism along with the max-results parameter.
 func (c *DataGetCall) StartIndex(startIndex int64) *DataGetCall {
-	c.opt_["start-index"] = startIndex
+	c.params_.Set("start-index", fmt.Sprintf("%v", startIndex))
 	return c
 }
-
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *DataGetCall) Fields(s ...googleapi.Field) *DataGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (c *DataGetCall) Context(ctx context.Context) *DataGetCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *DataGetCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("end-date", fmt.Sprintf("%v", c.endDate))
-	params.Set("ids", fmt.Sprintf("%v", c.ids))
-	params.Set("metrics", fmt.Sprintf("%v", c.metrics))
-	params.Set("start-date", fmt.Sprintf("%v", c.startDate))
-	if v, ok := c.opt_["dimensions"]; ok {
-		params.Set("dimensions", fmt.Sprintf("%v", v))
+	c.params_.Set("end-date", fmt.Sprintf("%v", c.endDate))
+	c.params_.Set("ids", fmt.Sprintf("%v", c.ids))
+	c.params_.Set("metrics", fmt.Sprintf("%v", c.metrics))
+	c.params_.Set("start-date", fmt.Sprintf("%v", c.startDate))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
 	}
-	if v, ok := c.opt_["filters"]; ok {
-		params.Set("filters", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["max-results"]; ok {
-		params.Set("max-results", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["segment"]; ok {
-		params.Set("segment", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["sort"]; ok {
-		params.Set("sort", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["start-index"]; ok {
-		params.Set("start-index", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "data")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Returns Analytics report data for a view (profile).",
 	//   "httpMethod": "GET",
@@ -360,20 +323,29 @@ func (c *DataGetCall) Do() error {
 // method id "analytics.management.accounts.list":
 
 type ManagementAccountsListCall struct {
-	s    *Service
-	opt_ map[string]interface{}
+	s             *Service
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Lists all accounts to which the user has access.
+
 func (r *ManagementAccountsService) List() *ManagementAccountsListCall {
-	c := &ManagementAccountsListCall{s: r.s, opt_: make(map[string]interface{})}
-	return c
+	return &ManagementAccountsListCall{
+		s:             r.s,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "management/accounts",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // MaxResults sets the optional parameter "max-results": The maximum
 // number of accounts to include in this response.
 func (c *ManagementAccountsListCall) MaxResults(maxResults int64) *ManagementAccountsListCall {
-	c.opt_["max-results"] = maxResults
+	c.params_.Set("max-results", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
@@ -381,45 +353,23 @@ func (c *ManagementAccountsListCall) MaxResults(maxResults int64) *ManagementAcc
 // first account to retrieve. Use this parameter as a pagination
 // mechanism along with the max-results parameter.
 func (c *ManagementAccountsListCall) StartIndex(startIndex int64) *ManagementAccountsListCall {
-	c.opt_["start-index"] = startIndex
+	c.params_.Set("start-index", fmt.Sprintf("%v", startIndex))
 	return c
 }
-
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *ManagementAccountsListCall) Fields(s ...googleapi.Field) *ManagementAccountsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (c *ManagementAccountsListCall) Context(ctx context.Context) *ManagementAccountsListCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *ManagementAccountsListCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["max-results"]; ok {
-		params.Set("max-results", fmt.Sprintf("%v", v))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
 	}
-	if v, ok := c.opt_["start-index"]; ok {
-		params.Set("start-index", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Lists all accounts to which the user has access.",
 	//   "httpMethod": "GET",
@@ -455,22 +405,31 @@ type ManagementGoalsListCall struct {
 	accountId     string
 	webPropertyId string
 	profileId     string
-	opt_          map[string]interface{}
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Lists goals to which the user has access.
+
 func (r *ManagementGoalsService) List(accountId string, webPropertyId string, profileId string) *ManagementGoalsListCall {
-	c := &ManagementGoalsListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.webPropertyId = webPropertyId
-	c.profileId = profileId
-	return c
+	return &ManagementGoalsListCall{
+		s:             r.s,
+		accountId:     accountId,
+		webPropertyId: webPropertyId,
+		profileId:     profileId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "management/accounts/{accountId}/webproperties/{webPropertyId}/profiles/{profileId}/goals",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // MaxResults sets the optional parameter "max-results": The maximum
 // number of goals to include in this response.
 func (c *ManagementGoalsListCall) MaxResults(maxResults int64) *ManagementGoalsListCall {
-	c.opt_["max-results"] = maxResults
+	c.params_.Set("max-results", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
@@ -478,49 +437,27 @@ func (c *ManagementGoalsListCall) MaxResults(maxResults int64) *ManagementGoalsL
 // first goal to retrieve. Use this parameter as a pagination mechanism
 // along with the max-results parameter.
 func (c *ManagementGoalsListCall) StartIndex(startIndex int64) *ManagementGoalsListCall {
-	c.opt_["start-index"] = startIndex
+	c.params_.Set("start-index", fmt.Sprintf("%v", startIndex))
 	return c
 }
-
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *ManagementGoalsListCall) Fields(s ...googleapi.Field) *ManagementGoalsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (c *ManagementGoalsListCall) Context(ctx context.Context) *ManagementGoalsListCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *ManagementGoalsListCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["max-results"]; ok {
-		params.Set("max-results", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["start-index"]; ok {
-		params.Set("start-index", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts/{accountId}/webproperties/{webPropertyId}/profiles/{profileId}/goals")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId":     c.accountId,
 		"webPropertyId": c.webPropertyId,
 		"profileId":     c.profileId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Lists goals to which the user has access.",
 	//   "httpMethod": "GET",
@@ -578,21 +515,30 @@ type ManagementProfilesListCall struct {
 	s             *Service
 	accountId     string
 	webPropertyId string
-	opt_          map[string]interface{}
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Lists views (profiles) to which the user has access.
+
 func (r *ManagementProfilesService) List(accountId string, webPropertyId string) *ManagementProfilesListCall {
-	c := &ManagementProfilesListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.webPropertyId = webPropertyId
-	return c
+	return &ManagementProfilesListCall{
+		s:             r.s,
+		accountId:     accountId,
+		webPropertyId: webPropertyId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "management/accounts/{accountId}/webproperties/{webPropertyId}/profiles",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // MaxResults sets the optional parameter "max-results": The maximum
 // number of views (profiles) to include in this response.
 func (c *ManagementProfilesListCall) MaxResults(maxResults int64) *ManagementProfilesListCall {
-	c.opt_["max-results"] = maxResults
+	c.params_.Set("max-results", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
@@ -600,48 +546,26 @@ func (c *ManagementProfilesListCall) MaxResults(maxResults int64) *ManagementPro
 // first entity to retrieve. Use this parameter as a pagination
 // mechanism along with the max-results parameter.
 func (c *ManagementProfilesListCall) StartIndex(startIndex int64) *ManagementProfilesListCall {
-	c.opt_["start-index"] = startIndex
+	c.params_.Set("start-index", fmt.Sprintf("%v", startIndex))
 	return c
 }
-
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *ManagementProfilesListCall) Fields(s ...googleapi.Field) *ManagementProfilesListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (c *ManagementProfilesListCall) Context(ctx context.Context) *ManagementProfilesListCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *ManagementProfilesListCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["max-results"]; ok {
-		params.Set("max-results", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["start-index"]; ok {
-		params.Set("start-index", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts/{accountId}/webproperties/{webPropertyId}/profiles")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId":     c.accountId,
 		"webPropertyId": c.webPropertyId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Lists views (profiles) to which the user has access.",
 	//   "httpMethod": "GET",
@@ -689,20 +613,29 @@ func (c *ManagementProfilesListCall) Do() error {
 // method id "analytics.management.segments.list":
 
 type ManagementSegmentsListCall struct {
-	s    *Service
-	opt_ map[string]interface{}
+	s             *Service
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Lists advanced segments to which the user has access.
+
 func (r *ManagementSegmentsService) List() *ManagementSegmentsListCall {
-	c := &ManagementSegmentsListCall{s: r.s, opt_: make(map[string]interface{})}
-	return c
+	return &ManagementSegmentsListCall{
+		s:             r.s,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "management/segments",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // MaxResults sets the optional parameter "max-results": The maximum
 // number of advanced segments to include in this response.
 func (c *ManagementSegmentsListCall) MaxResults(maxResults int64) *ManagementSegmentsListCall {
-	c.opt_["max-results"] = maxResults
+	c.params_.Set("max-results", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
@@ -710,45 +643,23 @@ func (c *ManagementSegmentsListCall) MaxResults(maxResults int64) *ManagementSeg
 // first advanced segment to retrieve. Use this parameter as a
 // pagination mechanism along with the max-results parameter.
 func (c *ManagementSegmentsListCall) StartIndex(startIndex int64) *ManagementSegmentsListCall {
-	c.opt_["start-index"] = startIndex
+	c.params_.Set("start-index", fmt.Sprintf("%v", startIndex))
 	return c
 }
-
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *ManagementSegmentsListCall) Fields(s ...googleapi.Field) *ManagementSegmentsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (c *ManagementSegmentsListCall) Context(ctx context.Context) *ManagementSegmentsListCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *ManagementSegmentsListCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["max-results"]; ok {
-		params.Set("max-results", fmt.Sprintf("%v", v))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
 	}
-	if v, ok := c.opt_["start-index"]; ok {
-		params.Set("start-index", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "management/segments")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Lists advanced segments to which the user has access.",
 	//   "httpMethod": "GET",
@@ -780,22 +691,31 @@ func (c *ManagementSegmentsListCall) Do() error {
 // method id "analytics.management.webproperties.list":
 
 type ManagementWebpropertiesListCall struct {
-	s         *Service
-	accountId string
-	opt_      map[string]interface{}
+	s             *Service
+	accountId     string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Lists web properties to which the user has access.
+
 func (r *ManagementWebpropertiesService) List(accountId string) *ManagementWebpropertiesListCall {
-	c := &ManagementWebpropertiesListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	return c
+	return &ManagementWebpropertiesListCall{
+		s:             r.s,
+		accountId:     accountId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "management/accounts/{accountId}/webproperties",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // MaxResults sets the optional parameter "max-results": The maximum
 // number of web properties to include in this response.
 func (c *ManagementWebpropertiesListCall) MaxResults(maxResults int64) *ManagementWebpropertiesListCall {
-	c.opt_["max-results"] = maxResults
+	c.params_.Set("max-results", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
@@ -803,47 +723,25 @@ func (c *ManagementWebpropertiesListCall) MaxResults(maxResults int64) *Manageme
 // first entity to retrieve. Use this parameter as a pagination
 // mechanism along with the max-results parameter.
 func (c *ManagementWebpropertiesListCall) StartIndex(startIndex int64) *ManagementWebpropertiesListCall {
-	c.opt_["start-index"] = startIndex
+	c.params_.Set("start-index", fmt.Sprintf("%v", startIndex))
 	return c
 }
-
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *ManagementWebpropertiesListCall) Fields(s ...googleapi.Field) *ManagementWebpropertiesListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (c *ManagementWebpropertiesListCall) Context(ctx context.Context) *ManagementWebpropertiesListCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *ManagementWebpropertiesListCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["max-results"]; ok {
-		params.Set("max-results", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["start-index"]; ok {
-		params.Set("start-index", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts/{accountId}/webproperties")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId": c.accountId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Lists web properties to which the user has access.",
 	//   "httpMethod": "GET",

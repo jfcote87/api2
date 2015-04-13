@@ -4,18 +4,16 @@
 //
 // Usage example:
 //
-//   import "google.golang.org/api/civicinfo/v2"
+//   import "github.com/jfcote87/api2/civicinfo/v2"
 //   ...
 //   civicinfoService, err := civicinfo.New(oauthHttpClient)
 package civicinfo
 
 import (
-	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/jfcote87/api2/googleapi"
 	"golang.org/x/net/context"
-	"google.golang.org/api/googleapi"
 	"io"
 	"net/http"
 	"net/url"
@@ -25,10 +23,8 @@ import (
 
 // Always reference these packages, just in case the auto-generated code
 // below doesn't.
-var _ = bytes.NewBuffer
 var _ = strconv.Itoa
 var _ = fmt.Sprintf
-var _ = json.NewDecoder
 var _ = io.Copy
 var _ = url.Parse
 var _ = googleapi.Version
@@ -39,13 +35,14 @@ var _ = context.Background
 const apiId = "civicinfo:v2"
 const apiName = "civicinfo"
 const apiVersion = "v2"
-const basePath = "https://www.googleapis.com/civicinfo/v2/"
+
+var baseURL *url.URL = &url.URL{Scheme: "https", Host: "www.googleapis.com", Path: "/civicinfo/v2/"}
 
 func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
+	s := &Service{client: client}
 	s.Divisions = NewDivisionsService(s)
 	s.Elections = NewElectionsService(s)
 	s.Representatives = NewRepresentativesService(s)
@@ -53,22 +50,13 @@ func New(client *http.Client) (*Service, error) {
 }
 
 type Service struct {
-	client    *http.Client
-	BasePath  string // API endpoint base URL
-	UserAgent string // optional additional User-Agent fragment
+	client *http.Client
 
 	Divisions *DivisionsService
 
 	Elections *ElectionsService
 
 	Representatives *RepresentativesService
-}
-
-func (s *Service) userAgent() string {
-	if s.UserAgent == "" {
-		return googleapi.UserAgent
-	}
-	return googleapi.UserAgent + " " + s.UserAgent
 }
 
 func NewDivisionsService(s *Service) *DivisionsService {
@@ -592,15 +580,24 @@ type VoterInfoResponse struct {
 // method id "civicinfo.divisions.search":
 
 type DivisionsSearchCall struct {
-	s    *Service
-	opt_ map[string]interface{}
+	s             *Service
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Search: Searches for political divisions by their natural name or OCD
 // ID.
+
 func (r *DivisionsService) Search() *DivisionsSearchCall {
-	c := &DivisionsSearchCall{s: r.s, opt_: make(map[string]interface{})}
-	return c
+	return &DivisionsSearchCall{
+		s:             r.s,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "divisions",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Query sets the optional parameter "query": The search query. Queries
@@ -610,7 +607,11 @@ func (r *DivisionsService) Search() *DivisionsSearchCall {
 // are supported. See
 // http://lucene.apache.org/core/2_9_4/queryparsersyntax.html
 func (c *DivisionsSearchCall) Query(query string) *DivisionsSearchCall {
-	c.opt_["query"] = query
+	c.params_.Set("query", fmt.Sprintf("%v", query))
+	return c
+}
+func (c *DivisionsSearchCall) Context(ctx context.Context) *DivisionsSearchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -618,38 +619,21 @@ func (c *DivisionsSearchCall) Query(query string) *DivisionsSearchCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *DivisionsSearchCall) Fields(s ...googleapi.Field) *DivisionsSearchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *DivisionsSearchCall) Do() (*DivisionSearchResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["query"]; ok {
-		params.Set("query", fmt.Sprintf("%v", v))
+	var returnValue *DivisionSearchResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "divisions")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *DivisionSearchResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Searches for political divisions by their natural name or OCD ID.",
 	//   "httpMethod": "GET",
@@ -672,13 +656,26 @@ func (c *DivisionsSearchCall) Do() (*DivisionSearchResponse, error) {
 // method id "civicinfo.elections.electionQuery":
 
 type ElectionsElectionQueryCall struct {
-	s    *Service
-	opt_ map[string]interface{}
+	s             *Service
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // ElectionQuery: List of available elections to query.
+
 func (r *ElectionsService) ElectionQuery() *ElectionsElectionQueryCall {
-	c := &ElectionsElectionQueryCall{s: r.s, opt_: make(map[string]interface{})}
+	return &ElectionsElectionQueryCall{
+		s:             r.s,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "elections",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *ElectionsElectionQueryCall) Context(ctx context.Context) *ElectionsElectionQueryCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -686,35 +683,21 @@ func (r *ElectionsService) ElectionQuery() *ElectionsElectionQueryCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ElectionsElectionQueryCall) Fields(s ...googleapi.Field) *ElectionsElectionQueryCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ElectionsElectionQueryCall) Do() (*ElectionsQueryResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
+	var returnValue *ElectionsQueryResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "elections")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ElectionsQueryResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "List of available elections to query.",
 	//   "httpMethod": "GET",
@@ -730,31 +713,44 @@ func (c *ElectionsElectionQueryCall) Do() (*ElectionsQueryResponse, error) {
 // method id "civicinfo.elections.voterInfoQuery":
 
 type ElectionsVoterInfoQueryCall struct {
-	s       *Service
-	address string
-	opt_    map[string]interface{}
+	s             *Service
+	address       string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // VoterInfoQuery: Looks up information relevant to a voter based on the
 // voter's registered address.
+
 func (r *ElectionsService) VoterInfoQuery(address string) *ElectionsVoterInfoQueryCall {
-	c := &ElectionsVoterInfoQueryCall{s: r.s, opt_: make(map[string]interface{})}
-	c.address = address
-	return c
+	return &ElectionsVoterInfoQueryCall{
+		s:             r.s,
+		address:       address,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "voterinfo",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // ElectionId sets the optional parameter "electionId": The unique ID of
 // the election to look up. A list of election IDs can be obtained at
 // https://www.googleapis.com/civicinfo/{version}/elections
 func (c *ElectionsVoterInfoQueryCall) ElectionId(electionId int64) *ElectionsVoterInfoQueryCall {
-	c.opt_["electionId"] = electionId
+	c.params_.Set("electionId", fmt.Sprintf("%v", electionId))
 	return c
 }
 
 // OfficialOnly sets the optional parameter "officialOnly": If set to
 // true, only data from official state sources will be returned.
 func (c *ElectionsVoterInfoQueryCall) OfficialOnly(officialOnly bool) *ElectionsVoterInfoQueryCall {
-	c.opt_["officialOnly"] = officialOnly
+	c.params_.Set("officialOnly", fmt.Sprintf("%v", officialOnly))
+	return c
+}
+func (c *ElectionsVoterInfoQueryCall) Context(ctx context.Context) *ElectionsVoterInfoQueryCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -762,42 +758,22 @@ func (c *ElectionsVoterInfoQueryCall) OfficialOnly(officialOnly bool) *Elections
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ElectionsVoterInfoQueryCall) Fields(s ...googleapi.Field) *ElectionsVoterInfoQueryCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ElectionsVoterInfoQueryCall) Do() (*VoterInfoResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("address", fmt.Sprintf("%v", c.address))
-	if v, ok := c.opt_["electionId"]; ok {
-		params.Set("electionId", fmt.Sprintf("%v", v))
+	var returnValue *VoterInfoResponse
+	c.params_.Set("address", fmt.Sprintf("%v", c.address))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	if v, ok := c.opt_["officialOnly"]; ok {
-		params.Set("officialOnly", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "voterinfo")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *VoterInfoResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Looks up information relevant to a voter based on the voter's registered address.",
 	//   "httpMethod": "GET",
@@ -837,21 +813,30 @@ func (c *ElectionsVoterInfoQueryCall) Do() (*VoterInfoResponse, error) {
 // method id "civicinfo.representatives.representativeInfoByAddress":
 
 type RepresentativesRepresentativeInfoByAddressCall struct {
-	s    *Service
-	opt_ map[string]interface{}
+	s             *Service
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // RepresentativeInfoByAddress: Looks up political geography and
 // representative information for a single address.
+
 func (r *RepresentativesService) RepresentativeInfoByAddress() *RepresentativesRepresentativeInfoByAddressCall {
-	c := &RepresentativesRepresentativeInfoByAddressCall{s: r.s, opt_: make(map[string]interface{})}
-	return c
+	return &RepresentativesRepresentativeInfoByAddressCall{
+		s:             r.s,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "representatives",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Address sets the optional parameter "address": The address to look
 // up. May only be specified if the field ocdId is not given in the URL.
 func (c *RepresentativesRepresentativeInfoByAddressCall) Address(address string) *RepresentativesRepresentativeInfoByAddressCall {
-	c.opt_["address"] = address
+	c.params_.Set("address", fmt.Sprintf("%v", address))
 	return c
 }
 
@@ -859,7 +844,7 @@ func (c *RepresentativesRepresentativeInfoByAddressCall) Address(address string)
 // to return information about offices and officials. If false, only the
 // top-level district information will be returned.
 func (c *RepresentativesRepresentativeInfoByAddressCall) IncludeOffices(includeOffices bool) *RepresentativesRepresentativeInfoByAddressCall {
-	c.opt_["includeOffices"] = includeOffices
+	c.params_.Set("includeOffices", fmt.Sprintf("%v", includeOffices))
 	return c
 }
 
@@ -867,8 +852,8 @@ func (c *RepresentativesRepresentativeInfoByAddressCall) IncludeOffices(includeO
 // to filter by. Only offices that serve at least one of these levels
 // will be returned. Divisions that don't contain a matching office will
 // not be returned.
-func (c *RepresentativesRepresentativeInfoByAddressCall) Levels(levels string) *RepresentativesRepresentativeInfoByAddressCall {
-	c.opt_["levels"] = levels
+func (c *RepresentativesRepresentativeInfoByAddressCall) Levels(levels ...string) *RepresentativesRepresentativeInfoByAddressCall {
+	c.params_["levels"] = levels
 	return c
 }
 
@@ -876,8 +861,12 @@ func (c *RepresentativesRepresentativeInfoByAddressCall) Levels(levels string) *
 // filter by. Only offices fulfilling one of these roles will be
 // returned. Divisions that don't contain a matching office will not be
 // returned.
-func (c *RepresentativesRepresentativeInfoByAddressCall) Roles(roles string) *RepresentativesRepresentativeInfoByAddressCall {
-	c.opt_["roles"] = roles
+func (c *RepresentativesRepresentativeInfoByAddressCall) Roles(roles ...string) *RepresentativesRepresentativeInfoByAddressCall {
+	c.params_["roles"] = roles
+	return c
+}
+func (c *RepresentativesRepresentativeInfoByAddressCall) Context(ctx context.Context) *RepresentativesRepresentativeInfoByAddressCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -885,47 +874,21 @@ func (c *RepresentativesRepresentativeInfoByAddressCall) Roles(roles string) *Re
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *RepresentativesRepresentativeInfoByAddressCall) Fields(s ...googleapi.Field) *RepresentativesRepresentativeInfoByAddressCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *RepresentativesRepresentativeInfoByAddressCall) Do() (*RepresentativeInfoResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["address"]; ok {
-		params.Set("address", fmt.Sprintf("%v", v))
+	var returnValue *RepresentativeInfoResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	if v, ok := c.opt_["includeOffices"]; ok {
-		params.Set("includeOffices", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["levels"]; ok {
-		params.Set("levels", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["roles"]; ok {
-		params.Set("roles", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "representatives")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *RepresentativeInfoResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Looks up political geography and representative information for a single address.",
 	//   "httpMethod": "GET",
@@ -1014,25 +977,34 @@ func (c *RepresentativesRepresentativeInfoByAddressCall) Do() (*RepresentativeIn
 // method id "civicinfo.representatives.representativeInfoByDivision":
 
 type RepresentativesRepresentativeInfoByDivisionCall struct {
-	s     *Service
-	ocdId string
-	opt_  map[string]interface{}
+	s             *Service
+	ocdId         string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // RepresentativeInfoByDivision: Looks up representative information for
 // a single geographic division.
+
 func (r *RepresentativesService) RepresentativeInfoByDivision(ocdId string) *RepresentativesRepresentativeInfoByDivisionCall {
-	c := &RepresentativesRepresentativeInfoByDivisionCall{s: r.s, opt_: make(map[string]interface{})}
-	c.ocdId = ocdId
-	return c
+	return &RepresentativesRepresentativeInfoByDivisionCall{
+		s:             r.s,
+		ocdId:         ocdId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "representatives/{ocdId}",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Levels sets the optional parameter "levels": A list of office levels
 // to filter by. Only offices that serve at least one of these levels
 // will be returned. Divisions that don't contain a matching office will
 // not be returned.
-func (c *RepresentativesRepresentativeInfoByDivisionCall) Levels(levels string) *RepresentativesRepresentativeInfoByDivisionCall {
-	c.opt_["levels"] = levels
+func (c *RepresentativesRepresentativeInfoByDivisionCall) Levels(levels ...string) *RepresentativesRepresentativeInfoByDivisionCall {
+	c.params_["levels"] = levels
 	return c
 }
 
@@ -1042,7 +1014,7 @@ func (c *RepresentativesRepresentativeInfoByDivisionCall) Levels(levels string) 
 // ocd-division/country:us/district:dc, this would also return all DC's
 // wards and ANCs.
 func (c *RepresentativesRepresentativeInfoByDivisionCall) Recursive(recursive bool) *RepresentativesRepresentativeInfoByDivisionCall {
-	c.opt_["recursive"] = recursive
+	c.params_.Set("recursive", fmt.Sprintf("%v", recursive))
 	return c
 }
 
@@ -1050,8 +1022,12 @@ func (c *RepresentativesRepresentativeInfoByDivisionCall) Recursive(recursive bo
 // filter by. Only offices fulfilling one of these roles will be
 // returned. Divisions that don't contain a matching office will not be
 // returned.
-func (c *RepresentativesRepresentativeInfoByDivisionCall) Roles(roles string) *RepresentativesRepresentativeInfoByDivisionCall {
-	c.opt_["roles"] = roles
+func (c *RepresentativesRepresentativeInfoByDivisionCall) Roles(roles ...string) *RepresentativesRepresentativeInfoByDivisionCall {
+	c.params_["roles"] = roles
+	return c
+}
+func (c *RepresentativesRepresentativeInfoByDivisionCall) Context(ctx context.Context) *RepresentativesRepresentativeInfoByDivisionCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1059,46 +1035,23 @@ func (c *RepresentativesRepresentativeInfoByDivisionCall) Roles(roles string) *R
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *RepresentativesRepresentativeInfoByDivisionCall) Fields(s ...googleapi.Field) *RepresentativesRepresentativeInfoByDivisionCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *RepresentativesRepresentativeInfoByDivisionCall) Do() (*RepresentativeInfoData, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["levels"]; ok {
-		params.Set("levels", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["recursive"]; ok {
-		params.Set("recursive", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["roles"]; ok {
-		params.Set("roles", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "representatives/{ocdId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *RepresentativeInfoData
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"ocdId": c.ocdId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *RepresentativeInfoData
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Looks up representative information for a single geographic division.",
 	//   "httpMethod": "GET",

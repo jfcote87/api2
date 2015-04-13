@@ -4,18 +4,16 @@
 //
 // Usage example:
 //
-//   import "google.golang.org/api/spectrum/v1explorer"
+//   import "github.com/jfcote87/api2/spectrum/v1explorer"
 //   ...
 //   spectrumService, err := spectrum.New(oauthHttpClient)
 package spectrum
 
 import (
-	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/jfcote87/api2/googleapi"
 	"golang.org/x/net/context"
-	"google.golang.org/api/googleapi"
 	"io"
 	"net/http"
 	"net/url"
@@ -25,10 +23,8 @@ import (
 
 // Always reference these packages, just in case the auto-generated code
 // below doesn't.
-var _ = bytes.NewBuffer
 var _ = strconv.Itoa
 var _ = fmt.Sprintf
-var _ = json.NewDecoder
 var _ = io.Copy
 var _ = url.Parse
 var _ = googleapi.Version
@@ -39,30 +35,22 @@ var _ = context.Background
 const apiId = "spectrum:v1explorer"
 const apiName = "spectrum"
 const apiVersion = "v1explorer"
-const basePath = "https://www.googleapis.com/spectrum/v1explorer/paws/"
+
+var baseURL *url.URL = &url.URL{Scheme: "https", Host: "www.googleapis.com", Path: "/spectrum/v1explorer/paws/"}
 
 func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
+	s := &Service{client: client}
 	s.Paws = NewPawsService(s)
 	return s, nil
 }
 
 type Service struct {
-	client    *http.Client
-	BasePath  string // API endpoint base URL
-	UserAgent string // optional additional User-Agent fragment
+	client *http.Client
 
 	Paws *PawsService
-}
-
-func (s *Service) userAgent() string {
-	if s.UserAgent == "" {
-		return googleapi.UserAgent
-	}
-	return googleapi.UserAgent + " " + s.UserAgent
 }
 
 func NewPawsService(s *Service) *PawsService {
@@ -975,15 +963,28 @@ type VcardTypedText struct {
 type PawsGetSpectrumCall struct {
 	s                      *Service
 	pawsgetspectrumrequest *PawsGetSpectrumRequest
-	opt_                   map[string]interface{}
+	caller_                googleapi.Caller
+	params_                url.Values
+	pathTemplate_          string
+	context_               context.Context
 }
 
 // GetSpectrum: Requests information about the available spectrum for a
 // device at a location. Requests from a fixed-mode device must include
 // owner information so the device can be registered with the database.
+
 func (r *PawsService) GetSpectrum(pawsgetspectrumrequest *PawsGetSpectrumRequest) *PawsGetSpectrumCall {
-	c := &PawsGetSpectrumCall{s: r.s, opt_: make(map[string]interface{})}
-	c.pawsgetspectrumrequest = pawsgetspectrumrequest
+	return &PawsGetSpectrumCall{
+		s: r.s,
+		pawsgetspectrumrequest: pawsgetspectrumrequest,
+		caller_:                googleapi.JSONCall{},
+		params_:                make(map[string][]string),
+		pathTemplate_:          "getSpectrum",
+		context_:               googleapi.NoContext,
+	}
+}
+func (c *PawsGetSpectrumCall) Context(ctx context.Context) *PawsGetSpectrumCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -991,41 +992,22 @@ func (r *PawsService) GetSpectrum(pawsgetspectrumrequest *PawsGetSpectrumRequest
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *PawsGetSpectrumCall) Fields(s ...googleapi.Field) *PawsGetSpectrumCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *PawsGetSpectrumCall) Do() (*PawsGetSpectrumResponse, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.pawsgetspectrumrequest)
-	if err != nil {
-		return nil, err
+	var returnValue *PawsGetSpectrumResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.pawsgetspectrumrequest,
+		Result:  &returnValue,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "getSpectrum")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *PawsGetSpectrumResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Requests information about the available spectrum for a device at a location. Requests from a fixed-mode device must include owner information so the device can be registered with the database.",
 	//   "httpMethod": "POST",
@@ -1046,14 +1028,27 @@ func (c *PawsGetSpectrumCall) Do() (*PawsGetSpectrumResponse, error) {
 type PawsGetSpectrumBatchCall struct {
 	s                           *Service
 	pawsgetspectrumbatchrequest *PawsGetSpectrumBatchRequest
-	opt_                        map[string]interface{}
+	caller_                     googleapi.Caller
+	params_                     url.Values
+	pathTemplate_               string
+	context_                    context.Context
 }
 
 // GetSpectrumBatch: The Google Spectrum Database does not support batch
 // requests, so this method always yields an UNIMPLEMENTED error.
+
 func (r *PawsService) GetSpectrumBatch(pawsgetspectrumbatchrequest *PawsGetSpectrumBatchRequest) *PawsGetSpectrumBatchCall {
-	c := &PawsGetSpectrumBatchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.pawsgetspectrumbatchrequest = pawsgetspectrumbatchrequest
+	return &PawsGetSpectrumBatchCall{
+		s: r.s,
+		pawsgetspectrumbatchrequest: pawsgetspectrumbatchrequest,
+		caller_:                     googleapi.JSONCall{},
+		params_:                     make(map[string][]string),
+		pathTemplate_:               "getSpectrumBatch",
+		context_:                    googleapi.NoContext,
+	}
+}
+func (c *PawsGetSpectrumBatchCall) Context(ctx context.Context) *PawsGetSpectrumBatchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1061,41 +1056,22 @@ func (r *PawsService) GetSpectrumBatch(pawsgetspectrumbatchrequest *PawsGetSpect
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *PawsGetSpectrumBatchCall) Fields(s ...googleapi.Field) *PawsGetSpectrumBatchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *PawsGetSpectrumBatchCall) Do() (*PawsGetSpectrumBatchResponse, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.pawsgetspectrumbatchrequest)
-	if err != nil {
-		return nil, err
+	var returnValue *PawsGetSpectrumBatchResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.pawsgetspectrumbatchrequest,
+		Result:  &returnValue,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "getSpectrumBatch")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *PawsGetSpectrumBatchResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "The Google Spectrum Database does not support batch requests, so this method always yields an UNIMPLEMENTED error.",
 	//   "httpMethod": "POST",
@@ -1116,14 +1092,27 @@ func (c *PawsGetSpectrumBatchCall) Do() (*PawsGetSpectrumBatchResponse, error) {
 type PawsInitCall struct {
 	s               *Service
 	pawsinitrequest *PawsInitRequest
-	opt_            map[string]interface{}
+	caller_         googleapi.Caller
+	params_         url.Values
+	pathTemplate_   string
+	context_        context.Context
 }
 
 // Init: Initializes the connection between a white space device and the
 // database.
+
 func (r *PawsService) Init(pawsinitrequest *PawsInitRequest) *PawsInitCall {
-	c := &PawsInitCall{s: r.s, opt_: make(map[string]interface{})}
-	c.pawsinitrequest = pawsinitrequest
+	return &PawsInitCall{
+		s:               r.s,
+		pawsinitrequest: pawsinitrequest,
+		caller_:         googleapi.JSONCall{},
+		params_:         make(map[string][]string),
+		pathTemplate_:   "init",
+		context_:        googleapi.NoContext,
+	}
+}
+func (c *PawsInitCall) Context(ctx context.Context) *PawsInitCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1131,41 +1120,22 @@ func (r *PawsService) Init(pawsinitrequest *PawsInitRequest) *PawsInitCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *PawsInitCall) Fields(s ...googleapi.Field) *PawsInitCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *PawsInitCall) Do() (*PawsInitResponse, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.pawsinitrequest)
-	if err != nil {
-		return nil, err
+	var returnValue *PawsInitResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.pawsinitrequest,
+		Result:  &returnValue,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "init")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *PawsInitResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Initializes the connection between a white space device and the database.",
 	//   "httpMethod": "POST",
@@ -1186,7 +1156,10 @@ func (c *PawsInitCall) Do() (*PawsInitResponse, error) {
 type PawsNotifySpectrumUseCall struct {
 	s                            *Service
 	pawsnotifyspectrumuserequest *PawsNotifySpectrumUseRequest
-	opt_                         map[string]interface{}
+	caller_                      googleapi.Caller
+	params_                      url.Values
+	pathTemplate_                string
+	context_                     context.Context
 }
 
 // NotifySpectrumUse: Notifies the database that the device has selected
@@ -1194,9 +1167,19 @@ type PawsNotifySpectrumUseCall struct {
 // required by the regulator. The Google Spectrum Database does not
 // operate in domains that require notification, so this always yields
 // an UNIMPLEMENTED error.
+
 func (r *PawsService) NotifySpectrumUse(pawsnotifyspectrumuserequest *PawsNotifySpectrumUseRequest) *PawsNotifySpectrumUseCall {
-	c := &PawsNotifySpectrumUseCall{s: r.s, opt_: make(map[string]interface{})}
-	c.pawsnotifyspectrumuserequest = pawsnotifyspectrumuserequest
+	return &PawsNotifySpectrumUseCall{
+		s: r.s,
+		pawsnotifyspectrumuserequest: pawsnotifyspectrumuserequest,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "notifySpectrumUse",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *PawsNotifySpectrumUseCall) Context(ctx context.Context) *PawsNotifySpectrumUseCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1204,41 +1187,22 @@ func (r *PawsService) NotifySpectrumUse(pawsnotifyspectrumuserequest *PawsNotify
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *PawsNotifySpectrumUseCall) Fields(s ...googleapi.Field) *PawsNotifySpectrumUseCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *PawsNotifySpectrumUseCall) Do() (*PawsNotifySpectrumUseResponse, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.pawsnotifyspectrumuserequest)
-	if err != nil {
-		return nil, err
+	var returnValue *PawsNotifySpectrumUseResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.pawsnotifyspectrumuserequest,
+		Result:  &returnValue,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "notifySpectrumUse")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *PawsNotifySpectrumUseResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Notifies the database that the device has selected certain frequency ranges for transmission. Only to be invoked when required by the regulator. The Google Spectrum Database does not operate in domains that require notification, so this always yields an UNIMPLEMENTED error.",
 	//   "httpMethod": "POST",
@@ -1259,15 +1223,28 @@ func (c *PawsNotifySpectrumUseCall) Do() (*PawsNotifySpectrumUseResponse, error)
 type PawsRegisterCall struct {
 	s                   *Service
 	pawsregisterrequest *PawsRegisterRequest
-	opt_                map[string]interface{}
+	caller_             googleapi.Caller
+	params_             url.Values
+	pathTemplate_       string
+	context_            context.Context
 }
 
 // Register: The Google Spectrum Database implements registration in the
 // getSpectrum method. As such this always returns an UNIMPLEMENTED
 // error.
+
 func (r *PawsService) Register(pawsregisterrequest *PawsRegisterRequest) *PawsRegisterCall {
-	c := &PawsRegisterCall{s: r.s, opt_: make(map[string]interface{})}
-	c.pawsregisterrequest = pawsregisterrequest
+	return &PawsRegisterCall{
+		s:                   r.s,
+		pawsregisterrequest: pawsregisterrequest,
+		caller_:             googleapi.JSONCall{},
+		params_:             make(map[string][]string),
+		pathTemplate_:       "register",
+		context_:            googleapi.NoContext,
+	}
+}
+func (c *PawsRegisterCall) Context(ctx context.Context) *PawsRegisterCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1275,41 +1252,22 @@ func (r *PawsService) Register(pawsregisterrequest *PawsRegisterRequest) *PawsRe
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *PawsRegisterCall) Fields(s ...googleapi.Field) *PawsRegisterCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *PawsRegisterCall) Do() (*PawsRegisterResponse, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.pawsregisterrequest)
-	if err != nil {
-		return nil, err
+	var returnValue *PawsRegisterResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.pawsregisterrequest,
+		Result:  &returnValue,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "register")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *PawsRegisterResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "The Google Spectrum Database implements registration in the getSpectrum method. As such this always returns an UNIMPLEMENTED error.",
 	//   "httpMethod": "POST",
@@ -1330,16 +1288,29 @@ func (c *PawsRegisterCall) Do() (*PawsRegisterResponse, error) {
 type PawsVerifyDeviceCall struct {
 	s                       *Service
 	pawsverifydevicerequest *PawsVerifyDeviceRequest
-	opt_                    map[string]interface{}
+	caller_                 googleapi.Caller
+	params_                 url.Values
+	pathTemplate_           string
+	context_                context.Context
 }
 
 // VerifyDevice: Validates a device for white space use in accordance
 // with regulatory rules. The Google Spectrum Database does not support
 // master/slave configurations, so this always yields an UNIMPLEMENTED
 // error.
+
 func (r *PawsService) VerifyDevice(pawsverifydevicerequest *PawsVerifyDeviceRequest) *PawsVerifyDeviceCall {
-	c := &PawsVerifyDeviceCall{s: r.s, opt_: make(map[string]interface{})}
-	c.pawsverifydevicerequest = pawsverifydevicerequest
+	return &PawsVerifyDeviceCall{
+		s: r.s,
+		pawsverifydevicerequest: pawsverifydevicerequest,
+		caller_:                 googleapi.JSONCall{},
+		params_:                 make(map[string][]string),
+		pathTemplate_:           "verifyDevice",
+		context_:                googleapi.NoContext,
+	}
+}
+func (c *PawsVerifyDeviceCall) Context(ctx context.Context) *PawsVerifyDeviceCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1347,41 +1318,22 @@ func (r *PawsService) VerifyDevice(pawsverifydevicerequest *PawsVerifyDeviceRequ
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *PawsVerifyDeviceCall) Fields(s ...googleapi.Field) *PawsVerifyDeviceCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *PawsVerifyDeviceCall) Do() (*PawsVerifyDeviceResponse, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.pawsverifydevicerequest)
-	if err != nil {
-		return nil, err
+	var returnValue *PawsVerifyDeviceResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.pawsverifydevicerequest,
+		Result:  &returnValue,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "verifyDevice")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *PawsVerifyDeviceResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Validates a device for white space use in accordance with regulatory rules. The Google Spectrum Database does not support master/slave configurations, so this always yields an UNIMPLEMENTED error.",
 	//   "httpMethod": "POST",

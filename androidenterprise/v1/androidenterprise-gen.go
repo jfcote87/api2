@@ -2,18 +2,16 @@
 //
 // Usage example:
 //
-//   import "google.golang.org/api/androidenterprise/v1"
+//   import "github.com/jfcote87/api2/androidenterprise/v1"
 //   ...
 //   androidenterpriseService, err := androidenterprise.New(oauthHttpClient)
 package androidenterprise
 
 import (
-	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/jfcote87/api2/googleapi"
 	"golang.org/x/net/context"
-	"google.golang.org/api/googleapi"
 	"io"
 	"net/http"
 	"net/url"
@@ -23,10 +21,8 @@ import (
 
 // Always reference these packages, just in case the auto-generated code
 // below doesn't.
-var _ = bytes.NewBuffer
 var _ = strconv.Itoa
 var _ = fmt.Sprintf
-var _ = json.NewDecoder
 var _ = io.Copy
 var _ = url.Parse
 var _ = googleapi.Version
@@ -37,7 +33,8 @@ var _ = context.Background
 const apiId = "androidenterprise:v1"
 const apiName = "androidenterprise"
 const apiVersion = "v1"
-const basePath = "https://www.googleapis.com/androidenterprise/v1/"
+
+var baseURL *url.URL = &url.URL{Scheme: "https", Host: "www.googleapis.com", Path: "/androidenterprise/v1/"}
 
 // OAuth2 scopes used by this API.
 const (
@@ -49,7 +46,7 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
+	s := &Service{client: client}
 	s.Collections = NewCollectionsService(s)
 	s.Collectionviewers = NewCollectionviewersService(s)
 	s.Devices = NewDevicesService(s)
@@ -65,9 +62,7 @@ func New(client *http.Client) (*Service, error) {
 }
 
 type Service struct {
-	client    *http.Client
-	BasePath  string // API endpoint base URL
-	UserAgent string // optional additional User-Agent fragment
+	client *http.Client
 
 	Collections *CollectionsService
 
@@ -90,13 +85,6 @@ type Service struct {
 	Products *ProductsService
 
 	Users *UsersService
-}
-
-func (s *Service) userAgent() string {
-	if s.UserAgent == "" {
-		return googleapi.UserAgent
-	}
-	return googleapi.UserAgent + " " + s.UserAgent
 }
 
 func NewCollectionsService(s *Service) *CollectionsService {
@@ -576,52 +564,45 @@ type UsersListResponse struct {
 // method id "androidenterprise.collections.delete":
 
 type CollectionsDeleteCall struct {
-	s            *Service
-	enterpriseId string
-	collectionId string
-	opt_         map[string]interface{}
+	s             *Service
+	enterpriseId  string
+	collectionId  string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Delete: Deletes a collection.
-func (r *CollectionsService) Delete(enterpriseId string, collectionId string) *CollectionsDeleteCall {
-	c := &CollectionsDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.enterpriseId = enterpriseId
-	c.collectionId = collectionId
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *CollectionsDeleteCall) Fields(s ...googleapi.Field) *CollectionsDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *CollectionsService) Delete(enterpriseId string, collectionId string) *CollectionsDeleteCall {
+	return &CollectionsDeleteCall{
+		s:             r.s,
+		enterpriseId:  enterpriseId,
+		collectionId:  collectionId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "enterprises/{enterpriseId}/collections/{collectionId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *CollectionsDeleteCall) Context(ctx context.Context) *CollectionsDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *CollectionsDeleteCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "enterprises/{enterpriseId}/collections/{collectionId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"enterpriseId": c.enterpriseId,
 		"collectionId": c.collectionId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Deletes a collection.",
 	//   "httpMethod": "DELETE",
@@ -655,17 +636,30 @@ func (c *CollectionsDeleteCall) Do() error {
 // method id "androidenterprise.collections.get":
 
 type CollectionsGetCall struct {
-	s            *Service
-	enterpriseId string
-	collectionId string
-	opt_         map[string]interface{}
+	s             *Service
+	enterpriseId  string
+	collectionId  string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Retrieves the details of a collection.
+
 func (r *CollectionsService) Get(enterpriseId string, collectionId string) *CollectionsGetCall {
-	c := &CollectionsGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.enterpriseId = enterpriseId
-	c.collectionId = collectionId
+	return &CollectionsGetCall{
+		s:             r.s,
+		enterpriseId:  enterpriseId,
+		collectionId:  collectionId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "enterprises/{enterpriseId}/collections/{collectionId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *CollectionsGetCall) Context(ctx context.Context) *CollectionsGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -673,38 +667,24 @@ func (r *CollectionsService) Get(enterpriseId string, collectionId string) *Coll
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *CollectionsGetCall) Fields(s ...googleapi.Field) *CollectionsGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *CollectionsGetCall) Do() (*Collection, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "enterprises/{enterpriseId}/collections/{collectionId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Collection
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"enterpriseId": c.enterpriseId,
 		"collectionId": c.collectionId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Collection
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves the details of a collection.",
 	//   "httpMethod": "GET",
@@ -741,17 +721,30 @@ func (c *CollectionsGetCall) Do() (*Collection, error) {
 // method id "androidenterprise.collections.insert":
 
 type CollectionsInsertCall struct {
-	s            *Service
-	enterpriseId string
-	collection   *Collection
-	opt_         map[string]interface{}
+	s             *Service
+	enterpriseId  string
+	collection    *Collection
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Insert: Creates a new collection.
+
 func (r *CollectionsService) Insert(enterpriseId string, collection *Collection) *CollectionsInsertCall {
-	c := &CollectionsInsertCall{s: r.s, opt_: make(map[string]interface{})}
-	c.enterpriseId = enterpriseId
-	c.collection = collection
+	return &CollectionsInsertCall{
+		s:             r.s,
+		enterpriseId:  enterpriseId,
+		collection:    collection,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "enterprises/{enterpriseId}/collections",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *CollectionsInsertCall) Context(ctx context.Context) *CollectionsInsertCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -759,43 +752,24 @@ func (r *CollectionsService) Insert(enterpriseId string, collection *Collection)
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *CollectionsInsertCall) Fields(s ...googleapi.Field) *CollectionsInsertCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *CollectionsInsertCall) Do() (*Collection, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.collection)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "enterprises/{enterpriseId}/collections")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Collection
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"enterpriseId": c.enterpriseId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.collection,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Collection
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Creates a new collection.",
 	//   "httpMethod": "POST",
@@ -828,15 +802,28 @@ func (c *CollectionsInsertCall) Do() (*Collection, error) {
 // method id "androidenterprise.collections.list":
 
 type CollectionsListCall struct {
-	s            *Service
-	enterpriseId string
-	opt_         map[string]interface{}
+	s             *Service
+	enterpriseId  string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Retrieves the IDs of all the collections for an enterprise.
+
 func (r *CollectionsService) List(enterpriseId string) *CollectionsListCall {
-	c := &CollectionsListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.enterpriseId = enterpriseId
+	return &CollectionsListCall{
+		s:             r.s,
+		enterpriseId:  enterpriseId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "enterprises/{enterpriseId}/collections",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *CollectionsListCall) Context(ctx context.Context) *CollectionsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -844,37 +831,23 @@ func (r *CollectionsService) List(enterpriseId string) *CollectionsListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *CollectionsListCall) Fields(s ...googleapi.Field) *CollectionsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *CollectionsListCall) Do() (*CollectionsListResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "enterprises/{enterpriseId}/collections")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *CollectionsListResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"enterpriseId": c.enterpriseId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *CollectionsListResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves the IDs of all the collections for an enterprise.",
 	//   "httpMethod": "GET",
@@ -904,19 +877,32 @@ func (c *CollectionsListCall) Do() (*CollectionsListResponse, error) {
 // method id "androidenterprise.collections.patch":
 
 type CollectionsPatchCall struct {
-	s            *Service
-	enterpriseId string
-	collectionId string
-	collection   *Collection
-	opt_         map[string]interface{}
+	s             *Service
+	enterpriseId  string
+	collectionId  string
+	collection    *Collection
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Patch: Updates a collection. This method supports patch semantics.
+
 func (r *CollectionsService) Patch(enterpriseId string, collectionId string, collection *Collection) *CollectionsPatchCall {
-	c := &CollectionsPatchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.enterpriseId = enterpriseId
-	c.collectionId = collectionId
-	c.collection = collection
+	return &CollectionsPatchCall{
+		s:             r.s,
+		enterpriseId:  enterpriseId,
+		collectionId:  collectionId,
+		collection:    collection,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "enterprises/{enterpriseId}/collections/{collectionId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *CollectionsPatchCall) Context(ctx context.Context) *CollectionsPatchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -924,44 +910,25 @@ func (r *CollectionsService) Patch(enterpriseId string, collectionId string, col
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *CollectionsPatchCall) Fields(s ...googleapi.Field) *CollectionsPatchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *CollectionsPatchCall) Do() (*Collection, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.collection)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "enterprises/{enterpriseId}/collections/{collectionId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PATCH", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Collection
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"enterpriseId": c.enterpriseId,
 		"collectionId": c.collectionId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PATCH",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.collection,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Collection
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates a collection. This method supports patch semantics.",
 	//   "httpMethod": "PATCH",
@@ -1001,19 +968,32 @@ func (c *CollectionsPatchCall) Do() (*Collection, error) {
 // method id "androidenterprise.collections.update":
 
 type CollectionsUpdateCall struct {
-	s            *Service
-	enterpriseId string
-	collectionId string
-	collection   *Collection
-	opt_         map[string]interface{}
+	s             *Service
+	enterpriseId  string
+	collectionId  string
+	collection    *Collection
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Update: Updates a collection.
+
 func (r *CollectionsService) Update(enterpriseId string, collectionId string, collection *Collection) *CollectionsUpdateCall {
-	c := &CollectionsUpdateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.enterpriseId = enterpriseId
-	c.collectionId = collectionId
-	c.collection = collection
+	return &CollectionsUpdateCall{
+		s:             r.s,
+		enterpriseId:  enterpriseId,
+		collectionId:  collectionId,
+		collection:    collection,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "enterprises/{enterpriseId}/collections/{collectionId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *CollectionsUpdateCall) Context(ctx context.Context) *CollectionsUpdateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1021,44 +1001,25 @@ func (r *CollectionsService) Update(enterpriseId string, collectionId string, co
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *CollectionsUpdateCall) Fields(s ...googleapi.Field) *CollectionsUpdateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *CollectionsUpdateCall) Do() (*Collection, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.collection)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "enterprises/{enterpriseId}/collections/{collectionId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Collection
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"enterpriseId": c.enterpriseId,
 		"collectionId": c.collectionId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.collection,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Collection
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates a collection.",
 	//   "httpMethod": "PUT",
@@ -1098,57 +1059,50 @@ func (c *CollectionsUpdateCall) Do() (*Collection, error) {
 // method id "androidenterprise.collectionviewers.delete":
 
 type CollectionviewersDeleteCall struct {
-	s            *Service
-	enterpriseId string
-	collectionId string
-	userId       string
-	opt_         map[string]interface{}
+	s             *Service
+	enterpriseId  string
+	collectionId  string
+	userId        string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Delete: Removes the user from the list of those specifically allowed
 // to see the collection. If the collection's visibility is set to
 // viewersOnly then only such users will see the collection.
-func (r *CollectionviewersService) Delete(enterpriseId string, collectionId string, userId string) *CollectionviewersDeleteCall {
-	c := &CollectionviewersDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.enterpriseId = enterpriseId
-	c.collectionId = collectionId
-	c.userId = userId
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *CollectionviewersDeleteCall) Fields(s ...googleapi.Field) *CollectionviewersDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *CollectionviewersService) Delete(enterpriseId string, collectionId string, userId string) *CollectionviewersDeleteCall {
+	return &CollectionviewersDeleteCall{
+		s:             r.s,
+		enterpriseId:  enterpriseId,
+		collectionId:  collectionId,
+		userId:        userId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "enterprises/{enterpriseId}/collections/{collectionId}/users/{userId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *CollectionviewersDeleteCall) Context(ctx context.Context) *CollectionviewersDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *CollectionviewersDeleteCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "enterprises/{enterpriseId}/collections/{collectionId}/users/{userId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"enterpriseId": c.enterpriseId,
 		"collectionId": c.collectionId,
 		"userId":       c.userId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Removes the user from the list of those specifically allowed to see the collection. If the collection's visibility is set to viewersOnly then only such users will see the collection.",
 	//   "httpMethod": "DELETE",
@@ -1189,21 +1143,34 @@ func (c *CollectionviewersDeleteCall) Do() error {
 // method id "androidenterprise.collectionviewers.get":
 
 type CollectionviewersGetCall struct {
-	s            *Service
-	enterpriseId string
-	collectionId string
-	userId       string
-	opt_         map[string]interface{}
+	s             *Service
+	enterpriseId  string
+	collectionId  string
+	userId        string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Retrieves the ID of the user if they have been specifically
 // allowed to see the collection. If the collection's visibility is set
 // to viewersOnly then only these users will see the collection.
+
 func (r *CollectionviewersService) Get(enterpriseId string, collectionId string, userId string) *CollectionviewersGetCall {
-	c := &CollectionviewersGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.enterpriseId = enterpriseId
-	c.collectionId = collectionId
-	c.userId = userId
+	return &CollectionviewersGetCall{
+		s:             r.s,
+		enterpriseId:  enterpriseId,
+		collectionId:  collectionId,
+		userId:        userId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "enterprises/{enterpriseId}/collections/{collectionId}/users/{userId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *CollectionviewersGetCall) Context(ctx context.Context) *CollectionviewersGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1211,39 +1178,25 @@ func (r *CollectionviewersService) Get(enterpriseId string, collectionId string,
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *CollectionviewersGetCall) Fields(s ...googleapi.Field) *CollectionviewersGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *CollectionviewersGetCall) Do() (*User, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "enterprises/{enterpriseId}/collections/{collectionId}/users/{userId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *User
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"enterpriseId": c.enterpriseId,
 		"collectionId": c.collectionId,
 		"userId":       c.userId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *User
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves the ID of the user if they have been specifically allowed to see the collection. If the collection's visibility is set to viewersOnly then only these users will see the collection.",
 	//   "httpMethod": "GET",
@@ -1287,19 +1240,32 @@ func (c *CollectionviewersGetCall) Do() (*User, error) {
 // method id "androidenterprise.collectionviewers.list":
 
 type CollectionviewersListCall struct {
-	s            *Service
-	enterpriseId string
-	collectionId string
-	opt_         map[string]interface{}
+	s             *Service
+	enterpriseId  string
+	collectionId  string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Retrieves the IDs of the users who have been specifically
 // allowed to see the collection. If the collection's visibility is set
 // to viewersOnly then only these users will see the collection.
+
 func (r *CollectionviewersService) List(enterpriseId string, collectionId string) *CollectionviewersListCall {
-	c := &CollectionviewersListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.enterpriseId = enterpriseId
-	c.collectionId = collectionId
+	return &CollectionviewersListCall{
+		s:             r.s,
+		enterpriseId:  enterpriseId,
+		collectionId:  collectionId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "enterprises/{enterpriseId}/collections/{collectionId}/users",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *CollectionviewersListCall) Context(ctx context.Context) *CollectionviewersListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1307,38 +1273,24 @@ func (r *CollectionviewersService) List(enterpriseId string, collectionId string
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *CollectionviewersListCall) Fields(s ...googleapi.Field) *CollectionviewersListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *CollectionviewersListCall) Do() (*CollectionViewersListResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "enterprises/{enterpriseId}/collections/{collectionId}/users")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *CollectionViewersListResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"enterpriseId": c.enterpriseId,
 		"collectionId": c.collectionId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *CollectionViewersListResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves the IDs of the users who have been specifically allowed to see the collection. If the collection's visibility is set to viewersOnly then only these users will see the collection.",
 	//   "httpMethod": "GET",
@@ -1375,24 +1327,37 @@ func (c *CollectionviewersListCall) Do() (*CollectionViewersListResponse, error)
 // method id "androidenterprise.collectionviewers.patch":
 
 type CollectionviewersPatchCall struct {
-	s            *Service
-	enterpriseId string
-	collectionId string
-	userId       string
-	user         *User
-	opt_         map[string]interface{}
+	s             *Service
+	enterpriseId  string
+	collectionId  string
+	userId        string
+	user          *User
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Patch: Adds the user to the list of those specifically allowed to see
 // the collection. If the collection's visibility is set to viewersOnly
 // then only such users will see the collection. This method supports
 // patch semantics.
+
 func (r *CollectionviewersService) Patch(enterpriseId string, collectionId string, userId string, user *User) *CollectionviewersPatchCall {
-	c := &CollectionviewersPatchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.enterpriseId = enterpriseId
-	c.collectionId = collectionId
-	c.userId = userId
-	c.user = user
+	return &CollectionviewersPatchCall{
+		s:             r.s,
+		enterpriseId:  enterpriseId,
+		collectionId:  collectionId,
+		userId:        userId,
+		user:          user,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "enterprises/{enterpriseId}/collections/{collectionId}/users/{userId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *CollectionviewersPatchCall) Context(ctx context.Context) *CollectionviewersPatchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1400,45 +1365,26 @@ func (r *CollectionviewersService) Patch(enterpriseId string, collectionId strin
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *CollectionviewersPatchCall) Fields(s ...googleapi.Field) *CollectionviewersPatchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *CollectionviewersPatchCall) Do() (*User, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.user)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "enterprises/{enterpriseId}/collections/{collectionId}/users/{userId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PATCH", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *User
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"enterpriseId": c.enterpriseId,
 		"collectionId": c.collectionId,
 		"userId":       c.userId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PATCH",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.user,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *User
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Adds the user to the list of those specifically allowed to see the collection. If the collection's visibility is set to viewersOnly then only such users will see the collection. This method supports patch semantics.",
 	//   "httpMethod": "PATCH",
@@ -1485,23 +1431,36 @@ func (c *CollectionviewersPatchCall) Do() (*User, error) {
 // method id "androidenterprise.collectionviewers.update":
 
 type CollectionviewersUpdateCall struct {
-	s            *Service
-	enterpriseId string
-	collectionId string
-	userId       string
-	user         *User
-	opt_         map[string]interface{}
+	s             *Service
+	enterpriseId  string
+	collectionId  string
+	userId        string
+	user          *User
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Update: Adds the user to the list of those specifically allowed to
 // see the collection. If the collection's visibility is set to
 // viewersOnly then only such users will see the collection.
+
 func (r *CollectionviewersService) Update(enterpriseId string, collectionId string, userId string, user *User) *CollectionviewersUpdateCall {
-	c := &CollectionviewersUpdateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.enterpriseId = enterpriseId
-	c.collectionId = collectionId
-	c.userId = userId
-	c.user = user
+	return &CollectionviewersUpdateCall{
+		s:             r.s,
+		enterpriseId:  enterpriseId,
+		collectionId:  collectionId,
+		userId:        userId,
+		user:          user,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "enterprises/{enterpriseId}/collections/{collectionId}/users/{userId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *CollectionviewersUpdateCall) Context(ctx context.Context) *CollectionviewersUpdateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1509,45 +1468,26 @@ func (r *CollectionviewersService) Update(enterpriseId string, collectionId stri
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *CollectionviewersUpdateCall) Fields(s ...googleapi.Field) *CollectionviewersUpdateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *CollectionviewersUpdateCall) Do() (*User, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.user)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "enterprises/{enterpriseId}/collections/{collectionId}/users/{userId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *User
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"enterpriseId": c.enterpriseId,
 		"collectionId": c.collectionId,
 		"userId":       c.userId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.user,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *User
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Adds the user to the list of those specifically allowed to see the collection. If the collection's visibility is set to viewersOnly then only such users will see the collection.",
 	//   "httpMethod": "PUT",
@@ -1594,19 +1534,32 @@ func (c *CollectionviewersUpdateCall) Do() (*User, error) {
 // method id "androidenterprise.devices.get":
 
 type DevicesGetCall struct {
-	s            *Service
-	enterpriseId string
-	userId       string
-	deviceId     string
-	opt_         map[string]interface{}
+	s             *Service
+	enterpriseId  string
+	userId        string
+	deviceId      string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Retrieves the details of a device.
+
 func (r *DevicesService) Get(enterpriseId string, userId string, deviceId string) *DevicesGetCall {
-	c := &DevicesGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.enterpriseId = enterpriseId
-	c.userId = userId
-	c.deviceId = deviceId
+	return &DevicesGetCall{
+		s:             r.s,
+		enterpriseId:  enterpriseId,
+		userId:        userId,
+		deviceId:      deviceId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "enterprises/{enterpriseId}/users/{userId}/devices/{deviceId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *DevicesGetCall) Context(ctx context.Context) *DevicesGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1614,39 +1567,25 @@ func (r *DevicesService) Get(enterpriseId string, userId string, deviceId string
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *DevicesGetCall) Fields(s ...googleapi.Field) *DevicesGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *DevicesGetCall) Do() (*Device, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "enterprises/{enterpriseId}/users/{userId}/devices/{deviceId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Device
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"enterpriseId": c.enterpriseId,
 		"userId":       c.userId,
 		"deviceId":     c.deviceId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Device
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves the details of a device.",
 	//   "httpMethod": "GET",
@@ -1690,11 +1629,14 @@ func (c *DevicesGetCall) Do() (*Device, error) {
 // method id "androidenterprise.devices.getState":
 
 type DevicesGetStateCall struct {
-	s            *Service
-	enterpriseId string
-	userId       string
-	deviceId     string
-	opt_         map[string]interface{}
+	s             *Service
+	enterpriseId  string
+	userId        string
+	deviceId      string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // GetState: Retrieves whether a device is enabled or disabled for
@@ -1702,11 +1644,21 @@ type DevicesGetStateCall struct {
 // only if enforcing EMM policies on Android devices is enabled in the
 // Google Admin Console. Otherwise, the device state is ignored and all
 // devices are allowed access to Google services.
+
 func (r *DevicesService) GetState(enterpriseId string, userId string, deviceId string) *DevicesGetStateCall {
-	c := &DevicesGetStateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.enterpriseId = enterpriseId
-	c.userId = userId
-	c.deviceId = deviceId
+	return &DevicesGetStateCall{
+		s:             r.s,
+		enterpriseId:  enterpriseId,
+		userId:        userId,
+		deviceId:      deviceId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "enterprises/{enterpriseId}/users/{userId}/devices/{deviceId}/state",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *DevicesGetStateCall) Context(ctx context.Context) *DevicesGetStateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1714,39 +1666,25 @@ func (r *DevicesService) GetState(enterpriseId string, userId string, deviceId s
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *DevicesGetStateCall) Fields(s ...googleapi.Field) *DevicesGetStateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *DevicesGetStateCall) Do() (*DeviceState, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "enterprises/{enterpriseId}/users/{userId}/devices/{deviceId}/state")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *DeviceState
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"enterpriseId": c.enterpriseId,
 		"userId":       c.userId,
 		"deviceId":     c.deviceId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *DeviceState
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves whether a device is enabled or disabled for access by the user to Google services. The device state takes effect only if enforcing EMM policies on Android devices is enabled in the Google Admin Console. Otherwise, the device state is ignored and all devices are allowed access to Google services.",
 	//   "httpMethod": "GET",
@@ -1790,17 +1728,30 @@ func (c *DevicesGetStateCall) Do() (*DeviceState, error) {
 // method id "androidenterprise.devices.list":
 
 type DevicesListCall struct {
-	s            *Service
-	enterpriseId string
-	userId       string
-	opt_         map[string]interface{}
+	s             *Service
+	enterpriseId  string
+	userId        string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Retrieves the IDs of all of a user's devices.
+
 func (r *DevicesService) List(enterpriseId string, userId string) *DevicesListCall {
-	c := &DevicesListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.enterpriseId = enterpriseId
-	c.userId = userId
+	return &DevicesListCall{
+		s:             r.s,
+		enterpriseId:  enterpriseId,
+		userId:        userId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "enterprises/{enterpriseId}/users/{userId}/devices",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *DevicesListCall) Context(ctx context.Context) *DevicesListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1808,38 +1759,24 @@ func (r *DevicesService) List(enterpriseId string, userId string) *DevicesListCa
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *DevicesListCall) Fields(s ...googleapi.Field) *DevicesListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *DevicesListCall) Do() (*DevicesListResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "enterprises/{enterpriseId}/users/{userId}/devices")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *DevicesListResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"enterpriseId": c.enterpriseId,
 		"userId":       c.userId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *DevicesListResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves the IDs of all of a user's devices.",
 	//   "httpMethod": "GET",
@@ -1876,12 +1813,15 @@ func (c *DevicesListCall) Do() (*DevicesListResponse, error) {
 // method id "androidenterprise.devices.setState":
 
 type DevicesSetStateCall struct {
-	s            *Service
-	enterpriseId string
-	userId       string
-	deviceId     string
-	devicestate  *DeviceState
-	opt_         map[string]interface{}
+	s             *Service
+	enterpriseId  string
+	userId        string
+	deviceId      string
+	devicestate   *DeviceState
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // SetState: Sets whether a device is enabled or disabled for access by
@@ -1889,12 +1829,22 @@ type DevicesSetStateCall struct {
 // enforcing EMM policies on Android devices is enabled in the Google
 // Admin Console. Otherwise, the device state is ignored and all devices
 // are allowed access to Google services.
+
 func (r *DevicesService) SetState(enterpriseId string, userId string, deviceId string, devicestate *DeviceState) *DevicesSetStateCall {
-	c := &DevicesSetStateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.enterpriseId = enterpriseId
-	c.userId = userId
-	c.deviceId = deviceId
-	c.devicestate = devicestate
+	return &DevicesSetStateCall{
+		s:             r.s,
+		enterpriseId:  enterpriseId,
+		userId:        userId,
+		deviceId:      deviceId,
+		devicestate:   devicestate,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "enterprises/{enterpriseId}/users/{userId}/devices/{deviceId}/state",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *DevicesSetStateCall) Context(ctx context.Context) *DevicesSetStateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1902,45 +1852,26 @@ func (r *DevicesService) SetState(enterpriseId string, userId string, deviceId s
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *DevicesSetStateCall) Fields(s ...googleapi.Field) *DevicesSetStateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *DevicesSetStateCall) Do() (*DeviceState, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.devicestate)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "enterprises/{enterpriseId}/users/{userId}/devices/{deviceId}/state")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *DeviceState
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"enterpriseId": c.enterpriseId,
 		"userId":       c.userId,
 		"deviceId":     c.deviceId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.devicestate,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *DeviceState
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Sets whether a device is enabled or disabled for access by the user to Google services. The device state takes effect only if enforcing EMM policies on Android devices is enabled in the Google Admin Console. Otherwise, the device state is ignored and all devices are allowed access to Google services.",
 	//   "httpMethod": "PUT",
@@ -1987,52 +1918,45 @@ func (c *DevicesSetStateCall) Do() (*DeviceState, error) {
 // method id "androidenterprise.enterprises.delete":
 
 type EnterprisesDeleteCall struct {
-	s            *Service
-	enterpriseId string
-	opt_         map[string]interface{}
+	s             *Service
+	enterpriseId  string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Delete: Deletes the binding between the MDM and enterprise. This is
 // now deprecated; use this to unenroll customers that were previously
 // enrolled with the 'insert' call, then enroll them again with the
 // 'enroll' call.
-func (r *EnterprisesService) Delete(enterpriseId string) *EnterprisesDeleteCall {
-	c := &EnterprisesDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.enterpriseId = enterpriseId
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *EnterprisesDeleteCall) Fields(s ...googleapi.Field) *EnterprisesDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *EnterprisesService) Delete(enterpriseId string) *EnterprisesDeleteCall {
+	return &EnterprisesDeleteCall{
+		s:             r.s,
+		enterpriseId:  enterpriseId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "enterprises/{enterpriseId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *EnterprisesDeleteCall) Context(ctx context.Context) *EnterprisesDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *EnterprisesDeleteCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "enterprises/{enterpriseId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"enterpriseId": c.enterpriseId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Deletes the binding between the MDM and enterprise. This is now deprecated; use this to unenroll customers that were previously enrolled with the 'insert' call, then enroll them again with the 'enroll' call.",
 	//   "httpMethod": "DELETE",
@@ -2059,17 +1983,30 @@ func (c *EnterprisesDeleteCall) Do() error {
 // method id "androidenterprise.enterprises.enroll":
 
 type EnterprisesEnrollCall struct {
-	s          *Service
-	token      string
-	enterprise *Enterprise
-	opt_       map[string]interface{}
+	s             *Service
+	token         string
+	enterprise    *Enterprise
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Enroll: Enrolls an enterprise with the calling MDM.
+
 func (r *EnterprisesService) Enroll(token string, enterprise *Enterprise) *EnterprisesEnrollCall {
-	c := &EnterprisesEnrollCall{s: r.s, opt_: make(map[string]interface{})}
-	c.token = token
-	c.enterprise = enterprise
+	return &EnterprisesEnrollCall{
+		s:             r.s,
+		token:         token,
+		enterprise:    enterprise,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "enterprises/enroll",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *EnterprisesEnrollCall) Context(ctx context.Context) *EnterprisesEnrollCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2077,42 +2014,23 @@ func (r *EnterprisesService) Enroll(token string, enterprise *Enterprise) *Enter
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *EnterprisesEnrollCall) Fields(s ...googleapi.Field) *EnterprisesEnrollCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *EnterprisesEnrollCall) Do() (*Enterprise, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.enterprise)
-	if err != nil {
-		return nil, err
+	var returnValue *Enterprise
+	c.params_.Set("token", fmt.Sprintf("%v", c.token))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.enterprise,
+		Result:  &returnValue,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("token", fmt.Sprintf("%v", c.token))
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "enterprises/enroll")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Enterprise
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Enrolls an enterprise with the calling MDM.",
 	//   "httpMethod": "POST",
@@ -2145,15 +2063,28 @@ func (c *EnterprisesEnrollCall) Do() (*Enterprise, error) {
 // method id "androidenterprise.enterprises.get":
 
 type EnterprisesGetCall struct {
-	s            *Service
-	enterpriseId string
-	opt_         map[string]interface{}
+	s             *Service
+	enterpriseId  string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Retrieves the name and domain of an enterprise.
+
 func (r *EnterprisesService) Get(enterpriseId string) *EnterprisesGetCall {
-	c := &EnterprisesGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.enterpriseId = enterpriseId
+	return &EnterprisesGetCall{
+		s:             r.s,
+		enterpriseId:  enterpriseId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "enterprises/{enterpriseId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *EnterprisesGetCall) Context(ctx context.Context) *EnterprisesGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2161,37 +2092,23 @@ func (r *EnterprisesService) Get(enterpriseId string) *EnterprisesGetCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *EnterprisesGetCall) Fields(s ...googleapi.Field) *EnterprisesGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *EnterprisesGetCall) Do() (*Enterprise, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "enterprises/{enterpriseId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Enterprise
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"enterpriseId": c.enterpriseId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Enterprise
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves the name and domain of an enterprise.",
 	//   "httpMethod": "GET",
@@ -2221,18 +2138,31 @@ func (c *EnterprisesGetCall) Do() (*Enterprise, error) {
 // method id "androidenterprise.enterprises.insert":
 
 type EnterprisesInsertCall struct {
-	s          *Service
-	token      string
-	enterprise *Enterprise
-	opt_       map[string]interface{}
+	s             *Service
+	token         string
+	enterprise    *Enterprise
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Insert: Establishes the binding between the MDM and an enterprise.
 // This is now deprecated; use enroll instead.
+
 func (r *EnterprisesService) Insert(token string, enterprise *Enterprise) *EnterprisesInsertCall {
-	c := &EnterprisesInsertCall{s: r.s, opt_: make(map[string]interface{})}
-	c.token = token
-	c.enterprise = enterprise
+	return &EnterprisesInsertCall{
+		s:             r.s,
+		token:         token,
+		enterprise:    enterprise,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "enterprises",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *EnterprisesInsertCall) Context(ctx context.Context) *EnterprisesInsertCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2240,42 +2170,23 @@ func (r *EnterprisesService) Insert(token string, enterprise *Enterprise) *Enter
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *EnterprisesInsertCall) Fields(s ...googleapi.Field) *EnterprisesInsertCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *EnterprisesInsertCall) Do() (*Enterprise, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.enterprise)
-	if err != nil {
-		return nil, err
+	var returnValue *Enterprise
+	c.params_.Set("token", fmt.Sprintf("%v", c.token))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.enterprise,
+		Result:  &returnValue,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("token", fmt.Sprintf("%v", c.token))
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "enterprises")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Enterprise
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Establishes the binding between the MDM and an enterprise. This is now deprecated; use enroll instead.",
 	//   "httpMethod": "POST",
@@ -2308,15 +2219,28 @@ func (c *EnterprisesInsertCall) Do() (*Enterprise, error) {
 // method id "androidenterprise.enterprises.list":
 
 type EnterprisesListCall struct {
-	s      *Service
-	domain string
-	opt_   map[string]interface{}
+	s             *Service
+	domain        string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Looks up an enterprise by domain name.
+
 func (r *EnterprisesService) List(domain string) *EnterprisesListCall {
-	c := &EnterprisesListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.domain = domain
+	return &EnterprisesListCall{
+		s:             r.s,
+		domain:        domain,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "enterprises",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *EnterprisesListCall) Context(ctx context.Context) *EnterprisesListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2324,36 +2248,22 @@ func (r *EnterprisesService) List(domain string) *EnterprisesListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *EnterprisesListCall) Fields(s ...googleapi.Field) *EnterprisesListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *EnterprisesListCall) Do() (*EnterprisesListResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("domain", fmt.Sprintf("%v", c.domain))
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
+	var returnValue *EnterprisesListResponse
+	c.params_.Set("domain", fmt.Sprintf("%v", c.domain))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "enterprises")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *EnterprisesListResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Looks up an enterprise by domain name.",
 	//   "httpMethod": "GET",
@@ -2386,15 +2296,28 @@ type EnterprisesSetAccountCall struct {
 	s                 *Service
 	enterpriseId      string
 	enterpriseaccount *EnterpriseAccount
-	opt_              map[string]interface{}
+	caller_           googleapi.Caller
+	params_           url.Values
+	pathTemplate_     string
+	context_          context.Context
 }
 
 // SetAccount: Set the account that will be used to authenticate to the
 // API as the enterprise.
+
 func (r *EnterprisesService) SetAccount(enterpriseId string, enterpriseaccount *EnterpriseAccount) *EnterprisesSetAccountCall {
-	c := &EnterprisesSetAccountCall{s: r.s, opt_: make(map[string]interface{})}
-	c.enterpriseId = enterpriseId
-	c.enterpriseaccount = enterpriseaccount
+	return &EnterprisesSetAccountCall{
+		s:                 r.s,
+		enterpriseId:      enterpriseId,
+		enterpriseaccount: enterpriseaccount,
+		caller_:           googleapi.JSONCall{},
+		params_:           make(map[string][]string),
+		pathTemplate_:     "enterprises/{enterpriseId}/account",
+		context_:          googleapi.NoContext,
+	}
+}
+func (c *EnterprisesSetAccountCall) Context(ctx context.Context) *EnterprisesSetAccountCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2402,43 +2325,24 @@ func (r *EnterprisesService) SetAccount(enterpriseId string, enterpriseaccount *
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *EnterprisesSetAccountCall) Fields(s ...googleapi.Field) *EnterprisesSetAccountCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *EnterprisesSetAccountCall) Do() (*EnterpriseAccount, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.enterpriseaccount)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "enterprises/{enterpriseId}/account")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *EnterpriseAccount
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"enterpriseId": c.enterpriseId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.enterpriseaccount,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *EnterpriseAccount
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Set the account that will be used to authenticate to the API as the enterprise.",
 	//   "httpMethod": "PUT",
@@ -2471,49 +2375,42 @@ func (c *EnterprisesSetAccountCall) Do() (*EnterpriseAccount, error) {
 // method id "androidenterprise.enterprises.unenroll":
 
 type EnterprisesUnenrollCall struct {
-	s            *Service
-	enterpriseId string
-	opt_         map[string]interface{}
+	s             *Service
+	enterpriseId  string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Unenroll: Unenrolls an enterprise from the calling MDM.
-func (r *EnterprisesService) Unenroll(enterpriseId string) *EnterprisesUnenrollCall {
-	c := &EnterprisesUnenrollCall{s: r.s, opt_: make(map[string]interface{})}
-	c.enterpriseId = enterpriseId
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *EnterprisesUnenrollCall) Fields(s ...googleapi.Field) *EnterprisesUnenrollCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *EnterprisesService) Unenroll(enterpriseId string) *EnterprisesUnenrollCall {
+	return &EnterprisesUnenrollCall{
+		s:             r.s,
+		enterpriseId:  enterpriseId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "enterprises/{enterpriseId}/unenroll",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *EnterprisesUnenrollCall) Context(ctx context.Context) *EnterprisesUnenrollCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *EnterprisesUnenrollCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "enterprises/{enterpriseId}/unenroll")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"enterpriseId": c.enterpriseId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "POST",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Unenrolls an enterprise from the calling MDM.",
 	//   "httpMethod": "POST",
@@ -2544,52 +2441,45 @@ type EntitlementsDeleteCall struct {
 	enterpriseId  string
 	userId        string
 	entitlementId string
-	opt_          map[string]interface{}
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Delete: Removes an entitlement to an app for a user and uninstalls
 // it.
-func (r *EntitlementsService) Delete(enterpriseId string, userId string, entitlementId string) *EntitlementsDeleteCall {
-	c := &EntitlementsDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.enterpriseId = enterpriseId
-	c.userId = userId
-	c.entitlementId = entitlementId
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *EntitlementsDeleteCall) Fields(s ...googleapi.Field) *EntitlementsDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *EntitlementsService) Delete(enterpriseId string, userId string, entitlementId string) *EntitlementsDeleteCall {
+	return &EntitlementsDeleteCall{
+		s:             r.s,
+		enterpriseId:  enterpriseId,
+		userId:        userId,
+		entitlementId: entitlementId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "enterprises/{enterpriseId}/users/{userId}/entitlements/{entitlementId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *EntitlementsDeleteCall) Context(ctx context.Context) *EntitlementsDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *EntitlementsDeleteCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "enterprises/{enterpriseId}/users/{userId}/entitlements/{entitlementId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"enterpriseId":  c.enterpriseId,
 		"userId":        c.userId,
 		"entitlementId": c.entitlementId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Removes an entitlement to an app for a user and uninstalls it.",
 	//   "httpMethod": "DELETE",
@@ -2634,15 +2524,28 @@ type EntitlementsGetCall struct {
 	enterpriseId  string
 	userId        string
 	entitlementId string
-	opt_          map[string]interface{}
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Retrieves details of an entitlement.
+
 func (r *EntitlementsService) Get(enterpriseId string, userId string, entitlementId string) *EntitlementsGetCall {
-	c := &EntitlementsGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.enterpriseId = enterpriseId
-	c.userId = userId
-	c.entitlementId = entitlementId
+	return &EntitlementsGetCall{
+		s:             r.s,
+		enterpriseId:  enterpriseId,
+		userId:        userId,
+		entitlementId: entitlementId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "enterprises/{enterpriseId}/users/{userId}/entitlements/{entitlementId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *EntitlementsGetCall) Context(ctx context.Context) *EntitlementsGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2650,39 +2553,25 @@ func (r *EntitlementsService) Get(enterpriseId string, userId string, entitlemen
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *EntitlementsGetCall) Fields(s ...googleapi.Field) *EntitlementsGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *EntitlementsGetCall) Do() (*Entitlement, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "enterprises/{enterpriseId}/users/{userId}/entitlements/{entitlementId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Entitlement
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"enterpriseId":  c.enterpriseId,
 		"userId":        c.userId,
 		"entitlementId": c.entitlementId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Entitlement
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves details of an entitlement.",
 	//   "httpMethod": "GET",
@@ -2726,18 +2615,31 @@ func (c *EntitlementsGetCall) Do() (*Entitlement, error) {
 // method id "androidenterprise.entitlements.list":
 
 type EntitlementsListCall struct {
-	s            *Service
-	enterpriseId string
-	userId       string
-	opt_         map[string]interface{}
+	s             *Service
+	enterpriseId  string
+	userId        string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: List of all entitlements for the specified user. Only the ID is
 // set.
+
 func (r *EntitlementsService) List(enterpriseId string, userId string) *EntitlementsListCall {
-	c := &EntitlementsListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.enterpriseId = enterpriseId
-	c.userId = userId
+	return &EntitlementsListCall{
+		s:             r.s,
+		enterpriseId:  enterpriseId,
+		userId:        userId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "enterprises/{enterpriseId}/users/{userId}/entitlements",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *EntitlementsListCall) Context(ctx context.Context) *EntitlementsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2745,38 +2647,24 @@ func (r *EntitlementsService) List(enterpriseId string, userId string) *Entitlem
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *EntitlementsListCall) Fields(s ...googleapi.Field) *EntitlementsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *EntitlementsListCall) Do() (*EntitlementsListResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "enterprises/{enterpriseId}/users/{userId}/entitlements")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *EntitlementsListResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"enterpriseId": c.enterpriseId,
 		"userId":       c.userId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *EntitlementsListResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "List of all entitlements for the specified user. Only the ID is set.",
 	//   "httpMethod": "GET",
@@ -2818,18 +2706,27 @@ type EntitlementsPatchCall struct {
 	userId        string
 	entitlementId string
 	entitlement   *Entitlement
-	opt_          map[string]interface{}
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Patch: Adds or updates an entitlement to an app for a user. This
 // method supports patch semantics.
+
 func (r *EntitlementsService) Patch(enterpriseId string, userId string, entitlementId string, entitlement *Entitlement) *EntitlementsPatchCall {
-	c := &EntitlementsPatchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.enterpriseId = enterpriseId
-	c.userId = userId
-	c.entitlementId = entitlementId
-	c.entitlement = entitlement
-	return c
+	return &EntitlementsPatchCall{
+		s:             r.s,
+		enterpriseId:  enterpriseId,
+		userId:        userId,
+		entitlementId: entitlementId,
+		entitlement:   entitlement,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "enterprises/{enterpriseId}/users/{userId}/entitlements/{entitlementId}",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Install sets the optional parameter "install": Set to true to also
@@ -2838,7 +2735,11 @@ func (r *EntitlementsService) Patch(enterpriseId string, userId string, entitlem
 // from returning successfully, as long as the entitlement was
 // successfully assigned to the user.
 func (c *EntitlementsPatchCall) Install(install bool) *EntitlementsPatchCall {
-	c.opt_["install"] = install
+	c.params_.Set("install", fmt.Sprintf("%v", install))
+	return c
+}
+func (c *EntitlementsPatchCall) Context(ctx context.Context) *EntitlementsPatchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2846,48 +2747,26 @@ func (c *EntitlementsPatchCall) Install(install bool) *EntitlementsPatchCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *EntitlementsPatchCall) Fields(s ...googleapi.Field) *EntitlementsPatchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *EntitlementsPatchCall) Do() (*Entitlement, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.entitlement)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["install"]; ok {
-		params.Set("install", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "enterprises/{enterpriseId}/users/{userId}/entitlements/{entitlementId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PATCH", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Entitlement
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"enterpriseId":  c.enterpriseId,
 		"userId":        c.userId,
 		"entitlementId": c.entitlementId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PATCH",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.entitlement,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Entitlement
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Adds or updates an entitlement to an app for a user. This method supports patch semantics.",
 	//   "httpMethod": "PATCH",
@@ -2944,17 +2823,26 @@ type EntitlementsUpdateCall struct {
 	userId        string
 	entitlementId string
 	entitlement   *Entitlement
-	opt_          map[string]interface{}
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Update: Adds or updates an entitlement to an app for a user.
+
 func (r *EntitlementsService) Update(enterpriseId string, userId string, entitlementId string, entitlement *Entitlement) *EntitlementsUpdateCall {
-	c := &EntitlementsUpdateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.enterpriseId = enterpriseId
-	c.userId = userId
-	c.entitlementId = entitlementId
-	c.entitlement = entitlement
-	return c
+	return &EntitlementsUpdateCall{
+		s:             r.s,
+		enterpriseId:  enterpriseId,
+		userId:        userId,
+		entitlementId: entitlementId,
+		entitlement:   entitlement,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "enterprises/{enterpriseId}/users/{userId}/entitlements/{entitlementId}",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Install sets the optional parameter "install": Set to true to also
@@ -2963,7 +2851,11 @@ func (r *EntitlementsService) Update(enterpriseId string, userId string, entitle
 // from returning successfully, as long as the entitlement was
 // successfully assigned to the user.
 func (c *EntitlementsUpdateCall) Install(install bool) *EntitlementsUpdateCall {
-	c.opt_["install"] = install
+	c.params_.Set("install", fmt.Sprintf("%v", install))
+	return c
+}
+func (c *EntitlementsUpdateCall) Context(ctx context.Context) *EntitlementsUpdateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2971,48 +2863,26 @@ func (c *EntitlementsUpdateCall) Install(install bool) *EntitlementsUpdateCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *EntitlementsUpdateCall) Fields(s ...googleapi.Field) *EntitlementsUpdateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *EntitlementsUpdateCall) Do() (*Entitlement, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.entitlement)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["install"]; ok {
-		params.Set("install", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "enterprises/{enterpriseId}/users/{userId}/entitlements/{entitlementId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Entitlement
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"enterpriseId":  c.enterpriseId,
 		"userId":        c.userId,
 		"entitlementId": c.entitlementId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.entitlement,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Entitlement
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Adds or updates an entitlement to an app for a user.",
 	//   "httpMethod": "PUT",
@@ -3067,15 +2937,28 @@ type GrouplicensesGetCall struct {
 	s              *Service
 	enterpriseId   string
 	groupLicenseId string
-	opt_           map[string]interface{}
+	caller_        googleapi.Caller
+	params_        url.Values
+	pathTemplate_  string
+	context_       context.Context
 }
 
 // Get: Retrieves details of an enterprise's group license for a
 // product.
+
 func (r *GrouplicensesService) Get(enterpriseId string, groupLicenseId string) *GrouplicensesGetCall {
-	c := &GrouplicensesGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.enterpriseId = enterpriseId
-	c.groupLicenseId = groupLicenseId
+	return &GrouplicensesGetCall{
+		s:              r.s,
+		enterpriseId:   enterpriseId,
+		groupLicenseId: groupLicenseId,
+		caller_:        googleapi.JSONCall{},
+		params_:        make(map[string][]string),
+		pathTemplate_:  "enterprises/{enterpriseId}/groupLicenses/{groupLicenseId}",
+		context_:       googleapi.NoContext,
+	}
+}
+func (c *GrouplicensesGetCall) Context(ctx context.Context) *GrouplicensesGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -3083,38 +2966,24 @@ func (r *GrouplicensesService) Get(enterpriseId string, groupLicenseId string) *
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *GrouplicensesGetCall) Fields(s ...googleapi.Field) *GrouplicensesGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *GrouplicensesGetCall) Do() (*GroupLicense, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "enterprises/{enterpriseId}/groupLicenses/{groupLicenseId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *GroupLicense
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"enterpriseId":   c.enterpriseId,
 		"groupLicenseId": c.groupLicenseId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *GroupLicense
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves details of an enterprise's group license for a product.",
 	//   "httpMethod": "GET",
@@ -3151,16 +3020,29 @@ func (c *GrouplicensesGetCall) Do() (*GroupLicense, error) {
 // method id "androidenterprise.grouplicenses.list":
 
 type GrouplicensesListCall struct {
-	s            *Service
-	enterpriseId string
-	opt_         map[string]interface{}
+	s             *Service
+	enterpriseId  string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Retrieves IDs of all products for which the enterprise has a
 // group license.
+
 func (r *GrouplicensesService) List(enterpriseId string) *GrouplicensesListCall {
-	c := &GrouplicensesListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.enterpriseId = enterpriseId
+	return &GrouplicensesListCall{
+		s:             r.s,
+		enterpriseId:  enterpriseId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "enterprises/{enterpriseId}/groupLicenses",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *GrouplicensesListCall) Context(ctx context.Context) *GrouplicensesListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -3168,37 +3050,23 @@ func (r *GrouplicensesService) List(enterpriseId string) *GrouplicensesListCall 
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *GrouplicensesListCall) Fields(s ...googleapi.Field) *GrouplicensesListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *GrouplicensesListCall) Do() (*GroupLicensesListResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "enterprises/{enterpriseId}/groupLicenses")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *GroupLicensesListResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"enterpriseId": c.enterpriseId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *GroupLicensesListResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves IDs of all products for which the enterprise has a group license.",
 	//   "httpMethod": "GET",
@@ -3231,15 +3099,28 @@ type GrouplicenseusersListCall struct {
 	s              *Service
 	enterpriseId   string
 	groupLicenseId string
-	opt_           map[string]interface{}
+	caller_        googleapi.Caller
+	params_        url.Values
+	pathTemplate_  string
+	context_       context.Context
 }
 
 // List: Retrieves the IDs of the users who have been granted
 // entitlements under the license.
+
 func (r *GrouplicenseusersService) List(enterpriseId string, groupLicenseId string) *GrouplicenseusersListCall {
-	c := &GrouplicenseusersListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.enterpriseId = enterpriseId
-	c.groupLicenseId = groupLicenseId
+	return &GrouplicenseusersListCall{
+		s:              r.s,
+		enterpriseId:   enterpriseId,
+		groupLicenseId: groupLicenseId,
+		caller_:        googleapi.JSONCall{},
+		params_:        make(map[string][]string),
+		pathTemplate_:  "enterprises/{enterpriseId}/groupLicenses/{groupLicenseId}/users",
+		context_:       googleapi.NoContext,
+	}
+}
+func (c *GrouplicenseusersListCall) Context(ctx context.Context) *GrouplicenseusersListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -3247,38 +3128,24 @@ func (r *GrouplicenseusersService) List(enterpriseId string, groupLicenseId stri
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *GrouplicenseusersListCall) Fields(s ...googleapi.Field) *GrouplicenseusersListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *GrouplicenseusersListCall) Do() (*GroupLicenseUsersListResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "enterprises/{enterpriseId}/groupLicenses/{groupLicenseId}/users")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *GroupLicenseUsersListResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"enterpriseId":   c.enterpriseId,
 		"groupLicenseId": c.groupLicenseId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *GroupLicenseUsersListResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves the IDs of the users who have been granted entitlements under the license.",
 	//   "httpMethod": "GET",
@@ -3315,60 +3182,53 @@ func (c *GrouplicenseusersListCall) Do() (*GroupLicenseUsersListResponse, error)
 // method id "androidenterprise.installs.delete":
 
 type InstallsDeleteCall struct {
-	s            *Service
-	enterpriseId string
-	userId       string
-	deviceId     string
-	installId    string
-	opt_         map[string]interface{}
+	s             *Service
+	enterpriseId  string
+	userId        string
+	deviceId      string
+	installId     string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Delete: Requests to remove an app from a device. A call to get or
 // list will still show the app as installed on the device until it is
 // actually removed.
-func (r *InstallsService) Delete(enterpriseId string, userId string, deviceId string, installId string) *InstallsDeleteCall {
-	c := &InstallsDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.enterpriseId = enterpriseId
-	c.userId = userId
-	c.deviceId = deviceId
-	c.installId = installId
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *InstallsDeleteCall) Fields(s ...googleapi.Field) *InstallsDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *InstallsService) Delete(enterpriseId string, userId string, deviceId string, installId string) *InstallsDeleteCall {
+	return &InstallsDeleteCall{
+		s:             r.s,
+		enterpriseId:  enterpriseId,
+		userId:        userId,
+		deviceId:      deviceId,
+		installId:     installId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "enterprises/{enterpriseId}/users/{userId}/devices/{deviceId}/installs/{installId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *InstallsDeleteCall) Context(ctx context.Context) *InstallsDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *InstallsDeleteCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "enterprises/{enterpriseId}/users/{userId}/devices/{deviceId}/installs/{installId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"enterpriseId": c.enterpriseId,
 		"userId":       c.userId,
 		"deviceId":     c.deviceId,
 		"installId":    c.installId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Requests to remove an app from a device. A call to get or list will still show the app as installed on the device until it is actually removed.",
 	//   "httpMethod": "DELETE",
@@ -3416,21 +3276,34 @@ func (c *InstallsDeleteCall) Do() error {
 // method id "androidenterprise.installs.get":
 
 type InstallsGetCall struct {
-	s            *Service
-	enterpriseId string
-	userId       string
-	deviceId     string
-	installId    string
-	opt_         map[string]interface{}
+	s             *Service
+	enterpriseId  string
+	userId        string
+	deviceId      string
+	installId     string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Retrieves details of an installation of an app on a device.
+
 func (r *InstallsService) Get(enterpriseId string, userId string, deviceId string, installId string) *InstallsGetCall {
-	c := &InstallsGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.enterpriseId = enterpriseId
-	c.userId = userId
-	c.deviceId = deviceId
-	c.installId = installId
+	return &InstallsGetCall{
+		s:             r.s,
+		enterpriseId:  enterpriseId,
+		userId:        userId,
+		deviceId:      deviceId,
+		installId:     installId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "enterprises/{enterpriseId}/users/{userId}/devices/{deviceId}/installs/{installId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *InstallsGetCall) Context(ctx context.Context) *InstallsGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -3438,40 +3311,26 @@ func (r *InstallsService) Get(enterpriseId string, userId string, deviceId strin
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *InstallsGetCall) Fields(s ...googleapi.Field) *InstallsGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *InstallsGetCall) Do() (*Install, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "enterprises/{enterpriseId}/users/{userId}/devices/{deviceId}/installs/{installId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Install
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"enterpriseId": c.enterpriseId,
 		"userId":       c.userId,
 		"deviceId":     c.deviceId,
 		"installId":    c.installId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Install
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves details of an installation of an app on a device.",
 	//   "httpMethod": "GET",
@@ -3522,20 +3381,33 @@ func (c *InstallsGetCall) Do() (*Install, error) {
 // method id "androidenterprise.installs.list":
 
 type InstallsListCall struct {
-	s            *Service
-	enterpriseId string
-	userId       string
-	deviceId     string
-	opt_         map[string]interface{}
+	s             *Service
+	enterpriseId  string
+	userId        string
+	deviceId      string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Retrieves the details of all apps installed on the specified
 // device.
+
 func (r *InstallsService) List(enterpriseId string, userId string, deviceId string) *InstallsListCall {
-	c := &InstallsListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.enterpriseId = enterpriseId
-	c.userId = userId
-	c.deviceId = deviceId
+	return &InstallsListCall{
+		s:             r.s,
+		enterpriseId:  enterpriseId,
+		userId:        userId,
+		deviceId:      deviceId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "enterprises/{enterpriseId}/users/{userId}/devices/{deviceId}/installs",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *InstallsListCall) Context(ctx context.Context) *InstallsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -3543,39 +3415,25 @@ func (r *InstallsService) List(enterpriseId string, userId string, deviceId stri
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *InstallsListCall) Fields(s ...googleapi.Field) *InstallsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *InstallsListCall) Do() (*InstallsListResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "enterprises/{enterpriseId}/users/{userId}/devices/{deviceId}/installs")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *InstallsListResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"enterpriseId": c.enterpriseId,
 		"userId":       c.userId,
 		"deviceId":     c.deviceId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *InstallsListResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves the details of all apps installed on the specified device.",
 	//   "httpMethod": "GET",
@@ -3619,25 +3477,38 @@ func (c *InstallsListCall) Do() (*InstallsListResponse, error) {
 // method id "androidenterprise.installs.patch":
 
 type InstallsPatchCall struct {
-	s            *Service
-	enterpriseId string
-	userId       string
-	deviceId     string
-	installId    string
-	install      *Install
-	opt_         map[string]interface{}
+	s             *Service
+	enterpriseId  string
+	userId        string
+	deviceId      string
+	installId     string
+	install       *Install
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Patch: Requests to install the latest version of an app to a device.
 // If the app is already installed then it is updated to the latest
 // version if necessary. This method supports patch semantics.
+
 func (r *InstallsService) Patch(enterpriseId string, userId string, deviceId string, installId string, install *Install) *InstallsPatchCall {
-	c := &InstallsPatchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.enterpriseId = enterpriseId
-	c.userId = userId
-	c.deviceId = deviceId
-	c.installId = installId
-	c.install = install
+	return &InstallsPatchCall{
+		s:             r.s,
+		enterpriseId:  enterpriseId,
+		userId:        userId,
+		deviceId:      deviceId,
+		installId:     installId,
+		install:       install,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "enterprises/{enterpriseId}/users/{userId}/devices/{deviceId}/installs/{installId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *InstallsPatchCall) Context(ctx context.Context) *InstallsPatchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -3645,46 +3516,27 @@ func (r *InstallsService) Patch(enterpriseId string, userId string, deviceId str
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *InstallsPatchCall) Fields(s ...googleapi.Field) *InstallsPatchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *InstallsPatchCall) Do() (*Install, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.install)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "enterprises/{enterpriseId}/users/{userId}/devices/{deviceId}/installs/{installId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PATCH", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Install
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"enterpriseId": c.enterpriseId,
 		"userId":       c.userId,
 		"deviceId":     c.deviceId,
 		"installId":    c.installId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PATCH",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.install,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Install
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Requests to install the latest version of an app to a device. If the app is already installed then it is updated to the latest version if necessary. This method supports patch semantics.",
 	//   "httpMethod": "PATCH",
@@ -3738,25 +3590,38 @@ func (c *InstallsPatchCall) Do() (*Install, error) {
 // method id "androidenterprise.installs.update":
 
 type InstallsUpdateCall struct {
-	s            *Service
-	enterpriseId string
-	userId       string
-	deviceId     string
-	installId    string
-	install      *Install
-	opt_         map[string]interface{}
+	s             *Service
+	enterpriseId  string
+	userId        string
+	deviceId      string
+	installId     string
+	install       *Install
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Update: Requests to install the latest version of an app to a device.
 // If the app is already installed then it is updated to the latest
 // version if necessary.
+
 func (r *InstallsService) Update(enterpriseId string, userId string, deviceId string, installId string, install *Install) *InstallsUpdateCall {
-	c := &InstallsUpdateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.enterpriseId = enterpriseId
-	c.userId = userId
-	c.deviceId = deviceId
-	c.installId = installId
-	c.install = install
+	return &InstallsUpdateCall{
+		s:             r.s,
+		enterpriseId:  enterpriseId,
+		userId:        userId,
+		deviceId:      deviceId,
+		installId:     installId,
+		install:       install,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "enterprises/{enterpriseId}/users/{userId}/devices/{deviceId}/installs/{installId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *InstallsUpdateCall) Context(ctx context.Context) *InstallsUpdateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -3764,46 +3629,27 @@ func (r *InstallsService) Update(enterpriseId string, userId string, deviceId st
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *InstallsUpdateCall) Fields(s ...googleapi.Field) *InstallsUpdateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *InstallsUpdateCall) Do() (*Install, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.install)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "enterprises/{enterpriseId}/users/{userId}/devices/{deviceId}/installs/{installId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Install
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"enterpriseId": c.enterpriseId,
 		"userId":       c.userId,
 		"deviceId":     c.deviceId,
 		"installId":    c.installId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.install,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Install
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Requests to install the latest version of an app to a device. If the app is already installed then it is updated to the latest version if necessary.",
 	//   "httpMethod": "PUT",
@@ -3857,23 +3703,36 @@ func (c *InstallsUpdateCall) Do() (*Install, error) {
 // method id "androidenterprise.permissions.get":
 
 type PermissionsGetCall struct {
-	s            *Service
-	permissionId string
-	opt_         map[string]interface{}
+	s             *Service
+	permissionId  string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Retrieves details of an Android app permission for display to an
 // enterprise admin.
+
 func (r *PermissionsService) Get(permissionId string) *PermissionsGetCall {
-	c := &PermissionsGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.permissionId = permissionId
-	return c
+	return &PermissionsGetCall{
+		s:             r.s,
+		permissionId:  permissionId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "permissions/{permissionId}",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Language sets the optional parameter "language": The BCP47 tag for
 // the user's preferred language (e.g. "en-US", "de")
 func (c *PermissionsGetCall) Language(language string) *PermissionsGetCall {
-	c.opt_["language"] = language
+	c.params_.Set("language", fmt.Sprintf("%v", language))
+	return c
+}
+func (c *PermissionsGetCall) Context(ctx context.Context) *PermissionsGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -3881,40 +3740,23 @@ func (c *PermissionsGetCall) Language(language string) *PermissionsGetCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *PermissionsGetCall) Fields(s ...googleapi.Field) *PermissionsGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *PermissionsGetCall) Do() (*Permission, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["language"]; ok {
-		params.Set("language", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "permissions/{permissionId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Permission
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"permissionId": c.permissionId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Permission
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves details of an Android app permission for display to an enterprise admin.",
 	//   "httpMethod": "GET",
@@ -3949,25 +3791,38 @@ func (c *PermissionsGetCall) Do() (*Permission, error) {
 // method id "androidenterprise.products.get":
 
 type ProductsGetCall struct {
-	s            *Service
-	enterpriseId string
-	productId    string
-	opt_         map[string]interface{}
+	s             *Service
+	enterpriseId  string
+	productId     string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Retrieves details of a product for display to an enterprise
 // admin.
+
 func (r *ProductsService) Get(enterpriseId string, productId string) *ProductsGetCall {
-	c := &ProductsGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.enterpriseId = enterpriseId
-	c.productId = productId
-	return c
+	return &ProductsGetCall{
+		s:             r.s,
+		enterpriseId:  enterpriseId,
+		productId:     productId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "enterprises/{enterpriseId}/products/{productId}",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Language sets the optional parameter "language": The BCP47 tag for
 // the user's preferred language (e.g. "en-US", "de").
 func (c *ProductsGetCall) Language(language string) *ProductsGetCall {
-	c.opt_["language"] = language
+	c.params_.Set("language", fmt.Sprintf("%v", language))
+	return c
+}
+func (c *ProductsGetCall) Context(ctx context.Context) *ProductsGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -3975,41 +3830,24 @@ func (c *ProductsGetCall) Language(language string) *ProductsGetCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ProductsGetCall) Fields(s ...googleapi.Field) *ProductsGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ProductsGetCall) Do() (*Product, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["language"]; ok {
-		params.Set("language", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "enterprises/{enterpriseId}/products/{productId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Product
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"enterpriseId": c.enterpriseId,
 		"productId":    c.productId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Product
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves details of a product for display to an enterprise admin.",
 	//   "httpMethod": "GET",
@@ -4051,26 +3889,39 @@ func (c *ProductsGetCall) Do() (*Product, error) {
 // method id "androidenterprise.products.getAppRestrictionsSchema":
 
 type ProductsGetAppRestrictionsSchemaCall struct {
-	s            *Service
-	enterpriseId string
-	productId    string
-	opt_         map[string]interface{}
+	s             *Service
+	enterpriseId  string
+	productId     string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // GetAppRestrictionsSchema: Retrieves the schema defining app
 // restrictions configurable for this product. All products have a
 // schema, but this may be empty if no app restrictions are defined.
+
 func (r *ProductsService) GetAppRestrictionsSchema(enterpriseId string, productId string) *ProductsGetAppRestrictionsSchemaCall {
-	c := &ProductsGetAppRestrictionsSchemaCall{s: r.s, opt_: make(map[string]interface{})}
-	c.enterpriseId = enterpriseId
-	c.productId = productId
-	return c
+	return &ProductsGetAppRestrictionsSchemaCall{
+		s:             r.s,
+		enterpriseId:  enterpriseId,
+		productId:     productId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "enterprises/{enterpriseId}/products/{productId}/appRestrictionsSchema",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Language sets the optional parameter "language": The BCP47 tag for
 // the user's preferred language (e.g. "en-US", "de").
 func (c *ProductsGetAppRestrictionsSchemaCall) Language(language string) *ProductsGetAppRestrictionsSchemaCall {
-	c.opt_["language"] = language
+	c.params_.Set("language", fmt.Sprintf("%v", language))
+	return c
+}
+func (c *ProductsGetAppRestrictionsSchemaCall) Context(ctx context.Context) *ProductsGetAppRestrictionsSchemaCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -4078,41 +3929,24 @@ func (c *ProductsGetAppRestrictionsSchemaCall) Language(language string) *Produc
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ProductsGetAppRestrictionsSchemaCall) Fields(s ...googleapi.Field) *ProductsGetAppRestrictionsSchemaCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ProductsGetAppRestrictionsSchemaCall) Do() (*AppRestrictionsSchema, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["language"]; ok {
-		params.Set("language", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "enterprises/{enterpriseId}/products/{productId}/appRestrictionsSchema")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *AppRestrictionsSchema
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"enterpriseId": c.enterpriseId,
 		"productId":    c.productId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *AppRestrictionsSchema
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves the schema defining app restrictions configurable for this product. All products have a schema, but this may be empty if no app restrictions are defined.",
 	//   "httpMethod": "GET",
@@ -4154,18 +3988,31 @@ func (c *ProductsGetAppRestrictionsSchemaCall) Do() (*AppRestrictionsSchema, err
 // method id "androidenterprise.products.getPermissions":
 
 type ProductsGetPermissionsCall struct {
-	s            *Service
-	enterpriseId string
-	productId    string
-	opt_         map[string]interface{}
+	s             *Service
+	enterpriseId  string
+	productId     string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // GetPermissions: Retrieves the Android app permissions required by
 // this app.
+
 func (r *ProductsService) GetPermissions(enterpriseId string, productId string) *ProductsGetPermissionsCall {
-	c := &ProductsGetPermissionsCall{s: r.s, opt_: make(map[string]interface{})}
-	c.enterpriseId = enterpriseId
-	c.productId = productId
+	return &ProductsGetPermissionsCall{
+		s:             r.s,
+		enterpriseId:  enterpriseId,
+		productId:     productId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "enterprises/{enterpriseId}/products/{productId}/permissions",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *ProductsGetPermissionsCall) Context(ctx context.Context) *ProductsGetPermissionsCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -4173,38 +4020,24 @@ func (r *ProductsService) GetPermissions(enterpriseId string, productId string) 
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ProductsGetPermissionsCall) Fields(s ...googleapi.Field) *ProductsGetPermissionsCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ProductsGetPermissionsCall) Do() (*ProductPermissions, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "enterprises/{enterpriseId}/products/{productId}/permissions")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *ProductPermissions
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"enterpriseId": c.enterpriseId,
 		"productId":    c.productId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ProductPermissions
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves the Android app permissions required by this app.",
 	//   "httpMethod": "GET",
@@ -4245,16 +4078,29 @@ type ProductsUpdatePermissionsCall struct {
 	enterpriseId       string
 	productId          string
 	productpermissions *ProductPermissions
-	opt_               map[string]interface{}
+	caller_            googleapi.Caller
+	params_            url.Values
+	pathTemplate_      string
+	context_           context.Context
 }
 
 // UpdatePermissions: Updates the set of Android app permissions for
 // this app that have been accepted by the enterprise.
+
 func (r *ProductsService) UpdatePermissions(enterpriseId string, productId string, productpermissions *ProductPermissions) *ProductsUpdatePermissionsCall {
-	c := &ProductsUpdatePermissionsCall{s: r.s, opt_: make(map[string]interface{})}
-	c.enterpriseId = enterpriseId
-	c.productId = productId
-	c.productpermissions = productpermissions
+	return &ProductsUpdatePermissionsCall{
+		s:                  r.s,
+		enterpriseId:       enterpriseId,
+		productId:          productId,
+		productpermissions: productpermissions,
+		caller_:            googleapi.JSONCall{},
+		params_:            make(map[string][]string),
+		pathTemplate_:      "enterprises/{enterpriseId}/products/{productId}/permissions",
+		context_:           googleapi.NoContext,
+	}
+}
+func (c *ProductsUpdatePermissionsCall) Context(ctx context.Context) *ProductsUpdatePermissionsCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -4262,44 +4108,25 @@ func (r *ProductsService) UpdatePermissions(enterpriseId string, productId strin
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ProductsUpdatePermissionsCall) Fields(s ...googleapi.Field) *ProductsUpdatePermissionsCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ProductsUpdatePermissionsCall) Do() (*ProductPermissions, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.productpermissions)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "enterprises/{enterpriseId}/products/{productId}/permissions")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *ProductPermissions
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"enterpriseId": c.enterpriseId,
 		"productId":    c.productId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.productpermissions,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ProductPermissions
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates the set of Android app permissions for this app that have been accepted by the enterprise.",
 	//   "httpMethod": "PUT",
@@ -4339,19 +4166,32 @@ func (c *ProductsUpdatePermissionsCall) Do() (*ProductPermissions, error) {
 // method id "androidenterprise.users.generateToken":
 
 type UsersGenerateTokenCall struct {
-	s            *Service
-	enterpriseId string
-	userId       string
-	opt_         map[string]interface{}
+	s             *Service
+	enterpriseId  string
+	userId        string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // GenerateToken: Generates a token (activation code) to allow this user
 // to configure their work account in the Android Setup Wizard. Revokes
 // any previously generated token.
+
 func (r *UsersService) GenerateToken(enterpriseId string, userId string) *UsersGenerateTokenCall {
-	c := &UsersGenerateTokenCall{s: r.s, opt_: make(map[string]interface{})}
-	c.enterpriseId = enterpriseId
-	c.userId = userId
+	return &UsersGenerateTokenCall{
+		s:             r.s,
+		enterpriseId:  enterpriseId,
+		userId:        userId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "enterprises/{enterpriseId}/users/{userId}/token",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *UsersGenerateTokenCall) Context(ctx context.Context) *UsersGenerateTokenCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -4359,38 +4199,24 @@ func (r *UsersService) GenerateToken(enterpriseId string, userId string) *UsersG
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *UsersGenerateTokenCall) Fields(s ...googleapi.Field) *UsersGenerateTokenCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *UsersGenerateTokenCall) Do() (*UserToken, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "enterprises/{enterpriseId}/users/{userId}/token")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *UserToken
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"enterpriseId": c.enterpriseId,
 		"userId":       c.userId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "POST",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *UserToken
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Generates a token (activation code) to allow this user to configure their work account in the Android Setup Wizard. Revokes any previously generated token.",
 	//   "httpMethod": "POST",
@@ -4427,17 +4253,30 @@ func (c *UsersGenerateTokenCall) Do() (*UserToken, error) {
 // method id "androidenterprise.users.get":
 
 type UsersGetCall struct {
-	s            *Service
-	enterpriseId string
-	userId       string
-	opt_         map[string]interface{}
+	s             *Service
+	enterpriseId  string
+	userId        string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Retrieves a user's details.
+
 func (r *UsersService) Get(enterpriseId string, userId string) *UsersGetCall {
-	c := &UsersGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.enterpriseId = enterpriseId
-	c.userId = userId
+	return &UsersGetCall{
+		s:             r.s,
+		enterpriseId:  enterpriseId,
+		userId:        userId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "enterprises/{enterpriseId}/users/{userId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *UsersGetCall) Context(ctx context.Context) *UsersGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -4445,38 +4284,24 @@ func (r *UsersService) Get(enterpriseId string, userId string) *UsersGetCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *UsersGetCall) Fields(s ...googleapi.Field) *UsersGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *UsersGetCall) Do() (*User, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "enterprises/{enterpriseId}/users/{userId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *User
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"enterpriseId": c.enterpriseId,
 		"userId":       c.userId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *User
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves a user's details.",
 	//   "httpMethod": "GET",
@@ -4513,17 +4338,30 @@ func (c *UsersGetCall) Do() (*User, error) {
 // method id "androidenterprise.users.list":
 
 type UsersListCall struct {
-	s            *Service
-	enterpriseId string
-	email        string
-	opt_         map[string]interface{}
+	s             *Service
+	enterpriseId  string
+	email         string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Looks up a user by email address.
+
 func (r *UsersService) List(enterpriseId string, email string) *UsersListCall {
-	c := &UsersListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.enterpriseId = enterpriseId
-	c.email = email
+	return &UsersListCall{
+		s:             r.s,
+		enterpriseId:  enterpriseId,
+		email:         email,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "enterprises/{enterpriseId}/users",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *UsersListCall) Context(ctx context.Context) *UsersListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -4531,38 +4369,24 @@ func (r *UsersService) List(enterpriseId string, email string) *UsersListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *UsersListCall) Fields(s ...googleapi.Field) *UsersListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *UsersListCall) Do() (*UsersListResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("email", fmt.Sprintf("%v", c.email))
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "enterprises/{enterpriseId}/users")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *UsersListResponse
+	c.params_.Set("email", fmt.Sprintf("%v", c.email))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"enterpriseId": c.enterpriseId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *UsersListResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Looks up a user by email address.",
 	//   "httpMethod": "GET",
@@ -4599,53 +4423,46 @@ func (c *UsersListCall) Do() (*UsersListResponse, error) {
 // method id "androidenterprise.users.revokeToken":
 
 type UsersRevokeTokenCall struct {
-	s            *Service
-	enterpriseId string
-	userId       string
-	opt_         map[string]interface{}
+	s             *Service
+	enterpriseId  string
+	userId        string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // RevokeToken: Revokes a previously generated token (activation code)
 // for the user.
-func (r *UsersService) RevokeToken(enterpriseId string, userId string) *UsersRevokeTokenCall {
-	c := &UsersRevokeTokenCall{s: r.s, opt_: make(map[string]interface{})}
-	c.enterpriseId = enterpriseId
-	c.userId = userId
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *UsersRevokeTokenCall) Fields(s ...googleapi.Field) *UsersRevokeTokenCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *UsersService) RevokeToken(enterpriseId string, userId string) *UsersRevokeTokenCall {
+	return &UsersRevokeTokenCall{
+		s:             r.s,
+		enterpriseId:  enterpriseId,
+		userId:        userId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "enterprises/{enterpriseId}/users/{userId}/token",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *UsersRevokeTokenCall) Context(ctx context.Context) *UsersRevokeTokenCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *UsersRevokeTokenCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "enterprises/{enterpriseId}/users/{userId}/token")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"enterpriseId": c.enterpriseId,
 		"userId":       c.userId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Revokes a previously generated token (activation code) for the user.",
 	//   "httpMethod": "DELETE",

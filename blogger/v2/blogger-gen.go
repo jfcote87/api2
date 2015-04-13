@@ -4,18 +4,16 @@
 //
 // Usage example:
 //
-//   import "google.golang.org/api/blogger/v2"
+//   import "github.com/jfcote87/api2/blogger/v2"
 //   ...
 //   bloggerService, err := blogger.New(oauthHttpClient)
 package blogger
 
 import (
-	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/jfcote87/api2/googleapi"
 	"golang.org/x/net/context"
-	"google.golang.org/api/googleapi"
 	"io"
 	"net/http"
 	"net/url"
@@ -25,10 +23,8 @@ import (
 
 // Always reference these packages, just in case the auto-generated code
 // below doesn't.
-var _ = bytes.NewBuffer
 var _ = strconv.Itoa
 var _ = fmt.Sprintf
-var _ = json.NewDecoder
 var _ = io.Copy
 var _ = url.Parse
 var _ = googleapi.Version
@@ -39,7 +35,8 @@ var _ = context.Background
 const apiId = "blogger:v2"
 const apiName = "blogger"
 const apiVersion = "v2"
-const basePath = "https://www.googleapis.com/blogger/v2/"
+
+var baseURL *url.URL = &url.URL{Scheme: "https", Host: "www.googleapis.com", Path: "/blogger/v2/"}
 
 // OAuth2 scopes used by this API.
 const (
@@ -51,7 +48,7 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
+	s := &Service{client: client}
 	s.Blogs = NewBlogsService(s)
 	s.Comments = NewCommentsService(s)
 	s.Pages = NewPagesService(s)
@@ -61,9 +58,7 @@ func New(client *http.Client) (*Service, error) {
 }
 
 type Service struct {
-	client    *http.Client
-	BasePath  string // API endpoint base URL
-	UserAgent string // optional additional User-Agent fragment
+	client *http.Client
 
 	Blogs *BlogsService
 
@@ -74,13 +69,6 @@ type Service struct {
 	Posts *PostsService
 
 	Users *UsersService
-}
-
-func (s *Service) userAgent() string {
-	if s.UserAgent == "" {
-		return googleapi.UserAgent
-	}
-	return googleapi.UserAgent + " " + s.UserAgent
 }
 
 func NewBlogsService(s *Service) *BlogsService {
@@ -494,15 +482,28 @@ type UserLocale struct {
 // method id "blogger.blogs.get":
 
 type BlogsGetCall struct {
-	s      *Service
-	blogId string
-	opt_   map[string]interface{}
+	s             *Service
+	blogId        string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Gets one blog by id.
+
 func (r *BlogsService) Get(blogId string) *BlogsGetCall {
-	c := &BlogsGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.blogId = blogId
+	return &BlogsGetCall{
+		s:             r.s,
+		blogId:        blogId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "blogs/{blogId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *BlogsGetCall) Context(ctx context.Context) *BlogsGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -510,37 +511,23 @@ func (r *BlogsService) Get(blogId string) *BlogsGetCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *BlogsGetCall) Fields(s ...googleapi.Field) *BlogsGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *BlogsGetCall) Do() (*Blog, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "blogs/{blogId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Blog
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"blogId": c.blogId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Blog
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Gets one blog by id.",
 	//   "httpMethod": "GET",
@@ -570,19 +557,32 @@ func (c *BlogsGetCall) Do() (*Blog, error) {
 // method id "blogger.comments.get":
 
 type CommentsGetCall struct {
-	s         *Service
-	blogId    string
-	postId    string
-	commentId string
-	opt_      map[string]interface{}
+	s             *Service
+	blogId        string
+	postId        string
+	commentId     string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Gets one comment by id.
+
 func (r *CommentsService) Get(blogId string, postId string, commentId string) *CommentsGetCall {
-	c := &CommentsGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.blogId = blogId
-	c.postId = postId
-	c.commentId = commentId
+	return &CommentsGetCall{
+		s:             r.s,
+		blogId:        blogId,
+		postId:        postId,
+		commentId:     commentId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "blogs/{blogId}/posts/{postId}/comments/{commentId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *CommentsGetCall) Context(ctx context.Context) *CommentsGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -590,39 +590,25 @@ func (r *CommentsService) Get(blogId string, postId string, commentId string) *C
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *CommentsGetCall) Fields(s ...googleapi.Field) *CommentsGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *CommentsGetCall) Do() (*Comment, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "blogs/{blogId}/posts/{postId}/comments/{commentId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Comment
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"blogId":    c.blogId,
 		"postId":    c.postId,
 		"commentId": c.commentId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Comment
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Gets one comment by id.",
 	//   "httpMethod": "GET",
@@ -666,45 +652,58 @@ func (c *CommentsGetCall) Do() (*Comment, error) {
 // method id "blogger.comments.list":
 
 type CommentsListCall struct {
-	s      *Service
-	blogId string
-	postId string
-	opt_   map[string]interface{}
+	s             *Service
+	blogId        string
+	postId        string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Retrieves the comments for a blog, possibly filtered.
+
 func (r *CommentsService) List(blogId string, postId string) *CommentsListCall {
-	c := &CommentsListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.blogId = blogId
-	c.postId = postId
-	return c
+	return &CommentsListCall{
+		s:             r.s,
+		blogId:        blogId,
+		postId:        postId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "blogs/{blogId}/posts/{postId}/comments",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // FetchBodies sets the optional parameter "fetchBodies": Whether the
 // body content of the comments is included.
 func (c *CommentsListCall) FetchBodies(fetchBodies bool) *CommentsListCall {
-	c.opt_["fetchBodies"] = fetchBodies
+	c.params_.Set("fetchBodies", fmt.Sprintf("%v", fetchBodies))
 	return c
 }
 
 // MaxResults sets the optional parameter "maxResults": Maximum number
 // of comments to include in the result.
 func (c *CommentsListCall) MaxResults(maxResults int64) *CommentsListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
 // PageToken sets the optional parameter "pageToken": Continuation token
 // if request is paged.
 func (c *CommentsListCall) PageToken(pageToken string) *CommentsListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
 	return c
 }
 
 // StartDate sets the optional parameter "startDate": Earliest date of
 // comment to fetch, a date-time with RFC 3339 formatting.
 func (c *CommentsListCall) StartDate(startDate string) *CommentsListCall {
-	c.opt_["startDate"] = startDate
+	c.params_.Set("startDate", fmt.Sprintf("%v", startDate))
+	return c
+}
+func (c *CommentsListCall) Context(ctx context.Context) *CommentsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -712,50 +711,24 @@ func (c *CommentsListCall) StartDate(startDate string) *CommentsListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *CommentsListCall) Fields(s ...googleapi.Field) *CommentsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *CommentsListCall) Do() (*CommentList, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fetchBodies"]; ok {
-		params.Set("fetchBodies", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["startDate"]; ok {
-		params.Set("startDate", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "blogs/{blogId}/posts/{postId}/comments")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *CommentList
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"blogId": c.blogId,
 		"postId": c.postId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *CommentList
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves the comments for a blog, possibly filtered.",
 	//   "httpMethod": "GET",
@@ -814,17 +787,30 @@ func (c *CommentsListCall) Do() (*CommentList, error) {
 // method id "blogger.pages.get":
 
 type PagesGetCall struct {
-	s      *Service
-	blogId string
-	pageId string
-	opt_   map[string]interface{}
+	s             *Service
+	blogId        string
+	pageId        string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Gets one blog page by id.
+
 func (r *PagesService) Get(blogId string, pageId string) *PagesGetCall {
-	c := &PagesGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.blogId = blogId
-	c.pageId = pageId
+	return &PagesGetCall{
+		s:             r.s,
+		blogId:        blogId,
+		pageId:        pageId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "blogs/{blogId}/pages/{pageId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *PagesGetCall) Context(ctx context.Context) *PagesGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -832,38 +818,24 @@ func (r *PagesService) Get(blogId string, pageId string) *PagesGetCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *PagesGetCall) Fields(s ...googleapi.Field) *PagesGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *PagesGetCall) Do() (*Page, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "blogs/{blogId}/pages/{pageId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Page
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"blogId": c.blogId,
 		"pageId": c.pageId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Page
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Gets one blog page by id.",
 	//   "httpMethod": "GET",
@@ -900,22 +872,35 @@ func (c *PagesGetCall) Do() (*Page, error) {
 // method id "blogger.pages.list":
 
 type PagesListCall struct {
-	s      *Service
-	blogId string
-	opt_   map[string]interface{}
+	s             *Service
+	blogId        string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Retrieves pages for a blog, possibly filtered.
+
 func (r *PagesService) List(blogId string) *PagesListCall {
-	c := &PagesListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.blogId = blogId
-	return c
+	return &PagesListCall{
+		s:             r.s,
+		blogId:        blogId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "blogs/{blogId}/pages",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // FetchBodies sets the optional parameter "fetchBodies": Whether to
 // retrieve the Page bodies.
 func (c *PagesListCall) FetchBodies(fetchBodies bool) *PagesListCall {
-	c.opt_["fetchBodies"] = fetchBodies
+	c.params_.Set("fetchBodies", fmt.Sprintf("%v", fetchBodies))
+	return c
+}
+func (c *PagesListCall) Context(ctx context.Context) *PagesListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -923,40 +908,23 @@ func (c *PagesListCall) FetchBodies(fetchBodies bool) *PagesListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *PagesListCall) Fields(s ...googleapi.Field) *PagesListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *PagesListCall) Do() (*PageList, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fetchBodies"]; ok {
-		params.Set("fetchBodies", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "blogs/{blogId}/pages")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *PageList
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"blogId": c.blogId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *PageList
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves pages for a blog, possibly filtered.",
 	//   "httpMethod": "GET",
@@ -991,17 +959,30 @@ func (c *PagesListCall) Do() (*PageList, error) {
 // method id "blogger.posts.get":
 
 type PostsGetCall struct {
-	s      *Service
-	blogId string
-	postId string
-	opt_   map[string]interface{}
+	s             *Service
+	blogId        string
+	postId        string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Get a post by id.
+
 func (r *PostsService) Get(blogId string, postId string) *PostsGetCall {
-	c := &PostsGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.blogId = blogId
-	c.postId = postId
+	return &PostsGetCall{
+		s:             r.s,
+		blogId:        blogId,
+		postId:        postId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "blogs/{blogId}/posts/{postId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *PostsGetCall) Context(ctx context.Context) *PostsGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1009,38 +990,24 @@ func (r *PostsService) Get(blogId string, postId string) *PostsGetCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *PostsGetCall) Fields(s ...googleapi.Field) *PostsGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *PostsGetCall) Do() (*Post, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "blogs/{blogId}/posts/{postId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Post
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"blogId": c.blogId,
 		"postId": c.postId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Post
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Get a post by id.",
 	//   "httpMethod": "GET",
@@ -1077,43 +1044,56 @@ func (c *PostsGetCall) Do() (*Post, error) {
 // method id "blogger.posts.list":
 
 type PostsListCall struct {
-	s      *Service
-	blogId string
-	opt_   map[string]interface{}
+	s             *Service
+	blogId        string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Retrieves a list of posts, possibly filtered.
+
 func (r *PostsService) List(blogId string) *PostsListCall {
-	c := &PostsListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.blogId = blogId
-	return c
+	return &PostsListCall{
+		s:             r.s,
+		blogId:        blogId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "blogs/{blogId}/posts",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // FetchBodies sets the optional parameter "fetchBodies": Whether the
 // body content of posts is included.
 func (c *PostsListCall) FetchBodies(fetchBodies bool) *PostsListCall {
-	c.opt_["fetchBodies"] = fetchBodies
+	c.params_.Set("fetchBodies", fmt.Sprintf("%v", fetchBodies))
 	return c
 }
 
 // MaxResults sets the optional parameter "maxResults": Maximum number
 // of posts to fetch.
 func (c *PostsListCall) MaxResults(maxResults int64) *PostsListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
 // PageToken sets the optional parameter "pageToken": Continuation token
 // if the request is paged.
 func (c *PostsListCall) PageToken(pageToken string) *PostsListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
 	return c
 }
 
 // StartDate sets the optional parameter "startDate": Earliest post date
 // to fetch, a date-time with RFC 3339 formatting.
 func (c *PostsListCall) StartDate(startDate string) *PostsListCall {
-	c.opt_["startDate"] = startDate
+	c.params_.Set("startDate", fmt.Sprintf("%v", startDate))
+	return c
+}
+func (c *PostsListCall) Context(ctx context.Context) *PostsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1121,49 +1101,23 @@ func (c *PostsListCall) StartDate(startDate string) *PostsListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *PostsListCall) Fields(s ...googleapi.Field) *PostsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *PostsListCall) Do() (*PostList, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fetchBodies"]; ok {
-		params.Set("fetchBodies", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["startDate"]; ok {
-		params.Set("startDate", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "blogs/{blogId}/posts")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *PostList
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"blogId": c.blogId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *PostList
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves a list of posts, possibly filtered.",
 	//   "httpMethod": "GET",
@@ -1215,15 +1169,28 @@ func (c *PostsListCall) Do() (*PostList, error) {
 // method id "blogger.users.get":
 
 type UsersGetCall struct {
-	s      *Service
-	userId string
-	opt_   map[string]interface{}
+	s             *Service
+	userId        string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Gets one user by id.
+
 func (r *UsersService) Get(userId string) *UsersGetCall {
-	c := &UsersGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.userId = userId
+	return &UsersGetCall{
+		s:             r.s,
+		userId:        userId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "users/{userId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *UsersGetCall) Context(ctx context.Context) *UsersGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1231,37 +1198,23 @@ func (r *UsersService) Get(userId string) *UsersGetCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *UsersGetCall) Fields(s ...googleapi.Field) *UsersGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *UsersGetCall) Do() (*User, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "users/{userId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *User
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"userId": c.userId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *User
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Gets one user by id.",
 	//   "httpMethod": "GET",
@@ -1291,15 +1244,28 @@ func (c *UsersGetCall) Do() (*User, error) {
 // method id "blogger.users.blogs.list":
 
 type UsersBlogsListCall struct {
-	s      *Service
-	userId string
-	opt_   map[string]interface{}
+	s             *Service
+	userId        string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Retrieves a list of blogs, possibly filtered.
+
 func (r *UsersBlogsService) List(userId string) *UsersBlogsListCall {
-	c := &UsersBlogsListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.userId = userId
+	return &UsersBlogsListCall{
+		s:             r.s,
+		userId:        userId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "users/{userId}/blogs",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *UsersBlogsListCall) Context(ctx context.Context) *UsersBlogsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1307,37 +1273,23 @@ func (r *UsersBlogsService) List(userId string) *UsersBlogsListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *UsersBlogsListCall) Fields(s ...googleapi.Field) *UsersBlogsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *UsersBlogsListCall) Do() (*BlogList, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "users/{userId}/blogs")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *BlogList
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"userId": c.userId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *BlogList
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves a list of blogs, possibly filtered.",
 	//   "httpMethod": "GET",

@@ -4,18 +4,16 @@
 //
 // Usage example:
 //
-//   import "google.golang.org/api/resourceviews/v1beta1"
+//   import "github.com/jfcote87/api2/resourceviews/v1beta1"
 //   ...
 //   resourceviewsService, err := resourceviews.New(oauthHttpClient)
 package resourceviews
 
 import (
-	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/jfcote87/api2/googleapi"
 	"golang.org/x/net/context"
-	"google.golang.org/api/googleapi"
 	"io"
 	"net/http"
 	"net/url"
@@ -25,10 +23,8 @@ import (
 
 // Always reference these packages, just in case the auto-generated code
 // below doesn't.
-var _ = bytes.NewBuffer
 var _ = strconv.Itoa
 var _ = fmt.Sprintf
-var _ = json.NewDecoder
 var _ = io.Copy
 var _ = url.Parse
 var _ = googleapi.Version
@@ -39,7 +35,8 @@ var _ = context.Background
 const apiId = "resourceviews:v1beta1"
 const apiName = "resourceviews"
 const apiVersion = "v1beta1"
-const basePath = "https://www.googleapis.com/resourceviews/v1beta1/projects/"
+
+var baseURL *url.URL = &url.URL{Scheme: "https", Host: "www.googleapis.com", Path: "/resourceviews/v1beta1/projects/"}
 
 // OAuth2 scopes used by this API.
 const (
@@ -65,27 +62,18 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
+	s := &Service{client: client}
 	s.RegionViews = NewRegionViewsService(s)
 	s.ZoneViews = NewZoneViewsService(s)
 	return s, nil
 }
 
 type Service struct {
-	client    *http.Client
-	BasePath  string // API endpoint base URL
-	UserAgent string // optional additional User-Agent fragment
+	client *http.Client
 
 	RegionViews *RegionViewsService
 
 	ZoneViews *ZoneViewsService
-}
-
-func (s *Service) userAgent() string {
-	if s.UserAgent == "" {
-		return googleapi.UserAgent
-	}
-	return googleapi.UserAgent + " " + s.UserAgent
 }
 
 func NewRegionViewsService(s *Service) *RegionViewsService {
@@ -217,58 +205,46 @@ type RegionViewsAddresourcesCall struct {
 	region                         string
 	resourceViewName               string
 	regionviewsaddresourcesrequest *RegionViewsAddResourcesRequest
-	opt_                           map[string]interface{}
+	caller_                        googleapi.Caller
+	params_                        url.Values
+	pathTemplate_                  string
+	context_                       context.Context
 }
 
 // Addresources: Add resources to the view.
-func (r *RegionViewsService) Addresources(projectName string, region string, resourceViewName string, regionviewsaddresourcesrequest *RegionViewsAddResourcesRequest) *RegionViewsAddresourcesCall {
-	c := &RegionViewsAddresourcesCall{s: r.s, opt_: make(map[string]interface{})}
-	c.projectName = projectName
-	c.region = region
-	c.resourceViewName = resourceViewName
-	c.regionviewsaddresourcesrequest = regionviewsaddresourcesrequest
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *RegionViewsAddresourcesCall) Fields(s ...googleapi.Field) *RegionViewsAddresourcesCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *RegionViewsService) Addresources(projectName string, region string, resourceViewName string, regionviewsaddresourcesrequest *RegionViewsAddResourcesRequest) *RegionViewsAddresourcesCall {
+	return &RegionViewsAddresourcesCall{
+		s:                              r.s,
+		projectName:                    projectName,
+		region:                         region,
+		resourceViewName:               resourceViewName,
+		regionviewsaddresourcesrequest: regionviewsaddresourcesrequest,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{projectName}/regions/{region}/resourceViews/{resourceViewName}/addResources",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *RegionViewsAddresourcesCall) Context(ctx context.Context) *RegionViewsAddresourcesCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *RegionViewsAddresourcesCall) Do() error {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.regionviewsaddresourcesrequest)
-	if err != nil {
-		return err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{projectName}/regions/{region}/resourceViews/{resourceViewName}/addResources")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"projectName":      c.projectName,
 		"region":           c.region,
 		"resourceViewName": c.resourceViewName,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.regionviewsaddresourcesrequest,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Add resources to the view.",
 	//   "httpMethod": "POST",
@@ -318,51 +294,44 @@ type RegionViewsDeleteCall struct {
 	projectName      string
 	region           string
 	resourceViewName string
-	opt_             map[string]interface{}
+	caller_          googleapi.Caller
+	params_          url.Values
+	pathTemplate_    string
+	context_         context.Context
 }
 
 // Delete: Delete a resource view.
-func (r *RegionViewsService) Delete(projectName string, region string, resourceViewName string) *RegionViewsDeleteCall {
-	c := &RegionViewsDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.projectName = projectName
-	c.region = region
-	c.resourceViewName = resourceViewName
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *RegionViewsDeleteCall) Fields(s ...googleapi.Field) *RegionViewsDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *RegionViewsService) Delete(projectName string, region string, resourceViewName string) *RegionViewsDeleteCall {
+	return &RegionViewsDeleteCall{
+		s:                r.s,
+		projectName:      projectName,
+		region:           region,
+		resourceViewName: resourceViewName,
+		caller_:          googleapi.JSONCall{},
+		params_:          make(map[string][]string),
+		pathTemplate_:    "{projectName}/regions/{region}/resourceViews/{resourceViewName}",
+		context_:         googleapi.NoContext,
+	}
+}
+func (c *RegionViewsDeleteCall) Context(ctx context.Context) *RegionViewsDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *RegionViewsDeleteCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{projectName}/regions/{region}/resourceViews/{resourceViewName}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"projectName":      c.projectName,
 		"region":           c.region,
 		"resourceViewName": c.resourceViewName,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Delete a resource view.",
 	//   "httpMethod": "DELETE",
@@ -409,15 +378,28 @@ type RegionViewsGetCall struct {
 	projectName      string
 	region           string
 	resourceViewName string
-	opt_             map[string]interface{}
+	caller_          googleapi.Caller
+	params_          url.Values
+	pathTemplate_    string
+	context_         context.Context
 }
 
 // Get: Get the information of a resource view.
+
 func (r *RegionViewsService) Get(projectName string, region string, resourceViewName string) *RegionViewsGetCall {
-	c := &RegionViewsGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.projectName = projectName
-	c.region = region
-	c.resourceViewName = resourceViewName
+	return &RegionViewsGetCall{
+		s:                r.s,
+		projectName:      projectName,
+		region:           region,
+		resourceViewName: resourceViewName,
+		caller_:          googleapi.JSONCall{},
+		params_:          make(map[string][]string),
+		pathTemplate_:    "{projectName}/regions/{region}/resourceViews/{resourceViewName}",
+		context_:         googleapi.NoContext,
+	}
+}
+func (c *RegionViewsGetCall) Context(ctx context.Context) *RegionViewsGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -425,39 +407,25 @@ func (r *RegionViewsService) Get(projectName string, region string, resourceView
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *RegionViewsGetCall) Fields(s ...googleapi.Field) *RegionViewsGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *RegionViewsGetCall) Do() (*ResourceView, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{projectName}/regions/{region}/resourceViews/{resourceViewName}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *ResourceView
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"projectName":      c.projectName,
 		"region":           c.region,
 		"resourceViewName": c.resourceViewName,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ResourceView
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Get the information of a resource view.",
 	//   "httpMethod": "GET",
@@ -505,19 +473,32 @@ func (c *RegionViewsGetCall) Do() (*ResourceView, error) {
 // method id "resourceviews.regionViews.insert":
 
 type RegionViewsInsertCall struct {
-	s            *Service
-	projectName  string
-	region       string
-	resourceview *ResourceView
-	opt_         map[string]interface{}
+	s             *Service
+	projectName   string
+	region        string
+	resourceview  *ResourceView
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Insert: Create a resource view.
+
 func (r *RegionViewsService) Insert(projectName string, region string, resourceview *ResourceView) *RegionViewsInsertCall {
-	c := &RegionViewsInsertCall{s: r.s, opt_: make(map[string]interface{})}
-	c.projectName = projectName
-	c.region = region
-	c.resourceview = resourceview
+	return &RegionViewsInsertCall{
+		s:             r.s,
+		projectName:   projectName,
+		region:        region,
+		resourceview:  resourceview,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{projectName}/regions/{region}/resourceViews",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *RegionViewsInsertCall) Context(ctx context.Context) *RegionViewsInsertCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -525,44 +506,25 @@ func (r *RegionViewsService) Insert(projectName string, region string, resourcev
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *RegionViewsInsertCall) Fields(s ...googleapi.Field) *RegionViewsInsertCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *RegionViewsInsertCall) Do() (*RegionViewsInsertResponse, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.resourceview)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{projectName}/regions/{region}/resourceViews")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *RegionViewsInsertResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"projectName": c.projectName,
 		"region":      c.region,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.resourceview,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *RegionViewsInsertResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Create a resource view.",
 	//   "httpMethod": "POST",
@@ -604,25 +566,34 @@ func (c *RegionViewsInsertCall) Do() (*RegionViewsInsertResponse, error) {
 // method id "resourceviews.regionViews.list":
 
 type RegionViewsListCall struct {
-	s           *Service
-	projectName string
-	region      string
-	opt_        map[string]interface{}
+	s             *Service
+	projectName   string
+	region        string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: List resource views.
+
 func (r *RegionViewsService) List(projectName string, region string) *RegionViewsListCall {
-	c := &RegionViewsListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.projectName = projectName
-	c.region = region
-	return c
+	return &RegionViewsListCall{
+		s:             r.s,
+		projectName:   projectName,
+		region:        region,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{projectName}/regions/{region}/resourceViews",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // MaxResults sets the optional parameter "maxResults": Maximum count of
 // results to be returned. Acceptable values are 0 to 5000, inclusive.
 // (Default: 5000)
 func (c *RegionViewsListCall) MaxResults(maxResults int64) *RegionViewsListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
@@ -631,7 +602,11 @@ func (c *RegionViewsListCall) MaxResults(maxResults int64) *RegionViewsListCall 
 // used to request the next page of results from a previous list
 // request.
 func (c *RegionViewsListCall) PageToken(pageToken string) *RegionViewsListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
+	return c
+}
+func (c *RegionViewsListCall) Context(ctx context.Context) *RegionViewsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -639,44 +614,24 @@ func (c *RegionViewsListCall) PageToken(pageToken string) *RegionViewsListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *RegionViewsListCall) Fields(s ...googleapi.Field) *RegionViewsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *RegionViewsListCall) Do() (*RegionViewsListResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{projectName}/regions/{region}/resourceViews")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *RegionViewsListResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"projectName": c.projectName,
 		"region":      c.region,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *RegionViewsListResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "List resource views.",
 	//   "httpMethod": "GET",
@@ -735,23 +690,32 @@ type RegionViewsListresourcesCall struct {
 	projectName      string
 	region           string
 	resourceViewName string
-	opt_             map[string]interface{}
+	caller_          googleapi.Caller
+	params_          url.Values
+	pathTemplate_    string
+	context_         context.Context
 }
 
 // Listresources: List the resources in the view.
+
 func (r *RegionViewsService) Listresources(projectName string, region string, resourceViewName string) *RegionViewsListresourcesCall {
-	c := &RegionViewsListresourcesCall{s: r.s, opt_: make(map[string]interface{})}
-	c.projectName = projectName
-	c.region = region
-	c.resourceViewName = resourceViewName
-	return c
+	return &RegionViewsListresourcesCall{
+		s:                r.s,
+		projectName:      projectName,
+		region:           region,
+		resourceViewName: resourceViewName,
+		caller_:          googleapi.JSONCall{},
+		params_:          make(map[string][]string),
+		pathTemplate_:    "{projectName}/regions/{region}/resourceViews/{resourceViewName}/resources",
+		context_:         googleapi.NoContext,
+	}
 }
 
 // MaxResults sets the optional parameter "maxResults": Maximum count of
 // results to be returned. Acceptable values are 0 to 5000, inclusive.
 // (Default: 5000)
 func (c *RegionViewsListresourcesCall) MaxResults(maxResults int64) *RegionViewsListresourcesCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
@@ -760,7 +724,11 @@ func (c *RegionViewsListresourcesCall) MaxResults(maxResults int64) *RegionViews
 // used to request the next page of results from a previous list
 // request.
 func (c *RegionViewsListresourcesCall) PageToken(pageToken string) *RegionViewsListresourcesCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
+	return c
+}
+func (c *RegionViewsListresourcesCall) Context(ctx context.Context) *RegionViewsListresourcesCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -768,45 +736,25 @@ func (c *RegionViewsListresourcesCall) PageToken(pageToken string) *RegionViewsL
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *RegionViewsListresourcesCall) Fields(s ...googleapi.Field) *RegionViewsListresourcesCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *RegionViewsListresourcesCall) Do() (*RegionViewsListResourcesResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{projectName}/regions/{region}/resourceViews/{resourceViewName}/resources")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *RegionViewsListResourcesResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"projectName":      c.projectName,
 		"region":           c.region,
 		"resourceViewName": c.resourceViewName,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "POST",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *RegionViewsListResourcesResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "List the resources in the view.",
 	//   "httpMethod": "POST",
@@ -873,58 +821,46 @@ type RegionViewsRemoveresourcesCall struct {
 	region                            string
 	resourceViewName                  string
 	regionviewsremoveresourcesrequest *RegionViewsRemoveResourcesRequest
-	opt_                              map[string]interface{}
+	caller_                           googleapi.Caller
+	params_                           url.Values
+	pathTemplate_                     string
+	context_                          context.Context
 }
 
 // Removeresources: Remove resources from the view.
-func (r *RegionViewsService) Removeresources(projectName string, region string, resourceViewName string, regionviewsremoveresourcesrequest *RegionViewsRemoveResourcesRequest) *RegionViewsRemoveresourcesCall {
-	c := &RegionViewsRemoveresourcesCall{s: r.s, opt_: make(map[string]interface{})}
-	c.projectName = projectName
-	c.region = region
-	c.resourceViewName = resourceViewName
-	c.regionviewsremoveresourcesrequest = regionviewsremoveresourcesrequest
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *RegionViewsRemoveresourcesCall) Fields(s ...googleapi.Field) *RegionViewsRemoveresourcesCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *RegionViewsService) Removeresources(projectName string, region string, resourceViewName string, regionviewsremoveresourcesrequest *RegionViewsRemoveResourcesRequest) *RegionViewsRemoveresourcesCall {
+	return &RegionViewsRemoveresourcesCall{
+		s:                                 r.s,
+		projectName:                       projectName,
+		region:                            region,
+		resourceViewName:                  resourceViewName,
+		regionviewsremoveresourcesrequest: regionviewsremoveresourcesrequest,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{projectName}/regions/{region}/resourceViews/{resourceViewName}/removeResources",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *RegionViewsRemoveresourcesCall) Context(ctx context.Context) *RegionViewsRemoveresourcesCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *RegionViewsRemoveresourcesCall) Do() error {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.regionviewsremoveresourcesrequest)
-	if err != nil {
-		return err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{projectName}/regions/{region}/resourceViews/{resourceViewName}/removeResources")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"projectName":      c.projectName,
 		"region":           c.region,
 		"resourceViewName": c.resourceViewName,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.regionviewsremoveresourcesrequest,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Remove resources from the view.",
 	//   "httpMethod": "POST",
@@ -975,58 +911,46 @@ type ZoneViewsAddresourcesCall struct {
 	zone                         string
 	resourceViewName             string
 	zoneviewsaddresourcesrequest *ZoneViewsAddResourcesRequest
-	opt_                         map[string]interface{}
+	caller_                      googleapi.Caller
+	params_                      url.Values
+	pathTemplate_                string
+	context_                     context.Context
 }
 
 // Addresources: Add resources to the view.
-func (r *ZoneViewsService) Addresources(projectName string, zone string, resourceViewName string, zoneviewsaddresourcesrequest *ZoneViewsAddResourcesRequest) *ZoneViewsAddresourcesCall {
-	c := &ZoneViewsAddresourcesCall{s: r.s, opt_: make(map[string]interface{})}
-	c.projectName = projectName
-	c.zone = zone
-	c.resourceViewName = resourceViewName
-	c.zoneviewsaddresourcesrequest = zoneviewsaddresourcesrequest
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *ZoneViewsAddresourcesCall) Fields(s ...googleapi.Field) *ZoneViewsAddresourcesCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *ZoneViewsService) Addresources(projectName string, zone string, resourceViewName string, zoneviewsaddresourcesrequest *ZoneViewsAddResourcesRequest) *ZoneViewsAddresourcesCall {
+	return &ZoneViewsAddresourcesCall{
+		s:                            r.s,
+		projectName:                  projectName,
+		zone:                         zone,
+		resourceViewName:             resourceViewName,
+		zoneviewsaddresourcesrequest: zoneviewsaddresourcesrequest,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{projectName}/zones/{zone}/resourceViews/{resourceViewName}/addResources",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *ZoneViewsAddresourcesCall) Context(ctx context.Context) *ZoneViewsAddresourcesCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *ZoneViewsAddresourcesCall) Do() error {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.zoneviewsaddresourcesrequest)
-	if err != nil {
-		return err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{projectName}/zones/{zone}/resourceViews/{resourceViewName}/addResources")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"projectName":      c.projectName,
 		"zone":             c.zone,
 		"resourceViewName": c.resourceViewName,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.zoneviewsaddresourcesrequest,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Add resources to the view.",
 	//   "httpMethod": "POST",
@@ -1076,51 +1000,44 @@ type ZoneViewsDeleteCall struct {
 	projectName      string
 	zone             string
 	resourceViewName string
-	opt_             map[string]interface{}
+	caller_          googleapi.Caller
+	params_          url.Values
+	pathTemplate_    string
+	context_         context.Context
 }
 
 // Delete: Delete a resource view.
-func (r *ZoneViewsService) Delete(projectName string, zone string, resourceViewName string) *ZoneViewsDeleteCall {
-	c := &ZoneViewsDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.projectName = projectName
-	c.zone = zone
-	c.resourceViewName = resourceViewName
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *ZoneViewsDeleteCall) Fields(s ...googleapi.Field) *ZoneViewsDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *ZoneViewsService) Delete(projectName string, zone string, resourceViewName string) *ZoneViewsDeleteCall {
+	return &ZoneViewsDeleteCall{
+		s:                r.s,
+		projectName:      projectName,
+		zone:             zone,
+		resourceViewName: resourceViewName,
+		caller_:          googleapi.JSONCall{},
+		params_:          make(map[string][]string),
+		pathTemplate_:    "{projectName}/zones/{zone}/resourceViews/{resourceViewName}",
+		context_:         googleapi.NoContext,
+	}
+}
+func (c *ZoneViewsDeleteCall) Context(ctx context.Context) *ZoneViewsDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *ZoneViewsDeleteCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{projectName}/zones/{zone}/resourceViews/{resourceViewName}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"projectName":      c.projectName,
 		"zone":             c.zone,
 		"resourceViewName": c.resourceViewName,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Delete a resource view.",
 	//   "httpMethod": "DELETE",
@@ -1167,15 +1084,28 @@ type ZoneViewsGetCall struct {
 	projectName      string
 	zone             string
 	resourceViewName string
-	opt_             map[string]interface{}
+	caller_          googleapi.Caller
+	params_          url.Values
+	pathTemplate_    string
+	context_         context.Context
 }
 
 // Get: Get the information of a zonal resource view.
+
 func (r *ZoneViewsService) Get(projectName string, zone string, resourceViewName string) *ZoneViewsGetCall {
-	c := &ZoneViewsGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.projectName = projectName
-	c.zone = zone
-	c.resourceViewName = resourceViewName
+	return &ZoneViewsGetCall{
+		s:                r.s,
+		projectName:      projectName,
+		zone:             zone,
+		resourceViewName: resourceViewName,
+		caller_:          googleapi.JSONCall{},
+		params_:          make(map[string][]string),
+		pathTemplate_:    "{projectName}/zones/{zone}/resourceViews/{resourceViewName}",
+		context_:         googleapi.NoContext,
+	}
+}
+func (c *ZoneViewsGetCall) Context(ctx context.Context) *ZoneViewsGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1183,39 +1113,25 @@ func (r *ZoneViewsService) Get(projectName string, zone string, resourceViewName
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ZoneViewsGetCall) Fields(s ...googleapi.Field) *ZoneViewsGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ZoneViewsGetCall) Do() (*ResourceView, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{projectName}/zones/{zone}/resourceViews/{resourceViewName}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *ResourceView
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"projectName":      c.projectName,
 		"zone":             c.zone,
 		"resourceViewName": c.resourceViewName,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ResourceView
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Get the information of a zonal resource view.",
 	//   "httpMethod": "GET",
@@ -1263,19 +1179,32 @@ func (c *ZoneViewsGetCall) Do() (*ResourceView, error) {
 // method id "resourceviews.zoneViews.insert":
 
 type ZoneViewsInsertCall struct {
-	s            *Service
-	projectName  string
-	zone         string
-	resourceview *ResourceView
-	opt_         map[string]interface{}
+	s             *Service
+	projectName   string
+	zone          string
+	resourceview  *ResourceView
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Insert: Create a resource view.
+
 func (r *ZoneViewsService) Insert(projectName string, zone string, resourceview *ResourceView) *ZoneViewsInsertCall {
-	c := &ZoneViewsInsertCall{s: r.s, opt_: make(map[string]interface{})}
-	c.projectName = projectName
-	c.zone = zone
-	c.resourceview = resourceview
+	return &ZoneViewsInsertCall{
+		s:             r.s,
+		projectName:   projectName,
+		zone:          zone,
+		resourceview:  resourceview,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{projectName}/zones/{zone}/resourceViews",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *ZoneViewsInsertCall) Context(ctx context.Context) *ZoneViewsInsertCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1283,44 +1212,25 @@ func (r *ZoneViewsService) Insert(projectName string, zone string, resourceview 
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ZoneViewsInsertCall) Fields(s ...googleapi.Field) *ZoneViewsInsertCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ZoneViewsInsertCall) Do() (*ZoneViewsInsertResponse, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.resourceview)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{projectName}/zones/{zone}/resourceViews")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *ZoneViewsInsertResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"projectName": c.projectName,
 		"zone":        c.zone,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.resourceview,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ZoneViewsInsertResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Create a resource view.",
 	//   "httpMethod": "POST",
@@ -1362,25 +1272,34 @@ func (c *ZoneViewsInsertCall) Do() (*ZoneViewsInsertResponse, error) {
 // method id "resourceviews.zoneViews.list":
 
 type ZoneViewsListCall struct {
-	s           *Service
-	projectName string
-	zone        string
-	opt_        map[string]interface{}
+	s             *Service
+	projectName   string
+	zone          string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: List resource views.
+
 func (r *ZoneViewsService) List(projectName string, zone string) *ZoneViewsListCall {
-	c := &ZoneViewsListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.projectName = projectName
-	c.zone = zone
-	return c
+	return &ZoneViewsListCall{
+		s:             r.s,
+		projectName:   projectName,
+		zone:          zone,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{projectName}/zones/{zone}/resourceViews",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // MaxResults sets the optional parameter "maxResults": Maximum count of
 // results to be returned. Acceptable values are 0 to 5000, inclusive.
 // (Default: 5000)
 func (c *ZoneViewsListCall) MaxResults(maxResults int64) *ZoneViewsListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
@@ -1389,7 +1308,11 @@ func (c *ZoneViewsListCall) MaxResults(maxResults int64) *ZoneViewsListCall {
 // used to request the next page of results from a previous list
 // request.
 func (c *ZoneViewsListCall) PageToken(pageToken string) *ZoneViewsListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
+	return c
+}
+func (c *ZoneViewsListCall) Context(ctx context.Context) *ZoneViewsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1397,44 +1320,24 @@ func (c *ZoneViewsListCall) PageToken(pageToken string) *ZoneViewsListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ZoneViewsListCall) Fields(s ...googleapi.Field) *ZoneViewsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ZoneViewsListCall) Do() (*ZoneViewsListResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{projectName}/zones/{zone}/resourceViews")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *ZoneViewsListResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"projectName": c.projectName,
 		"zone":        c.zone,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ZoneViewsListResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "List resource views.",
 	//   "httpMethod": "GET",
@@ -1493,23 +1396,32 @@ type ZoneViewsListresourcesCall struct {
 	projectName      string
 	zone             string
 	resourceViewName string
-	opt_             map[string]interface{}
+	caller_          googleapi.Caller
+	params_          url.Values
+	pathTemplate_    string
+	context_         context.Context
 }
 
 // Listresources: List the resources of the resource view.
+
 func (r *ZoneViewsService) Listresources(projectName string, zone string, resourceViewName string) *ZoneViewsListresourcesCall {
-	c := &ZoneViewsListresourcesCall{s: r.s, opt_: make(map[string]interface{})}
-	c.projectName = projectName
-	c.zone = zone
-	c.resourceViewName = resourceViewName
-	return c
+	return &ZoneViewsListresourcesCall{
+		s:                r.s,
+		projectName:      projectName,
+		zone:             zone,
+		resourceViewName: resourceViewName,
+		caller_:          googleapi.JSONCall{},
+		params_:          make(map[string][]string),
+		pathTemplate_:    "{projectName}/zones/{zone}/resourceViews/{resourceViewName}/resources",
+		context_:         googleapi.NoContext,
+	}
 }
 
 // MaxResults sets the optional parameter "maxResults": Maximum count of
 // results to be returned. Acceptable values are 0 to 5000, inclusive.
 // (Default: 5000)
 func (c *ZoneViewsListresourcesCall) MaxResults(maxResults int64) *ZoneViewsListresourcesCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
@@ -1518,7 +1430,11 @@ func (c *ZoneViewsListresourcesCall) MaxResults(maxResults int64) *ZoneViewsList
 // used to request the next page of results from a previous list
 // request.
 func (c *ZoneViewsListresourcesCall) PageToken(pageToken string) *ZoneViewsListresourcesCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
+	return c
+}
+func (c *ZoneViewsListresourcesCall) Context(ctx context.Context) *ZoneViewsListresourcesCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1526,45 +1442,25 @@ func (c *ZoneViewsListresourcesCall) PageToken(pageToken string) *ZoneViewsListr
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ZoneViewsListresourcesCall) Fields(s ...googleapi.Field) *ZoneViewsListresourcesCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ZoneViewsListresourcesCall) Do() (*ZoneViewsListResourcesResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{projectName}/zones/{zone}/resourceViews/{resourceViewName}/resources")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *ZoneViewsListResourcesResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"projectName":      c.projectName,
 		"zone":             c.zone,
 		"resourceViewName": c.resourceViewName,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "POST",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ZoneViewsListResourcesResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "List the resources of the resource view.",
 	//   "httpMethod": "POST",
@@ -1631,58 +1527,46 @@ type ZoneViewsRemoveresourcesCall struct {
 	zone                            string
 	resourceViewName                string
 	zoneviewsremoveresourcesrequest *ZoneViewsRemoveResourcesRequest
-	opt_                            map[string]interface{}
+	caller_                         googleapi.Caller
+	params_                         url.Values
+	pathTemplate_                   string
+	context_                        context.Context
 }
 
 // Removeresources: Remove resources from the view.
-func (r *ZoneViewsService) Removeresources(projectName string, zone string, resourceViewName string, zoneviewsremoveresourcesrequest *ZoneViewsRemoveResourcesRequest) *ZoneViewsRemoveresourcesCall {
-	c := &ZoneViewsRemoveresourcesCall{s: r.s, opt_: make(map[string]interface{})}
-	c.projectName = projectName
-	c.zone = zone
-	c.resourceViewName = resourceViewName
-	c.zoneviewsremoveresourcesrequest = zoneviewsremoveresourcesrequest
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *ZoneViewsRemoveresourcesCall) Fields(s ...googleapi.Field) *ZoneViewsRemoveresourcesCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *ZoneViewsService) Removeresources(projectName string, zone string, resourceViewName string, zoneviewsremoveresourcesrequest *ZoneViewsRemoveResourcesRequest) *ZoneViewsRemoveresourcesCall {
+	return &ZoneViewsRemoveresourcesCall{
+		s:                               r.s,
+		projectName:                     projectName,
+		zone:                            zone,
+		resourceViewName:                resourceViewName,
+		zoneviewsremoveresourcesrequest: zoneviewsremoveresourcesrequest,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{projectName}/zones/{zone}/resourceViews/{resourceViewName}/removeResources",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *ZoneViewsRemoveresourcesCall) Context(ctx context.Context) *ZoneViewsRemoveresourcesCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *ZoneViewsRemoveresourcesCall) Do() error {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.zoneviewsremoveresourcesrequest)
-	if err != nil {
-		return err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{projectName}/zones/{zone}/resourceViews/{resourceViewName}/removeResources")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"projectName":      c.projectName,
 		"zone":             c.zone,
 		"resourceViewName": c.resourceViewName,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.zoneviewsremoveresourcesrequest,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Remove resources from the view.",
 	//   "httpMethod": "POST",

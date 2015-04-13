@@ -4,18 +4,16 @@
 //
 // Usage example:
 //
-//   import "google.golang.org/api/drive/v1"
+//   import "github.com/jfcote87/api2/drive/v1"
 //   ...
 //   driveService, err := drive.New(oauthHttpClient)
 package drive
 
 import (
-	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/jfcote87/api2/googleapi"
 	"golang.org/x/net/context"
-	"google.golang.org/api/googleapi"
 	"io"
 	"net/http"
 	"net/url"
@@ -25,10 +23,8 @@ import (
 
 // Always reference these packages, just in case the auto-generated code
 // below doesn't.
-var _ = bytes.NewBuffer
 var _ = strconv.Itoa
 var _ = fmt.Sprintf
-var _ = json.NewDecoder
 var _ = io.Copy
 var _ = url.Parse
 var _ = googleapi.Version
@@ -39,7 +35,8 @@ var _ = context.Background
 const apiId = "drive:v1"
 const apiName = "drive"
 const apiVersion = "v1"
-const basePath = "https://www.googleapis.com/drive/v1/"
+
+var baseURL *url.URL = &url.URL{Scheme: "https", Host: "www.googleapis.com", Path: "/drive/v1/"}
 
 // OAuth2 scopes used by this API.
 const (
@@ -52,24 +49,15 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
+	s := &Service{client: client}
 	s.Files = NewFilesService(s)
 	return s, nil
 }
 
 type Service struct {
-	client    *http.Client
-	BasePath  string // API endpoint base URL
-	UserAgent string // optional additional User-Agent fragment
+	client *http.Client
 
 	Files *FilesService
-}
-
-func (s *Service) userAgent() string {
-	if s.UserAgent == "" {
-		return googleapi.UserAgent
-	}
-	return googleapi.UserAgent + " " + s.UserAgent
 }
 
 func NewFilesService(s *Service) *FilesService {
@@ -201,22 +189,31 @@ type Permission struct {
 // method id "drive.files.get":
 
 type FilesGetCall struct {
-	s    *Service
-	id   string
-	opt_ map[string]interface{}
+	s             *Service
+	id            string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Gets a file's metadata by id.
+
 func (r *FilesService) Get(id string) *FilesGetCall {
-	c := &FilesGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.id = id
-	return c
+	return &FilesGetCall{
+		s:             r.s,
+		id:            id,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "files/{id}",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Projection sets the optional parameter "projection": This parameter
 // is deprecated and has no function.
 func (c *FilesGetCall) Projection(projection string) *FilesGetCall {
-	c.opt_["projection"] = projection
+	c.params_.Set("projection", fmt.Sprintf("%v", projection))
 	return c
 }
 
@@ -224,7 +221,11 @@ func (c *FilesGetCall) Projection(projection string) *FilesGetCall {
 // Whether to update the view date after successfully retrieving the
 // file.
 func (c *FilesGetCall) UpdateViewedDate(updateViewedDate bool) *FilesGetCall {
-	c.opt_["updateViewedDate"] = updateViewedDate
+	c.params_.Set("updateViewedDate", fmt.Sprintf("%v", updateViewedDate))
+	return c
+}
+func (c *FilesGetCall) Context(ctx context.Context) *FilesGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -232,43 +233,23 @@ func (c *FilesGetCall) UpdateViewedDate(updateViewedDate bool) *FilesGetCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *FilesGetCall) Fields(s ...googleapi.Field) *FilesGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *FilesGetCall) Do() (*File, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["projection"]; ok {
-		params.Set("projection", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["updateViewedDate"]; ok {
-		params.Set("updateViewedDate", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "files/{id}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *File
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"id": c.id,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *File
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Gets a file's metadata by id.",
 	//   "httpMethod": "GET",
@@ -317,29 +298,54 @@ func (c *FilesGetCall) Do() (*File, error) {
 // method id "drive.files.insert":
 
 type FilesInsertCall struct {
-	s          *Service
-	file       *File
-	opt_       map[string]interface{}
-	media_     io.Reader
-	resumable_ googleapi.SizeReaderAt
-	mediaType_ string
-	ctx_       context.Context
-	protocol_  string
+	s             *Service
+	file          *File
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
+	callback_     googleapi.ProgressUpdater
 }
 
 // Insert: Inserts a file, and any settable metadata or blob content
 // sent with the request.
+
 func (r *FilesService) Insert(file *File) *FilesInsertCall {
-	c := &FilesInsertCall{s: r.s, opt_: make(map[string]interface{})}
-	c.file = file
+	return &FilesInsertCall{
+		s:             r.s,
+		file:          file,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "files",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *FilesInsertCall) Context(ctx context.Context) *FilesInsertCall {
+	c.context_ = ctx
+	return c
+}
+
+// MediaUpload takes a context and UploadCaller interface
+func (c *FilesInsertCall) Upload(ctx context.Context, u googleapi.UploadCaller) *FilesInsertCall {
+	c.caller_ = u
+	c.context_ = ctx
+	switch u.(type) {
+	case *googleapi.MediaUpload:
+		c.pathTemplate_ = "/upload/drive/v1/files"
+	case *googleapi.ResumableUpload:
+		c.pathTemplate_ = "/resumable/upload/drive/v1/files"
+	}
 	return c
 }
 
 // Media specifies the media to upload in a single chunk.
 // At most one of Media and ResumableMedia may be set.
+// The mime type type will be auto-detected unless r is a googleapi.ContentTyper as well.
 func (c *FilesInsertCall) Media(r io.Reader) *FilesInsertCall {
-	c.media_ = r
-	c.protocol_ = "multipart"
+	c.caller_ = &googleapi.MediaUpload{
+		Media: r,
+	}
+	c.pathTemplate_ = "/upload/drive/v1/files"
 	return c
 }
 
@@ -348,10 +354,14 @@ func (c *FilesInsertCall) Media(r io.Reader) *FilesInsertCall {
 // mediaType identifies the MIME media type of the upload, such as "image/png".
 // If mediaType is "", it will be auto-detected.
 func (c *FilesInsertCall) ResumableMedia(ctx context.Context, r io.ReaderAt, size int64, mediaType string) *FilesInsertCall {
-	c.ctx_ = ctx
-	c.resumable_ = io.NewSectionReader(r, 0, size)
-	c.mediaType_ = mediaType
-	c.protocol_ = "resumable"
+	c.caller_ = &googleapi.ResumableUpload{
+		Media:         io.NewSectionReader(r, 0, size),
+		MediaType:     mediaType,
+		ContentLength: size,
+		Callback:      c.callback_,
+	}
+	c.pathTemplate_ = "/resumable/upload/drive/v1/files"
+	c.context_ = ctx
 	return c
 }
 
@@ -359,7 +369,10 @@ func (c *FilesInsertCall) ResumableMedia(ctx context.Context, r io.ReaderAt, siz
 // It should be a low-latency function in order to not slow down the upload operation.
 // This should only be called when using ResumableMedia (as opposed to Media).
 func (c *FilesInsertCall) ProgressUpdater(pu googleapi.ProgressUpdater) *FilesInsertCall {
-	c.opt_["progressUpdater"] = pu
+	c.callback_ = pu
+	if rx, ok := c.caller_.(*googleapi.ResumableUpload); ok {
+		rx.Callback = pu
+	}
 	return c
 }
 
@@ -367,84 +380,22 @@ func (c *FilesInsertCall) ProgressUpdater(pu googleapi.ProgressUpdater) *FilesIn
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *FilesInsertCall) Fields(s ...googleapi.Field) *FilesInsertCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *FilesInsertCall) Do() (*File, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.file)
-	if err != nil {
-		return nil, err
+	var returnValue *File
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.file,
+		Result:  &returnValue,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "files")
-	var progressUpdater_ googleapi.ProgressUpdater
-	if v, ok := c.opt_["progressUpdater"]; ok {
-		if pu, ok := v.(googleapi.ProgressUpdater); ok {
-			progressUpdater_ = pu
-		}
-	}
-	if c.media_ != nil || c.resumable_ != nil {
-		urls = strings.Replace(urls, "https://www.googleapis.com/", "https://www.googleapis.com/upload/", 1)
-		params.Set("uploadType", c.protocol_)
-	}
-	urls += "?" + params.Encode()
-	if c.protocol_ != "resumable" {
-		var cancel func()
-		cancel, _ = googleapi.ConditionallyIncludeMedia(c.media_, &body, &ctype)
-		if cancel != nil {
-			defer cancel()
-		}
-	}
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	if c.protocol_ == "resumable" {
-		req.ContentLength = 0
-		if c.mediaType_ == "" {
-			c.mediaType_ = googleapi.DetectMediaType(c.resumable_)
-		}
-		req.Header.Set("X-Upload-Content-Type", c.mediaType_)
-		req.Body = nil
-	} else {
-		req.Header.Set("Content-Type", ctype)
-	}
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	if c.protocol_ == "resumable" {
-		loc := res.Header.Get("Location")
-		rx := &googleapi.ResumableUpload{
-			Client:        c.s.client,
-			UserAgent:     c.s.userAgent(),
-			URI:           loc,
-			Media:         c.resumable_,
-			MediaType:     c.mediaType_,
-			ContentLength: c.resumable_.Size(),
-			Callback:      progressUpdater_,
-		}
-		res, err = rx.Upload(c.ctx_)
-		if err != nil {
-			return nil, err
-		}
-		defer res.Body.Close()
-	}
-	var ret *File
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Inserts a file, and any settable metadata or blob content sent with the request.",
 	//   "httpMethod": "POST",
@@ -483,19 +434,28 @@ func (c *FilesInsertCall) Do() (*File, error) {
 // method id "drive.files.patch":
 
 type FilesPatchCall struct {
-	s    *Service
-	id   string
-	file *File
-	opt_ map[string]interface{}
+	s             *Service
+	id            string
+	file          *File
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Patch: Updates file metadata and/or content. This method supports
 // patch semantics.
+
 func (r *FilesService) Patch(id string, file *File) *FilesPatchCall {
-	c := &FilesPatchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.id = id
-	c.file = file
-	return c
+	return &FilesPatchCall{
+		s:             r.s,
+		id:            id,
+		file:          file,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "files/{id}",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // NewRevision sets the optional parameter "newRevision": Whether a blob
@@ -504,7 +464,7 @@ func (r *FilesService) Patch(id string, file *File) *FilesPatchCall {
 // created as head revision, and previous revisions are preserved
 // (causing increased use of the user's data storage quota).
 func (c *FilesPatchCall) NewRevision(newRevision bool) *FilesPatchCall {
-	c.opt_["newRevision"] = newRevision
+	c.params_.Set("newRevision", fmt.Sprintf("%v", newRevision))
 	return c
 }
 
@@ -515,14 +475,18 @@ func (c *FilesPatchCall) NewRevision(newRevision bool) *FilesPatchCall {
 // will only be updated to the current time if other changes are also
 // being made (changing the title, for example).
 func (c *FilesPatchCall) UpdateModifiedDate(updateModifiedDate bool) *FilesPatchCall {
-	c.opt_["updateModifiedDate"] = updateModifiedDate
+	c.params_.Set("updateModifiedDate", fmt.Sprintf("%v", updateModifiedDate))
 	return c
 }
 
 // UpdateViewedDate sets the optional parameter "updateViewedDate":
 // Whether to update the view date after successfully updating the file.
 func (c *FilesPatchCall) UpdateViewedDate(updateViewedDate bool) *FilesPatchCall {
-	c.opt_["updateViewedDate"] = updateViewedDate
+	c.params_.Set("updateViewedDate", fmt.Sprintf("%v", updateViewedDate))
+	return c
+}
+func (c *FilesPatchCall) Context(ctx context.Context) *FilesPatchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -530,52 +494,24 @@ func (c *FilesPatchCall) UpdateViewedDate(updateViewedDate bool) *FilesPatchCall
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *FilesPatchCall) Fields(s ...googleapi.Field) *FilesPatchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *FilesPatchCall) Do() (*File, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.file)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["newRevision"]; ok {
-		params.Set("newRevision", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["updateModifiedDate"]; ok {
-		params.Set("updateModifiedDate", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["updateViewedDate"]; ok {
-		params.Set("updateViewedDate", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "files/{id}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PATCH", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *File
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"id": c.id,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PATCH",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.file,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *File
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates file metadata and/or content. This method supports patch semantics.",
 	//   "httpMethod": "PATCH",
@@ -626,23 +562,28 @@ func (c *FilesPatchCall) Do() (*File, error) {
 // method id "drive.files.update":
 
 type FilesUpdateCall struct {
-	s          *Service
-	id         string
-	file       *File
-	opt_       map[string]interface{}
-	media_     io.Reader
-	resumable_ googleapi.SizeReaderAt
-	mediaType_ string
-	ctx_       context.Context
-	protocol_  string
+	s             *Service
+	id            string
+	file          *File
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
+	callback_     googleapi.ProgressUpdater
 }
 
 // Update: Updates file metadata and/or content
+
 func (r *FilesService) Update(id string, file *File) *FilesUpdateCall {
-	c := &FilesUpdateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.id = id
-	c.file = file
-	return c
+	return &FilesUpdateCall{
+		s:             r.s,
+		id:            id,
+		file:          file,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "files/{id}",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // NewRevision sets the optional parameter "newRevision": Whether a blob
@@ -651,7 +592,7 @@ func (r *FilesService) Update(id string, file *File) *FilesUpdateCall {
 // created as head revision, and previous revisions are preserved
 // (causing increased use of the user's data storage quota).
 func (c *FilesUpdateCall) NewRevision(newRevision bool) *FilesUpdateCall {
-	c.opt_["newRevision"] = newRevision
+	c.params_.Set("newRevision", fmt.Sprintf("%v", newRevision))
 	return c
 }
 
@@ -662,22 +603,42 @@ func (c *FilesUpdateCall) NewRevision(newRevision bool) *FilesUpdateCall {
 // will only be updated to the current time if other changes are also
 // being made (changing the title, for example).
 func (c *FilesUpdateCall) UpdateModifiedDate(updateModifiedDate bool) *FilesUpdateCall {
-	c.opt_["updateModifiedDate"] = updateModifiedDate
+	c.params_.Set("updateModifiedDate", fmt.Sprintf("%v", updateModifiedDate))
 	return c
 }
 
 // UpdateViewedDate sets the optional parameter "updateViewedDate":
 // Whether to update the view date after successfully updating the file.
 func (c *FilesUpdateCall) UpdateViewedDate(updateViewedDate bool) *FilesUpdateCall {
-	c.opt_["updateViewedDate"] = updateViewedDate
+	c.params_.Set("updateViewedDate", fmt.Sprintf("%v", updateViewedDate))
+	return c
+}
+func (c *FilesUpdateCall) Context(ctx context.Context) *FilesUpdateCall {
+	c.context_ = ctx
+	return c
+}
+
+// MediaUpload takes a context and UploadCaller interface
+func (c *FilesUpdateCall) Upload(ctx context.Context, u googleapi.UploadCaller) *FilesUpdateCall {
+	c.caller_ = u
+	c.context_ = ctx
+	switch u.(type) {
+	case *googleapi.MediaUpload:
+		c.pathTemplate_ = "/upload/drive/v1/files/{id}"
+	case *googleapi.ResumableUpload:
+		c.pathTemplate_ = "/resumable/upload/drive/v1/files/{id}"
+	}
 	return c
 }
 
 // Media specifies the media to upload in a single chunk.
 // At most one of Media and ResumableMedia may be set.
+// The mime type type will be auto-detected unless r is a googleapi.ContentTyper as well.
 func (c *FilesUpdateCall) Media(r io.Reader) *FilesUpdateCall {
-	c.media_ = r
-	c.protocol_ = "multipart"
+	c.caller_ = &googleapi.MediaUpload{
+		Media: r,
+	}
+	c.pathTemplate_ = "/upload/drive/v1/files/{id}"
 	return c
 }
 
@@ -686,10 +647,14 @@ func (c *FilesUpdateCall) Media(r io.Reader) *FilesUpdateCall {
 // mediaType identifies the MIME media type of the upload, such as "image/png".
 // If mediaType is "", it will be auto-detected.
 func (c *FilesUpdateCall) ResumableMedia(ctx context.Context, r io.ReaderAt, size int64, mediaType string) *FilesUpdateCall {
-	c.ctx_ = ctx
-	c.resumable_ = io.NewSectionReader(r, 0, size)
-	c.mediaType_ = mediaType
-	c.protocol_ = "resumable"
+	c.caller_ = &googleapi.ResumableUpload{
+		Media:         io.NewSectionReader(r, 0, size),
+		MediaType:     mediaType,
+		ContentLength: size,
+		Callback:      c.callback_,
+	}
+	c.pathTemplate_ = "/resumable/upload/drive/v1/files/{id}"
+	c.context_ = ctx
 	return c
 }
 
@@ -697,7 +662,10 @@ func (c *FilesUpdateCall) ResumableMedia(ctx context.Context, r io.ReaderAt, siz
 // It should be a low-latency function in order to not slow down the upload operation.
 // This should only be called when using ResumableMedia (as opposed to Media).
 func (c *FilesUpdateCall) ProgressUpdater(pu googleapi.ProgressUpdater) *FilesUpdateCall {
-	c.opt_["progressUpdater"] = pu
+	c.callback_ = pu
+	if rx, ok := c.caller_.(*googleapi.ResumableUpload); ok {
+		rx.Callback = pu
+	}
 	return c
 }
 
@@ -705,95 +673,24 @@ func (c *FilesUpdateCall) ProgressUpdater(pu googleapi.ProgressUpdater) *FilesUp
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *FilesUpdateCall) Fields(s ...googleapi.Field) *FilesUpdateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *FilesUpdateCall) Do() (*File, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.file)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["newRevision"]; ok {
-		params.Set("newRevision", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["updateModifiedDate"]; ok {
-		params.Set("updateModifiedDate", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["updateViewedDate"]; ok {
-		params.Set("updateViewedDate", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "files/{id}")
-	var progressUpdater_ googleapi.ProgressUpdater
-	if v, ok := c.opt_["progressUpdater"]; ok {
-		if pu, ok := v.(googleapi.ProgressUpdater); ok {
-			progressUpdater_ = pu
-		}
-	}
-	if c.media_ != nil || c.resumable_ != nil {
-		urls = strings.Replace(urls, "https://www.googleapis.com/", "https://www.googleapis.com/upload/", 1)
-		params.Set("uploadType", c.protocol_)
-	}
-	urls += "?" + params.Encode()
-	if c.protocol_ != "resumable" {
-		var cancel func()
-		cancel, _ = googleapi.ConditionallyIncludeMedia(c.media_, &body, &ctype)
-		if cancel != nil {
-			defer cancel()
-		}
-	}
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *File
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"id": c.id,
 	})
-	if c.protocol_ == "resumable" {
-		req.ContentLength = 0
-		if c.mediaType_ == "" {
-			c.mediaType_ = googleapi.DetectMediaType(c.resumable_)
-		}
-		req.Header.Set("X-Upload-Content-Type", c.mediaType_)
-		req.Body = nil
-	} else {
-		req.Header.Set("Content-Type", ctype)
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.file,
+		Result:  &returnValue,
 	}
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	if c.protocol_ == "resumable" {
-		loc := res.Header.Get("Location")
-		rx := &googleapi.ResumableUpload{
-			Client:        c.s.client,
-			UserAgent:     c.s.userAgent(),
-			URI:           loc,
-			Media:         c.resumable_,
-			MediaType:     c.mediaType_,
-			ContentLength: c.resumable_.Size(),
-			Callback:      progressUpdater_,
-		}
-		res, err = rx.Upload(c.ctx_)
-		if err != nil {
-			return nil, err
-		}
-		defer res.Body.Close()
-	}
-	var ret *File
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates file metadata and/or content",
 	//   "httpMethod": "PUT",

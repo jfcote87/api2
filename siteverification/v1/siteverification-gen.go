@@ -4,18 +4,16 @@
 //
 // Usage example:
 //
-//   import "google.golang.org/api/siteverification/v1"
+//   import "github.com/jfcote87/api2/siteverification/v1"
 //   ...
 //   siteverificationService, err := siteverification.New(oauthHttpClient)
 package siteverification
 
 import (
-	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/jfcote87/api2/googleapi"
 	"golang.org/x/net/context"
-	"google.golang.org/api/googleapi"
 	"io"
 	"net/http"
 	"net/url"
@@ -25,10 +23,8 @@ import (
 
 // Always reference these packages, just in case the auto-generated code
 // below doesn't.
-var _ = bytes.NewBuffer
 var _ = strconv.Itoa
 var _ = fmt.Sprintf
-var _ = json.NewDecoder
 var _ = io.Copy
 var _ = url.Parse
 var _ = googleapi.Version
@@ -39,7 +35,8 @@ var _ = context.Background
 const apiId = "siteVerification:v1"
 const apiName = "siteVerification"
 const apiVersion = "v1"
-const basePath = "https://www.googleapis.com/siteVerification/v1/"
+
+var baseURL *url.URL = &url.URL{Scheme: "https", Host: "www.googleapis.com", Path: "/siteVerification/v1/"}
 
 // OAuth2 scopes used by this API.
 const (
@@ -54,24 +51,15 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
+	s := &Service{client: client}
 	s.WebResource = NewWebResourceService(s)
 	return s, nil
 }
 
 type Service struct {
-	client    *http.Client
-	BasePath  string // API endpoint base URL
-	UserAgent string // optional additional User-Agent fragment
+	client *http.Client
 
 	WebResource *WebResourceService
-}
-
-func (s *Service) userAgent() string {
-	if s.UserAgent == "" {
-		return googleapi.UserAgent
-	}
-	return googleapi.UserAgent + " " + s.UserAgent
 }
 
 func NewWebResourceService(s *Service) *WebResourceService {
@@ -150,49 +138,42 @@ type SiteVerificationWebResourceResourceSite struct {
 // method id "siteVerification.webResource.delete":
 
 type WebResourceDeleteCall struct {
-	s    *Service
-	id   string
-	opt_ map[string]interface{}
+	s             *Service
+	id            string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Delete: Relinquish ownership of a website or domain.
-func (r *WebResourceService) Delete(id string) *WebResourceDeleteCall {
-	c := &WebResourceDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.id = id
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *WebResourceDeleteCall) Fields(s ...googleapi.Field) *WebResourceDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *WebResourceService) Delete(id string) *WebResourceDeleteCall {
+	return &WebResourceDeleteCall{
+		s:             r.s,
+		id:            id,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "webResource/{id}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *WebResourceDeleteCall) Context(ctx context.Context) *WebResourceDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *WebResourceDeleteCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "webResource/{id}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"id": c.id,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Relinquish ownership of a website or domain.",
 	//   "httpMethod": "DELETE",
@@ -219,15 +200,28 @@ func (c *WebResourceDeleteCall) Do() error {
 // method id "siteVerification.webResource.get":
 
 type WebResourceGetCall struct {
-	s    *Service
-	id   string
-	opt_ map[string]interface{}
+	s             *Service
+	id            string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Get the most current data for a website or domain.
+
 func (r *WebResourceService) Get(id string) *WebResourceGetCall {
-	c := &WebResourceGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.id = id
+	return &WebResourceGetCall{
+		s:             r.s,
+		id:            id,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "webResource/{id}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *WebResourceGetCall) Context(ctx context.Context) *WebResourceGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -235,37 +229,23 @@ func (r *WebResourceService) Get(id string) *WebResourceGetCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *WebResourceGetCall) Fields(s ...googleapi.Field) *WebResourceGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *WebResourceGetCall) Do() (*SiteVerificationWebResourceResource, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "webResource/{id}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *SiteVerificationWebResourceResource
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"id": c.id,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *SiteVerificationWebResourceResource
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Get the most current data for a website or domain.",
 	//   "httpMethod": "GET",
@@ -297,14 +277,27 @@ func (c *WebResourceGetCall) Do() (*SiteVerificationWebResourceResource, error) 
 type WebResourceGetTokenCall struct {
 	s                                          *Service
 	siteverificationwebresourcegettokenrequest *SiteVerificationWebResourceGettokenRequest
-	opt_                                       map[string]interface{}
+	caller_                                    googleapi.Caller
+	params_                                    url.Values
+	pathTemplate_                              string
+	context_                                   context.Context
 }
 
 // GetToken: Get a verification token for placing on a website or
 // domain.
+
 func (r *WebResourceService) GetToken(siteverificationwebresourcegettokenrequest *SiteVerificationWebResourceGettokenRequest) *WebResourceGetTokenCall {
-	c := &WebResourceGetTokenCall{s: r.s, opt_: make(map[string]interface{})}
-	c.siteverificationwebresourcegettokenrequest = siteverificationwebresourcegettokenrequest
+	return &WebResourceGetTokenCall{
+		s: r.s,
+		siteverificationwebresourcegettokenrequest: siteverificationwebresourcegettokenrequest,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "token",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *WebResourceGetTokenCall) Context(ctx context.Context) *WebResourceGetTokenCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -312,41 +305,22 @@ func (r *WebResourceService) GetToken(siteverificationwebresourcegettokenrequest
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *WebResourceGetTokenCall) Fields(s ...googleapi.Field) *WebResourceGetTokenCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *WebResourceGetTokenCall) Do() (*SiteVerificationWebResourceGettokenResponse, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.siteverificationwebresourcegettokenrequest)
-	if err != nil {
-		return nil, err
+	var returnValue *SiteVerificationWebResourceGettokenResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.siteverificationwebresourcegettokenrequest,
+		Result:  &returnValue,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "token")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *SiteVerificationWebResourceGettokenResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Get a verification token for placing on a website or domain.",
 	//   "httpMethod": "POST",
@@ -372,14 +346,27 @@ type WebResourceInsertCall struct {
 	s                                   *Service
 	verificationMethod                  string
 	siteverificationwebresourceresource *SiteVerificationWebResourceResource
-	opt_                                map[string]interface{}
+	caller_                             googleapi.Caller
+	params_                             url.Values
+	pathTemplate_                       string
+	context_                            context.Context
 }
 
 // Insert: Attempt verification of a website or domain.
+
 func (r *WebResourceService) Insert(verificationMethod string, siteverificationwebresourceresource *SiteVerificationWebResourceResource) *WebResourceInsertCall {
-	c := &WebResourceInsertCall{s: r.s, opt_: make(map[string]interface{})}
-	c.verificationMethod = verificationMethod
-	c.siteverificationwebresourceresource = siteverificationwebresourceresource
+	return &WebResourceInsertCall{
+		s:                                   r.s,
+		verificationMethod:                  verificationMethod,
+		siteverificationwebresourceresource: siteverificationwebresourceresource,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "webResource",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *WebResourceInsertCall) Context(ctx context.Context) *WebResourceInsertCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -387,42 +374,23 @@ func (r *WebResourceService) Insert(verificationMethod string, siteverificationw
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *WebResourceInsertCall) Fields(s ...googleapi.Field) *WebResourceInsertCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *WebResourceInsertCall) Do() (*SiteVerificationWebResourceResource, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.siteverificationwebresourceresource)
-	if err != nil {
-		return nil, err
+	var returnValue *SiteVerificationWebResourceResource
+	c.params_.Set("verificationMethod", fmt.Sprintf("%v", c.verificationMethod))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.siteverificationwebresourceresource,
+		Result:  &returnValue,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("verificationMethod", fmt.Sprintf("%v", c.verificationMethod))
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "webResource")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *SiteVerificationWebResourceResource
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Attempt verification of a website or domain.",
 	//   "httpMethod": "POST",
@@ -456,13 +424,26 @@ func (c *WebResourceInsertCall) Do() (*SiteVerificationWebResourceResource, erro
 // method id "siteVerification.webResource.list":
 
 type WebResourceListCall struct {
-	s    *Service
-	opt_ map[string]interface{}
+	s             *Service
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Get the list of your verified websites and domains.
+
 func (r *WebResourceService) List() *WebResourceListCall {
-	c := &WebResourceListCall{s: r.s, opt_: make(map[string]interface{})}
+	return &WebResourceListCall{
+		s:             r.s,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "webResource",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *WebResourceListCall) Context(ctx context.Context) *WebResourceListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -470,35 +451,21 @@ func (r *WebResourceService) List() *WebResourceListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *WebResourceListCall) Fields(s ...googleapi.Field) *WebResourceListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *WebResourceListCall) Do() (*SiteVerificationWebResourceListResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
+	var returnValue *SiteVerificationWebResourceListResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "webResource")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *SiteVerificationWebResourceListResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Get the list of your verified websites and domains.",
 	//   "httpMethod": "GET",
@@ -520,15 +487,28 @@ type WebResourcePatchCall struct {
 	s                                   *Service
 	id                                  string
 	siteverificationwebresourceresource *SiteVerificationWebResourceResource
-	opt_                                map[string]interface{}
+	caller_                             googleapi.Caller
+	params_                             url.Values
+	pathTemplate_                       string
+	context_                            context.Context
 }
 
 // Patch: Modify the list of owners for your website or domain. This
 // method supports patch semantics.
+
 func (r *WebResourceService) Patch(id string, siteverificationwebresourceresource *SiteVerificationWebResourceResource) *WebResourcePatchCall {
-	c := &WebResourcePatchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.id = id
-	c.siteverificationwebresourceresource = siteverificationwebresourceresource
+	return &WebResourcePatchCall{
+		s:  r.s,
+		id: id,
+		siteverificationwebresourceresource: siteverificationwebresourceresource,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "webResource/{id}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *WebResourcePatchCall) Context(ctx context.Context) *WebResourcePatchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -536,43 +516,24 @@ func (r *WebResourceService) Patch(id string, siteverificationwebresourceresourc
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *WebResourcePatchCall) Fields(s ...googleapi.Field) *WebResourcePatchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *WebResourcePatchCall) Do() (*SiteVerificationWebResourceResource, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.siteverificationwebresourceresource)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "webResource/{id}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PATCH", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *SiteVerificationWebResourceResource
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"id": c.id,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PATCH",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.siteverificationwebresourceresource,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *SiteVerificationWebResourceResource
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Modify the list of owners for your website or domain. This method supports patch semantics.",
 	//   "httpMethod": "PATCH",
@@ -608,14 +569,27 @@ type WebResourceUpdateCall struct {
 	s                                   *Service
 	id                                  string
 	siteverificationwebresourceresource *SiteVerificationWebResourceResource
-	opt_                                map[string]interface{}
+	caller_                             googleapi.Caller
+	params_                             url.Values
+	pathTemplate_                       string
+	context_                            context.Context
 }
 
 // Update: Modify the list of owners for your website or domain.
+
 func (r *WebResourceService) Update(id string, siteverificationwebresourceresource *SiteVerificationWebResourceResource) *WebResourceUpdateCall {
-	c := &WebResourceUpdateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.id = id
-	c.siteverificationwebresourceresource = siteverificationwebresourceresource
+	return &WebResourceUpdateCall{
+		s:  r.s,
+		id: id,
+		siteverificationwebresourceresource: siteverificationwebresourceresource,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "webResource/{id}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *WebResourceUpdateCall) Context(ctx context.Context) *WebResourceUpdateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -623,43 +597,24 @@ func (r *WebResourceService) Update(id string, siteverificationwebresourceresour
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *WebResourceUpdateCall) Fields(s ...googleapi.Field) *WebResourceUpdateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *WebResourceUpdateCall) Do() (*SiteVerificationWebResourceResource, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.siteverificationwebresourceresource)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "webResource/{id}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *SiteVerificationWebResourceResource
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"id": c.id,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.siteverificationwebresourceresource,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *SiteVerificationWebResourceResource
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Modify the list of owners for your website or domain.",
 	//   "httpMethod": "PUT",

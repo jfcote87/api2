@@ -4,18 +4,16 @@
 //
 // Usage example:
 //
-//   import "google.golang.org/api/calendar/v3"
+//   import "github.com/jfcote87/api2/calendar/v3"
 //   ...
 //   calendarService, err := calendar.New(oauthHttpClient)
 package calendar
 
 import (
-	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/jfcote87/api2/googleapi"
 	"golang.org/x/net/context"
-	"google.golang.org/api/googleapi"
 	"io"
 	"net/http"
 	"net/url"
@@ -25,10 +23,8 @@ import (
 
 // Always reference these packages, just in case the auto-generated code
 // below doesn't.
-var _ = bytes.NewBuffer
 var _ = strconv.Itoa
 var _ = fmt.Sprintf
-var _ = json.NewDecoder
 var _ = io.Copy
 var _ = url.Parse
 var _ = googleapi.Version
@@ -39,7 +35,8 @@ var _ = context.Background
 const apiId = "calendar:v3"
 const apiName = "calendar"
 const apiVersion = "v3"
-const basePath = "https://www.googleapis.com/calendar/v3/"
+
+var baseURL *url.URL = &url.URL{Scheme: "https", Host: "www.googleapis.com", Path: "/calendar/v3/"}
 
 // OAuth2 scopes used by this API.
 const (
@@ -54,7 +51,7 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
+	s := &Service{client: client}
 	s.Acl = NewAclService(s)
 	s.CalendarList = NewCalendarListService(s)
 	s.Calendars = NewCalendarsService(s)
@@ -67,9 +64,7 @@ func New(client *http.Client) (*Service, error) {
 }
 
 type Service struct {
-	client    *http.Client
-	BasePath  string // API endpoint base URL
-	UserAgent string // optional additional User-Agent fragment
+	client *http.Client
 
 	Acl *AclService
 
@@ -86,13 +81,6 @@ type Service struct {
 	Freebusy *FreebusyService
 
 	Settings *SettingsService
-}
-
-func (s *Service) userAgent() string {
-	if s.UserAgent == "" {
-		return googleapi.UserAgent
-	}
-	return googleapi.UserAgent + " " + s.UserAgent
 }
 
 func NewAclService(s *Service) *AclService {
@@ -1006,52 +994,45 @@ type TimePeriod struct {
 // method id "calendar.acl.delete":
 
 type AclDeleteCall struct {
-	s          *Service
-	calendarId string
-	ruleId     string
-	opt_       map[string]interface{}
+	s             *Service
+	calendarId    string
+	ruleId        string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Delete: Deletes an access control rule.
-func (r *AclService) Delete(calendarId string, ruleId string) *AclDeleteCall {
-	c := &AclDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.calendarId = calendarId
-	c.ruleId = ruleId
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *AclDeleteCall) Fields(s ...googleapi.Field) *AclDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *AclService) Delete(calendarId string, ruleId string) *AclDeleteCall {
+	return &AclDeleteCall{
+		s:             r.s,
+		calendarId:    calendarId,
+		ruleId:        ruleId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "calendars/{calendarId}/acl/{ruleId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *AclDeleteCall) Context(ctx context.Context) *AclDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *AclDeleteCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "calendars/{calendarId}/acl/{ruleId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"calendarId": c.calendarId,
 		"ruleId":     c.ruleId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Deletes an access control rule.",
 	//   "httpMethod": "DELETE",
@@ -1085,17 +1066,30 @@ func (c *AclDeleteCall) Do() error {
 // method id "calendar.acl.get":
 
 type AclGetCall struct {
-	s          *Service
-	calendarId string
-	ruleId     string
-	opt_       map[string]interface{}
+	s             *Service
+	calendarId    string
+	ruleId        string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Returns an access control rule.
+
 func (r *AclService) Get(calendarId string, ruleId string) *AclGetCall {
-	c := &AclGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.calendarId = calendarId
-	c.ruleId = ruleId
+	return &AclGetCall{
+		s:             r.s,
+		calendarId:    calendarId,
+		ruleId:        ruleId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "calendars/{calendarId}/acl/{ruleId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *AclGetCall) Context(ctx context.Context) *AclGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1103,38 +1097,24 @@ func (r *AclService) Get(calendarId string, ruleId string) *AclGetCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AclGetCall) Fields(s ...googleapi.Field) *AclGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AclGetCall) Do() (*AclRule, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "calendars/{calendarId}/acl/{ruleId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *AclRule
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"calendarId": c.calendarId,
 		"ruleId":     c.ruleId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *AclRule
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Returns an access control rule.",
 	//   "httpMethod": "GET",
@@ -1172,17 +1152,30 @@ func (c *AclGetCall) Do() (*AclRule, error) {
 // method id "calendar.acl.insert":
 
 type AclInsertCall struct {
-	s          *Service
-	calendarId string
-	aclrule    *AclRule
-	opt_       map[string]interface{}
+	s             *Service
+	calendarId    string
+	aclrule       *AclRule
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Insert: Creates an access control rule.
+
 func (r *AclService) Insert(calendarId string, aclrule *AclRule) *AclInsertCall {
-	c := &AclInsertCall{s: r.s, opt_: make(map[string]interface{})}
-	c.calendarId = calendarId
-	c.aclrule = aclrule
+	return &AclInsertCall{
+		s:             r.s,
+		calendarId:    calendarId,
+		aclrule:       aclrule,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "calendars/{calendarId}/acl",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *AclInsertCall) Context(ctx context.Context) *AclInsertCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1190,43 +1183,24 @@ func (r *AclService) Insert(calendarId string, aclrule *AclRule) *AclInsertCall 
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AclInsertCall) Fields(s ...googleapi.Field) *AclInsertCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AclInsertCall) Do() (*AclRule, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.aclrule)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "calendars/{calendarId}/acl")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *AclRule
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"calendarId": c.calendarId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.aclrule,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *AclRule
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Creates an access control rule.",
 	//   "httpMethod": "POST",
@@ -1259,30 +1233,39 @@ func (c *AclInsertCall) Do() (*AclRule, error) {
 // method id "calendar.acl.list":
 
 type AclListCall struct {
-	s          *Service
-	calendarId string
-	opt_       map[string]interface{}
+	s             *Service
+	calendarId    string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Returns the rules in the access control list for the calendar.
+
 func (r *AclService) List(calendarId string) *AclListCall {
-	c := &AclListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.calendarId = calendarId
-	return c
+	return &AclListCall{
+		s:             r.s,
+		calendarId:    calendarId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "calendars/{calendarId}/acl",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // MaxResults sets the optional parameter "maxResults": Maximum number
 // of entries returned on one result page. By default the value is 100
 // entries. The page size can never be larger than 250 entries.
 func (c *AclListCall) MaxResults(maxResults int64) *AclListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
 // PageToken sets the optional parameter "pageToken": Token specifying
 // which result page to return.
 func (c *AclListCall) PageToken(pageToken string) *AclListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
 	return c
 }
 
@@ -1291,7 +1274,7 @@ func (c *AclListCall) PageToken(pageToken string) *AclListCall {
 // role equal to "none". Deleted ACLs will always be included if
 // syncToken is provided.  The default is False.
 func (c *AclListCall) ShowDeleted(showDeleted bool) *AclListCall {
-	c.opt_["showDeleted"] = showDeleted
+	c.params_.Set("showDeleted", fmt.Sprintf("%v", showDeleted))
 	return c
 }
 
@@ -1309,7 +1292,11 @@ func (c *AclListCall) ShowDeleted(showDeleted bool) *AclListCall {
 // synchronization.
 //  The default is to return all entries.
 func (c *AclListCall) SyncToken(syncToken string) *AclListCall {
-	c.opt_["syncToken"] = syncToken
+	c.params_.Set("syncToken", fmt.Sprintf("%v", syncToken))
+	return c
+}
+func (c *AclListCall) Context(ctx context.Context) *AclListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1317,49 +1304,23 @@ func (c *AclListCall) SyncToken(syncToken string) *AclListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AclListCall) Fields(s ...googleapi.Field) *AclListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AclListCall) Do() (*Acl, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["showDeleted"]; ok {
-		params.Set("showDeleted", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["syncToken"]; ok {
-		params.Set("syncToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "calendars/{calendarId}/acl")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Acl
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"calendarId": c.calendarId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Acl
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Returns the rules in the access control list for the calendar.",
 	//   "httpMethod": "GET",
@@ -1412,20 +1373,33 @@ func (c *AclListCall) Do() (*Acl, error) {
 // method id "calendar.acl.patch":
 
 type AclPatchCall struct {
-	s          *Service
-	calendarId string
-	ruleId     string
-	aclrule    *AclRule
-	opt_       map[string]interface{}
+	s             *Service
+	calendarId    string
+	ruleId        string
+	aclrule       *AclRule
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Patch: Updates an access control rule. This method supports patch
 // semantics.
+
 func (r *AclService) Patch(calendarId string, ruleId string, aclrule *AclRule) *AclPatchCall {
-	c := &AclPatchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.calendarId = calendarId
-	c.ruleId = ruleId
-	c.aclrule = aclrule
+	return &AclPatchCall{
+		s:             r.s,
+		calendarId:    calendarId,
+		ruleId:        ruleId,
+		aclrule:       aclrule,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "calendars/{calendarId}/acl/{ruleId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *AclPatchCall) Context(ctx context.Context) *AclPatchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1433,44 +1407,25 @@ func (r *AclService) Patch(calendarId string, ruleId string, aclrule *AclRule) *
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AclPatchCall) Fields(s ...googleapi.Field) *AclPatchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AclPatchCall) Do() (*AclRule, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.aclrule)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "calendars/{calendarId}/acl/{ruleId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PATCH", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *AclRule
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"calendarId": c.calendarId,
 		"ruleId":     c.ruleId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PATCH",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.aclrule,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *AclRule
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates an access control rule. This method supports patch semantics.",
 	//   "httpMethod": "PATCH",
@@ -1510,19 +1465,32 @@ func (c *AclPatchCall) Do() (*AclRule, error) {
 // method id "calendar.acl.update":
 
 type AclUpdateCall struct {
-	s          *Service
-	calendarId string
-	ruleId     string
-	aclrule    *AclRule
-	opt_       map[string]interface{}
+	s             *Service
+	calendarId    string
+	ruleId        string
+	aclrule       *AclRule
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Update: Updates an access control rule.
+
 func (r *AclService) Update(calendarId string, ruleId string, aclrule *AclRule) *AclUpdateCall {
-	c := &AclUpdateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.calendarId = calendarId
-	c.ruleId = ruleId
-	c.aclrule = aclrule
+	return &AclUpdateCall{
+		s:             r.s,
+		calendarId:    calendarId,
+		ruleId:        ruleId,
+		aclrule:       aclrule,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "calendars/{calendarId}/acl/{ruleId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *AclUpdateCall) Context(ctx context.Context) *AclUpdateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1530,44 +1498,25 @@ func (r *AclService) Update(calendarId string, ruleId string, aclrule *AclRule) 
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AclUpdateCall) Fields(s ...googleapi.Field) *AclUpdateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AclUpdateCall) Do() (*AclRule, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.aclrule)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "calendars/{calendarId}/acl/{ruleId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *AclRule
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"calendarId": c.calendarId,
 		"ruleId":     c.ruleId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.aclrule,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *AclRule
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates an access control rule.",
 	//   "httpMethod": "PUT",
@@ -1607,32 +1556,41 @@ func (c *AclUpdateCall) Do() (*AclRule, error) {
 // method id "calendar.acl.watch":
 
 type AclWatchCall struct {
-	s          *Service
-	calendarId string
-	channel    *Channel
-	opt_       map[string]interface{}
+	s             *Service
+	calendarId    string
+	channel       *Channel
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Watch: Watch for changes to ACL resources.
+
 func (r *AclService) Watch(calendarId string, channel *Channel) *AclWatchCall {
-	c := &AclWatchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.calendarId = calendarId
-	c.channel = channel
-	return c
+	return &AclWatchCall{
+		s:             r.s,
+		calendarId:    calendarId,
+		channel:       channel,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "calendars/{calendarId}/acl/watch",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // MaxResults sets the optional parameter "maxResults": Maximum number
 // of entries returned on one result page. By default the value is 100
 // entries. The page size can never be larger than 250 entries.
 func (c *AclWatchCall) MaxResults(maxResults int64) *AclWatchCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
 // PageToken sets the optional parameter "pageToken": Token specifying
 // which result page to return.
 func (c *AclWatchCall) PageToken(pageToken string) *AclWatchCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
 	return c
 }
 
@@ -1641,7 +1599,7 @@ func (c *AclWatchCall) PageToken(pageToken string) *AclWatchCall {
 // role equal to "none". Deleted ACLs will always be included if
 // syncToken is provided.  The default is False.
 func (c *AclWatchCall) ShowDeleted(showDeleted bool) *AclWatchCall {
-	c.opt_["showDeleted"] = showDeleted
+	c.params_.Set("showDeleted", fmt.Sprintf("%v", showDeleted))
 	return c
 }
 
@@ -1659,7 +1617,11 @@ func (c *AclWatchCall) ShowDeleted(showDeleted bool) *AclWatchCall {
 // synchronization.
 //  The default is to return all entries.
 func (c *AclWatchCall) SyncToken(syncToken string) *AclWatchCall {
-	c.opt_["syncToken"] = syncToken
+	c.params_.Set("syncToken", fmt.Sprintf("%v", syncToken))
+	return c
+}
+func (c *AclWatchCall) Context(ctx context.Context) *AclWatchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1667,55 +1629,24 @@ func (c *AclWatchCall) SyncToken(syncToken string) *AclWatchCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AclWatchCall) Fields(s ...googleapi.Field) *AclWatchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AclWatchCall) Do() (*Channel, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.channel)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["showDeleted"]; ok {
-		params.Set("showDeleted", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["syncToken"]; ok {
-		params.Set("syncToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "calendars/{calendarId}/acl/watch")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Channel
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"calendarId": c.calendarId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.channel,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Channel
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Watch for changes to ACL resources.",
 	//   "httpMethod": "POST",
@@ -1772,49 +1703,42 @@ func (c *AclWatchCall) Do() (*Channel, error) {
 // method id "calendar.calendarList.delete":
 
 type CalendarListDeleteCall struct {
-	s          *Service
-	calendarId string
-	opt_       map[string]interface{}
+	s             *Service
+	calendarId    string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Delete: Deletes an entry on the user's calendar list.
-func (r *CalendarListService) Delete(calendarId string) *CalendarListDeleteCall {
-	c := &CalendarListDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.calendarId = calendarId
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *CalendarListDeleteCall) Fields(s ...googleapi.Field) *CalendarListDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *CalendarListService) Delete(calendarId string) *CalendarListDeleteCall {
+	return &CalendarListDeleteCall{
+		s:             r.s,
+		calendarId:    calendarId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "users/me/calendarList/{calendarId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *CalendarListDeleteCall) Context(ctx context.Context) *CalendarListDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *CalendarListDeleteCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "users/me/calendarList/{calendarId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"calendarId": c.calendarId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Deletes an entry on the user's calendar list.",
 	//   "httpMethod": "DELETE",
@@ -1841,15 +1765,28 @@ func (c *CalendarListDeleteCall) Do() error {
 // method id "calendar.calendarList.get":
 
 type CalendarListGetCall struct {
-	s          *Service
-	calendarId string
-	opt_       map[string]interface{}
+	s             *Service
+	calendarId    string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Returns an entry on the user's calendar list.
+
 func (r *CalendarListService) Get(calendarId string) *CalendarListGetCall {
-	c := &CalendarListGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.calendarId = calendarId
+	return &CalendarListGetCall{
+		s:             r.s,
+		calendarId:    calendarId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "users/me/calendarList/{calendarId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *CalendarListGetCall) Context(ctx context.Context) *CalendarListGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1857,37 +1794,23 @@ func (r *CalendarListService) Get(calendarId string) *CalendarListGetCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *CalendarListGetCall) Fields(s ...googleapi.Field) *CalendarListGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *CalendarListGetCall) Do() (*CalendarListEntry, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "users/me/calendarList/{calendarId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *CalendarListEntry
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"calendarId": c.calendarId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *CalendarListEntry
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Returns an entry on the user's calendar list.",
 	//   "httpMethod": "GET",
@@ -1920,14 +1843,23 @@ func (c *CalendarListGetCall) Do() (*CalendarListEntry, error) {
 type CalendarListInsertCall struct {
 	s                 *Service
 	calendarlistentry *CalendarListEntry
-	opt_              map[string]interface{}
+	caller_           googleapi.Caller
+	params_           url.Values
+	pathTemplate_     string
+	context_          context.Context
 }
 
 // Insert: Adds an entry to the user's calendar list.
+
 func (r *CalendarListService) Insert(calendarlistentry *CalendarListEntry) *CalendarListInsertCall {
-	c := &CalendarListInsertCall{s: r.s, opt_: make(map[string]interface{})}
-	c.calendarlistentry = calendarlistentry
-	return c
+	return &CalendarListInsertCall{
+		s:                 r.s,
+		calendarlistentry: calendarlistentry,
+		caller_:           googleapi.JSONCall{},
+		params_:           make(map[string][]string),
+		pathTemplate_:     "users/me/calendarList",
+		context_:          googleapi.NoContext,
+	}
 }
 
 // ColorRgbFormat sets the optional parameter "colorRgbFormat": Whether
@@ -1936,7 +1868,11 @@ func (r *CalendarListService) Insert(calendarlistentry *CalendarListEntry) *Cale
 // colorId field will be set to the best matching option automatically.
 // The default is False.
 func (c *CalendarListInsertCall) ColorRgbFormat(colorRgbFormat bool) *CalendarListInsertCall {
-	c.opt_["colorRgbFormat"] = colorRgbFormat
+	c.params_.Set("colorRgbFormat", fmt.Sprintf("%v", colorRgbFormat))
+	return c
+}
+func (c *CalendarListInsertCall) Context(ctx context.Context) *CalendarListInsertCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1944,44 +1880,22 @@ func (c *CalendarListInsertCall) ColorRgbFormat(colorRgbFormat bool) *CalendarLi
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *CalendarListInsertCall) Fields(s ...googleapi.Field) *CalendarListInsertCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *CalendarListInsertCall) Do() (*CalendarListEntry, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.calendarlistentry)
-	if err != nil {
-		return nil, err
+	var returnValue *CalendarListEntry
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.calendarlistentry,
+		Result:  &returnValue,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["colorRgbFormat"]; ok {
-		params.Set("colorRgbFormat", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "users/me/calendarList")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *CalendarListEntry
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Adds an entry to the user's calendar list.",
 	//   "httpMethod": "POST",
@@ -2010,21 +1924,30 @@ func (c *CalendarListInsertCall) Do() (*CalendarListEntry, error) {
 // method id "calendar.calendarList.list":
 
 type CalendarListListCall struct {
-	s    *Service
-	opt_ map[string]interface{}
+	s             *Service
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Returns entries on the user's calendar list.
+
 func (r *CalendarListService) List() *CalendarListListCall {
-	c := &CalendarListListCall{s: r.s, opt_: make(map[string]interface{})}
-	return c
+	return &CalendarListListCall{
+		s:             r.s,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "users/me/calendarList",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // MaxResults sets the optional parameter "maxResults": Maximum number
 // of entries returned on one result page. By default the value is 100
 // entries. The page size can never be larger than 250 entries.
 func (c *CalendarListListCall) MaxResults(maxResults int64) *CalendarListListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
@@ -2032,14 +1955,14 @@ func (c *CalendarListListCall) MaxResults(maxResults int64) *CalendarListListCal
 // minimum access role for the user in the returned entires.  The
 // default is no restriction.
 func (c *CalendarListListCall) MinAccessRole(minAccessRole string) *CalendarListListCall {
-	c.opt_["minAccessRole"] = minAccessRole
+	c.params_.Set("minAccessRole", fmt.Sprintf("%v", minAccessRole))
 	return c
 }
 
 // PageToken sets the optional parameter "pageToken": Token specifying
 // which result page to return.
 func (c *CalendarListListCall) PageToken(pageToken string) *CalendarListListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
 	return c
 }
 
@@ -2047,14 +1970,14 @@ func (c *CalendarListListCall) PageToken(pageToken string) *CalendarListListCall
 // include deleted calendar list entries in the result.  The default is
 // False.
 func (c *CalendarListListCall) ShowDeleted(showDeleted bool) *CalendarListListCall {
-	c.opt_["showDeleted"] = showDeleted
+	c.params_.Set("showDeleted", fmt.Sprintf("%v", showDeleted))
 	return c
 }
 
 // ShowHidden sets the optional parameter "showHidden": Whether to show
 // hidden entries.  The default is False.
 func (c *CalendarListListCall) ShowHidden(showHidden bool) *CalendarListListCall {
-	c.opt_["showHidden"] = showHidden
+	c.params_.Set("showHidden", fmt.Sprintf("%v", showHidden))
 	return c
 }
 
@@ -2077,7 +2000,11 @@ func (c *CalendarListListCall) ShowHidden(showHidden bool) *CalendarListListCall
 //  The
 // default is to return all entries.
 func (c *CalendarListListCall) SyncToken(syncToken string) *CalendarListListCall {
-	c.opt_["syncToken"] = syncToken
+	c.params_.Set("syncToken", fmt.Sprintf("%v", syncToken))
+	return c
+}
+func (c *CalendarListListCall) Context(ctx context.Context) *CalendarListListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2085,53 +2012,21 @@ func (c *CalendarListListCall) SyncToken(syncToken string) *CalendarListListCall
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *CalendarListListCall) Fields(s ...googleapi.Field) *CalendarListListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *CalendarListListCall) Do() (*CalendarList, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
+	var returnValue *CalendarList
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	if v, ok := c.opt_["minAccessRole"]; ok {
-		params.Set("minAccessRole", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["showDeleted"]; ok {
-		params.Set("showDeleted", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["showHidden"]; ok {
-		params.Set("showHidden", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["syncToken"]; ok {
-		params.Set("syncToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "users/me/calendarList")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *CalendarList
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Returns entries on the user's calendar list.",
 	//   "httpMethod": "GET",
@@ -2201,16 +2096,25 @@ type CalendarListPatchCall struct {
 	s                 *Service
 	calendarId        string
 	calendarlistentry *CalendarListEntry
-	opt_              map[string]interface{}
+	caller_           googleapi.Caller
+	params_           url.Values
+	pathTemplate_     string
+	context_          context.Context
 }
 
 // Patch: Updates an entry on the user's calendar list. This method
 // supports patch semantics.
+
 func (r *CalendarListService) Patch(calendarId string, calendarlistentry *CalendarListEntry) *CalendarListPatchCall {
-	c := &CalendarListPatchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.calendarId = calendarId
-	c.calendarlistentry = calendarlistentry
-	return c
+	return &CalendarListPatchCall{
+		s:                 r.s,
+		calendarId:        calendarId,
+		calendarlistentry: calendarlistentry,
+		caller_:           googleapi.JSONCall{},
+		params_:           make(map[string][]string),
+		pathTemplate_:     "users/me/calendarList/{calendarId}",
+		context_:          googleapi.NoContext,
+	}
 }
 
 // ColorRgbFormat sets the optional parameter "colorRgbFormat": Whether
@@ -2219,7 +2123,11 @@ func (r *CalendarListService) Patch(calendarId string, calendarlistentry *Calend
 // colorId field will be set to the best matching option automatically.
 // The default is False.
 func (c *CalendarListPatchCall) ColorRgbFormat(colorRgbFormat bool) *CalendarListPatchCall {
-	c.opt_["colorRgbFormat"] = colorRgbFormat
+	c.params_.Set("colorRgbFormat", fmt.Sprintf("%v", colorRgbFormat))
+	return c
+}
+func (c *CalendarListPatchCall) Context(ctx context.Context) *CalendarListPatchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2227,46 +2135,24 @@ func (c *CalendarListPatchCall) ColorRgbFormat(colorRgbFormat bool) *CalendarLis
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *CalendarListPatchCall) Fields(s ...googleapi.Field) *CalendarListPatchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *CalendarListPatchCall) Do() (*CalendarListEntry, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.calendarlistentry)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["colorRgbFormat"]; ok {
-		params.Set("colorRgbFormat", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "users/me/calendarList/{calendarId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PATCH", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *CalendarListEntry
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"calendarId": c.calendarId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PATCH",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.calendarlistentry,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *CalendarListEntry
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates an entry on the user's calendar list. This method supports patch semantics.",
 	//   "httpMethod": "PATCH",
@@ -2307,15 +2193,24 @@ type CalendarListUpdateCall struct {
 	s                 *Service
 	calendarId        string
 	calendarlistentry *CalendarListEntry
-	opt_              map[string]interface{}
+	caller_           googleapi.Caller
+	params_           url.Values
+	pathTemplate_     string
+	context_          context.Context
 }
 
 // Update: Updates an entry on the user's calendar list.
+
 func (r *CalendarListService) Update(calendarId string, calendarlistentry *CalendarListEntry) *CalendarListUpdateCall {
-	c := &CalendarListUpdateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.calendarId = calendarId
-	c.calendarlistentry = calendarlistentry
-	return c
+	return &CalendarListUpdateCall{
+		s:                 r.s,
+		calendarId:        calendarId,
+		calendarlistentry: calendarlistentry,
+		caller_:           googleapi.JSONCall{},
+		params_:           make(map[string][]string),
+		pathTemplate_:     "users/me/calendarList/{calendarId}",
+		context_:          googleapi.NoContext,
+	}
 }
 
 // ColorRgbFormat sets the optional parameter "colorRgbFormat": Whether
@@ -2324,7 +2219,11 @@ func (r *CalendarListService) Update(calendarId string, calendarlistentry *Calen
 // colorId field will be set to the best matching option automatically.
 // The default is False.
 func (c *CalendarListUpdateCall) ColorRgbFormat(colorRgbFormat bool) *CalendarListUpdateCall {
-	c.opt_["colorRgbFormat"] = colorRgbFormat
+	c.params_.Set("colorRgbFormat", fmt.Sprintf("%v", colorRgbFormat))
+	return c
+}
+func (c *CalendarListUpdateCall) Context(ctx context.Context) *CalendarListUpdateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2332,46 +2231,24 @@ func (c *CalendarListUpdateCall) ColorRgbFormat(colorRgbFormat bool) *CalendarLi
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *CalendarListUpdateCall) Fields(s ...googleapi.Field) *CalendarListUpdateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *CalendarListUpdateCall) Do() (*CalendarListEntry, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.calendarlistentry)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["colorRgbFormat"]; ok {
-		params.Set("colorRgbFormat", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "users/me/calendarList/{calendarId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *CalendarListEntry
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"calendarId": c.calendarId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.calendarlistentry,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *CalendarListEntry
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates an entry on the user's calendar list.",
 	//   "httpMethod": "PUT",
@@ -2409,23 +2286,32 @@ func (c *CalendarListUpdateCall) Do() (*CalendarListEntry, error) {
 // method id "calendar.calendarList.watch":
 
 type CalendarListWatchCall struct {
-	s       *Service
-	channel *Channel
-	opt_    map[string]interface{}
+	s             *Service
+	channel       *Channel
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Watch: Watch for changes to CalendarList resources.
+
 func (r *CalendarListService) Watch(channel *Channel) *CalendarListWatchCall {
-	c := &CalendarListWatchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.channel = channel
-	return c
+	return &CalendarListWatchCall{
+		s:             r.s,
+		channel:       channel,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "users/me/calendarList/watch",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // MaxResults sets the optional parameter "maxResults": Maximum number
 // of entries returned on one result page. By default the value is 100
 // entries. The page size can never be larger than 250 entries.
 func (c *CalendarListWatchCall) MaxResults(maxResults int64) *CalendarListWatchCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
@@ -2433,14 +2319,14 @@ func (c *CalendarListWatchCall) MaxResults(maxResults int64) *CalendarListWatchC
 // minimum access role for the user in the returned entires.  The
 // default is no restriction.
 func (c *CalendarListWatchCall) MinAccessRole(minAccessRole string) *CalendarListWatchCall {
-	c.opt_["minAccessRole"] = minAccessRole
+	c.params_.Set("minAccessRole", fmt.Sprintf("%v", minAccessRole))
 	return c
 }
 
 // PageToken sets the optional parameter "pageToken": Token specifying
 // which result page to return.
 func (c *CalendarListWatchCall) PageToken(pageToken string) *CalendarListWatchCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
 	return c
 }
 
@@ -2448,14 +2334,14 @@ func (c *CalendarListWatchCall) PageToken(pageToken string) *CalendarListWatchCa
 // include deleted calendar list entries in the result.  The default is
 // False.
 func (c *CalendarListWatchCall) ShowDeleted(showDeleted bool) *CalendarListWatchCall {
-	c.opt_["showDeleted"] = showDeleted
+	c.params_.Set("showDeleted", fmt.Sprintf("%v", showDeleted))
 	return c
 }
 
 // ShowHidden sets the optional parameter "showHidden": Whether to show
 // hidden entries.  The default is False.
 func (c *CalendarListWatchCall) ShowHidden(showHidden bool) *CalendarListWatchCall {
-	c.opt_["showHidden"] = showHidden
+	c.params_.Set("showHidden", fmt.Sprintf("%v", showHidden))
 	return c
 }
 
@@ -2478,7 +2364,11 @@ func (c *CalendarListWatchCall) ShowHidden(showHidden bool) *CalendarListWatchCa
 //  The
 // default is to return all entries.
 func (c *CalendarListWatchCall) SyncToken(syncToken string) *CalendarListWatchCall {
-	c.opt_["syncToken"] = syncToken
+	c.params_.Set("syncToken", fmt.Sprintf("%v", syncToken))
+	return c
+}
+func (c *CalendarListWatchCall) Context(ctx context.Context) *CalendarListWatchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2486,59 +2376,22 @@ func (c *CalendarListWatchCall) SyncToken(syncToken string) *CalendarListWatchCa
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *CalendarListWatchCall) Fields(s ...googleapi.Field) *CalendarListWatchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *CalendarListWatchCall) Do() (*Channel, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.channel)
-	if err != nil {
-		return nil, err
+	var returnValue *Channel
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.channel,
+		Result:  &returnValue,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["minAccessRole"]; ok {
-		params.Set("minAccessRole", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["showDeleted"]; ok {
-		params.Set("showDeleted", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["showHidden"]; ok {
-		params.Set("showHidden", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["syncToken"]; ok {
-		params.Set("syncToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "users/me/calendarList/watch")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Channel
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Watch for changes to CalendarList resources.",
 	//   "httpMethod": "POST",
@@ -2609,50 +2462,43 @@ func (c *CalendarListWatchCall) Do() (*Channel, error) {
 // method id "calendar.calendars.clear":
 
 type CalendarsClearCall struct {
-	s          *Service
-	calendarId string
-	opt_       map[string]interface{}
+	s             *Service
+	calendarId    string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Clear: Clears a primary calendar. This operation deletes all events
 // associated with the primary calendar of an account.
-func (r *CalendarsService) Clear(calendarId string) *CalendarsClearCall {
-	c := &CalendarsClearCall{s: r.s, opt_: make(map[string]interface{})}
-	c.calendarId = calendarId
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *CalendarsClearCall) Fields(s ...googleapi.Field) *CalendarsClearCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *CalendarsService) Clear(calendarId string) *CalendarsClearCall {
+	return &CalendarsClearCall{
+		s:             r.s,
+		calendarId:    calendarId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "calendars/{calendarId}/clear",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *CalendarsClearCall) Context(ctx context.Context) *CalendarsClearCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *CalendarsClearCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "calendars/{calendarId}/clear")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"calendarId": c.calendarId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "POST",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Clears a primary calendar. This operation deletes all events associated with the primary calendar of an account.",
 	//   "httpMethod": "POST",
@@ -2679,50 +2525,43 @@ func (c *CalendarsClearCall) Do() error {
 // method id "calendar.calendars.delete":
 
 type CalendarsDeleteCall struct {
-	s          *Service
-	calendarId string
-	opt_       map[string]interface{}
+	s             *Service
+	calendarId    string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Delete: Deletes a secondary calendar. Use calendars.clear for
 // clearing all events on primary calendars.
-func (r *CalendarsService) Delete(calendarId string) *CalendarsDeleteCall {
-	c := &CalendarsDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.calendarId = calendarId
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *CalendarsDeleteCall) Fields(s ...googleapi.Field) *CalendarsDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *CalendarsService) Delete(calendarId string) *CalendarsDeleteCall {
+	return &CalendarsDeleteCall{
+		s:             r.s,
+		calendarId:    calendarId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "calendars/{calendarId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *CalendarsDeleteCall) Context(ctx context.Context) *CalendarsDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *CalendarsDeleteCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "calendars/{calendarId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"calendarId": c.calendarId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Deletes a secondary calendar. Use calendars.clear for clearing all events on primary calendars.",
 	//   "httpMethod": "DELETE",
@@ -2749,15 +2588,28 @@ func (c *CalendarsDeleteCall) Do() error {
 // method id "calendar.calendars.get":
 
 type CalendarsGetCall struct {
-	s          *Service
-	calendarId string
-	opt_       map[string]interface{}
+	s             *Service
+	calendarId    string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Returns metadata for a calendar.
+
 func (r *CalendarsService) Get(calendarId string) *CalendarsGetCall {
-	c := &CalendarsGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.calendarId = calendarId
+	return &CalendarsGetCall{
+		s:             r.s,
+		calendarId:    calendarId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "calendars/{calendarId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *CalendarsGetCall) Context(ctx context.Context) *CalendarsGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2765,37 +2617,23 @@ func (r *CalendarsService) Get(calendarId string) *CalendarsGetCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *CalendarsGetCall) Fields(s ...googleapi.Field) *CalendarsGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *CalendarsGetCall) Do() (*Calendar, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "calendars/{calendarId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Calendar
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"calendarId": c.calendarId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Calendar
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Returns metadata for a calendar.",
 	//   "httpMethod": "GET",
@@ -2826,15 +2664,28 @@ func (c *CalendarsGetCall) Do() (*Calendar, error) {
 // method id "calendar.calendars.insert":
 
 type CalendarsInsertCall struct {
-	s        *Service
-	calendar *Calendar
-	opt_     map[string]interface{}
+	s             *Service
+	calendar      *Calendar
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Insert: Creates a secondary calendar.
+
 func (r *CalendarsService) Insert(calendar *Calendar) *CalendarsInsertCall {
-	c := &CalendarsInsertCall{s: r.s, opt_: make(map[string]interface{})}
-	c.calendar = calendar
+	return &CalendarsInsertCall{
+		s:             r.s,
+		calendar:      calendar,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "calendars",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *CalendarsInsertCall) Context(ctx context.Context) *CalendarsInsertCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2842,41 +2693,22 @@ func (r *CalendarsService) Insert(calendar *Calendar) *CalendarsInsertCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *CalendarsInsertCall) Fields(s ...googleapi.Field) *CalendarsInsertCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *CalendarsInsertCall) Do() (*Calendar, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.calendar)
-	if err != nil {
-		return nil, err
+	var returnValue *Calendar
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.calendar,
+		Result:  &returnValue,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "calendars")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Calendar
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Creates a secondary calendar.",
 	//   "httpMethod": "POST",
@@ -2898,18 +2730,31 @@ func (c *CalendarsInsertCall) Do() (*Calendar, error) {
 // method id "calendar.calendars.patch":
 
 type CalendarsPatchCall struct {
-	s          *Service
-	calendarId string
-	calendar   *Calendar
-	opt_       map[string]interface{}
+	s             *Service
+	calendarId    string
+	calendar      *Calendar
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Patch: Updates metadata for a calendar. This method supports patch
 // semantics.
+
 func (r *CalendarsService) Patch(calendarId string, calendar *Calendar) *CalendarsPatchCall {
-	c := &CalendarsPatchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.calendarId = calendarId
-	c.calendar = calendar
+	return &CalendarsPatchCall{
+		s:             r.s,
+		calendarId:    calendarId,
+		calendar:      calendar,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "calendars/{calendarId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *CalendarsPatchCall) Context(ctx context.Context) *CalendarsPatchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2917,43 +2762,24 @@ func (r *CalendarsService) Patch(calendarId string, calendar *Calendar) *Calenda
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *CalendarsPatchCall) Fields(s ...googleapi.Field) *CalendarsPatchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *CalendarsPatchCall) Do() (*Calendar, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.calendar)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "calendars/{calendarId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PATCH", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Calendar
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"calendarId": c.calendarId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PATCH",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.calendar,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Calendar
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates metadata for a calendar. This method supports patch semantics.",
 	//   "httpMethod": "PATCH",
@@ -2986,17 +2812,30 @@ func (c *CalendarsPatchCall) Do() (*Calendar, error) {
 // method id "calendar.calendars.update":
 
 type CalendarsUpdateCall struct {
-	s          *Service
-	calendarId string
-	calendar   *Calendar
-	opt_       map[string]interface{}
+	s             *Service
+	calendarId    string
+	calendar      *Calendar
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Update: Updates metadata for a calendar.
+
 func (r *CalendarsService) Update(calendarId string, calendar *Calendar) *CalendarsUpdateCall {
-	c := &CalendarsUpdateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.calendarId = calendarId
-	c.calendar = calendar
+	return &CalendarsUpdateCall{
+		s:             r.s,
+		calendarId:    calendarId,
+		calendar:      calendar,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "calendars/{calendarId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *CalendarsUpdateCall) Context(ctx context.Context) *CalendarsUpdateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -3004,43 +2843,24 @@ func (r *CalendarsService) Update(calendarId string, calendar *Calendar) *Calend
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *CalendarsUpdateCall) Fields(s ...googleapi.Field) *CalendarsUpdateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *CalendarsUpdateCall) Do() (*Calendar, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.calendar)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "calendars/{calendarId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Calendar
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"calendarId": c.calendarId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.calendar,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Calendar
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates metadata for a calendar.",
 	//   "httpMethod": "PUT",
@@ -3073,53 +2893,41 @@ func (c *CalendarsUpdateCall) Do() (*Calendar, error) {
 // method id "calendar.channels.stop":
 
 type ChannelsStopCall struct {
-	s       *Service
-	channel *Channel
-	opt_    map[string]interface{}
+	s             *Service
+	channel       *Channel
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Stop: Stop watching resources through this channel
-func (r *ChannelsService) Stop(channel *Channel) *ChannelsStopCall {
-	c := &ChannelsStopCall{s: r.s, opt_: make(map[string]interface{})}
-	c.channel = channel
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *ChannelsStopCall) Fields(s ...googleapi.Field) *ChannelsStopCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *ChannelsService) Stop(channel *Channel) *ChannelsStopCall {
+	return &ChannelsStopCall{
+		s:             r.s,
+		channel:       channel,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "channels/stop",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *ChannelsStopCall) Context(ctx context.Context) *ChannelsStopCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *ChannelsStopCall) Do() error {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.channel)
-	if err != nil {
-		return err
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.channel,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "channels/stop")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Stop watching resources through this channel",
 	//   "httpMethod": "POST",
@@ -3140,13 +2948,26 @@ func (c *ChannelsStopCall) Do() error {
 // method id "calendar.colors.get":
 
 type ColorsGetCall struct {
-	s    *Service
-	opt_ map[string]interface{}
+	s             *Service
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Returns the color definitions for calendars and events.
+
 func (r *ColorsService) Get() *ColorsGetCall {
-	c := &ColorsGetCall{s: r.s, opt_: make(map[string]interface{})}
+	return &ColorsGetCall{
+		s:             r.s,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "colors",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *ColorsGetCall) Context(ctx context.Context) *ColorsGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -3154,35 +2975,21 @@ func (r *ColorsService) Get() *ColorsGetCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ColorsGetCall) Fields(s ...googleapi.Field) *ColorsGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ColorsGetCall) Do() (*Colors, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
+	var returnValue *Colors
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "colors")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Colors
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Returns the color definitions for calendars and events.",
 	//   "httpMethod": "GET",
@@ -3202,63 +3009,53 @@ func (c *ColorsGetCall) Do() (*Colors, error) {
 // method id "calendar.events.delete":
 
 type EventsDeleteCall struct {
-	s          *Service
-	calendarId string
-	eventId    string
-	opt_       map[string]interface{}
+	s             *Service
+	calendarId    string
+	eventId       string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Delete: Deletes an event.
+
 func (r *EventsService) Delete(calendarId string, eventId string) *EventsDeleteCall {
-	c := &EventsDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.calendarId = calendarId
-	c.eventId = eventId
-	return c
+	return &EventsDeleteCall{
+		s:             r.s,
+		calendarId:    calendarId,
+		eventId:       eventId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "calendars/{calendarId}/events/{eventId}",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // SendNotifications sets the optional parameter "sendNotifications":
 // Whether to send notifications about the deletion of the event.  The
 // default is False.
 func (c *EventsDeleteCall) SendNotifications(sendNotifications bool) *EventsDeleteCall {
-	c.opt_["sendNotifications"] = sendNotifications
+	c.params_.Set("sendNotifications", fmt.Sprintf("%v", sendNotifications))
 	return c
 }
-
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *EventsDeleteCall) Fields(s ...googleapi.Field) *EventsDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (c *EventsDeleteCall) Context(ctx context.Context) *EventsDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *EventsDeleteCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["sendNotifications"]; ok {
-		params.Set("sendNotifications", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "calendars/{calendarId}/events/{eventId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"calendarId": c.calendarId,
 		"eventId":    c.eventId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Deletes an event.",
 	//   "httpMethod": "DELETE",
@@ -3297,18 +3094,27 @@ func (c *EventsDeleteCall) Do() error {
 // method id "calendar.events.get":
 
 type EventsGetCall struct {
-	s          *Service
-	calendarId string
-	eventId    string
-	opt_       map[string]interface{}
+	s             *Service
+	calendarId    string
+	eventId       string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Returns an event.
+
 func (r *EventsService) Get(calendarId string, eventId string) *EventsGetCall {
-	c := &EventsGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.calendarId = calendarId
-	c.eventId = eventId
-	return c
+	return &EventsGetCall{
+		s:             r.s,
+		calendarId:    calendarId,
+		eventId:       eventId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "calendars/{calendarId}/events/{eventId}",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // AlwaysIncludeEmail sets the optional parameter "alwaysIncludeEmail":
@@ -3319,7 +3125,7 @@ func (r *EventsService) Get(calendarId string, eventId string) *EventsGetCall {
 // cannot handle the absence of an email address value in the mentioned
 // places.  The default is False.
 func (c *EventsGetCall) AlwaysIncludeEmail(alwaysIncludeEmail bool) *EventsGetCall {
-	c.opt_["alwaysIncludeEmail"] = alwaysIncludeEmail
+	c.params_.Set("alwaysIncludeEmail", fmt.Sprintf("%v", alwaysIncludeEmail))
 	return c
 }
 
@@ -3328,14 +3134,18 @@ func (c *EventsGetCall) AlwaysIncludeEmail(alwaysIncludeEmail bool) *EventsGetCa
 // than the specified number of attendees, only the participant is
 // returned.
 func (c *EventsGetCall) MaxAttendees(maxAttendees int64) *EventsGetCall {
-	c.opt_["maxAttendees"] = maxAttendees
+	c.params_.Set("maxAttendees", fmt.Sprintf("%v", maxAttendees))
 	return c
 }
 
 // TimeZone sets the optional parameter "timeZone": Time zone used in
 // the response.  The default is the time zone of the calendar.
 func (c *EventsGetCall) TimeZone(timeZone string) *EventsGetCall {
-	c.opt_["timeZone"] = timeZone
+	c.params_.Set("timeZone", fmt.Sprintf("%v", timeZone))
+	return c
+}
+func (c *EventsGetCall) Context(ctx context.Context) *EventsGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -3343,47 +3153,24 @@ func (c *EventsGetCall) TimeZone(timeZone string) *EventsGetCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *EventsGetCall) Fields(s ...googleapi.Field) *EventsGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *EventsGetCall) Do() (*Event, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["alwaysIncludeEmail"]; ok {
-		params.Set("alwaysIncludeEmail", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["maxAttendees"]; ok {
-		params.Set("maxAttendees", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["timeZone"]; ok {
-		params.Set("timeZone", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "calendars/{calendarId}/events/{eventId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Event
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"calendarId": c.calendarId,
 		"eventId":    c.eventId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Event
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Returns an event.",
 	//   "httpMethod": "GET",
@@ -3438,18 +3225,31 @@ func (c *EventsGetCall) Do() (*Event, error) {
 // method id "calendar.events.import":
 
 type EventsImportCall struct {
-	s          *Service
-	calendarId string
-	event      *Event
-	opt_       map[string]interface{}
+	s             *Service
+	calendarId    string
+	event         *Event
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Import: Imports an event. This operation is used to add a private
 // copy of an existing event to a calendar.
+
 func (r *EventsService) Import(calendarId string, event *Event) *EventsImportCall {
-	c := &EventsImportCall{s: r.s, opt_: make(map[string]interface{})}
-	c.calendarId = calendarId
-	c.event = event
+	return &EventsImportCall{
+		s:             r.s,
+		calendarId:    calendarId,
+		event:         event,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "calendars/{calendarId}/events/import",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *EventsImportCall) Context(ctx context.Context) *EventsImportCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -3457,43 +3257,24 @@ func (r *EventsService) Import(calendarId string, event *Event) *EventsImportCal
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *EventsImportCall) Fields(s ...googleapi.Field) *EventsImportCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *EventsImportCall) Do() (*Event, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.event)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "calendars/{calendarId}/events/import")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Event
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"calendarId": c.calendarId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.event,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Event
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Imports an event. This operation is used to add a private copy of an existing event to a calendar.",
 	//   "httpMethod": "POST",
@@ -3526,18 +3307,27 @@ func (c *EventsImportCall) Do() (*Event, error) {
 // method id "calendar.events.insert":
 
 type EventsInsertCall struct {
-	s          *Service
-	calendarId string
-	event      *Event
-	opt_       map[string]interface{}
+	s             *Service
+	calendarId    string
+	event         *Event
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Insert: Creates an event.
+
 func (r *EventsService) Insert(calendarId string, event *Event) *EventsInsertCall {
-	c := &EventsInsertCall{s: r.s, opt_: make(map[string]interface{})}
-	c.calendarId = calendarId
-	c.event = event
-	return c
+	return &EventsInsertCall{
+		s:             r.s,
+		calendarId:    calendarId,
+		event:         event,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "calendars/{calendarId}/events",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // MaxAttendees sets the optional parameter "maxAttendees": The maximum
@@ -3545,7 +3335,7 @@ func (r *EventsService) Insert(calendarId string, event *Event) *EventsInsertCal
 // than the specified number of attendees, only the participant is
 // returned.
 func (c *EventsInsertCall) MaxAttendees(maxAttendees int64) *EventsInsertCall {
-	c.opt_["maxAttendees"] = maxAttendees
+	c.params_.Set("maxAttendees", fmt.Sprintf("%v", maxAttendees))
 	return c
 }
 
@@ -3553,7 +3343,11 @@ func (c *EventsInsertCall) MaxAttendees(maxAttendees int64) *EventsInsertCall {
 // Whether to send notifications about the creation of the new event.
 // The default is False.
 func (c *EventsInsertCall) SendNotifications(sendNotifications bool) *EventsInsertCall {
-	c.opt_["sendNotifications"] = sendNotifications
+	c.params_.Set("sendNotifications", fmt.Sprintf("%v", sendNotifications))
+	return c
+}
+func (c *EventsInsertCall) Context(ctx context.Context) *EventsInsertCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -3561,49 +3355,24 @@ func (c *EventsInsertCall) SendNotifications(sendNotifications bool) *EventsInse
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *EventsInsertCall) Fields(s ...googleapi.Field) *EventsInsertCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *EventsInsertCall) Do() (*Event, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.event)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["maxAttendees"]; ok {
-		params.Set("maxAttendees", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["sendNotifications"]; ok {
-		params.Set("sendNotifications", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "calendars/{calendarId}/events")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Event
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"calendarId": c.calendarId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.event,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Event
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Creates an event.",
 	//   "httpMethod": "POST",
@@ -3648,18 +3417,27 @@ func (c *EventsInsertCall) Do() (*Event, error) {
 // method id "calendar.events.instances":
 
 type EventsInstancesCall struct {
-	s          *Service
-	calendarId string
-	eventId    string
-	opt_       map[string]interface{}
+	s             *Service
+	calendarId    string
+	eventId       string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Instances: Returns instances of the specified recurring event.
+
 func (r *EventsService) Instances(calendarId string, eventId string) *EventsInstancesCall {
-	c := &EventsInstancesCall{s: r.s, opt_: make(map[string]interface{})}
-	c.calendarId = calendarId
-	c.eventId = eventId
-	return c
+	return &EventsInstancesCall{
+		s:             r.s,
+		calendarId:    calendarId,
+		eventId:       eventId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "calendars/{calendarId}/events/{eventId}/instances",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // AlwaysIncludeEmail sets the optional parameter "alwaysIncludeEmail":
@@ -3670,7 +3448,7 @@ func (r *EventsService) Instances(calendarId string, eventId string) *EventsInst
 // cannot handle the absence of an email address value in the mentioned
 // places.  The default is False.
 func (c *EventsInstancesCall) AlwaysIncludeEmail(alwaysIncludeEmail bool) *EventsInstancesCall {
-	c.opt_["alwaysIncludeEmail"] = alwaysIncludeEmail
+	c.params_.Set("alwaysIncludeEmail", fmt.Sprintf("%v", alwaysIncludeEmail))
 	return c
 }
 
@@ -3679,7 +3457,7 @@ func (c *EventsInstancesCall) AlwaysIncludeEmail(alwaysIncludeEmail bool) *Event
 // than the specified number of attendees, only the participant is
 // returned.
 func (c *EventsInstancesCall) MaxAttendees(maxAttendees int64) *EventsInstancesCall {
-	c.opt_["maxAttendees"] = maxAttendees
+	c.params_.Set("maxAttendees", fmt.Sprintf("%v", maxAttendees))
 	return c
 }
 
@@ -3687,21 +3465,21 @@ func (c *EventsInstancesCall) MaxAttendees(maxAttendees int64) *EventsInstancesC
 // of events returned on one result page. By default the value is 250
 // events. The page size can never be larger than 2500 events.
 func (c *EventsInstancesCall) MaxResults(maxResults int64) *EventsInstancesCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
 // OriginalStart sets the optional parameter "originalStart": The
 // original start time of the instance in the result.
 func (c *EventsInstancesCall) OriginalStart(originalStart string) *EventsInstancesCall {
-	c.opt_["originalStart"] = originalStart
+	c.params_.Set("originalStart", fmt.Sprintf("%v", originalStart))
 	return c
 }
 
 // PageToken sets the optional parameter "pageToken": Token specifying
 // which result page to return.
 func (c *EventsInstancesCall) PageToken(pageToken string) *EventsInstancesCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
 	return c
 }
 
@@ -3710,7 +3488,7 @@ func (c *EventsInstancesCall) PageToken(pageToken string) *EventsInstancesCall {
 // result. Cancelled instances of recurring events will still be
 // included if singleEvents is False.  The default is False.
 func (c *EventsInstancesCall) ShowDeleted(showDeleted bool) *EventsInstancesCall {
-	c.opt_["showDeleted"] = showDeleted
+	c.params_.Set("showDeleted", fmt.Sprintf("%v", showDeleted))
 	return c
 }
 
@@ -3718,7 +3496,7 @@ func (c *EventsInstancesCall) ShowDeleted(showDeleted bool) *EventsInstancesCall
 // (exclusive) for an event's start time to filter by.  The default is
 // not to filter by start time.
 func (c *EventsInstancesCall) TimeMax(timeMax string) *EventsInstancesCall {
-	c.opt_["timeMax"] = timeMax
+	c.params_.Set("timeMax", fmt.Sprintf("%v", timeMax))
 	return c
 }
 
@@ -3726,14 +3504,18 @@ func (c *EventsInstancesCall) TimeMax(timeMax string) *EventsInstancesCall {
 // (inclusive) for an event's end time to filter by.  The default is not
 // to filter by end time.
 func (c *EventsInstancesCall) TimeMin(timeMin string) *EventsInstancesCall {
-	c.opt_["timeMin"] = timeMin
+	c.params_.Set("timeMin", fmt.Sprintf("%v", timeMin))
 	return c
 }
 
 // TimeZone sets the optional parameter "timeZone": Time zone used in
 // the response.  The default is the time zone of the calendar.
 func (c *EventsInstancesCall) TimeZone(timeZone string) *EventsInstancesCall {
-	c.opt_["timeZone"] = timeZone
+	c.params_.Set("timeZone", fmt.Sprintf("%v", timeZone))
+	return c
+}
+func (c *EventsInstancesCall) Context(ctx context.Context) *EventsInstancesCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -3741,65 +3523,24 @@ func (c *EventsInstancesCall) TimeZone(timeZone string) *EventsInstancesCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *EventsInstancesCall) Fields(s ...googleapi.Field) *EventsInstancesCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *EventsInstancesCall) Do() (*Events, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["alwaysIncludeEmail"]; ok {
-		params.Set("alwaysIncludeEmail", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["maxAttendees"]; ok {
-		params.Set("maxAttendees", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["originalStart"]; ok {
-		params.Set("originalStart", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["showDeleted"]; ok {
-		params.Set("showDeleted", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["timeMax"]; ok {
-		params.Set("timeMax", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["timeMin"]; ok {
-		params.Set("timeMin", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["timeZone"]; ok {
-		params.Set("timeZone", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "calendars/{calendarId}/events/{eventId}/instances")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Events
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"calendarId": c.calendarId,
 		"eventId":    c.eventId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Events
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Returns instances of the specified recurring event.",
 	//   "httpMethod": "GET",
@@ -3889,16 +3630,25 @@ func (c *EventsInstancesCall) Do() (*Events, error) {
 // method id "calendar.events.list":
 
 type EventsListCall struct {
-	s          *Service
-	calendarId string
-	opt_       map[string]interface{}
+	s             *Service
+	calendarId    string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Returns events on the specified calendar.
+
 func (r *EventsService) List(calendarId string) *EventsListCall {
-	c := &EventsListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.calendarId = calendarId
-	return c
+	return &EventsListCall{
+		s:             r.s,
+		calendarId:    calendarId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "calendars/{calendarId}/events",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // AlwaysIncludeEmail sets the optional parameter "alwaysIncludeEmail":
@@ -3909,14 +3659,14 @@ func (r *EventsService) List(calendarId string) *EventsListCall {
 // cannot handle the absence of an email address value in the mentioned
 // places.  The default is False.
 func (c *EventsListCall) AlwaysIncludeEmail(alwaysIncludeEmail bool) *EventsListCall {
-	c.opt_["alwaysIncludeEmail"] = alwaysIncludeEmail
+	c.params_.Set("alwaysIncludeEmail", fmt.Sprintf("%v", alwaysIncludeEmail))
 	return c
 }
 
 // ICalUID sets the optional parameter "iCalUID": Specifies event ID in
 // the iCalendar format to be included in the response.
 func (c *EventsListCall) ICalUID(iCalUID string) *EventsListCall {
-	c.opt_["iCalUID"] = iCalUID
+	c.params_.Set("iCalUID", fmt.Sprintf("%v", iCalUID))
 	return c
 }
 
@@ -3925,7 +3675,7 @@ func (c *EventsListCall) ICalUID(iCalUID string) *EventsListCall {
 // than the specified number of attendees, only the participant is
 // returned.
 func (c *EventsListCall) MaxAttendees(maxAttendees int64) *EventsListCall {
-	c.opt_["maxAttendees"] = maxAttendees
+	c.params_.Set("maxAttendees", fmt.Sprintf("%v", maxAttendees))
 	return c
 }
 
@@ -3933,7 +3683,7 @@ func (c *EventsListCall) MaxAttendees(maxAttendees int64) *EventsListCall {
 // of events returned on one result page. By default the value is 250
 // events. The page size can never be larger than 2500 events.
 func (c *EventsListCall) MaxResults(maxResults int64) *EventsListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
@@ -3941,14 +3691,14 @@ func (c *EventsListCall) MaxResults(maxResults int64) *EventsListCall {
 // events returned in the result.  The default is an unspecified, stable
 // order.
 func (c *EventsListCall) OrderBy(orderBy string) *EventsListCall {
-	c.opt_["orderBy"] = orderBy
+	c.params_.Set("orderBy", fmt.Sprintf("%v", orderBy))
 	return c
 }
 
 // PageToken sets the optional parameter "pageToken": Token specifying
 // which result page to return.
 func (c *EventsListCall) PageToken(pageToken string) *EventsListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
 	return c
 }
 
@@ -3957,8 +3707,8 @@ func (c *EventsListCall) PageToken(pageToken string) *EventsListCall {
 // as propertyName=value. Matches only private properties. This
 // parameter might be repeated multiple times to return events that
 // match all given constraints.
-func (c *EventsListCall) PrivateExtendedProperty(privateExtendedProperty string) *EventsListCall {
-	c.opt_["privateExtendedProperty"] = privateExtendedProperty
+func (c *EventsListCall) PrivateExtendedProperty(privateExtendedProperty ...string) *EventsListCall {
+	c.params_["privateExtendedProperty"] = privateExtendedProperty
 	return c
 }
 
@@ -3966,7 +3716,7 @@ func (c *EventsListCall) PrivateExtendedProperty(privateExtendedProperty string)
 // events that match these terms in any field, except for extended
 // properties.
 func (c *EventsListCall) Q(q string) *EventsListCall {
-	c.opt_["q"] = q
+	c.params_.Set("q", fmt.Sprintf("%v", q))
 	return c
 }
 
@@ -3975,8 +3725,8 @@ func (c *EventsListCall) Q(q string) *EventsListCall {
 // propertyName=value. Matches only shared properties. This parameter
 // might be repeated multiple times to return events that match all
 // given constraints.
-func (c *EventsListCall) SharedExtendedProperty(sharedExtendedProperty string) *EventsListCall {
-	c.opt_["sharedExtendedProperty"] = sharedExtendedProperty
+func (c *EventsListCall) SharedExtendedProperty(sharedExtendedProperty ...string) *EventsListCall {
+	c.params_["sharedExtendedProperty"] = sharedExtendedProperty
 	return c
 }
 
@@ -3988,7 +3738,7 @@ func (c *EventsListCall) SharedExtendedProperty(sharedExtendedProperty string) *
 // True, only single instances of deleted events (but not the underlying
 // recurring events) are returned.  The default is False.
 func (c *EventsListCall) ShowDeleted(showDeleted bool) *EventsListCall {
-	c.opt_["showDeleted"] = showDeleted
+	c.params_.Set("showDeleted", fmt.Sprintf("%v", showDeleted))
 	return c
 }
 
@@ -3996,7 +3746,7 @@ func (c *EventsListCall) ShowDeleted(showDeleted bool) *EventsListCall {
 // "showHiddenInvitations": Whether to include hidden invitations in the
 // result.  The default is False.
 func (c *EventsListCall) ShowHiddenInvitations(showHiddenInvitations bool) *EventsListCall {
-	c.opt_["showHiddenInvitations"] = showHiddenInvitations
+	c.params_.Set("showHiddenInvitations", fmt.Sprintf("%v", showHiddenInvitations))
 	return c
 }
 
@@ -4005,7 +3755,7 @@ func (c *EventsListCall) ShowHiddenInvitations(showHiddenInvitations bool) *Even
 // events and instances of recurring events, but not the underlying
 // recurring events themselves.  The default is False.
 func (c *EventsListCall) SingleEvents(singleEvents bool) *EventsListCall {
-	c.opt_["singleEvents"] = singleEvents
+	c.params_.Set("singleEvents", fmt.Sprintf("%v", singleEvents))
 	return c
 }
 
@@ -4037,7 +3787,7 @@ func (c *EventsListCall) SingleEvents(singleEvents bool) *EventsListCall {
 // synchronization.
 //  The default is to return all entries.
 func (c *EventsListCall) SyncToken(syncToken string) *EventsListCall {
-	c.opt_["syncToken"] = syncToken
+	c.params_.Set("syncToken", fmt.Sprintf("%v", syncToken))
 	return c
 }
 
@@ -4045,7 +3795,7 @@ func (c *EventsListCall) SyncToken(syncToken string) *EventsListCall {
 // (exclusive) for an event's start time to filter by.  The default is
 // not to filter by start time.
 func (c *EventsListCall) TimeMax(timeMax string) *EventsListCall {
-	c.opt_["timeMax"] = timeMax
+	c.params_.Set("timeMax", fmt.Sprintf("%v", timeMax))
 	return c
 }
 
@@ -4053,14 +3803,14 @@ func (c *EventsListCall) TimeMax(timeMax string) *EventsListCall {
 // (inclusive) for an event's end time to filter by.  The default is not
 // to filter by end time.
 func (c *EventsListCall) TimeMin(timeMin string) *EventsListCall {
-	c.opt_["timeMin"] = timeMin
+	c.params_.Set("timeMin", fmt.Sprintf("%v", timeMin))
 	return c
 }
 
 // TimeZone sets the optional parameter "timeZone": Time zone used in
 // the response.  The default is the time zone of the calendar.
 func (c *EventsListCall) TimeZone(timeZone string) *EventsListCall {
-	c.opt_["timeZone"] = timeZone
+	c.params_.Set("timeZone", fmt.Sprintf("%v", timeZone))
 	return c
 }
 
@@ -4070,7 +3820,11 @@ func (c *EventsListCall) TimeZone(timeZone string) *EventsListCall {
 // included regardless of showDeleted.  The default is not to filter by
 // last modification time.
 func (c *EventsListCall) UpdatedMin(updatedMin string) *EventsListCall {
-	c.opt_["updatedMin"] = updatedMin
+	c.params_.Set("updatedMin", fmt.Sprintf("%v", updatedMin))
+	return c
+}
+func (c *EventsListCall) Context(ctx context.Context) *EventsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -4078,88 +3832,23 @@ func (c *EventsListCall) UpdatedMin(updatedMin string) *EventsListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *EventsListCall) Fields(s ...googleapi.Field) *EventsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *EventsListCall) Do() (*Events, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["alwaysIncludeEmail"]; ok {
-		params.Set("alwaysIncludeEmail", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["iCalUID"]; ok {
-		params.Set("iCalUID", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["maxAttendees"]; ok {
-		params.Set("maxAttendees", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["orderBy"]; ok {
-		params.Set("orderBy", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["privateExtendedProperty"]; ok {
-		params.Set("privateExtendedProperty", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["q"]; ok {
-		params.Set("q", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["sharedExtendedProperty"]; ok {
-		params.Set("sharedExtendedProperty", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["showDeleted"]; ok {
-		params.Set("showDeleted", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["showHiddenInvitations"]; ok {
-		params.Set("showHiddenInvitations", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["singleEvents"]; ok {
-		params.Set("singleEvents", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["syncToken"]; ok {
-		params.Set("syncToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["timeMax"]; ok {
-		params.Set("timeMax", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["timeMin"]; ok {
-		params.Set("timeMin", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["timeZone"]; ok {
-		params.Set("timeZone", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["updatedMin"]; ok {
-		params.Set("updatedMin", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "calendars/{calendarId}/events")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Events
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"calendarId": c.calendarId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Events
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Returns events on the specified calendar.",
 	//   "httpMethod": "GET",
@@ -4297,24 +3986,37 @@ type EventsMoveCall struct {
 	calendarId    string
 	eventId       string
 	destinationid string
-	opt_          map[string]interface{}
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Move: Moves an event to another calendar, i.e. changes an event's
 // organizer.
+
 func (r *EventsService) Move(calendarId string, eventId string, destinationid string) *EventsMoveCall {
-	c := &EventsMoveCall{s: r.s, opt_: make(map[string]interface{})}
-	c.calendarId = calendarId
-	c.eventId = eventId
-	c.destinationid = destinationid
-	return c
+	return &EventsMoveCall{
+		s:             r.s,
+		calendarId:    calendarId,
+		eventId:       eventId,
+		destinationid: destinationid,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "calendars/{calendarId}/events/{eventId}/move",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // SendNotifications sets the optional parameter "sendNotifications":
 // Whether to send notifications about the change of the event's
 // organizer.  The default is False.
 func (c *EventsMoveCall) SendNotifications(sendNotifications bool) *EventsMoveCall {
-	c.opt_["sendNotifications"] = sendNotifications
+	c.params_.Set("sendNotifications", fmt.Sprintf("%v", sendNotifications))
+	return c
+}
+func (c *EventsMoveCall) Context(ctx context.Context) *EventsMoveCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -4322,42 +4024,25 @@ func (c *EventsMoveCall) SendNotifications(sendNotifications bool) *EventsMoveCa
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *EventsMoveCall) Fields(s ...googleapi.Field) *EventsMoveCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *EventsMoveCall) Do() (*Event, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("destination", fmt.Sprintf("%v", c.destinationid))
-	if v, ok := c.opt_["sendNotifications"]; ok {
-		params.Set("sendNotifications", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "calendars/{calendarId}/events/{eventId}/move")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Event
+	c.params_.Set("destination", fmt.Sprintf("%v", c.destinationid))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"calendarId": c.calendarId,
 		"eventId":    c.eventId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "POST",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Event
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Moves an event to another calendar, i.e. changes an event's organizer.",
 	//   "httpMethod": "POST",
@@ -4406,20 +4091,29 @@ func (c *EventsMoveCall) Do() (*Event, error) {
 // method id "calendar.events.patch":
 
 type EventsPatchCall struct {
-	s          *Service
-	calendarId string
-	eventId    string
-	event      *Event
-	opt_       map[string]interface{}
+	s             *Service
+	calendarId    string
+	eventId       string
+	event         *Event
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Patch: Updates an event. This method supports patch semantics.
+
 func (r *EventsService) Patch(calendarId string, eventId string, event *Event) *EventsPatchCall {
-	c := &EventsPatchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.calendarId = calendarId
-	c.eventId = eventId
-	c.event = event
-	return c
+	return &EventsPatchCall{
+		s:             r.s,
+		calendarId:    calendarId,
+		eventId:       eventId,
+		event:         event,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "calendars/{calendarId}/events/{eventId}",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // AlwaysIncludeEmail sets the optional parameter "alwaysIncludeEmail":
@@ -4430,7 +4124,7 @@ func (r *EventsService) Patch(calendarId string, eventId string, event *Event) *
 // cannot handle the absence of an email address value in the mentioned
 // places.  The default is False.
 func (c *EventsPatchCall) AlwaysIncludeEmail(alwaysIncludeEmail bool) *EventsPatchCall {
-	c.opt_["alwaysIncludeEmail"] = alwaysIncludeEmail
+	c.params_.Set("alwaysIncludeEmail", fmt.Sprintf("%v", alwaysIncludeEmail))
 	return c
 }
 
@@ -4439,7 +4133,7 @@ func (c *EventsPatchCall) AlwaysIncludeEmail(alwaysIncludeEmail bool) *EventsPat
 // than the specified number of attendees, only the participant is
 // returned.
 func (c *EventsPatchCall) MaxAttendees(maxAttendees int64) *EventsPatchCall {
-	c.opt_["maxAttendees"] = maxAttendees
+	c.params_.Set("maxAttendees", fmt.Sprintf("%v", maxAttendees))
 	return c
 }
 
@@ -4447,7 +4141,11 @@ func (c *EventsPatchCall) MaxAttendees(maxAttendees int64) *EventsPatchCall {
 // Whether to send notifications about the event update (e.g. attendee's
 // responses, title changes, etc.).  The default is False.
 func (c *EventsPatchCall) SendNotifications(sendNotifications bool) *EventsPatchCall {
-	c.opt_["sendNotifications"] = sendNotifications
+	c.params_.Set("sendNotifications", fmt.Sprintf("%v", sendNotifications))
+	return c
+}
+func (c *EventsPatchCall) Context(ctx context.Context) *EventsPatchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -4455,53 +4153,25 @@ func (c *EventsPatchCall) SendNotifications(sendNotifications bool) *EventsPatch
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *EventsPatchCall) Fields(s ...googleapi.Field) *EventsPatchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *EventsPatchCall) Do() (*Event, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.event)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["alwaysIncludeEmail"]; ok {
-		params.Set("alwaysIncludeEmail", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["maxAttendees"]; ok {
-		params.Set("maxAttendees", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["sendNotifications"]; ok {
-		params.Set("sendNotifications", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "calendars/{calendarId}/events/{eventId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PATCH", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Event
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"calendarId": c.calendarId,
 		"eventId":    c.eventId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PATCH",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.event,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Event
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates an event. This method supports patch semantics.",
 	//   "httpMethod": "PATCH",
@@ -4558,25 +4228,38 @@ func (c *EventsPatchCall) Do() (*Event, error) {
 // method id "calendar.events.quickAdd":
 
 type EventsQuickAddCall struct {
-	s          *Service
-	calendarId string
-	text       string
-	opt_       map[string]interface{}
+	s             *Service
+	calendarId    string
+	text          string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // QuickAdd: Creates an event based on a simple text string.
+
 func (r *EventsService) QuickAdd(calendarId string, text string) *EventsQuickAddCall {
-	c := &EventsQuickAddCall{s: r.s, opt_: make(map[string]interface{})}
-	c.calendarId = calendarId
-	c.text = text
-	return c
+	return &EventsQuickAddCall{
+		s:             r.s,
+		calendarId:    calendarId,
+		text:          text,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "calendars/{calendarId}/events/quickAdd",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // SendNotifications sets the optional parameter "sendNotifications":
 // Whether to send notifications about the creation of the event.  The
 // default is False.
 func (c *EventsQuickAddCall) SendNotifications(sendNotifications bool) *EventsQuickAddCall {
-	c.opt_["sendNotifications"] = sendNotifications
+	c.params_.Set("sendNotifications", fmt.Sprintf("%v", sendNotifications))
+	return c
+}
+func (c *EventsQuickAddCall) Context(ctx context.Context) *EventsQuickAddCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -4584,41 +4267,24 @@ func (c *EventsQuickAddCall) SendNotifications(sendNotifications bool) *EventsQu
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *EventsQuickAddCall) Fields(s ...googleapi.Field) *EventsQuickAddCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *EventsQuickAddCall) Do() (*Event, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("text", fmt.Sprintf("%v", c.text))
-	if v, ok := c.opt_["sendNotifications"]; ok {
-		params.Set("sendNotifications", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "calendars/{calendarId}/events/quickAdd")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Event
+	c.params_.Set("text", fmt.Sprintf("%v", c.text))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"calendarId": c.calendarId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "POST",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Event
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Creates an event based on a simple text string.",
 	//   "httpMethod": "POST",
@@ -4660,20 +4326,29 @@ func (c *EventsQuickAddCall) Do() (*Event, error) {
 // method id "calendar.events.update":
 
 type EventsUpdateCall struct {
-	s          *Service
-	calendarId string
-	eventId    string
-	event      *Event
-	opt_       map[string]interface{}
+	s             *Service
+	calendarId    string
+	eventId       string
+	event         *Event
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Update: Updates an event.
+
 func (r *EventsService) Update(calendarId string, eventId string, event *Event) *EventsUpdateCall {
-	c := &EventsUpdateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.calendarId = calendarId
-	c.eventId = eventId
-	c.event = event
-	return c
+	return &EventsUpdateCall{
+		s:             r.s,
+		calendarId:    calendarId,
+		eventId:       eventId,
+		event:         event,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "calendars/{calendarId}/events/{eventId}",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // AlwaysIncludeEmail sets the optional parameter "alwaysIncludeEmail":
@@ -4684,7 +4359,7 @@ func (r *EventsService) Update(calendarId string, eventId string, event *Event) 
 // cannot handle the absence of an email address value in the mentioned
 // places.  The default is False.
 func (c *EventsUpdateCall) AlwaysIncludeEmail(alwaysIncludeEmail bool) *EventsUpdateCall {
-	c.opt_["alwaysIncludeEmail"] = alwaysIncludeEmail
+	c.params_.Set("alwaysIncludeEmail", fmt.Sprintf("%v", alwaysIncludeEmail))
 	return c
 }
 
@@ -4693,7 +4368,7 @@ func (c *EventsUpdateCall) AlwaysIncludeEmail(alwaysIncludeEmail bool) *EventsUp
 // than the specified number of attendees, only the participant is
 // returned.
 func (c *EventsUpdateCall) MaxAttendees(maxAttendees int64) *EventsUpdateCall {
-	c.opt_["maxAttendees"] = maxAttendees
+	c.params_.Set("maxAttendees", fmt.Sprintf("%v", maxAttendees))
 	return c
 }
 
@@ -4701,7 +4376,11 @@ func (c *EventsUpdateCall) MaxAttendees(maxAttendees int64) *EventsUpdateCall {
 // Whether to send notifications about the event update (e.g. attendee's
 // responses, title changes, etc.).  The default is False.
 func (c *EventsUpdateCall) SendNotifications(sendNotifications bool) *EventsUpdateCall {
-	c.opt_["sendNotifications"] = sendNotifications
+	c.params_.Set("sendNotifications", fmt.Sprintf("%v", sendNotifications))
+	return c
+}
+func (c *EventsUpdateCall) Context(ctx context.Context) *EventsUpdateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -4709,53 +4388,25 @@ func (c *EventsUpdateCall) SendNotifications(sendNotifications bool) *EventsUpda
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *EventsUpdateCall) Fields(s ...googleapi.Field) *EventsUpdateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *EventsUpdateCall) Do() (*Event, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.event)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["alwaysIncludeEmail"]; ok {
-		params.Set("alwaysIncludeEmail", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["maxAttendees"]; ok {
-		params.Set("maxAttendees", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["sendNotifications"]; ok {
-		params.Set("sendNotifications", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "calendars/{calendarId}/events/{eventId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Event
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"calendarId": c.calendarId,
 		"eventId":    c.eventId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.event,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Event
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates an event.",
 	//   "httpMethod": "PUT",
@@ -4812,18 +4463,27 @@ func (c *EventsUpdateCall) Do() (*Event, error) {
 // method id "calendar.events.watch":
 
 type EventsWatchCall struct {
-	s          *Service
-	calendarId string
-	channel    *Channel
-	opt_       map[string]interface{}
+	s             *Service
+	calendarId    string
+	channel       *Channel
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Watch: Watch for changes to Events resources.
+
 func (r *EventsService) Watch(calendarId string, channel *Channel) *EventsWatchCall {
-	c := &EventsWatchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.calendarId = calendarId
-	c.channel = channel
-	return c
+	return &EventsWatchCall{
+		s:             r.s,
+		calendarId:    calendarId,
+		channel:       channel,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "calendars/{calendarId}/events/watch",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // AlwaysIncludeEmail sets the optional parameter "alwaysIncludeEmail":
@@ -4834,14 +4494,14 @@ func (r *EventsService) Watch(calendarId string, channel *Channel) *EventsWatchC
 // cannot handle the absence of an email address value in the mentioned
 // places.  The default is False.
 func (c *EventsWatchCall) AlwaysIncludeEmail(alwaysIncludeEmail bool) *EventsWatchCall {
-	c.opt_["alwaysIncludeEmail"] = alwaysIncludeEmail
+	c.params_.Set("alwaysIncludeEmail", fmt.Sprintf("%v", alwaysIncludeEmail))
 	return c
 }
 
 // ICalUID sets the optional parameter "iCalUID": Specifies event ID in
 // the iCalendar format to be included in the response.
 func (c *EventsWatchCall) ICalUID(iCalUID string) *EventsWatchCall {
-	c.opt_["iCalUID"] = iCalUID
+	c.params_.Set("iCalUID", fmt.Sprintf("%v", iCalUID))
 	return c
 }
 
@@ -4850,7 +4510,7 @@ func (c *EventsWatchCall) ICalUID(iCalUID string) *EventsWatchCall {
 // than the specified number of attendees, only the participant is
 // returned.
 func (c *EventsWatchCall) MaxAttendees(maxAttendees int64) *EventsWatchCall {
-	c.opt_["maxAttendees"] = maxAttendees
+	c.params_.Set("maxAttendees", fmt.Sprintf("%v", maxAttendees))
 	return c
 }
 
@@ -4858,7 +4518,7 @@ func (c *EventsWatchCall) MaxAttendees(maxAttendees int64) *EventsWatchCall {
 // of events returned on one result page. By default the value is 250
 // events. The page size can never be larger than 2500 events.
 func (c *EventsWatchCall) MaxResults(maxResults int64) *EventsWatchCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
@@ -4866,14 +4526,14 @@ func (c *EventsWatchCall) MaxResults(maxResults int64) *EventsWatchCall {
 // events returned in the result.  The default is an unspecified, stable
 // order.
 func (c *EventsWatchCall) OrderBy(orderBy string) *EventsWatchCall {
-	c.opt_["orderBy"] = orderBy
+	c.params_.Set("orderBy", fmt.Sprintf("%v", orderBy))
 	return c
 }
 
 // PageToken sets the optional parameter "pageToken": Token specifying
 // which result page to return.
 func (c *EventsWatchCall) PageToken(pageToken string) *EventsWatchCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
 	return c
 }
 
@@ -4882,8 +4542,8 @@ func (c *EventsWatchCall) PageToken(pageToken string) *EventsWatchCall {
 // as propertyName=value. Matches only private properties. This
 // parameter might be repeated multiple times to return events that
 // match all given constraints.
-func (c *EventsWatchCall) PrivateExtendedProperty(privateExtendedProperty string) *EventsWatchCall {
-	c.opt_["privateExtendedProperty"] = privateExtendedProperty
+func (c *EventsWatchCall) PrivateExtendedProperty(privateExtendedProperty ...string) *EventsWatchCall {
+	c.params_["privateExtendedProperty"] = privateExtendedProperty
 	return c
 }
 
@@ -4891,7 +4551,7 @@ func (c *EventsWatchCall) PrivateExtendedProperty(privateExtendedProperty string
 // events that match these terms in any field, except for extended
 // properties.
 func (c *EventsWatchCall) Q(q string) *EventsWatchCall {
-	c.opt_["q"] = q
+	c.params_.Set("q", fmt.Sprintf("%v", q))
 	return c
 }
 
@@ -4900,8 +4560,8 @@ func (c *EventsWatchCall) Q(q string) *EventsWatchCall {
 // propertyName=value. Matches only shared properties. This parameter
 // might be repeated multiple times to return events that match all
 // given constraints.
-func (c *EventsWatchCall) SharedExtendedProperty(sharedExtendedProperty string) *EventsWatchCall {
-	c.opt_["sharedExtendedProperty"] = sharedExtendedProperty
+func (c *EventsWatchCall) SharedExtendedProperty(sharedExtendedProperty ...string) *EventsWatchCall {
+	c.params_["sharedExtendedProperty"] = sharedExtendedProperty
 	return c
 }
 
@@ -4913,7 +4573,7 @@ func (c *EventsWatchCall) SharedExtendedProperty(sharedExtendedProperty string) 
 // True, only single instances of deleted events (but not the underlying
 // recurring events) are returned.  The default is False.
 func (c *EventsWatchCall) ShowDeleted(showDeleted bool) *EventsWatchCall {
-	c.opt_["showDeleted"] = showDeleted
+	c.params_.Set("showDeleted", fmt.Sprintf("%v", showDeleted))
 	return c
 }
 
@@ -4921,7 +4581,7 @@ func (c *EventsWatchCall) ShowDeleted(showDeleted bool) *EventsWatchCall {
 // "showHiddenInvitations": Whether to include hidden invitations in the
 // result.  The default is False.
 func (c *EventsWatchCall) ShowHiddenInvitations(showHiddenInvitations bool) *EventsWatchCall {
-	c.opt_["showHiddenInvitations"] = showHiddenInvitations
+	c.params_.Set("showHiddenInvitations", fmt.Sprintf("%v", showHiddenInvitations))
 	return c
 }
 
@@ -4930,7 +4590,7 @@ func (c *EventsWatchCall) ShowHiddenInvitations(showHiddenInvitations bool) *Eve
 // events and instances of recurring events, but not the underlying
 // recurring events themselves.  The default is False.
 func (c *EventsWatchCall) SingleEvents(singleEvents bool) *EventsWatchCall {
-	c.opt_["singleEvents"] = singleEvents
+	c.params_.Set("singleEvents", fmt.Sprintf("%v", singleEvents))
 	return c
 }
 
@@ -4962,7 +4622,7 @@ func (c *EventsWatchCall) SingleEvents(singleEvents bool) *EventsWatchCall {
 // synchronization.
 //  The default is to return all entries.
 func (c *EventsWatchCall) SyncToken(syncToken string) *EventsWatchCall {
-	c.opt_["syncToken"] = syncToken
+	c.params_.Set("syncToken", fmt.Sprintf("%v", syncToken))
 	return c
 }
 
@@ -4970,7 +4630,7 @@ func (c *EventsWatchCall) SyncToken(syncToken string) *EventsWatchCall {
 // (exclusive) for an event's start time to filter by.  The default is
 // not to filter by start time.
 func (c *EventsWatchCall) TimeMax(timeMax string) *EventsWatchCall {
-	c.opt_["timeMax"] = timeMax
+	c.params_.Set("timeMax", fmt.Sprintf("%v", timeMax))
 	return c
 }
 
@@ -4978,14 +4638,14 @@ func (c *EventsWatchCall) TimeMax(timeMax string) *EventsWatchCall {
 // (inclusive) for an event's end time to filter by.  The default is not
 // to filter by end time.
 func (c *EventsWatchCall) TimeMin(timeMin string) *EventsWatchCall {
-	c.opt_["timeMin"] = timeMin
+	c.params_.Set("timeMin", fmt.Sprintf("%v", timeMin))
 	return c
 }
 
 // TimeZone sets the optional parameter "timeZone": Time zone used in
 // the response.  The default is the time zone of the calendar.
 func (c *EventsWatchCall) TimeZone(timeZone string) *EventsWatchCall {
-	c.opt_["timeZone"] = timeZone
+	c.params_.Set("timeZone", fmt.Sprintf("%v", timeZone))
 	return c
 }
 
@@ -4995,7 +4655,11 @@ func (c *EventsWatchCall) TimeZone(timeZone string) *EventsWatchCall {
 // included regardless of showDeleted.  The default is not to filter by
 // last modification time.
 func (c *EventsWatchCall) UpdatedMin(updatedMin string) *EventsWatchCall {
-	c.opt_["updatedMin"] = updatedMin
+	c.params_.Set("updatedMin", fmt.Sprintf("%v", updatedMin))
+	return c
+}
+func (c *EventsWatchCall) Context(ctx context.Context) *EventsWatchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -5003,94 +4667,24 @@ func (c *EventsWatchCall) UpdatedMin(updatedMin string) *EventsWatchCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *EventsWatchCall) Fields(s ...googleapi.Field) *EventsWatchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *EventsWatchCall) Do() (*Channel, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.channel)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["alwaysIncludeEmail"]; ok {
-		params.Set("alwaysIncludeEmail", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["iCalUID"]; ok {
-		params.Set("iCalUID", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["maxAttendees"]; ok {
-		params.Set("maxAttendees", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["orderBy"]; ok {
-		params.Set("orderBy", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["privateExtendedProperty"]; ok {
-		params.Set("privateExtendedProperty", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["q"]; ok {
-		params.Set("q", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["sharedExtendedProperty"]; ok {
-		params.Set("sharedExtendedProperty", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["showDeleted"]; ok {
-		params.Set("showDeleted", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["showHiddenInvitations"]; ok {
-		params.Set("showHiddenInvitations", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["singleEvents"]; ok {
-		params.Set("singleEvents", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["syncToken"]; ok {
-		params.Set("syncToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["timeMax"]; ok {
-		params.Set("timeMax", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["timeMin"]; ok {
-		params.Set("timeMin", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["timeZone"]; ok {
-		params.Set("timeZone", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["updatedMin"]; ok {
-		params.Set("updatedMin", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "calendars/{calendarId}/events/watch")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Channel
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"calendarId": c.calendarId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.channel,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Channel
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Watch for changes to Events resources.",
 	//   "httpMethod": "POST",
@@ -5230,13 +4824,26 @@ func (c *EventsWatchCall) Do() (*Channel, error) {
 type FreebusyQueryCall struct {
 	s               *Service
 	freebusyrequest *FreeBusyRequest
-	opt_            map[string]interface{}
+	caller_         googleapi.Caller
+	params_         url.Values
+	pathTemplate_   string
+	context_        context.Context
 }
 
 // Query: Returns free/busy information for a set of calendars.
+
 func (r *FreebusyService) Query(freebusyrequest *FreeBusyRequest) *FreebusyQueryCall {
-	c := &FreebusyQueryCall{s: r.s, opt_: make(map[string]interface{})}
-	c.freebusyrequest = freebusyrequest
+	return &FreebusyQueryCall{
+		s:               r.s,
+		freebusyrequest: freebusyrequest,
+		caller_:         googleapi.JSONCall{},
+		params_:         make(map[string][]string),
+		pathTemplate_:   "freeBusy",
+		context_:        googleapi.NoContext,
+	}
+}
+func (c *FreebusyQueryCall) Context(ctx context.Context) *FreebusyQueryCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -5244,41 +4851,22 @@ func (r *FreebusyService) Query(freebusyrequest *FreeBusyRequest) *FreebusyQuery
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *FreebusyQueryCall) Fields(s ...googleapi.Field) *FreebusyQueryCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *FreebusyQueryCall) Do() (*FreeBusyResponse, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.freebusyrequest)
-	if err != nil {
-		return nil, err
+	var returnValue *FreeBusyResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.freebusyrequest,
+		Result:  &returnValue,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "freeBusy")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *FreeBusyResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Returns free/busy information for a set of calendars.",
 	//   "httpMethod": "POST",
@@ -5301,15 +4889,28 @@ func (c *FreebusyQueryCall) Do() (*FreeBusyResponse, error) {
 // method id "calendar.settings.get":
 
 type SettingsGetCall struct {
-	s       *Service
-	setting string
-	opt_    map[string]interface{}
+	s             *Service
+	setting       string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Returns a single user setting.
+
 func (r *SettingsService) Get(setting string) *SettingsGetCall {
-	c := &SettingsGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.setting = setting
+	return &SettingsGetCall{
+		s:             r.s,
+		setting:       setting,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "users/me/settings/{setting}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *SettingsGetCall) Context(ctx context.Context) *SettingsGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -5317,37 +4918,23 @@ func (r *SettingsService) Get(setting string) *SettingsGetCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *SettingsGetCall) Fields(s ...googleapi.Field) *SettingsGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *SettingsGetCall) Do() (*Setting, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "users/me/settings/{setting}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Setting
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"setting": c.setting,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Setting
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Returns a single user setting.",
 	//   "httpMethod": "GET",
@@ -5378,28 +4965,37 @@ func (c *SettingsGetCall) Do() (*Setting, error) {
 // method id "calendar.settings.list":
 
 type SettingsListCall struct {
-	s    *Service
-	opt_ map[string]interface{}
+	s             *Service
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Returns all user settings for the authenticated user.
+
 func (r *SettingsService) List() *SettingsListCall {
-	c := &SettingsListCall{s: r.s, opt_: make(map[string]interface{})}
-	return c
+	return &SettingsListCall{
+		s:             r.s,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "users/me/settings",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // MaxResults sets the optional parameter "maxResults": Maximum number
 // of entries returned on one result page. By default the value is 100
 // entries. The page size can never be larger than 250 entries.
 func (c *SettingsListCall) MaxResults(maxResults int64) *SettingsListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
 // PageToken sets the optional parameter "pageToken": Token specifying
 // which result page to return.
 func (c *SettingsListCall) PageToken(pageToken string) *SettingsListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
 	return c
 }
 
@@ -5415,7 +5011,11 @@ func (c *SettingsListCall) PageToken(pageToken string) *SettingsListCall {
 // synchronization.
 //  The default is to return all entries.
 func (c *SettingsListCall) SyncToken(syncToken string) *SettingsListCall {
-	c.opt_["syncToken"] = syncToken
+	c.params_.Set("syncToken", fmt.Sprintf("%v", syncToken))
+	return c
+}
+func (c *SettingsListCall) Context(ctx context.Context) *SettingsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -5423,44 +5023,21 @@ func (c *SettingsListCall) SyncToken(syncToken string) *SettingsListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *SettingsListCall) Fields(s ...googleapi.Field) *SettingsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *SettingsListCall) Do() (*Settings, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
+	var returnValue *Settings
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["syncToken"]; ok {
-		params.Set("syncToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "users/me/settings")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Settings
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Returns all user settings for the authenticated user.",
 	//   "httpMethod": "GET",
@@ -5500,30 +5077,39 @@ func (c *SettingsListCall) Do() (*Settings, error) {
 // method id "calendar.settings.watch":
 
 type SettingsWatchCall struct {
-	s       *Service
-	channel *Channel
-	opt_    map[string]interface{}
+	s             *Service
+	channel       *Channel
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Watch: Watch for changes to Settings resources.
+
 func (r *SettingsService) Watch(channel *Channel) *SettingsWatchCall {
-	c := &SettingsWatchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.channel = channel
-	return c
+	return &SettingsWatchCall{
+		s:             r.s,
+		channel:       channel,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "users/me/settings/watch",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // MaxResults sets the optional parameter "maxResults": Maximum number
 // of entries returned on one result page. By default the value is 100
 // entries. The page size can never be larger than 250 entries.
 func (c *SettingsWatchCall) MaxResults(maxResults int64) *SettingsWatchCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
 // PageToken sets the optional parameter "pageToken": Token specifying
 // which result page to return.
 func (c *SettingsWatchCall) PageToken(pageToken string) *SettingsWatchCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
 	return c
 }
 
@@ -5539,7 +5125,11 @@ func (c *SettingsWatchCall) PageToken(pageToken string) *SettingsWatchCall {
 // synchronization.
 //  The default is to return all entries.
 func (c *SettingsWatchCall) SyncToken(syncToken string) *SettingsWatchCall {
-	c.opt_["syncToken"] = syncToken
+	c.params_.Set("syncToken", fmt.Sprintf("%v", syncToken))
+	return c
+}
+func (c *SettingsWatchCall) Context(ctx context.Context) *SettingsWatchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -5547,50 +5137,22 @@ func (c *SettingsWatchCall) SyncToken(syncToken string) *SettingsWatchCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *SettingsWatchCall) Fields(s ...googleapi.Field) *SettingsWatchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *SettingsWatchCall) Do() (*Channel, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.channel)
-	if err != nil {
-		return nil, err
+	var returnValue *Channel
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.channel,
+		Result:  &returnValue,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["syncToken"]; ok {
-		params.Set("syncToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "users/me/settings/watch")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Channel
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Watch for changes to Settings resources.",
 	//   "httpMethod": "POST",

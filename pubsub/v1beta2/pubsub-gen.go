@@ -2,18 +2,16 @@
 //
 // Usage example:
 //
-//   import "google.golang.org/api/pubsub/v1beta2"
+//   import "github.com/jfcote87/api2/pubsub/v1beta2"
 //   ...
 //   pubsubService, err := pubsub.New(oauthHttpClient)
 package pubsub
 
 import (
-	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/jfcote87/api2/googleapi"
 	"golang.org/x/net/context"
-	"google.golang.org/api/googleapi"
 	"io"
 	"net/http"
 	"net/url"
@@ -23,10 +21,8 @@ import (
 
 // Always reference these packages, just in case the auto-generated code
 // below doesn't.
-var _ = bytes.NewBuffer
 var _ = strconv.Itoa
 var _ = fmt.Sprintf
-var _ = json.NewDecoder
 var _ = io.Copy
 var _ = url.Parse
 var _ = googleapi.Version
@@ -37,7 +33,8 @@ var _ = context.Background
 const apiId = "pubsub:v1beta2"
 const apiName = "pubsub"
 const apiVersion = "v1beta2"
-const basePath = "https://pubsub.googleapis.com/v1beta2/"
+
+var baseURL *url.URL = &url.URL{Scheme: "https", Host: "pubsub.googleapis.com", Path: "/v1beta2/"}
 
 // OAuth2 scopes used by this API.
 const (
@@ -52,24 +49,15 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
+	s := &Service{client: client}
 	s.Projects = NewProjectsService(s)
 	return s, nil
 }
 
 type Service struct {
-	client    *http.Client
-	BasePath  string // API endpoint base URL
-	UserAgent string // optional additional User-Agent fragment
+	client *http.Client
 
 	Projects *ProjectsService
-}
-
-func (s *Service) userAgent() string {
-	if s.UserAgent == "" {
-		return googleapi.UserAgent
-	}
-	return googleapi.UserAgent + " " + s.UserAgent
 }
 
 func NewProjectsService(s *Service) *ProjectsService {
@@ -210,7 +198,10 @@ type ProjectsSubscriptionsAcknowledgeCall struct {
 	s                  *Service
 	subscription       string
 	acknowledgerequest *AcknowledgeRequest
-	opt_               map[string]interface{}
+	caller_            googleapi.Caller
+	params_            url.Values
+	pathTemplate_      string
+	context_           context.Context
 }
 
 // Acknowledge: Acknowledges the messages associated with the ack tokens
@@ -219,10 +210,20 @@ type ProjectsSubscriptionsAcknowledgeCall struct {
 // deadline has expired may succeed, but such a message may be
 // redelivered later. Acknowledging a message more than once will not
 // result in an error.
+
 func (r *ProjectsSubscriptionsService) Acknowledge(subscription string, acknowledgerequest *AcknowledgeRequest) *ProjectsSubscriptionsAcknowledgeCall {
-	c := &ProjectsSubscriptionsAcknowledgeCall{s: r.s, opt_: make(map[string]interface{})}
-	c.subscription = subscription
-	c.acknowledgerequest = acknowledgerequest
+	return &ProjectsSubscriptionsAcknowledgeCall{
+		s:                  r.s,
+		subscription:       subscription,
+		acknowledgerequest: acknowledgerequest,
+		caller_:            googleapi.JSONCall{},
+		params_:            make(map[string][]string),
+		pathTemplate_:      "{+subscription}:acknowledge",
+		context_:           googleapi.NoContext,
+	}
+}
+func (c *ProjectsSubscriptionsAcknowledgeCall) Context(ctx context.Context) *ProjectsSubscriptionsAcknowledgeCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -230,43 +231,24 @@ func (r *ProjectsSubscriptionsService) Acknowledge(subscription string, acknowle
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ProjectsSubscriptionsAcknowledgeCall) Fields(s ...googleapi.Field) *ProjectsSubscriptionsAcknowledgeCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ProjectsSubscriptionsAcknowledgeCall) Do() (*Empty, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.acknowledgerequest)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{+subscription}:acknowledge")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Empty
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"subscription": c.subscription,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.acknowledgerequest,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Empty
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Acknowledges the messages associated with the ack tokens in the AcknowledgeRequest. The Pub/Sub system can remove the relevant messages from the subscription. Acknowledging a message whose ack deadline has expired may succeed, but such a message may be redelivered later. Acknowledging a message more than once will not result in an error.",
 	//   "httpMethod": "POST",
@@ -299,10 +281,13 @@ func (c *ProjectsSubscriptionsAcknowledgeCall) Do() (*Empty, error) {
 // method id "pubsub.projects.subscriptions.create":
 
 type ProjectsSubscriptionsCreateCall struct {
-	s            *Service
-	name         string
-	subscription *Subscription
-	opt_         map[string]interface{}
+	s             *Service
+	name          string
+	subscription  *Subscription
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Create: Creates a subscription to a given topic for a given
@@ -311,10 +296,20 @@ type ProjectsSubscriptionsCreateCall struct {
 // NOT_FOUND. If the name is not provided in the request, the server
 // will assign a random name for this subscription on the same project
 // as the topic.
+
 func (r *ProjectsSubscriptionsService) Create(name string, subscription *Subscription) *ProjectsSubscriptionsCreateCall {
-	c := &ProjectsSubscriptionsCreateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.name = name
-	c.subscription = subscription
+	return &ProjectsSubscriptionsCreateCall{
+		s:             r.s,
+		name:          name,
+		subscription:  subscription,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{+name}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *ProjectsSubscriptionsCreateCall) Context(ctx context.Context) *ProjectsSubscriptionsCreateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -322,43 +317,24 @@ func (r *ProjectsSubscriptionsService) Create(name string, subscription *Subscri
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ProjectsSubscriptionsCreateCall) Fields(s ...googleapi.Field) *ProjectsSubscriptionsCreateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ProjectsSubscriptionsCreateCall) Do() (*Subscription, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.subscription)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{+name}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Subscription
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"name": c.name,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.subscription,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Subscription
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Creates a subscription to a given topic for a given subscriber. If the subscription already exists, returns ALREADY_EXISTS. If the corresponding topic doesn't exist, returns NOT_FOUND. If the name is not provided in the request, the server will assign a random name for this subscription on the same project as the topic.",
 	//   "httpMethod": "PUT",
@@ -391,9 +367,12 @@ func (c *ProjectsSubscriptionsCreateCall) Do() (*Subscription, error) {
 // method id "pubsub.projects.subscriptions.delete":
 
 type ProjectsSubscriptionsDeleteCall struct {
-	s            *Service
-	subscription string
-	opt_         map[string]interface{}
+	s             *Service
+	subscription  string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Delete: Deletes an existing subscription. All pending messages in the
@@ -402,9 +381,19 @@ type ProjectsSubscriptionsDeleteCall struct {
 // be created with the same name, but the new one has no association
 // with the old subscription, or its topic unless the same topic is
 // specified.
+
 func (r *ProjectsSubscriptionsService) Delete(subscription string) *ProjectsSubscriptionsDeleteCall {
-	c := &ProjectsSubscriptionsDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.subscription = subscription
+	return &ProjectsSubscriptionsDeleteCall{
+		s:             r.s,
+		subscription:  subscription,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{+subscription}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *ProjectsSubscriptionsDeleteCall) Context(ctx context.Context) *ProjectsSubscriptionsDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -412,37 +401,23 @@ func (r *ProjectsSubscriptionsService) Delete(subscription string) *ProjectsSubs
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ProjectsSubscriptionsDeleteCall) Fields(s ...googleapi.Field) *ProjectsSubscriptionsDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ProjectsSubscriptionsDeleteCall) Do() (*Empty, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{+subscription}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Empty
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"subscription": c.subscription,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Empty
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Deletes an existing subscription. All pending messages in the subscription are immediately dropped. Calls to Pull after deletion will return NOT_FOUND. After a subscription is deleted, a new one may be created with the same name, but the new one has no association with the old subscription, or its topic unless the same topic is specified.",
 	//   "httpMethod": "DELETE",
@@ -472,15 +447,28 @@ func (c *ProjectsSubscriptionsDeleteCall) Do() (*Empty, error) {
 // method id "pubsub.projects.subscriptions.get":
 
 type ProjectsSubscriptionsGetCall struct {
-	s            *Service
-	subscription string
-	opt_         map[string]interface{}
+	s             *Service
+	subscription  string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Gets the configuration details of a subscription.
+
 func (r *ProjectsSubscriptionsService) Get(subscription string) *ProjectsSubscriptionsGetCall {
-	c := &ProjectsSubscriptionsGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.subscription = subscription
+	return &ProjectsSubscriptionsGetCall{
+		s:             r.s,
+		subscription:  subscription,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{+subscription}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *ProjectsSubscriptionsGetCall) Context(ctx context.Context) *ProjectsSubscriptionsGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -488,37 +476,23 @@ func (r *ProjectsSubscriptionsService) Get(subscription string) *ProjectsSubscri
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ProjectsSubscriptionsGetCall) Fields(s ...googleapi.Field) *ProjectsSubscriptionsGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ProjectsSubscriptionsGetCall) Do() (*Subscription, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{+subscription}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Subscription
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"subscription": c.subscription,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Subscription
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Gets the configuration details of a subscription.",
 	//   "httpMethod": "GET",
@@ -548,27 +522,40 @@ func (c *ProjectsSubscriptionsGetCall) Do() (*Subscription, error) {
 // method id "pubsub.projects.subscriptions.list":
 
 type ProjectsSubscriptionsListCall struct {
-	s       *Service
-	project string
-	opt_    map[string]interface{}
+	s             *Service
+	project       string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Lists matching subscriptions.
+
 func (r *ProjectsSubscriptionsService) List(project string) *ProjectsSubscriptionsListCall {
-	c := &ProjectsSubscriptionsListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.project = project
-	return c
+	return &ProjectsSubscriptionsListCall{
+		s:             r.s,
+		project:       project,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{+project}/subscriptions",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // PageSize sets the optional parameter "pageSize":
 func (c *ProjectsSubscriptionsListCall) PageSize(pageSize int64) *ProjectsSubscriptionsListCall {
-	c.opt_["pageSize"] = pageSize
+	c.params_.Set("pageSize", fmt.Sprintf("%v", pageSize))
 	return c
 }
 
 // PageToken sets the optional parameter "pageToken":
 func (c *ProjectsSubscriptionsListCall) PageToken(pageToken string) *ProjectsSubscriptionsListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
+	return c
+}
+func (c *ProjectsSubscriptionsListCall) Context(ctx context.Context) *ProjectsSubscriptionsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -576,43 +563,23 @@ func (c *ProjectsSubscriptionsListCall) PageToken(pageToken string) *ProjectsSub
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ProjectsSubscriptionsListCall) Fields(s ...googleapi.Field) *ProjectsSubscriptionsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ProjectsSubscriptionsListCall) Do() (*ListSubscriptionsResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["pageSize"]; ok {
-		params.Set("pageSize", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{+project}/subscriptions")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *ListSubscriptionsResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"project": c.project,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ListSubscriptionsResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Lists matching subscriptions.",
 	//   "httpMethod": "GET",
@@ -654,17 +621,30 @@ type ProjectsSubscriptionsModifyAckDeadlineCall struct {
 	s                        *Service
 	subscription             string
 	modifyackdeadlinerequest *ModifyAckDeadlineRequest
-	opt_                     map[string]interface{}
+	caller_                  googleapi.Caller
+	params_                  url.Values
+	pathTemplate_            string
+	context_                 context.Context
 }
 
 // ModifyAckDeadline: Modifies the ack deadline for a specific message.
 // This method is useful to indicate that more time is needed to process
 // a message by the subscriber, or to make the message available for
 // redelivery if the processing was interrupted.
+
 func (r *ProjectsSubscriptionsService) ModifyAckDeadline(subscription string, modifyackdeadlinerequest *ModifyAckDeadlineRequest) *ProjectsSubscriptionsModifyAckDeadlineCall {
-	c := &ProjectsSubscriptionsModifyAckDeadlineCall{s: r.s, opt_: make(map[string]interface{})}
-	c.subscription = subscription
-	c.modifyackdeadlinerequest = modifyackdeadlinerequest
+	return &ProjectsSubscriptionsModifyAckDeadlineCall{
+		s:                        r.s,
+		subscription:             subscription,
+		modifyackdeadlinerequest: modifyackdeadlinerequest,
+		caller_:                  googleapi.JSONCall{},
+		params_:                  make(map[string][]string),
+		pathTemplate_:            "{+subscription}:modifyAckDeadline",
+		context_:                 googleapi.NoContext,
+	}
+}
+func (c *ProjectsSubscriptionsModifyAckDeadlineCall) Context(ctx context.Context) *ProjectsSubscriptionsModifyAckDeadlineCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -672,43 +652,24 @@ func (r *ProjectsSubscriptionsService) ModifyAckDeadline(subscription string, mo
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ProjectsSubscriptionsModifyAckDeadlineCall) Fields(s ...googleapi.Field) *ProjectsSubscriptionsModifyAckDeadlineCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ProjectsSubscriptionsModifyAckDeadlineCall) Do() (*Empty, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.modifyackdeadlinerequest)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{+subscription}:modifyAckDeadline")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Empty
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"subscription": c.subscription,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.modifyackdeadlinerequest,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Empty
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Modifies the ack deadline for a specific message. This method is useful to indicate that more time is needed to process a message by the subscriber, or to make the message available for redelivery if the processing was interrupted.",
 	//   "httpMethod": "POST",
@@ -744,7 +705,10 @@ type ProjectsSubscriptionsModifyPushConfigCall struct {
 	s                       *Service
 	subscription            string
 	modifypushconfigrequest *ModifyPushConfigRequest
-	opt_                    map[string]interface{}
+	caller_                 googleapi.Caller
+	params_                 url.Values
+	pathTemplate_           string
+	context_                context.Context
 }
 
 // ModifyPushConfig: Modifies the PushConfig for a specified
@@ -753,10 +717,20 @@ type ProjectsSubscriptionsModifyPushConfigCall struct {
 // the endpoint URL and other attributes of a push subscription.
 // Messages will accumulate for delivery continuously through the call
 // regardless of changes to the PushConfig.
+
 func (r *ProjectsSubscriptionsService) ModifyPushConfig(subscription string, modifypushconfigrequest *ModifyPushConfigRequest) *ProjectsSubscriptionsModifyPushConfigCall {
-	c := &ProjectsSubscriptionsModifyPushConfigCall{s: r.s, opt_: make(map[string]interface{})}
-	c.subscription = subscription
-	c.modifypushconfigrequest = modifypushconfigrequest
+	return &ProjectsSubscriptionsModifyPushConfigCall{
+		s:                       r.s,
+		subscription:            subscription,
+		modifypushconfigrequest: modifypushconfigrequest,
+		caller_:                 googleapi.JSONCall{},
+		params_:                 make(map[string][]string),
+		pathTemplate_:           "{+subscription}:modifyPushConfig",
+		context_:                googleapi.NoContext,
+	}
+}
+func (c *ProjectsSubscriptionsModifyPushConfigCall) Context(ctx context.Context) *ProjectsSubscriptionsModifyPushConfigCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -764,43 +738,24 @@ func (r *ProjectsSubscriptionsService) ModifyPushConfig(subscription string, mod
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ProjectsSubscriptionsModifyPushConfigCall) Fields(s ...googleapi.Field) *ProjectsSubscriptionsModifyPushConfigCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ProjectsSubscriptionsModifyPushConfigCall) Do() (*Empty, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.modifypushconfigrequest)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{+subscription}:modifyPushConfig")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Empty
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"subscription": c.subscription,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.modifypushconfigrequest,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Empty
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Modifies the PushConfig for a specified subscription. This may be used to change a push subscription to a pull one (signified by an empty PushConfig) or vice versa, or change the endpoint URL and other attributes of a push subscription. Messages will accumulate for delivery continuously through the call regardless of changes to the PushConfig.",
 	//   "httpMethod": "POST",
@@ -833,20 +788,33 @@ func (c *ProjectsSubscriptionsModifyPushConfigCall) Do() (*Empty, error) {
 // method id "pubsub.projects.subscriptions.pull":
 
 type ProjectsSubscriptionsPullCall struct {
-	s            *Service
-	subscription string
-	pullrequest  *PullRequest
-	opt_         map[string]interface{}
+	s             *Service
+	subscription  string
+	pullrequest   *PullRequest
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Pull: Pulls messages from the server. Returns an empty list if there
 // are no messages available in the backlog. The server may return
 // UNAVAILABLE if there are too many concurrent pull requests pending
 // for the given subscription.
+
 func (r *ProjectsSubscriptionsService) Pull(subscription string, pullrequest *PullRequest) *ProjectsSubscriptionsPullCall {
-	c := &ProjectsSubscriptionsPullCall{s: r.s, opt_: make(map[string]interface{})}
-	c.subscription = subscription
-	c.pullrequest = pullrequest
+	return &ProjectsSubscriptionsPullCall{
+		s:             r.s,
+		subscription:  subscription,
+		pullrequest:   pullrequest,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{+subscription}:pull",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *ProjectsSubscriptionsPullCall) Context(ctx context.Context) *ProjectsSubscriptionsPullCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -854,43 +822,24 @@ func (r *ProjectsSubscriptionsService) Pull(subscription string, pullrequest *Pu
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ProjectsSubscriptionsPullCall) Fields(s ...googleapi.Field) *ProjectsSubscriptionsPullCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ProjectsSubscriptionsPullCall) Do() (*PullResponse, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.pullrequest)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{+subscription}:pull")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *PullResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"subscription": c.subscription,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.pullrequest,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *PullResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Pulls messages from the server. Returns an empty list if there are no messages available in the backlog. The server may return UNAVAILABLE if there are too many concurrent pull requests pending for the given subscription.",
 	//   "httpMethod": "POST",
@@ -923,17 +872,30 @@ func (c *ProjectsSubscriptionsPullCall) Do() (*PullResponse, error) {
 // method id "pubsub.projects.topics.create":
 
 type ProjectsTopicsCreateCall struct {
-	s     *Service
-	name  string
-	topic *Topic
-	opt_  map[string]interface{}
+	s             *Service
+	name          string
+	topic         *Topic
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Create: Creates the given topic with the given name.
+
 func (r *ProjectsTopicsService) Create(name string, topic *Topic) *ProjectsTopicsCreateCall {
-	c := &ProjectsTopicsCreateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.name = name
-	c.topic = topic
+	return &ProjectsTopicsCreateCall{
+		s:             r.s,
+		name:          name,
+		topic:         topic,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{+name}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *ProjectsTopicsCreateCall) Context(ctx context.Context) *ProjectsTopicsCreateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -941,43 +903,24 @@ func (r *ProjectsTopicsService) Create(name string, topic *Topic) *ProjectsTopic
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ProjectsTopicsCreateCall) Fields(s ...googleapi.Field) *ProjectsTopicsCreateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ProjectsTopicsCreateCall) Do() (*Topic, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.topic)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{+name}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Topic
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"name": c.name,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.topic,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Topic
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Creates the given topic with the given name.",
 	//   "httpMethod": "PUT",
@@ -1010,19 +953,32 @@ func (c *ProjectsTopicsCreateCall) Do() (*Topic, error) {
 // method id "pubsub.projects.topics.delete":
 
 type ProjectsTopicsDeleteCall struct {
-	s     *Service
-	topic string
-	opt_  map[string]interface{}
+	s             *Service
+	topic         string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
-// Delete: Deletes the topic with the given name. All subscriptions to
-// this topic are detached from the topic. Returns NOT_FOUND if the
-// topic does not exist. After a topic is deleted, a new topic may be
-// created with the same name; this is an entirely new topic with none
-// of the old configuration or subscriptions.
+// Delete: Deletes the topic with the given name. Returns NOT_FOUND if
+// the topic does not exist. After a topic is deleted, a new topic may
+// be created with the same name; this is an entirely new topic with
+// none of the old configuration or subscriptions. Existing
+// subscriptions to this topic are not deleted.
+
 func (r *ProjectsTopicsService) Delete(topic string) *ProjectsTopicsDeleteCall {
-	c := &ProjectsTopicsDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.topic = topic
+	return &ProjectsTopicsDeleteCall{
+		s:             r.s,
+		topic:         topic,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{+topic}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *ProjectsTopicsDeleteCall) Context(ctx context.Context) *ProjectsTopicsDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1030,39 +986,25 @@ func (r *ProjectsTopicsService) Delete(topic string) *ProjectsTopicsDeleteCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ProjectsTopicsDeleteCall) Fields(s ...googleapi.Field) *ProjectsTopicsDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ProjectsTopicsDeleteCall) Do() (*Empty, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{+topic}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Empty
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"topic": c.topic,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Empty
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
-	//   "description": "Deletes the topic with the given name. All subscriptions to this topic are detached from the topic. Returns NOT_FOUND if the topic does not exist. After a topic is deleted, a new topic may be created with the same name; this is an entirely new topic with none of the old configuration or subscriptions.",
+	//   "description": "Deletes the topic with the given name. Returns NOT_FOUND if the topic does not exist. After a topic is deleted, a new topic may be created with the same name; this is an entirely new topic with none of the old configuration or subscriptions. Existing subscriptions to this topic are not deleted.",
 	//   "httpMethod": "DELETE",
 	//   "id": "pubsub.projects.topics.delete",
 	//   "parameterOrder": [
@@ -1090,15 +1032,28 @@ func (c *ProjectsTopicsDeleteCall) Do() (*Empty, error) {
 // method id "pubsub.projects.topics.get":
 
 type ProjectsTopicsGetCall struct {
-	s     *Service
-	topic string
-	opt_  map[string]interface{}
+	s             *Service
+	topic         string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Gets the configuration of a topic.
+
 func (r *ProjectsTopicsService) Get(topic string) *ProjectsTopicsGetCall {
-	c := &ProjectsTopicsGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.topic = topic
+	return &ProjectsTopicsGetCall{
+		s:             r.s,
+		topic:         topic,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{+topic}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *ProjectsTopicsGetCall) Context(ctx context.Context) *ProjectsTopicsGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1106,37 +1061,23 @@ func (r *ProjectsTopicsService) Get(topic string) *ProjectsTopicsGetCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ProjectsTopicsGetCall) Fields(s ...googleapi.Field) *ProjectsTopicsGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ProjectsTopicsGetCall) Do() (*Topic, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{+topic}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Topic
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"topic": c.topic,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Topic
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Gets the configuration of a topic.",
 	//   "httpMethod": "GET",
@@ -1166,27 +1107,40 @@ func (c *ProjectsTopicsGetCall) Do() (*Topic, error) {
 // method id "pubsub.projects.topics.list":
 
 type ProjectsTopicsListCall struct {
-	s       *Service
-	project string
-	opt_    map[string]interface{}
+	s             *Service
+	project       string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Lists matching topics.
+
 func (r *ProjectsTopicsService) List(project string) *ProjectsTopicsListCall {
-	c := &ProjectsTopicsListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.project = project
-	return c
+	return &ProjectsTopicsListCall{
+		s:             r.s,
+		project:       project,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{+project}/topics",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // PageSize sets the optional parameter "pageSize":
 func (c *ProjectsTopicsListCall) PageSize(pageSize int64) *ProjectsTopicsListCall {
-	c.opt_["pageSize"] = pageSize
+	c.params_.Set("pageSize", fmt.Sprintf("%v", pageSize))
 	return c
 }
 
 // PageToken sets the optional parameter "pageToken":
 func (c *ProjectsTopicsListCall) PageToken(pageToken string) *ProjectsTopicsListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
+	return c
+}
+func (c *ProjectsTopicsListCall) Context(ctx context.Context) *ProjectsTopicsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1194,43 +1148,23 @@ func (c *ProjectsTopicsListCall) PageToken(pageToken string) *ProjectsTopicsList
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ProjectsTopicsListCall) Fields(s ...googleapi.Field) *ProjectsTopicsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ProjectsTopicsListCall) Do() (*ListTopicsResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["pageSize"]; ok {
-		params.Set("pageSize", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{+project}/topics")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *ListTopicsResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"project": c.project,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ListTopicsResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Lists matching topics.",
 	//   "httpMethod": "GET",
@@ -1272,15 +1206,28 @@ type ProjectsTopicsPublishCall struct {
 	s              *Service
 	topic          string
 	publishrequest *PublishRequest
-	opt_           map[string]interface{}
+	caller_        googleapi.Caller
+	params_        url.Values
+	pathTemplate_  string
+	context_       context.Context
 }
 
 // Publish: Adds one or more messages to the topic. Returns NOT_FOUND if
 // the topic does not exist.
+
 func (r *ProjectsTopicsService) Publish(topic string, publishrequest *PublishRequest) *ProjectsTopicsPublishCall {
-	c := &ProjectsTopicsPublishCall{s: r.s, opt_: make(map[string]interface{})}
-	c.topic = topic
-	c.publishrequest = publishrequest
+	return &ProjectsTopicsPublishCall{
+		s:              r.s,
+		topic:          topic,
+		publishrequest: publishrequest,
+		caller_:        googleapi.JSONCall{},
+		params_:        make(map[string][]string),
+		pathTemplate_:  "{+topic}:publish",
+		context_:       googleapi.NoContext,
+	}
+}
+func (c *ProjectsTopicsPublishCall) Context(ctx context.Context) *ProjectsTopicsPublishCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1288,43 +1235,24 @@ func (r *ProjectsTopicsService) Publish(topic string, publishrequest *PublishReq
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ProjectsTopicsPublishCall) Fields(s ...googleapi.Field) *ProjectsTopicsPublishCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ProjectsTopicsPublishCall) Do() (*PublishResponse, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.publishrequest)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{+topic}:publish")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *PublishResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"topic": c.topic,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.publishrequest,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *PublishResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Adds one or more messages to the topic. Returns NOT_FOUND if the topic does not exist.",
 	//   "httpMethod": "POST",
@@ -1357,27 +1285,40 @@ func (c *ProjectsTopicsPublishCall) Do() (*PublishResponse, error) {
 // method id "pubsub.projects.topics.subscriptions.list":
 
 type ProjectsTopicsSubscriptionsListCall struct {
-	s     *Service
-	topic string
-	opt_  map[string]interface{}
+	s             *Service
+	topic         string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Lists the name of the subscriptions for this topic.
+
 func (r *ProjectsTopicsSubscriptionsService) List(topic string) *ProjectsTopicsSubscriptionsListCall {
-	c := &ProjectsTopicsSubscriptionsListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.topic = topic
-	return c
+	return &ProjectsTopicsSubscriptionsListCall{
+		s:             r.s,
+		topic:         topic,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{+topic}/subscriptions",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // PageSize sets the optional parameter "pageSize":
 func (c *ProjectsTopicsSubscriptionsListCall) PageSize(pageSize int64) *ProjectsTopicsSubscriptionsListCall {
-	c.opt_["pageSize"] = pageSize
+	c.params_.Set("pageSize", fmt.Sprintf("%v", pageSize))
 	return c
 }
 
 // PageToken sets the optional parameter "pageToken":
 func (c *ProjectsTopicsSubscriptionsListCall) PageToken(pageToken string) *ProjectsTopicsSubscriptionsListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
+	return c
+}
+func (c *ProjectsTopicsSubscriptionsListCall) Context(ctx context.Context) *ProjectsTopicsSubscriptionsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1385,43 +1326,23 @@ func (c *ProjectsTopicsSubscriptionsListCall) PageToken(pageToken string) *Proje
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ProjectsTopicsSubscriptionsListCall) Fields(s ...googleapi.Field) *ProjectsTopicsSubscriptionsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ProjectsTopicsSubscriptionsListCall) Do() (*ListTopicSubscriptionsResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["pageSize"]; ok {
-		params.Set("pageSize", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{+topic}/subscriptions")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *ListTopicSubscriptionsResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"topic": c.topic,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ListTopicSubscriptionsResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Lists the name of the subscriptions for this topic.",
 	//   "httpMethod": "GET",

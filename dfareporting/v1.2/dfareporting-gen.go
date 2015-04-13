@@ -4,18 +4,16 @@
 //
 // Usage example:
 //
-//   import "google.golang.org/api/dfareporting/v1.2"
+//   import "github.com/jfcote87/api2/dfareporting/v1.2"
 //   ...
 //   dfareportingService, err := dfareporting.New(oauthHttpClient)
 package dfareporting
 
 import (
-	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/jfcote87/api2/googleapi"
 	"golang.org/x/net/context"
-	"google.golang.org/api/googleapi"
 	"io"
 	"net/http"
 	"net/url"
@@ -25,10 +23,8 @@ import (
 
 // Always reference these packages, just in case the auto-generated code
 // below doesn't.
-var _ = bytes.NewBuffer
 var _ = strconv.Itoa
 var _ = fmt.Sprintf
-var _ = json.NewDecoder
 var _ = io.Copy
 var _ = url.Parse
 var _ = googleapi.Version
@@ -39,7 +35,8 @@ var _ = context.Background
 const apiId = "dfareporting:v1.2"
 const apiName = "dfareporting"
 const apiVersion = "v1.2"
-const basePath = "https://www.googleapis.com/dfareporting/v1.2/"
+
+var baseURL *url.URL = &url.URL{Scheme: "https", Host: "www.googleapis.com", Path: "/dfareporting/v1.2/"}
 
 // OAuth2 scopes used by this API.
 const (
@@ -51,7 +48,7 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
+	s := &Service{client: client}
 	s.DimensionValues = NewDimensionValuesService(s)
 	s.Files = NewFilesService(s)
 	s.Reports = NewReportsService(s)
@@ -60,9 +57,7 @@ func New(client *http.Client) (*Service, error) {
 }
 
 type Service struct {
-	client    *http.Client
-	BasePath  string // API endpoint base URL
-	UserAgent string // optional additional User-Agent fragment
+	client *http.Client
 
 	DimensionValues *DimensionValuesService
 
@@ -71,13 +66,6 @@ type Service struct {
 	Reports *ReportsService
 
 	UserProfiles *UserProfilesService
-}
-
-func (s *Service) userAgent() string {
-	if s.UserAgent == "" {
-		return googleapi.UserAgent
-	}
-	return googleapi.UserAgent + " " + s.UserAgent
 }
 
 func NewDimensionValuesService(s *Service) *DimensionValuesService {
@@ -809,29 +797,42 @@ type DimensionValuesQueryCall struct {
 	s                     *Service
 	profileId             int64
 	dimensionvaluerequest *DimensionValueRequest
-	opt_                  map[string]interface{}
+	caller_               googleapi.Caller
+	params_               url.Values
+	pathTemplate_         string
+	context_              context.Context
 }
 
 // Query: Retrieves list of report dimension values for a list of
 // filters.
+
 func (r *DimensionValuesService) Query(profileId int64, dimensionvaluerequest *DimensionValueRequest) *DimensionValuesQueryCall {
-	c := &DimensionValuesQueryCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.dimensionvaluerequest = dimensionvaluerequest
-	return c
+	return &DimensionValuesQueryCall{
+		s:                     r.s,
+		profileId:             profileId,
+		dimensionvaluerequest: dimensionvaluerequest,
+		caller_:               googleapi.JSONCall{},
+		params_:               make(map[string][]string),
+		pathTemplate_:         "userprofiles/{profileId}/dimensionvalues/query",
+		context_:              googleapi.NoContext,
+	}
 }
 
 // MaxResults sets the optional parameter "maxResults": Maximum number
 // of results to return.
 func (c *DimensionValuesQueryCall) MaxResults(maxResults int64) *DimensionValuesQueryCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
 // PageToken sets the optional parameter "pageToken": The value of the
 // nextToken from the previous result page.
 func (c *DimensionValuesQueryCall) PageToken(pageToken string) *DimensionValuesQueryCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
+	return c
+}
+func (c *DimensionValuesQueryCall) Context(ctx context.Context) *DimensionValuesQueryCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -839,49 +840,24 @@ func (c *DimensionValuesQueryCall) PageToken(pageToken string) *DimensionValuesQ
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *DimensionValuesQueryCall) Fields(s ...googleapi.Field) *DimensionValuesQueryCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *DimensionValuesQueryCall) Do() (*DimensionValueList, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.dimensionvaluerequest)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/dimensionvalues/query")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *DimensionValueList
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.dimensionvaluerequest,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *DimensionValueList
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves list of report dimension values for a list of filters.",
 	//   "httpMethod": "POST",
@@ -928,17 +904,30 @@ func (c *DimensionValuesQueryCall) Do() (*DimensionValueList, error) {
 // method id "dfareporting.files.get":
 
 type FilesGetCall struct {
-	s        *Service
-	reportId int64
-	fileId   int64
-	opt_     map[string]interface{}
+	s             *Service
+	reportId      int64
+	fileId        int64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Retrieves a report file by its report ID and file ID.
+
 func (r *FilesService) Get(reportId int64, fileId int64) *FilesGetCall {
-	c := &FilesGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.reportId = reportId
-	c.fileId = fileId
+	return &FilesGetCall{
+		s:             r.s,
+		reportId:      reportId,
+		fileId:        fileId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "reports/{reportId}/files/{fileId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *FilesGetCall) Context(ctx context.Context) *FilesGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -946,38 +935,43 @@ func (r *FilesService) Get(reportId int64, fileId int64) *FilesGetCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *FilesGetCall) Fields(s ...googleapi.Field) *FilesGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
-func (c *FilesGetCall) Do() (*File, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "reports/{reportId}/files/{fileId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+// GetResponse sets alt=media creating a file download request. The body
+// of the *http.Response contains the media.  You should close the response
+// body when finished reading.
+
+func (c *FilesGetCall) GetResponse() (*http.Response, error) {
+	var res *http.Response
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"reportId": strconv.FormatInt(c.reportId, 10),
 		"fileId":   strconv.FormatInt(c.fileId, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &res,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
+	return res, c.caller_.Do(c.context_, c.s.client, call)
+}
+
+func (c *FilesGetCall) Do() (*File, error) {
+	var returnValue *File
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
+		"reportId": strconv.FormatInt(c.reportId, 10),
+		"fileId":   strconv.FormatInt(c.fileId, 10),
+	})
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	var ret *File
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves a report file by its report ID and file ID.",
 	//   "httpMethod": "GET",
@@ -1017,50 +1011,63 @@ func (c *FilesGetCall) Do() (*File, error) {
 // method id "dfareporting.files.list":
 
 type FilesListCall struct {
-	s         *Service
-	profileId int64
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Lists files for a user profile.
+
 func (r *FilesService) List(profileId int64) *FilesListCall {
-	c := &FilesListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	return c
+	return &FilesListCall{
+		s:             r.s,
+		profileId:     profileId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/files",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // MaxResults sets the optional parameter "maxResults": Maximum number
 // of results to return.
 func (c *FilesListCall) MaxResults(maxResults int64) *FilesListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
 // PageToken sets the optional parameter "pageToken": The value of the
 // nextToken from the previous result page.
 func (c *FilesListCall) PageToken(pageToken string) *FilesListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
 	return c
 }
 
 // Scope sets the optional parameter "scope": The scope that defines
 // which results are returned, default is 'MINE'.
 func (c *FilesListCall) Scope(scope string) *FilesListCall {
-	c.opt_["scope"] = scope
+	c.params_.Set("scope", fmt.Sprintf("%v", scope))
 	return c
 }
 
 // SortField sets the optional parameter "sortField": The field by which
 // to sort the list.
 func (c *FilesListCall) SortField(sortField string) *FilesListCall {
-	c.opt_["sortField"] = sortField
+	c.params_.Set("sortField", fmt.Sprintf("%v", sortField))
 	return c
 }
 
 // SortOrder sets the optional parameter "sortOrder": Order of sorted
 // results, default is 'DESCENDING'.
 func (c *FilesListCall) SortOrder(sortOrder string) *FilesListCall {
-	c.opt_["sortOrder"] = sortOrder
+	c.params_.Set("sortOrder", fmt.Sprintf("%v", sortOrder))
+	return c
+}
+func (c *FilesListCall) Context(ctx context.Context) *FilesListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1068,52 +1075,23 @@ func (c *FilesListCall) SortOrder(sortOrder string) *FilesListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *FilesListCall) Fields(s ...googleapi.Field) *FilesListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *FilesListCall) Do() (*FileList, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["scope"]; ok {
-		params.Set("scope", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["sortField"]; ok {
-		params.Set("sortField", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["sortOrder"]; ok {
-		params.Set("sortOrder", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/files")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *FileList
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *FileList
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Lists files for a user profile.",
 	//   "httpMethod": "GET",
@@ -1201,52 +1179,45 @@ func (c *FilesListCall) Do() (*FileList, error) {
 // method id "dfareporting.reports.delete":
 
 type ReportsDeleteCall struct {
-	s         *Service
-	profileId int64
-	reportId  int64
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	reportId      int64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Delete: Deletes a report by its ID.
-func (r *ReportsService) Delete(profileId int64, reportId int64) *ReportsDeleteCall {
-	c := &ReportsDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.reportId = reportId
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *ReportsDeleteCall) Fields(s ...googleapi.Field) *ReportsDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *ReportsService) Delete(profileId int64, reportId int64) *ReportsDeleteCall {
+	return &ReportsDeleteCall{
+		s:             r.s,
+		profileId:     profileId,
+		reportId:      reportId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/reports/{reportId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *ReportsDeleteCall) Context(ctx context.Context) *ReportsDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *ReportsDeleteCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/reports/{reportId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 		"reportId":  strconv.FormatInt(c.reportId, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Deletes a report by its ID.",
 	//   "httpMethod": "DELETE",
@@ -1282,17 +1253,30 @@ func (c *ReportsDeleteCall) Do() error {
 // method id "dfareporting.reports.get":
 
 type ReportsGetCall struct {
-	s         *Service
-	profileId int64
-	reportId  int64
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	reportId      int64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Retrieves a report by its ID.
+
 func (r *ReportsService) Get(profileId int64, reportId int64) *ReportsGetCall {
-	c := &ReportsGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.reportId = reportId
+	return &ReportsGetCall{
+		s:             r.s,
+		profileId:     profileId,
+		reportId:      reportId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/reports/{reportId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *ReportsGetCall) Context(ctx context.Context) *ReportsGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1300,38 +1284,24 @@ func (r *ReportsService) Get(profileId int64, reportId int64) *ReportsGetCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ReportsGetCall) Fields(s ...googleapi.Field) *ReportsGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ReportsGetCall) Do() (*Report, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/reports/{reportId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Report
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 		"reportId":  strconv.FormatInt(c.reportId, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Report
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves a report by its ID.",
 	//   "httpMethod": "GET",
@@ -1370,17 +1340,30 @@ func (c *ReportsGetCall) Do() (*Report, error) {
 // method id "dfareporting.reports.insert":
 
 type ReportsInsertCall struct {
-	s         *Service
-	profileId int64
-	report    *Report
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	report        *Report
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Insert: Creates a report.
+
 func (r *ReportsService) Insert(profileId int64, report *Report) *ReportsInsertCall {
-	c := &ReportsInsertCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.report = report
+	return &ReportsInsertCall{
+		s:             r.s,
+		profileId:     profileId,
+		report:        report,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/reports",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *ReportsInsertCall) Context(ctx context.Context) *ReportsInsertCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1388,43 +1371,24 @@ func (r *ReportsService) Insert(profileId int64, report *Report) *ReportsInsertC
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ReportsInsertCall) Fields(s ...googleapi.Field) *ReportsInsertCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ReportsInsertCall) Do() (*Report, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.report)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/reports")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Report
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.report,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Report
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Creates a report.",
 	//   "httpMethod": "POST",
@@ -1458,50 +1422,63 @@ func (c *ReportsInsertCall) Do() (*Report, error) {
 // method id "dfareporting.reports.list":
 
 type ReportsListCall struct {
-	s         *Service
-	profileId int64
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Retrieves list of reports.
+
 func (r *ReportsService) List(profileId int64) *ReportsListCall {
-	c := &ReportsListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	return c
+	return &ReportsListCall{
+		s:             r.s,
+		profileId:     profileId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/reports",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // MaxResults sets the optional parameter "maxResults": Maximum number
 // of results to return.
 func (c *ReportsListCall) MaxResults(maxResults int64) *ReportsListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
 // PageToken sets the optional parameter "pageToken": The value of the
 // nextToken from the previous result page.
 func (c *ReportsListCall) PageToken(pageToken string) *ReportsListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
 	return c
 }
 
 // Scope sets the optional parameter "scope": The scope that defines
 // which results are returned, default is 'MINE'.
 func (c *ReportsListCall) Scope(scope string) *ReportsListCall {
-	c.opt_["scope"] = scope
+	c.params_.Set("scope", fmt.Sprintf("%v", scope))
 	return c
 }
 
 // SortField sets the optional parameter "sortField": The field by which
 // to sort the list.
 func (c *ReportsListCall) SortField(sortField string) *ReportsListCall {
-	c.opt_["sortField"] = sortField
+	c.params_.Set("sortField", fmt.Sprintf("%v", sortField))
 	return c
 }
 
 // SortOrder sets the optional parameter "sortOrder": Order of sorted
 // results, default is 'DESCENDING'.
 func (c *ReportsListCall) SortOrder(sortOrder string) *ReportsListCall {
-	c.opt_["sortOrder"] = sortOrder
+	c.params_.Set("sortOrder", fmt.Sprintf("%v", sortOrder))
+	return c
+}
+func (c *ReportsListCall) Context(ctx context.Context) *ReportsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1509,52 +1486,23 @@ func (c *ReportsListCall) SortOrder(sortOrder string) *ReportsListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ReportsListCall) Fields(s ...googleapi.Field) *ReportsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ReportsListCall) Do() (*ReportList, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["scope"]; ok {
-		params.Set("scope", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["sortField"]; ok {
-		params.Set("sortField", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["sortOrder"]; ok {
-		params.Set("sortOrder", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/reports")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *ReportList
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ReportList
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves list of reports.",
 	//   "httpMethod": "GET",
@@ -1642,19 +1590,32 @@ func (c *ReportsListCall) Do() (*ReportList, error) {
 // method id "dfareporting.reports.patch":
 
 type ReportsPatchCall struct {
-	s         *Service
-	profileId int64
-	reportId  int64
-	report    *Report
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	reportId      int64
+	report        *Report
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Patch: Updates a report. This method supports patch semantics.
+
 func (r *ReportsService) Patch(profileId int64, reportId int64, report *Report) *ReportsPatchCall {
-	c := &ReportsPatchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.reportId = reportId
-	c.report = report
+	return &ReportsPatchCall{
+		s:             r.s,
+		profileId:     profileId,
+		reportId:      reportId,
+		report:        report,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/reports/{reportId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *ReportsPatchCall) Context(ctx context.Context) *ReportsPatchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1662,44 +1623,25 @@ func (r *ReportsService) Patch(profileId int64, reportId int64, report *Report) 
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ReportsPatchCall) Fields(s ...googleapi.Field) *ReportsPatchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ReportsPatchCall) Do() (*Report, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.report)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/reports/{reportId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PATCH", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Report
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 		"reportId":  strconv.FormatInt(c.reportId, 10),
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PATCH",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.report,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Report
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates a report. This method supports patch semantics.",
 	//   "httpMethod": "PATCH",
@@ -1741,24 +1683,37 @@ func (c *ReportsPatchCall) Do() (*Report, error) {
 // method id "dfareporting.reports.run":
 
 type ReportsRunCall struct {
-	s         *Service
-	profileId int64
-	reportId  int64
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	reportId      int64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Run: Runs a report.
+
 func (r *ReportsService) Run(profileId int64, reportId int64) *ReportsRunCall {
-	c := &ReportsRunCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.reportId = reportId
-	return c
+	return &ReportsRunCall{
+		s:             r.s,
+		profileId:     profileId,
+		reportId:      reportId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/reports/{reportId}/run",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Synchronous sets the optional parameter "synchronous": If set and
 // true, tries to run the report synchronously.
 func (c *ReportsRunCall) Synchronous(synchronous bool) *ReportsRunCall {
-	c.opt_["synchronous"] = synchronous
+	c.params_.Set("synchronous", fmt.Sprintf("%v", synchronous))
+	return c
+}
+func (c *ReportsRunCall) Context(ctx context.Context) *ReportsRunCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1766,41 +1721,24 @@ func (c *ReportsRunCall) Synchronous(synchronous bool) *ReportsRunCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ReportsRunCall) Fields(s ...googleapi.Field) *ReportsRunCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ReportsRunCall) Do() (*File, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["synchronous"]; ok {
-		params.Set("synchronous", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/reports/{reportId}/run")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *File
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 		"reportId":  strconv.FormatInt(c.reportId, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "POST",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *File
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Runs a report.",
 	//   "httpMethod": "POST",
@@ -1844,19 +1782,32 @@ func (c *ReportsRunCall) Do() (*File, error) {
 // method id "dfareporting.reports.update":
 
 type ReportsUpdateCall struct {
-	s         *Service
-	profileId int64
-	reportId  int64
-	report    *Report
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	reportId      int64
+	report        *Report
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Update: Updates a report.
+
 func (r *ReportsService) Update(profileId int64, reportId int64, report *Report) *ReportsUpdateCall {
-	c := &ReportsUpdateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.reportId = reportId
-	c.report = report
+	return &ReportsUpdateCall{
+		s:             r.s,
+		profileId:     profileId,
+		reportId:      reportId,
+		report:        report,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/reports/{reportId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *ReportsUpdateCall) Context(ctx context.Context) *ReportsUpdateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1864,44 +1815,25 @@ func (r *ReportsService) Update(profileId int64, reportId int64, report *Report)
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ReportsUpdateCall) Fields(s ...googleapi.Field) *ReportsUpdateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ReportsUpdateCall) Do() (*Report, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.report)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/reports/{reportId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Report
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 		"reportId":  strconv.FormatInt(c.reportId, 10),
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.report,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Report
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates a report.",
 	//   "httpMethod": "PUT",
@@ -1943,19 +1875,32 @@ func (c *ReportsUpdateCall) Do() (*Report, error) {
 // method id "dfareporting.reports.files.get":
 
 type ReportsFilesGetCall struct {
-	s         *Service
-	profileId int64
-	reportId  int64
-	fileId    int64
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	reportId      int64
+	fileId        int64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Retrieves a report file.
+
 func (r *ReportsFilesService) Get(profileId int64, reportId int64, fileId int64) *ReportsFilesGetCall {
-	c := &ReportsFilesGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.reportId = reportId
-	c.fileId = fileId
+	return &ReportsFilesGetCall{
+		s:             r.s,
+		profileId:     profileId,
+		reportId:      reportId,
+		fileId:        fileId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/reports/{reportId}/files/{fileId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *ReportsFilesGetCall) Context(ctx context.Context) *ReportsFilesGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1963,39 +1908,45 @@ func (r *ReportsFilesService) Get(profileId int64, reportId int64, fileId int64)
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ReportsFilesGetCall) Fields(s ...googleapi.Field) *ReportsFilesGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
-func (c *ReportsFilesGetCall) Do() (*File, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/reports/{reportId}/files/{fileId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+// GetResponse sets alt=media creating a file download request. The body
+// of the *http.Response contains the media.  You should close the response
+// body when finished reading.
+
+func (c *ReportsFilesGetCall) GetResponse() (*http.Response, error) {
+	var res *http.Response
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 		"reportId":  strconv.FormatInt(c.reportId, 10),
 		"fileId":    strconv.FormatInt(c.fileId, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &res,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
+	return res, c.caller_.Do(c.context_, c.s.client, call)
+}
+
+func (c *ReportsFilesGetCall) Do() (*File, error) {
+	var returnValue *File
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
+		"profileId": strconv.FormatInt(c.profileId, 10),
+		"reportId":  strconv.FormatInt(c.reportId, 10),
+		"fileId":    strconv.FormatInt(c.fileId, 10),
+	})
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	var ret *File
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves a report file.",
 	//   "httpMethod": "GET",
@@ -2043,45 +1994,58 @@ func (c *ReportsFilesGetCall) Do() (*File, error) {
 // method id "dfareporting.reports.files.list":
 
 type ReportsFilesListCall struct {
-	s         *Service
-	profileId int64
-	reportId  int64
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	reportId      int64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Lists files for a report.
+
 func (r *ReportsFilesService) List(profileId int64, reportId int64) *ReportsFilesListCall {
-	c := &ReportsFilesListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.reportId = reportId
-	return c
+	return &ReportsFilesListCall{
+		s:             r.s,
+		profileId:     profileId,
+		reportId:      reportId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/reports/{reportId}/files",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // MaxResults sets the optional parameter "maxResults": Maximum number
 // of results to return.
 func (c *ReportsFilesListCall) MaxResults(maxResults int64) *ReportsFilesListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
 // PageToken sets the optional parameter "pageToken": The value of the
 // nextToken from the previous result page.
 func (c *ReportsFilesListCall) PageToken(pageToken string) *ReportsFilesListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
 	return c
 }
 
 // SortField sets the optional parameter "sortField": The field by which
 // to sort the list.
 func (c *ReportsFilesListCall) SortField(sortField string) *ReportsFilesListCall {
-	c.opt_["sortField"] = sortField
+	c.params_.Set("sortField", fmt.Sprintf("%v", sortField))
 	return c
 }
 
 // SortOrder sets the optional parameter "sortOrder": Order of sorted
 // results, default is 'DESCENDING'.
 func (c *ReportsFilesListCall) SortOrder(sortOrder string) *ReportsFilesListCall {
-	c.opt_["sortOrder"] = sortOrder
+	c.params_.Set("sortOrder", fmt.Sprintf("%v", sortOrder))
+	return c
+}
+func (c *ReportsFilesListCall) Context(ctx context.Context) *ReportsFilesListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2089,50 +2053,24 @@ func (c *ReportsFilesListCall) SortOrder(sortOrder string) *ReportsFilesListCall
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ReportsFilesListCall) Fields(s ...googleapi.Field) *ReportsFilesListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ReportsFilesListCall) Do() (*FileList, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["sortField"]; ok {
-		params.Set("sortField", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["sortOrder"]; ok {
-		params.Set("sortOrder", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/reports/{reportId}/files")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *FileList
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 		"reportId":  strconv.FormatInt(c.reportId, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *FileList
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Lists files for a report.",
 	//   "httpMethod": "GET",
@@ -2212,15 +2150,28 @@ func (c *ReportsFilesListCall) Do() (*FileList, error) {
 // method id "dfareporting.userProfiles.get":
 
 type UserProfilesGetCall struct {
-	s         *Service
-	profileId int64
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Gets one user profile by ID.
+
 func (r *UserProfilesService) Get(profileId int64) *UserProfilesGetCall {
-	c := &UserProfilesGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
+	return &UserProfilesGetCall{
+		s:             r.s,
+		profileId:     profileId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *UserProfilesGetCall) Context(ctx context.Context) *UserProfilesGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2228,37 +2179,23 @@ func (r *UserProfilesService) Get(profileId int64) *UserProfilesGetCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *UserProfilesGetCall) Fields(s ...googleapi.Field) *UserProfilesGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *UserProfilesGetCall) Do() (*UserProfile, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *UserProfile
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *UserProfile
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Gets one user profile by ID.",
 	//   "httpMethod": "GET",
@@ -2289,13 +2226,26 @@ func (c *UserProfilesGetCall) Do() (*UserProfile, error) {
 // method id "dfareporting.userProfiles.list":
 
 type UserProfilesListCall struct {
-	s    *Service
-	opt_ map[string]interface{}
+	s             *Service
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Retrieves list of user profiles for a user.
+
 func (r *UserProfilesService) List() *UserProfilesListCall {
-	c := &UserProfilesListCall{s: r.s, opt_: make(map[string]interface{})}
+	return &UserProfilesListCall{
+		s:             r.s,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *UserProfilesListCall) Context(ctx context.Context) *UserProfilesListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2303,35 +2253,21 @@ func (r *UserProfilesService) List() *UserProfilesListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *UserProfilesListCall) Fields(s ...googleapi.Field) *UserProfilesListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *UserProfilesListCall) Do() (*UserProfileList, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
+	var returnValue *UserProfileList
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *UserProfileList
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves list of user profiles for a user.",
 	//   "httpMethod": "GET",

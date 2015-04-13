@@ -4,18 +4,16 @@
 //
 // Usage example:
 //
-//   import "google.golang.org/api/analytics/v3"
+//   import "github.com/jfcote87/api2/analytics/v3"
 //   ...
 //   analyticsService, err := analytics.New(oauthHttpClient)
 package analytics
 
 import (
-	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/jfcote87/api2/googleapi"
 	"golang.org/x/net/context"
-	"google.golang.org/api/googleapi"
 	"io"
 	"net/http"
 	"net/url"
@@ -25,10 +23,8 @@ import (
 
 // Always reference these packages, just in case the auto-generated code
 // below doesn't.
-var _ = bytes.NewBuffer
 var _ = strconv.Itoa
 var _ = fmt.Sprintf
-var _ = json.NewDecoder
 var _ = io.Copy
 var _ = url.Parse
 var _ = googleapi.Version
@@ -39,7 +35,8 @@ var _ = context.Background
 const apiId = "analytics:v3"
 const apiName = "analytics"
 const apiVersion = "v3"
-const basePath = "https://www.googleapis.com/analytics/v3/"
+
+var baseURL *url.URL = &url.URL{Scheme: "https", Host: "www.googleapis.com", Path: "/analytics/v3/"}
 
 // OAuth2 scopes used by this API.
 const (
@@ -67,7 +64,7 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
+	s := &Service{client: client}
 	s.Data = NewDataService(s)
 	s.Management = NewManagementService(s)
 	s.Metadata = NewMetadataService(s)
@@ -76,9 +73,7 @@ func New(client *http.Client) (*Service, error) {
 }
 
 type Service struct {
-	client    *http.Client
-	BasePath  string // API endpoint base URL
-	UserAgent string // optional additional User-Agent fragment
+	client *http.Client
 
 	Data *DataService
 
@@ -87,13 +82,6 @@ type Service struct {
 	Metadata *MetadataService
 
 	Provisioning *ProvisioningService
-}
-
-func (s *Service) userAgent() string {
-	if s.UserAgent == "" {
-		return googleapi.UserAgent
-	}
-	return googleapi.UserAgent + " " + s.UserAgent
 }
 
 func NewDataService(s *Service) *DataService {
@@ -2724,64 +2712,73 @@ type WebpropertyPermissions struct {
 // method id "analytics.data.ga.get":
 
 type DataGaGetCall struct {
-	s         *Service
-	ids       string
-	startDate string
-	endDate   string
-	metrics   string
-	opt_      map[string]interface{}
+	s             *Service
+	ids           string
+	startDate     string
+	endDate       string
+	metrics       string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Returns Analytics data for a view (profile).
+
 func (r *DataGaService) Get(ids string, startDate string, endDate string, metrics string) *DataGaGetCall {
-	c := &DataGaGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.ids = ids
-	c.startDate = startDate
-	c.endDate = endDate
-	c.metrics = metrics
-	return c
+	return &DataGaGetCall{
+		s:             r.s,
+		ids:           ids,
+		startDate:     startDate,
+		endDate:       endDate,
+		metrics:       metrics,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "data/ga",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Dimensions sets the optional parameter "dimensions": A
 // comma-separated list of Analytics dimensions. E.g.,
 // 'ga:browser,ga:city'.
 func (c *DataGaGetCall) Dimensions(dimensions string) *DataGaGetCall {
-	c.opt_["dimensions"] = dimensions
+	c.params_.Set("dimensions", fmt.Sprintf("%v", dimensions))
 	return c
 }
 
 // Filters sets the optional parameter "filters": A comma-separated list
 // of dimension or metric filters to be applied to Analytics data.
 func (c *DataGaGetCall) Filters(filters string) *DataGaGetCall {
-	c.opt_["filters"] = filters
+	c.params_.Set("filters", fmt.Sprintf("%v", filters))
 	return c
 }
 
 // MaxResults sets the optional parameter "max-results": The maximum
 // number of entries to include in this feed.
 func (c *DataGaGetCall) MaxResults(maxResults int64) *DataGaGetCall {
-	c.opt_["max-results"] = maxResults
+	c.params_.Set("max-results", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
 // Output sets the optional parameter "output": The selected format for
 // the response. Default format is JSON.
 func (c *DataGaGetCall) Output(output string) *DataGaGetCall {
-	c.opt_["output"] = output
+	c.params_.Set("output", fmt.Sprintf("%v", output))
 	return c
 }
 
 // SamplingLevel sets the optional parameter "samplingLevel": The
 // desired sampling level.
 func (c *DataGaGetCall) SamplingLevel(samplingLevel string) *DataGaGetCall {
-	c.opt_["samplingLevel"] = samplingLevel
+	c.params_.Set("samplingLevel", fmt.Sprintf("%v", samplingLevel))
 	return c
 }
 
 // Segment sets the optional parameter "segment": An Analytics segment
 // to be applied to data.
 func (c *DataGaGetCall) Segment(segment string) *DataGaGetCall {
-	c.opt_["segment"] = segment
+	c.params_.Set("segment", fmt.Sprintf("%v", segment))
 	return c
 }
 
@@ -2789,7 +2786,7 @@ func (c *DataGaGetCall) Segment(segment string) *DataGaGetCall {
 // dimensions or metrics that determine the sort order for Analytics
 // data.
 func (c *DataGaGetCall) Sort(sort string) *DataGaGetCall {
-	c.opt_["sort"] = sort
+	c.params_.Set("sort", fmt.Sprintf("%v", sort))
 	return c
 }
 
@@ -2797,7 +2794,11 @@ func (c *DataGaGetCall) Sort(sort string) *DataGaGetCall {
 // first entity to retrieve. Use this parameter as a pagination
 // mechanism along with the max-results parameter.
 func (c *DataGaGetCall) StartIndex(startIndex int64) *DataGaGetCall {
-	c.opt_["start-index"] = startIndex
+	c.params_.Set("start-index", fmt.Sprintf("%v", startIndex))
+	return c
+}
+func (c *DataGaGetCall) Context(ctx context.Context) *DataGaGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2805,63 +2806,25 @@ func (c *DataGaGetCall) StartIndex(startIndex int64) *DataGaGetCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *DataGaGetCall) Fields(s ...googleapi.Field) *DataGaGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *DataGaGetCall) Do() (*GaData, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("end-date", fmt.Sprintf("%v", c.endDate))
-	params.Set("ids", fmt.Sprintf("%v", c.ids))
-	params.Set("metrics", fmt.Sprintf("%v", c.metrics))
-	params.Set("start-date", fmt.Sprintf("%v", c.startDate))
-	if v, ok := c.opt_["dimensions"]; ok {
-		params.Set("dimensions", fmt.Sprintf("%v", v))
+	var returnValue *GaData
+	c.params_.Set("end-date", fmt.Sprintf("%v", c.endDate))
+	c.params_.Set("ids", fmt.Sprintf("%v", c.ids))
+	c.params_.Set("metrics", fmt.Sprintf("%v", c.metrics))
+	c.params_.Set("start-date", fmt.Sprintf("%v", c.startDate))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	if v, ok := c.opt_["filters"]; ok {
-		params.Set("filters", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["max-results"]; ok {
-		params.Set("max-results", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["output"]; ok {
-		params.Set("output", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["samplingLevel"]; ok {
-		params.Set("samplingLevel", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["segment"]; ok {
-		params.Set("segment", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["sort"]; ok {
-		params.Set("sort", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["start-index"]; ok {
-		params.Set("start-index", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "data/ga")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *GaData
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Returns Analytics data for a view (profile).",
 	//   "httpMethod": "GET",
@@ -2981,51 +2944,60 @@ func (c *DataGaGetCall) Do() (*GaData, error) {
 // method id "analytics.data.mcf.get":
 
 type DataMcfGetCall struct {
-	s         *Service
-	ids       string
-	startDate string
-	endDate   string
-	metrics   string
-	opt_      map[string]interface{}
+	s             *Service
+	ids           string
+	startDate     string
+	endDate       string
+	metrics       string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Returns Analytics Multi-Channel Funnels data for a view
 // (profile).
+
 func (r *DataMcfService) Get(ids string, startDate string, endDate string, metrics string) *DataMcfGetCall {
-	c := &DataMcfGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.ids = ids
-	c.startDate = startDate
-	c.endDate = endDate
-	c.metrics = metrics
-	return c
+	return &DataMcfGetCall{
+		s:             r.s,
+		ids:           ids,
+		startDate:     startDate,
+		endDate:       endDate,
+		metrics:       metrics,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "data/mcf",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Dimensions sets the optional parameter "dimensions": A
 // comma-separated list of Multi-Channel Funnels dimensions. E.g.,
 // 'mcf:source,mcf:medium'.
 func (c *DataMcfGetCall) Dimensions(dimensions string) *DataMcfGetCall {
-	c.opt_["dimensions"] = dimensions
+	c.params_.Set("dimensions", fmt.Sprintf("%v", dimensions))
 	return c
 }
 
 // Filters sets the optional parameter "filters": A comma-separated list
 // of dimension or metric filters to be applied to the Analytics data.
 func (c *DataMcfGetCall) Filters(filters string) *DataMcfGetCall {
-	c.opt_["filters"] = filters
+	c.params_.Set("filters", fmt.Sprintf("%v", filters))
 	return c
 }
 
 // MaxResults sets the optional parameter "max-results": The maximum
 // number of entries to include in this feed.
 func (c *DataMcfGetCall) MaxResults(maxResults int64) *DataMcfGetCall {
-	c.opt_["max-results"] = maxResults
+	c.params_.Set("max-results", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
 // SamplingLevel sets the optional parameter "samplingLevel": The
 // desired sampling level.
 func (c *DataMcfGetCall) SamplingLevel(samplingLevel string) *DataMcfGetCall {
-	c.opt_["samplingLevel"] = samplingLevel
+	c.params_.Set("samplingLevel", fmt.Sprintf("%v", samplingLevel))
 	return c
 }
 
@@ -3033,7 +3005,7 @@ func (c *DataMcfGetCall) SamplingLevel(samplingLevel string) *DataMcfGetCall {
 // dimensions or metrics that determine the sort order for the Analytics
 // data.
 func (c *DataMcfGetCall) Sort(sort string) *DataMcfGetCall {
-	c.opt_["sort"] = sort
+	c.params_.Set("sort", fmt.Sprintf("%v", sort))
 	return c
 }
 
@@ -3041,7 +3013,11 @@ func (c *DataMcfGetCall) Sort(sort string) *DataMcfGetCall {
 // first entity to retrieve. Use this parameter as a pagination
 // mechanism along with the max-results parameter.
 func (c *DataMcfGetCall) StartIndex(startIndex int64) *DataMcfGetCall {
-	c.opt_["start-index"] = startIndex
+	c.params_.Set("start-index", fmt.Sprintf("%v", startIndex))
+	return c
+}
+func (c *DataMcfGetCall) Context(ctx context.Context) *DataMcfGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -3049,57 +3025,25 @@ func (c *DataMcfGetCall) StartIndex(startIndex int64) *DataMcfGetCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *DataMcfGetCall) Fields(s ...googleapi.Field) *DataMcfGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *DataMcfGetCall) Do() (*McfData, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("end-date", fmt.Sprintf("%v", c.endDate))
-	params.Set("ids", fmt.Sprintf("%v", c.ids))
-	params.Set("metrics", fmt.Sprintf("%v", c.metrics))
-	params.Set("start-date", fmt.Sprintf("%v", c.startDate))
-	if v, ok := c.opt_["dimensions"]; ok {
-		params.Set("dimensions", fmt.Sprintf("%v", v))
+	var returnValue *McfData
+	c.params_.Set("end-date", fmt.Sprintf("%v", c.endDate))
+	c.params_.Set("ids", fmt.Sprintf("%v", c.ids))
+	c.params_.Set("metrics", fmt.Sprintf("%v", c.metrics))
+	c.params_.Set("start-date", fmt.Sprintf("%v", c.startDate))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	if v, ok := c.opt_["filters"]; ok {
-		params.Set("filters", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["max-results"]; ok {
-		params.Set("max-results", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["samplingLevel"]; ok {
-		params.Set("samplingLevel", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["sort"]; ok {
-		params.Set("sort", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["start-index"]; ok {
-		params.Set("start-index", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "data/mcf")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *McfData
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Returns Analytics Multi-Channel Funnels data for a view (profile).",
 	//   "httpMethod": "GET",
@@ -3201,39 +3145,48 @@ func (c *DataMcfGetCall) Do() (*McfData, error) {
 // method id "analytics.data.realtime.get":
 
 type DataRealtimeGetCall struct {
-	s       *Service
-	ids     string
-	metrics string
-	opt_    map[string]interface{}
+	s             *Service
+	ids           string
+	metrics       string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Returns real time data for a view (profile).
+
 func (r *DataRealtimeService) Get(ids string, metrics string) *DataRealtimeGetCall {
-	c := &DataRealtimeGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.ids = ids
-	c.metrics = metrics
-	return c
+	return &DataRealtimeGetCall{
+		s:             r.s,
+		ids:           ids,
+		metrics:       metrics,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "data/realtime",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Dimensions sets the optional parameter "dimensions": A
 // comma-separated list of real time dimensions. E.g.,
 // 'rt:medium,rt:city'.
 func (c *DataRealtimeGetCall) Dimensions(dimensions string) *DataRealtimeGetCall {
-	c.opt_["dimensions"] = dimensions
+	c.params_.Set("dimensions", fmt.Sprintf("%v", dimensions))
 	return c
 }
 
 // Filters sets the optional parameter "filters": A comma-separated list
 // of dimension or metric filters to be applied to real time data.
 func (c *DataRealtimeGetCall) Filters(filters string) *DataRealtimeGetCall {
-	c.opt_["filters"] = filters
+	c.params_.Set("filters", fmt.Sprintf("%v", filters))
 	return c
 }
 
 // MaxResults sets the optional parameter "max-results": The maximum
 // number of entries to include in this feed.
 func (c *DataRealtimeGetCall) MaxResults(maxResults int64) *DataRealtimeGetCall {
-	c.opt_["max-results"] = maxResults
+	c.params_.Set("max-results", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
@@ -3241,7 +3194,11 @@ func (c *DataRealtimeGetCall) MaxResults(maxResults int64) *DataRealtimeGetCall 
 // dimensions or metrics that determine the sort order for real time
 // data.
 func (c *DataRealtimeGetCall) Sort(sort string) *DataRealtimeGetCall {
-	c.opt_["sort"] = sort
+	c.params_.Set("sort", fmt.Sprintf("%v", sort))
+	return c
+}
+func (c *DataRealtimeGetCall) Context(ctx context.Context) *DataRealtimeGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -3249,49 +3206,23 @@ func (c *DataRealtimeGetCall) Sort(sort string) *DataRealtimeGetCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *DataRealtimeGetCall) Fields(s ...googleapi.Field) *DataRealtimeGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *DataRealtimeGetCall) Do() (*RealtimeData, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("ids", fmt.Sprintf("%v", c.ids))
-	params.Set("metrics", fmt.Sprintf("%v", c.metrics))
-	if v, ok := c.opt_["dimensions"]; ok {
-		params.Set("dimensions", fmt.Sprintf("%v", v))
+	var returnValue *RealtimeData
+	c.params_.Set("ids", fmt.Sprintf("%v", c.ids))
+	c.params_.Set("metrics", fmt.Sprintf("%v", c.metrics))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	if v, ok := c.opt_["filters"]; ok {
-		params.Set("filters", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["max-results"]; ok {
-		params.Set("max-results", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["sort"]; ok {
-		params.Set("sort", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "data/realtime")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *RealtimeData
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Returns real time data for a view (profile).",
 	//   "httpMethod": "GET",
@@ -3355,22 +3286,31 @@ func (c *DataRealtimeGetCall) Do() (*RealtimeData, error) {
 // method id "analytics.management.accountSummaries.list":
 
 type ManagementAccountSummariesListCall struct {
-	s    *Service
-	opt_ map[string]interface{}
+	s             *Service
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Lists account summaries (lightweight tree comprised of
 // accounts/properties/profiles) to which the user has access.
+
 func (r *ManagementAccountSummariesService) List() *ManagementAccountSummariesListCall {
-	c := &ManagementAccountSummariesListCall{s: r.s, opt_: make(map[string]interface{})}
-	return c
+	return &ManagementAccountSummariesListCall{
+		s:             r.s,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "management/accountSummaries",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // MaxResults sets the optional parameter "max-results": The maximum
 // number of account summaries to include in this response, where the
 // largest acceptable value is 1000.
 func (c *ManagementAccountSummariesListCall) MaxResults(maxResults int64) *ManagementAccountSummariesListCall {
-	c.opt_["max-results"] = maxResults
+	c.params_.Set("max-results", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
@@ -3378,7 +3318,11 @@ func (c *ManagementAccountSummariesListCall) MaxResults(maxResults int64) *Manag
 // first entity to retrieve. Use this parameter as a pagination
 // mechanism along with the max-results parameter.
 func (c *ManagementAccountSummariesListCall) StartIndex(startIndex int64) *ManagementAccountSummariesListCall {
-	c.opt_["start-index"] = startIndex
+	c.params_.Set("start-index", fmt.Sprintf("%v", startIndex))
+	return c
+}
+func (c *ManagementAccountSummariesListCall) Context(ctx context.Context) *ManagementAccountSummariesListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -3386,41 +3330,21 @@ func (c *ManagementAccountSummariesListCall) StartIndex(startIndex int64) *Manag
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ManagementAccountSummariesListCall) Fields(s ...googleapi.Field) *ManagementAccountSummariesListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ManagementAccountSummariesListCall) Do() (*AccountSummaries, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["max-results"]; ok {
-		params.Set("max-results", fmt.Sprintf("%v", v))
+	var returnValue *AccountSummaries
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	if v, ok := c.opt_["start-index"]; ok {
-		params.Set("start-index", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accountSummaries")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *AccountSummaries
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Lists account summaries (lightweight tree comprised of accounts/properties/profiles) to which the user has access.",
 	//   "httpMethod": "GET",
@@ -3455,52 +3379,45 @@ func (c *ManagementAccountSummariesListCall) Do() (*AccountSummaries, error) {
 // method id "analytics.management.accountUserLinks.delete":
 
 type ManagementAccountUserLinksDeleteCall struct {
-	s         *Service
-	accountId string
-	linkId    string
-	opt_      map[string]interface{}
+	s             *Service
+	accountId     string
+	linkId        string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Delete: Removes a user from the given account.
-func (r *ManagementAccountUserLinksService) Delete(accountId string, linkId string) *ManagementAccountUserLinksDeleteCall {
-	c := &ManagementAccountUserLinksDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.linkId = linkId
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *ManagementAccountUserLinksDeleteCall) Fields(s ...googleapi.Field) *ManagementAccountUserLinksDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *ManagementAccountUserLinksService) Delete(accountId string, linkId string) *ManagementAccountUserLinksDeleteCall {
+	return &ManagementAccountUserLinksDeleteCall{
+		s:             r.s,
+		accountId:     accountId,
+		linkId:        linkId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "management/accounts/{accountId}/entityUserLinks/{linkId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *ManagementAccountUserLinksDeleteCall) Context(ctx context.Context) *ManagementAccountUserLinksDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *ManagementAccountUserLinksDeleteCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts/{accountId}/entityUserLinks/{linkId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId": c.accountId,
 		"linkId":    c.linkId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Removes a user from the given account.",
 	//   "httpMethod": "DELETE",
@@ -3537,14 +3454,27 @@ type ManagementAccountUserLinksInsertCall struct {
 	s              *Service
 	accountId      string
 	entityuserlink *EntityUserLink
-	opt_           map[string]interface{}
+	caller_        googleapi.Caller
+	params_        url.Values
+	pathTemplate_  string
+	context_       context.Context
 }
 
 // Insert: Adds a new user to the given account.
+
 func (r *ManagementAccountUserLinksService) Insert(accountId string, entityuserlink *EntityUserLink) *ManagementAccountUserLinksInsertCall {
-	c := &ManagementAccountUserLinksInsertCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.entityuserlink = entityuserlink
+	return &ManagementAccountUserLinksInsertCall{
+		s:              r.s,
+		accountId:      accountId,
+		entityuserlink: entityuserlink,
+		caller_:        googleapi.JSONCall{},
+		params_:        make(map[string][]string),
+		pathTemplate_:  "management/accounts/{accountId}/entityUserLinks",
+		context_:       googleapi.NoContext,
+	}
+}
+func (c *ManagementAccountUserLinksInsertCall) Context(ctx context.Context) *ManagementAccountUserLinksInsertCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -3552,43 +3482,24 @@ func (r *ManagementAccountUserLinksService) Insert(accountId string, entityuserl
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ManagementAccountUserLinksInsertCall) Fields(s ...googleapi.Field) *ManagementAccountUserLinksInsertCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ManagementAccountUserLinksInsertCall) Do() (*EntityUserLink, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.entityuserlink)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts/{accountId}/entityUserLinks")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *EntityUserLink
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId": c.accountId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.entityuserlink,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *EntityUserLink
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Adds a new user to the given account.",
 	//   "httpMethod": "POST",
@@ -3621,22 +3532,31 @@ func (c *ManagementAccountUserLinksInsertCall) Do() (*EntityUserLink, error) {
 // method id "analytics.management.accountUserLinks.list":
 
 type ManagementAccountUserLinksListCall struct {
-	s         *Service
-	accountId string
-	opt_      map[string]interface{}
+	s             *Service
+	accountId     string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Lists account-user links for a given account.
+
 func (r *ManagementAccountUserLinksService) List(accountId string) *ManagementAccountUserLinksListCall {
-	c := &ManagementAccountUserLinksListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	return c
+	return &ManagementAccountUserLinksListCall{
+		s:             r.s,
+		accountId:     accountId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "management/accounts/{accountId}/entityUserLinks",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // MaxResults sets the optional parameter "max-results": The maximum
 // number of account-user links to include in this response.
 func (c *ManagementAccountUserLinksListCall) MaxResults(maxResults int64) *ManagementAccountUserLinksListCall {
-	c.opt_["max-results"] = maxResults
+	c.params_.Set("max-results", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
@@ -3644,7 +3564,11 @@ func (c *ManagementAccountUserLinksListCall) MaxResults(maxResults int64) *Manag
 // first account-user link to retrieve. Use this parameter as a
 // pagination mechanism along with the max-results parameter.
 func (c *ManagementAccountUserLinksListCall) StartIndex(startIndex int64) *ManagementAccountUserLinksListCall {
-	c.opt_["start-index"] = startIndex
+	c.params_.Set("start-index", fmt.Sprintf("%v", startIndex))
+	return c
+}
+func (c *ManagementAccountUserLinksListCall) Context(ctx context.Context) *ManagementAccountUserLinksListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -3652,43 +3576,23 @@ func (c *ManagementAccountUserLinksListCall) StartIndex(startIndex int64) *Manag
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ManagementAccountUserLinksListCall) Fields(s ...googleapi.Field) *ManagementAccountUserLinksListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ManagementAccountUserLinksListCall) Do() (*EntityUserLinks, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["max-results"]; ok {
-		params.Set("max-results", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["start-index"]; ok {
-		params.Set("start-index", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts/{accountId}/entityUserLinks")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *EntityUserLinks
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId": c.accountId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *EntityUserLinks
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Lists account-user links for a given account.",
 	//   "httpMethod": "GET",
@@ -3736,16 +3640,29 @@ type ManagementAccountUserLinksUpdateCall struct {
 	accountId      string
 	linkId         string
 	entityuserlink *EntityUserLink
-	opt_           map[string]interface{}
+	caller_        googleapi.Caller
+	params_        url.Values
+	pathTemplate_  string
+	context_       context.Context
 }
 
 // Update: Updates permissions for an existing user on the given
 // account.
+
 func (r *ManagementAccountUserLinksService) Update(accountId string, linkId string, entityuserlink *EntityUserLink) *ManagementAccountUserLinksUpdateCall {
-	c := &ManagementAccountUserLinksUpdateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.linkId = linkId
-	c.entityuserlink = entityuserlink
+	return &ManagementAccountUserLinksUpdateCall{
+		s:              r.s,
+		accountId:      accountId,
+		linkId:         linkId,
+		entityuserlink: entityuserlink,
+		caller_:        googleapi.JSONCall{},
+		params_:        make(map[string][]string),
+		pathTemplate_:  "management/accounts/{accountId}/entityUserLinks/{linkId}",
+		context_:       googleapi.NoContext,
+	}
+}
+func (c *ManagementAccountUserLinksUpdateCall) Context(ctx context.Context) *ManagementAccountUserLinksUpdateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -3753,44 +3670,25 @@ func (r *ManagementAccountUserLinksService) Update(accountId string, linkId stri
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ManagementAccountUserLinksUpdateCall) Fields(s ...googleapi.Field) *ManagementAccountUserLinksUpdateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ManagementAccountUserLinksUpdateCall) Do() (*EntityUserLink, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.entityuserlink)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts/{accountId}/entityUserLinks/{linkId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *EntityUserLink
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId": c.accountId,
 		"linkId":    c.linkId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.entityuserlink,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *EntityUserLink
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates permissions for an existing user on the given account.",
 	//   "httpMethod": "PUT",
@@ -3830,20 +3728,29 @@ func (c *ManagementAccountUserLinksUpdateCall) Do() (*EntityUserLink, error) {
 // method id "analytics.management.accounts.list":
 
 type ManagementAccountsListCall struct {
-	s    *Service
-	opt_ map[string]interface{}
+	s             *Service
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Lists all accounts to which the user has access.
+
 func (r *ManagementAccountsService) List() *ManagementAccountsListCall {
-	c := &ManagementAccountsListCall{s: r.s, opt_: make(map[string]interface{})}
-	return c
+	return &ManagementAccountsListCall{
+		s:             r.s,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "management/accounts",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // MaxResults sets the optional parameter "max-results": The maximum
 // number of accounts to include in this response.
 func (c *ManagementAccountsListCall) MaxResults(maxResults int64) *ManagementAccountsListCall {
-	c.opt_["max-results"] = maxResults
+	c.params_.Set("max-results", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
@@ -3851,7 +3758,11 @@ func (c *ManagementAccountsListCall) MaxResults(maxResults int64) *ManagementAcc
 // first account to retrieve. Use this parameter as a pagination
 // mechanism along with the max-results parameter.
 func (c *ManagementAccountsListCall) StartIndex(startIndex int64) *ManagementAccountsListCall {
-	c.opt_["start-index"] = startIndex
+	c.params_.Set("start-index", fmt.Sprintf("%v", startIndex))
+	return c
+}
+func (c *ManagementAccountsListCall) Context(ctx context.Context) *ManagementAccountsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -3859,41 +3770,21 @@ func (c *ManagementAccountsListCall) StartIndex(startIndex int64) *ManagementAcc
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ManagementAccountsListCall) Fields(s ...googleapi.Field) *ManagementAccountsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ManagementAccountsListCall) Do() (*Accounts, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["max-results"]; ok {
-		params.Set("max-results", fmt.Sprintf("%v", v))
+	var returnValue *Accounts
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	if v, ok := c.opt_["start-index"]; ok {
-		params.Set("start-index", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Accounts
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Lists all accounts to which the user has access.",
 	//   "httpMethod": "GET",
@@ -3932,21 +3823,30 @@ type ManagementCustomDataSourcesListCall struct {
 	s             *Service
 	accountId     string
 	webPropertyId string
-	opt_          map[string]interface{}
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: List custom data sources to which the user has access.
+
 func (r *ManagementCustomDataSourcesService) List(accountId string, webPropertyId string) *ManagementCustomDataSourcesListCall {
-	c := &ManagementCustomDataSourcesListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.webPropertyId = webPropertyId
-	return c
+	return &ManagementCustomDataSourcesListCall{
+		s:             r.s,
+		accountId:     accountId,
+		webPropertyId: webPropertyId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "management/accounts/{accountId}/webproperties/{webPropertyId}/customDataSources",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // MaxResults sets the optional parameter "max-results": The maximum
 // number of custom data sources to include in this response.
 func (c *ManagementCustomDataSourcesListCall) MaxResults(maxResults int64) *ManagementCustomDataSourcesListCall {
-	c.opt_["max-results"] = maxResults
+	c.params_.Set("max-results", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
@@ -3954,7 +3854,11 @@ func (c *ManagementCustomDataSourcesListCall) MaxResults(maxResults int64) *Mana
 // of the first custom data source to retrieve. Use this parameter as a
 // pagination mechanism along with the max-results parameter.
 func (c *ManagementCustomDataSourcesListCall) StartIndex(startIndex int64) *ManagementCustomDataSourcesListCall {
-	c.opt_["start-index"] = startIndex
+	c.params_.Set("start-index", fmt.Sprintf("%v", startIndex))
+	return c
+}
+func (c *ManagementCustomDataSourcesListCall) Context(ctx context.Context) *ManagementCustomDataSourcesListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -3962,44 +3866,24 @@ func (c *ManagementCustomDataSourcesListCall) StartIndex(startIndex int64) *Mana
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ManagementCustomDataSourcesListCall) Fields(s ...googleapi.Field) *ManagementCustomDataSourcesListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ManagementCustomDataSourcesListCall) Do() (*CustomDataSources, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["max-results"]; ok {
-		params.Set("max-results", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["start-index"]; ok {
-		params.Set("start-index", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts/{accountId}/webproperties/{webPropertyId}/customDataSources")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *CustomDataSources
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId":     c.accountId,
 		"webPropertyId": c.webPropertyId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *CustomDataSources
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "List custom data sources to which the user has access.",
 	//   "httpMethod": "GET",
@@ -4058,15 +3942,28 @@ type ManagementCustomDimensionsGetCall struct {
 	accountId         string
 	webPropertyId     string
 	customDimensionId string
-	opt_              map[string]interface{}
+	caller_           googleapi.Caller
+	params_           url.Values
+	pathTemplate_     string
+	context_          context.Context
 }
 
 // Get: Get a custom dimension to which the user has access.
+
 func (r *ManagementCustomDimensionsService) Get(accountId string, webPropertyId string, customDimensionId string) *ManagementCustomDimensionsGetCall {
-	c := &ManagementCustomDimensionsGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.webPropertyId = webPropertyId
-	c.customDimensionId = customDimensionId
+	return &ManagementCustomDimensionsGetCall{
+		s:                 r.s,
+		accountId:         accountId,
+		webPropertyId:     webPropertyId,
+		customDimensionId: customDimensionId,
+		caller_:           googleapi.JSONCall{},
+		params_:           make(map[string][]string),
+		pathTemplate_:     "management/accounts/{accountId}/webproperties/{webPropertyId}/customDimensions/{customDimensionId}",
+		context_:          googleapi.NoContext,
+	}
+}
+func (c *ManagementCustomDimensionsGetCall) Context(ctx context.Context) *ManagementCustomDimensionsGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -4074,39 +3971,25 @@ func (r *ManagementCustomDimensionsService) Get(accountId string, webPropertyId 
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ManagementCustomDimensionsGetCall) Fields(s ...googleapi.Field) *ManagementCustomDimensionsGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ManagementCustomDimensionsGetCall) Do() (*CustomDimension, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts/{accountId}/webproperties/{webPropertyId}/customDimensions/{customDimensionId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *CustomDimension
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId":         c.accountId,
 		"webPropertyId":     c.webPropertyId,
 		"customDimensionId": c.customDimensionId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *CustomDimension
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Get a custom dimension to which the user has access.",
 	//   "httpMethod": "GET",
@@ -4155,15 +4038,28 @@ type ManagementCustomDimensionsInsertCall struct {
 	accountId       string
 	webPropertyId   string
 	customdimension *CustomDimension
-	opt_            map[string]interface{}
+	caller_         googleapi.Caller
+	params_         url.Values
+	pathTemplate_   string
+	context_        context.Context
 }
 
 // Insert: Create a new custom dimension.
+
 func (r *ManagementCustomDimensionsService) Insert(accountId string, webPropertyId string, customdimension *CustomDimension) *ManagementCustomDimensionsInsertCall {
-	c := &ManagementCustomDimensionsInsertCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.webPropertyId = webPropertyId
-	c.customdimension = customdimension
+	return &ManagementCustomDimensionsInsertCall{
+		s:               r.s,
+		accountId:       accountId,
+		webPropertyId:   webPropertyId,
+		customdimension: customdimension,
+		caller_:         googleapi.JSONCall{},
+		params_:         make(map[string][]string),
+		pathTemplate_:   "management/accounts/{accountId}/webproperties/{webPropertyId}/customDimensions",
+		context_:        googleapi.NoContext,
+	}
+}
+func (c *ManagementCustomDimensionsInsertCall) Context(ctx context.Context) *ManagementCustomDimensionsInsertCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -4171,44 +4067,25 @@ func (r *ManagementCustomDimensionsService) Insert(accountId string, webProperty
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ManagementCustomDimensionsInsertCall) Fields(s ...googleapi.Field) *ManagementCustomDimensionsInsertCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ManagementCustomDimensionsInsertCall) Do() (*CustomDimension, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.customdimension)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts/{accountId}/webproperties/{webPropertyId}/customDimensions")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *CustomDimension
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId":     c.accountId,
 		"webPropertyId": c.webPropertyId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.customdimension,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *CustomDimension
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Create a new custom dimension.",
 	//   "httpMethod": "POST",
@@ -4251,21 +4128,30 @@ type ManagementCustomDimensionsListCall struct {
 	s             *Service
 	accountId     string
 	webPropertyId string
-	opt_          map[string]interface{}
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Lists custom dimensions to which the user has access.
+
 func (r *ManagementCustomDimensionsService) List(accountId string, webPropertyId string) *ManagementCustomDimensionsListCall {
-	c := &ManagementCustomDimensionsListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.webPropertyId = webPropertyId
-	return c
+	return &ManagementCustomDimensionsListCall{
+		s:             r.s,
+		accountId:     accountId,
+		webPropertyId: webPropertyId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "management/accounts/{accountId}/webproperties/{webPropertyId}/customDimensions",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // MaxResults sets the optional parameter "max-results": The maximum
 // number of custom dimensions to include in this response.
 func (c *ManagementCustomDimensionsListCall) MaxResults(maxResults int64) *ManagementCustomDimensionsListCall {
-	c.opt_["max-results"] = maxResults
+	c.params_.Set("max-results", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
@@ -4273,7 +4159,11 @@ func (c *ManagementCustomDimensionsListCall) MaxResults(maxResults int64) *Manag
 // first entity to retrieve. Use this parameter as a pagination
 // mechanism along with the max-results parameter.
 func (c *ManagementCustomDimensionsListCall) StartIndex(startIndex int64) *ManagementCustomDimensionsListCall {
-	c.opt_["start-index"] = startIndex
+	c.params_.Set("start-index", fmt.Sprintf("%v", startIndex))
+	return c
+}
+func (c *ManagementCustomDimensionsListCall) Context(ctx context.Context) *ManagementCustomDimensionsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -4281,44 +4171,24 @@ func (c *ManagementCustomDimensionsListCall) StartIndex(startIndex int64) *Manag
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ManagementCustomDimensionsListCall) Fields(s ...googleapi.Field) *ManagementCustomDimensionsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ManagementCustomDimensionsListCall) Do() (*CustomDimensions, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["max-results"]; ok {
-		params.Set("max-results", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["start-index"]; ok {
-		params.Set("start-index", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts/{accountId}/webproperties/{webPropertyId}/customDimensions")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *CustomDimensions
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId":     c.accountId,
 		"webPropertyId": c.webPropertyId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *CustomDimensions
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Lists custom dimensions to which the user has access.",
 	//   "httpMethod": "GET",
@@ -4374,18 +4244,27 @@ type ManagementCustomDimensionsPatchCall struct {
 	webPropertyId     string
 	customDimensionId string
 	customdimension   *CustomDimension
-	opt_              map[string]interface{}
+	caller_           googleapi.Caller
+	params_           url.Values
+	pathTemplate_     string
+	context_          context.Context
 }
 
 // Patch: Updates an existing custom dimension. This method supports
 // patch semantics.
+
 func (r *ManagementCustomDimensionsService) Patch(accountId string, webPropertyId string, customDimensionId string, customdimension *CustomDimension) *ManagementCustomDimensionsPatchCall {
-	c := &ManagementCustomDimensionsPatchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.webPropertyId = webPropertyId
-	c.customDimensionId = customDimensionId
-	c.customdimension = customdimension
-	return c
+	return &ManagementCustomDimensionsPatchCall{
+		s:                 r.s,
+		accountId:         accountId,
+		webPropertyId:     webPropertyId,
+		customDimensionId: customDimensionId,
+		customdimension:   customdimension,
+		caller_:           googleapi.JSONCall{},
+		params_:           make(map[string][]string),
+		pathTemplate_:     "management/accounts/{accountId}/webproperties/{webPropertyId}/customDimensions/{customDimensionId}",
+		context_:          googleapi.NoContext,
+	}
 }
 
 // IgnoreCustomDataSourceLinks sets the optional parameter
@@ -4393,7 +4272,11 @@ func (r *ManagementCustomDimensionsService) Patch(accountId string, webPropertyI
 // warnings related to the custom dimension being linked to a custom
 // data source / data set.
 func (c *ManagementCustomDimensionsPatchCall) IgnoreCustomDataSourceLinks(ignoreCustomDataSourceLinks bool) *ManagementCustomDimensionsPatchCall {
-	c.opt_["ignoreCustomDataSourceLinks"] = ignoreCustomDataSourceLinks
+	c.params_.Set("ignoreCustomDataSourceLinks", fmt.Sprintf("%v", ignoreCustomDataSourceLinks))
+	return c
+}
+func (c *ManagementCustomDimensionsPatchCall) Context(ctx context.Context) *ManagementCustomDimensionsPatchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -4401,48 +4284,26 @@ func (c *ManagementCustomDimensionsPatchCall) IgnoreCustomDataSourceLinks(ignore
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ManagementCustomDimensionsPatchCall) Fields(s ...googleapi.Field) *ManagementCustomDimensionsPatchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ManagementCustomDimensionsPatchCall) Do() (*CustomDimension, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.customdimension)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["ignoreCustomDataSourceLinks"]; ok {
-		params.Set("ignoreCustomDataSourceLinks", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts/{accountId}/webproperties/{webPropertyId}/customDimensions/{customDimensionId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PATCH", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *CustomDimension
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId":         c.accountId,
 		"webPropertyId":     c.webPropertyId,
 		"customDimensionId": c.customDimensionId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PATCH",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.customdimension,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *CustomDimension
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates an existing custom dimension. This method supports patch semantics.",
 	//   "httpMethod": "PATCH",
@@ -4500,17 +4361,26 @@ type ManagementCustomDimensionsUpdateCall struct {
 	webPropertyId     string
 	customDimensionId string
 	customdimension   *CustomDimension
-	opt_              map[string]interface{}
+	caller_           googleapi.Caller
+	params_           url.Values
+	pathTemplate_     string
+	context_          context.Context
 }
 
 // Update: Updates an existing custom dimension.
+
 func (r *ManagementCustomDimensionsService) Update(accountId string, webPropertyId string, customDimensionId string, customdimension *CustomDimension) *ManagementCustomDimensionsUpdateCall {
-	c := &ManagementCustomDimensionsUpdateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.webPropertyId = webPropertyId
-	c.customDimensionId = customDimensionId
-	c.customdimension = customdimension
-	return c
+	return &ManagementCustomDimensionsUpdateCall{
+		s:                 r.s,
+		accountId:         accountId,
+		webPropertyId:     webPropertyId,
+		customDimensionId: customDimensionId,
+		customdimension:   customdimension,
+		caller_:           googleapi.JSONCall{},
+		params_:           make(map[string][]string),
+		pathTemplate_:     "management/accounts/{accountId}/webproperties/{webPropertyId}/customDimensions/{customDimensionId}",
+		context_:          googleapi.NoContext,
+	}
 }
 
 // IgnoreCustomDataSourceLinks sets the optional parameter
@@ -4518,7 +4388,11 @@ func (r *ManagementCustomDimensionsService) Update(accountId string, webProperty
 // warnings related to the custom dimension being linked to a custom
 // data source / data set.
 func (c *ManagementCustomDimensionsUpdateCall) IgnoreCustomDataSourceLinks(ignoreCustomDataSourceLinks bool) *ManagementCustomDimensionsUpdateCall {
-	c.opt_["ignoreCustomDataSourceLinks"] = ignoreCustomDataSourceLinks
+	c.params_.Set("ignoreCustomDataSourceLinks", fmt.Sprintf("%v", ignoreCustomDataSourceLinks))
+	return c
+}
+func (c *ManagementCustomDimensionsUpdateCall) Context(ctx context.Context) *ManagementCustomDimensionsUpdateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -4526,48 +4400,26 @@ func (c *ManagementCustomDimensionsUpdateCall) IgnoreCustomDataSourceLinks(ignor
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ManagementCustomDimensionsUpdateCall) Fields(s ...googleapi.Field) *ManagementCustomDimensionsUpdateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ManagementCustomDimensionsUpdateCall) Do() (*CustomDimension, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.customdimension)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["ignoreCustomDataSourceLinks"]; ok {
-		params.Set("ignoreCustomDataSourceLinks", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts/{accountId}/webproperties/{webPropertyId}/customDimensions/{customDimensionId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *CustomDimension
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId":         c.accountId,
 		"webPropertyId":     c.webPropertyId,
 		"customDimensionId": c.customDimensionId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.customdimension,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *CustomDimension
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates an existing custom dimension.",
 	//   "httpMethod": "PUT",
@@ -4624,15 +4476,28 @@ type ManagementCustomMetricsGetCall struct {
 	accountId      string
 	webPropertyId  string
 	customMetricId string
-	opt_           map[string]interface{}
+	caller_        googleapi.Caller
+	params_        url.Values
+	pathTemplate_  string
+	context_       context.Context
 }
 
 // Get: Get a custom metric to which the user has access.
+
 func (r *ManagementCustomMetricsService) Get(accountId string, webPropertyId string, customMetricId string) *ManagementCustomMetricsGetCall {
-	c := &ManagementCustomMetricsGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.webPropertyId = webPropertyId
-	c.customMetricId = customMetricId
+	return &ManagementCustomMetricsGetCall{
+		s:              r.s,
+		accountId:      accountId,
+		webPropertyId:  webPropertyId,
+		customMetricId: customMetricId,
+		caller_:        googleapi.JSONCall{},
+		params_:        make(map[string][]string),
+		pathTemplate_:  "management/accounts/{accountId}/webproperties/{webPropertyId}/customMetrics/{customMetricId}",
+		context_:       googleapi.NoContext,
+	}
+}
+func (c *ManagementCustomMetricsGetCall) Context(ctx context.Context) *ManagementCustomMetricsGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -4640,39 +4505,25 @@ func (r *ManagementCustomMetricsService) Get(accountId string, webPropertyId str
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ManagementCustomMetricsGetCall) Fields(s ...googleapi.Field) *ManagementCustomMetricsGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ManagementCustomMetricsGetCall) Do() (*CustomMetric, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts/{accountId}/webproperties/{webPropertyId}/customMetrics/{customMetricId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *CustomMetric
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId":      c.accountId,
 		"webPropertyId":  c.webPropertyId,
 		"customMetricId": c.customMetricId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *CustomMetric
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Get a custom metric to which the user has access.",
 	//   "httpMethod": "GET",
@@ -4721,15 +4572,28 @@ type ManagementCustomMetricsInsertCall struct {
 	accountId     string
 	webPropertyId string
 	custommetric  *CustomMetric
-	opt_          map[string]interface{}
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Insert: Create a new custom metric.
+
 func (r *ManagementCustomMetricsService) Insert(accountId string, webPropertyId string, custommetric *CustomMetric) *ManagementCustomMetricsInsertCall {
-	c := &ManagementCustomMetricsInsertCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.webPropertyId = webPropertyId
-	c.custommetric = custommetric
+	return &ManagementCustomMetricsInsertCall{
+		s:             r.s,
+		accountId:     accountId,
+		webPropertyId: webPropertyId,
+		custommetric:  custommetric,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "management/accounts/{accountId}/webproperties/{webPropertyId}/customMetrics",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *ManagementCustomMetricsInsertCall) Context(ctx context.Context) *ManagementCustomMetricsInsertCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -4737,44 +4601,25 @@ func (r *ManagementCustomMetricsService) Insert(accountId string, webPropertyId 
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ManagementCustomMetricsInsertCall) Fields(s ...googleapi.Field) *ManagementCustomMetricsInsertCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ManagementCustomMetricsInsertCall) Do() (*CustomMetric, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.custommetric)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts/{accountId}/webproperties/{webPropertyId}/customMetrics")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *CustomMetric
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId":     c.accountId,
 		"webPropertyId": c.webPropertyId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.custommetric,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *CustomMetric
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Create a new custom metric.",
 	//   "httpMethod": "POST",
@@ -4817,21 +4662,30 @@ type ManagementCustomMetricsListCall struct {
 	s             *Service
 	accountId     string
 	webPropertyId string
-	opt_          map[string]interface{}
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Lists custom metrics to which the user has access.
+
 func (r *ManagementCustomMetricsService) List(accountId string, webPropertyId string) *ManagementCustomMetricsListCall {
-	c := &ManagementCustomMetricsListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.webPropertyId = webPropertyId
-	return c
+	return &ManagementCustomMetricsListCall{
+		s:             r.s,
+		accountId:     accountId,
+		webPropertyId: webPropertyId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "management/accounts/{accountId}/webproperties/{webPropertyId}/customMetrics",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // MaxResults sets the optional parameter "max-results": The maximum
 // number of custom metrics to include in this response.
 func (c *ManagementCustomMetricsListCall) MaxResults(maxResults int64) *ManagementCustomMetricsListCall {
-	c.opt_["max-results"] = maxResults
+	c.params_.Set("max-results", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
@@ -4839,7 +4693,11 @@ func (c *ManagementCustomMetricsListCall) MaxResults(maxResults int64) *Manageme
 // first entity to retrieve. Use this parameter as a pagination
 // mechanism along with the max-results parameter.
 func (c *ManagementCustomMetricsListCall) StartIndex(startIndex int64) *ManagementCustomMetricsListCall {
-	c.opt_["start-index"] = startIndex
+	c.params_.Set("start-index", fmt.Sprintf("%v", startIndex))
+	return c
+}
+func (c *ManagementCustomMetricsListCall) Context(ctx context.Context) *ManagementCustomMetricsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -4847,44 +4705,24 @@ func (c *ManagementCustomMetricsListCall) StartIndex(startIndex int64) *Manageme
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ManagementCustomMetricsListCall) Fields(s ...googleapi.Field) *ManagementCustomMetricsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ManagementCustomMetricsListCall) Do() (*CustomMetrics, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["max-results"]; ok {
-		params.Set("max-results", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["start-index"]; ok {
-		params.Set("start-index", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts/{accountId}/webproperties/{webPropertyId}/customMetrics")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *CustomMetrics
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId":     c.accountId,
 		"webPropertyId": c.webPropertyId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *CustomMetrics
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Lists custom metrics to which the user has access.",
 	//   "httpMethod": "GET",
@@ -4940,18 +4778,27 @@ type ManagementCustomMetricsPatchCall struct {
 	webPropertyId  string
 	customMetricId string
 	custommetric   *CustomMetric
-	opt_           map[string]interface{}
+	caller_        googleapi.Caller
+	params_        url.Values
+	pathTemplate_  string
+	context_       context.Context
 }
 
 // Patch: Updates an existing custom metric. This method supports patch
 // semantics.
+
 func (r *ManagementCustomMetricsService) Patch(accountId string, webPropertyId string, customMetricId string, custommetric *CustomMetric) *ManagementCustomMetricsPatchCall {
-	c := &ManagementCustomMetricsPatchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.webPropertyId = webPropertyId
-	c.customMetricId = customMetricId
-	c.custommetric = custommetric
-	return c
+	return &ManagementCustomMetricsPatchCall{
+		s:              r.s,
+		accountId:      accountId,
+		webPropertyId:  webPropertyId,
+		customMetricId: customMetricId,
+		custommetric:   custommetric,
+		caller_:        googleapi.JSONCall{},
+		params_:        make(map[string][]string),
+		pathTemplate_:  "management/accounts/{accountId}/webproperties/{webPropertyId}/customMetrics/{customMetricId}",
+		context_:       googleapi.NoContext,
+	}
 }
 
 // IgnoreCustomDataSourceLinks sets the optional parameter
@@ -4959,7 +4806,11 @@ func (r *ManagementCustomMetricsService) Patch(accountId string, webPropertyId s
 // warnings related to the custom metric being linked to a custom data
 // source / data set.
 func (c *ManagementCustomMetricsPatchCall) IgnoreCustomDataSourceLinks(ignoreCustomDataSourceLinks bool) *ManagementCustomMetricsPatchCall {
-	c.opt_["ignoreCustomDataSourceLinks"] = ignoreCustomDataSourceLinks
+	c.params_.Set("ignoreCustomDataSourceLinks", fmt.Sprintf("%v", ignoreCustomDataSourceLinks))
+	return c
+}
+func (c *ManagementCustomMetricsPatchCall) Context(ctx context.Context) *ManagementCustomMetricsPatchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -4967,48 +4818,26 @@ func (c *ManagementCustomMetricsPatchCall) IgnoreCustomDataSourceLinks(ignoreCus
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ManagementCustomMetricsPatchCall) Fields(s ...googleapi.Field) *ManagementCustomMetricsPatchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ManagementCustomMetricsPatchCall) Do() (*CustomMetric, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.custommetric)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["ignoreCustomDataSourceLinks"]; ok {
-		params.Set("ignoreCustomDataSourceLinks", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts/{accountId}/webproperties/{webPropertyId}/customMetrics/{customMetricId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PATCH", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *CustomMetric
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId":      c.accountId,
 		"webPropertyId":  c.webPropertyId,
 		"customMetricId": c.customMetricId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PATCH",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.custommetric,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *CustomMetric
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates an existing custom metric. This method supports patch semantics.",
 	//   "httpMethod": "PATCH",
@@ -5066,17 +4895,26 @@ type ManagementCustomMetricsUpdateCall struct {
 	webPropertyId  string
 	customMetricId string
 	custommetric   *CustomMetric
-	opt_           map[string]interface{}
+	caller_        googleapi.Caller
+	params_        url.Values
+	pathTemplate_  string
+	context_       context.Context
 }
 
 // Update: Updates an existing custom metric.
+
 func (r *ManagementCustomMetricsService) Update(accountId string, webPropertyId string, customMetricId string, custommetric *CustomMetric) *ManagementCustomMetricsUpdateCall {
-	c := &ManagementCustomMetricsUpdateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.webPropertyId = webPropertyId
-	c.customMetricId = customMetricId
-	c.custommetric = custommetric
-	return c
+	return &ManagementCustomMetricsUpdateCall{
+		s:              r.s,
+		accountId:      accountId,
+		webPropertyId:  webPropertyId,
+		customMetricId: customMetricId,
+		custommetric:   custommetric,
+		caller_:        googleapi.JSONCall{},
+		params_:        make(map[string][]string),
+		pathTemplate_:  "management/accounts/{accountId}/webproperties/{webPropertyId}/customMetrics/{customMetricId}",
+		context_:       googleapi.NoContext,
+	}
 }
 
 // IgnoreCustomDataSourceLinks sets the optional parameter
@@ -5084,7 +4922,11 @@ func (r *ManagementCustomMetricsService) Update(accountId string, webPropertyId 
 // warnings related to the custom metric being linked to a custom data
 // source / data set.
 func (c *ManagementCustomMetricsUpdateCall) IgnoreCustomDataSourceLinks(ignoreCustomDataSourceLinks bool) *ManagementCustomMetricsUpdateCall {
-	c.opt_["ignoreCustomDataSourceLinks"] = ignoreCustomDataSourceLinks
+	c.params_.Set("ignoreCustomDataSourceLinks", fmt.Sprintf("%v", ignoreCustomDataSourceLinks))
+	return c
+}
+func (c *ManagementCustomMetricsUpdateCall) Context(ctx context.Context) *ManagementCustomMetricsUpdateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -5092,48 +4934,26 @@ func (c *ManagementCustomMetricsUpdateCall) IgnoreCustomDataSourceLinks(ignoreCu
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ManagementCustomMetricsUpdateCall) Fields(s ...googleapi.Field) *ManagementCustomMetricsUpdateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ManagementCustomMetricsUpdateCall) Do() (*CustomMetric, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.custommetric)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["ignoreCustomDataSourceLinks"]; ok {
-		params.Set("ignoreCustomDataSourceLinks", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts/{accountId}/webproperties/{webPropertyId}/customMetrics/{customMetricId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *CustomMetric
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId":      c.accountId,
 		"webPropertyId":  c.webPropertyId,
 		"customMetricId": c.customMetricId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.custommetric,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *CustomMetric
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates an existing custom metric.",
 	//   "httpMethod": "PUT",
@@ -5191,53 +5011,46 @@ type ManagementExperimentsDeleteCall struct {
 	webPropertyId string
 	profileId     string
 	experimentId  string
-	opt_          map[string]interface{}
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Delete: Delete an experiment.
-func (r *ManagementExperimentsService) Delete(accountId string, webPropertyId string, profileId string, experimentId string) *ManagementExperimentsDeleteCall {
-	c := &ManagementExperimentsDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.webPropertyId = webPropertyId
-	c.profileId = profileId
-	c.experimentId = experimentId
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *ManagementExperimentsDeleteCall) Fields(s ...googleapi.Field) *ManagementExperimentsDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *ManagementExperimentsService) Delete(accountId string, webPropertyId string, profileId string, experimentId string) *ManagementExperimentsDeleteCall {
+	return &ManagementExperimentsDeleteCall{
+		s:             r.s,
+		accountId:     accountId,
+		webPropertyId: webPropertyId,
+		profileId:     profileId,
+		experimentId:  experimentId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "management/accounts/{accountId}/webproperties/{webPropertyId}/profiles/{profileId}/experiments/{experimentId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *ManagementExperimentsDeleteCall) Context(ctx context.Context) *ManagementExperimentsDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *ManagementExperimentsDeleteCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts/{accountId}/webproperties/{webPropertyId}/profiles/{profileId}/experiments/{experimentId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId":     c.accountId,
 		"webPropertyId": c.webPropertyId,
 		"profileId":     c.profileId,
 		"experimentId":  c.experimentId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Delete an experiment.",
 	//   "httpMethod": "DELETE",
@@ -5291,16 +5104,29 @@ type ManagementExperimentsGetCall struct {
 	webPropertyId string
 	profileId     string
 	experimentId  string
-	opt_          map[string]interface{}
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Returns an experiment to which the user has access.
+
 func (r *ManagementExperimentsService) Get(accountId string, webPropertyId string, profileId string, experimentId string) *ManagementExperimentsGetCall {
-	c := &ManagementExperimentsGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.webPropertyId = webPropertyId
-	c.profileId = profileId
-	c.experimentId = experimentId
+	return &ManagementExperimentsGetCall{
+		s:             r.s,
+		accountId:     accountId,
+		webPropertyId: webPropertyId,
+		profileId:     profileId,
+		experimentId:  experimentId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "management/accounts/{accountId}/webproperties/{webPropertyId}/profiles/{profileId}/experiments/{experimentId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *ManagementExperimentsGetCall) Context(ctx context.Context) *ManagementExperimentsGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -5308,40 +5134,26 @@ func (r *ManagementExperimentsService) Get(accountId string, webPropertyId strin
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ManagementExperimentsGetCall) Fields(s ...googleapi.Field) *ManagementExperimentsGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ManagementExperimentsGetCall) Do() (*Experiment, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts/{accountId}/webproperties/{webPropertyId}/profiles/{profileId}/experiments/{experimentId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Experiment
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId":     c.accountId,
 		"webPropertyId": c.webPropertyId,
 		"profileId":     c.profileId,
 		"experimentId":  c.experimentId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Experiment
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Returns an experiment to which the user has access.",
 	//   "httpMethod": "GET",
@@ -5399,16 +5211,29 @@ type ManagementExperimentsInsertCall struct {
 	webPropertyId string
 	profileId     string
 	experiment    *Experiment
-	opt_          map[string]interface{}
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Insert: Create a new experiment.
+
 func (r *ManagementExperimentsService) Insert(accountId string, webPropertyId string, profileId string, experiment *Experiment) *ManagementExperimentsInsertCall {
-	c := &ManagementExperimentsInsertCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.webPropertyId = webPropertyId
-	c.profileId = profileId
-	c.experiment = experiment
+	return &ManagementExperimentsInsertCall{
+		s:             r.s,
+		accountId:     accountId,
+		webPropertyId: webPropertyId,
+		profileId:     profileId,
+		experiment:    experiment,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "management/accounts/{accountId}/webproperties/{webPropertyId}/profiles/{profileId}/experiments",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *ManagementExperimentsInsertCall) Context(ctx context.Context) *ManagementExperimentsInsertCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -5416,45 +5241,26 @@ func (r *ManagementExperimentsService) Insert(accountId string, webPropertyId st
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ManagementExperimentsInsertCall) Fields(s ...googleapi.Field) *ManagementExperimentsInsertCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ManagementExperimentsInsertCall) Do() (*Experiment, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.experiment)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts/{accountId}/webproperties/{webPropertyId}/profiles/{profileId}/experiments")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Experiment
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId":     c.accountId,
 		"webPropertyId": c.webPropertyId,
 		"profileId":     c.profileId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.experiment,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Experiment
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Create a new experiment.",
 	//   "httpMethod": "POST",
@@ -5506,22 +5312,31 @@ type ManagementExperimentsListCall struct {
 	accountId     string
 	webPropertyId string
 	profileId     string
-	opt_          map[string]interface{}
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Lists experiments to which the user has access.
+
 func (r *ManagementExperimentsService) List(accountId string, webPropertyId string, profileId string) *ManagementExperimentsListCall {
-	c := &ManagementExperimentsListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.webPropertyId = webPropertyId
-	c.profileId = profileId
-	return c
+	return &ManagementExperimentsListCall{
+		s:             r.s,
+		accountId:     accountId,
+		webPropertyId: webPropertyId,
+		profileId:     profileId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "management/accounts/{accountId}/webproperties/{webPropertyId}/profiles/{profileId}/experiments",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // MaxResults sets the optional parameter "max-results": The maximum
 // number of experiments to include in this response.
 func (c *ManagementExperimentsListCall) MaxResults(maxResults int64) *ManagementExperimentsListCall {
-	c.opt_["max-results"] = maxResults
+	c.params_.Set("max-results", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
@@ -5529,7 +5344,11 @@ func (c *ManagementExperimentsListCall) MaxResults(maxResults int64) *Management
 // first experiment to retrieve. Use this parameter as a pagination
 // mechanism along with the max-results parameter.
 func (c *ManagementExperimentsListCall) StartIndex(startIndex int64) *ManagementExperimentsListCall {
-	c.opt_["start-index"] = startIndex
+	c.params_.Set("start-index", fmt.Sprintf("%v", startIndex))
+	return c
+}
+func (c *ManagementExperimentsListCall) Context(ctx context.Context) *ManagementExperimentsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -5537,45 +5356,25 @@ func (c *ManagementExperimentsListCall) StartIndex(startIndex int64) *Management
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ManagementExperimentsListCall) Fields(s ...googleapi.Field) *ManagementExperimentsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ManagementExperimentsListCall) Do() (*Experiments, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["max-results"]; ok {
-		params.Set("max-results", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["start-index"]; ok {
-		params.Set("start-index", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts/{accountId}/webproperties/{webPropertyId}/profiles/{profileId}/experiments")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Experiments
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId":     c.accountId,
 		"webPropertyId": c.webPropertyId,
 		"profileId":     c.profileId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Experiments
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Lists experiments to which the user has access.",
 	//   "httpMethod": "GET",
@@ -5643,18 +5442,31 @@ type ManagementExperimentsPatchCall struct {
 	profileId     string
 	experimentId  string
 	experiment    *Experiment
-	opt_          map[string]interface{}
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Patch: Update an existing experiment. This method supports patch
 // semantics.
+
 func (r *ManagementExperimentsService) Patch(accountId string, webPropertyId string, profileId string, experimentId string, experiment *Experiment) *ManagementExperimentsPatchCall {
-	c := &ManagementExperimentsPatchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.webPropertyId = webPropertyId
-	c.profileId = profileId
-	c.experimentId = experimentId
-	c.experiment = experiment
+	return &ManagementExperimentsPatchCall{
+		s:             r.s,
+		accountId:     accountId,
+		webPropertyId: webPropertyId,
+		profileId:     profileId,
+		experimentId:  experimentId,
+		experiment:    experiment,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "management/accounts/{accountId}/webproperties/{webPropertyId}/profiles/{profileId}/experiments/{experimentId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *ManagementExperimentsPatchCall) Context(ctx context.Context) *ManagementExperimentsPatchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -5662,46 +5474,27 @@ func (r *ManagementExperimentsService) Patch(accountId string, webPropertyId str
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ManagementExperimentsPatchCall) Fields(s ...googleapi.Field) *ManagementExperimentsPatchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ManagementExperimentsPatchCall) Do() (*Experiment, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.experiment)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts/{accountId}/webproperties/{webPropertyId}/profiles/{profileId}/experiments/{experimentId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PATCH", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Experiment
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId":     c.accountId,
 		"webPropertyId": c.webPropertyId,
 		"profileId":     c.profileId,
 		"experimentId":  c.experimentId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PATCH",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.experiment,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Experiment
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Update an existing experiment. This method supports patch semantics.",
 	//   "httpMethod": "PATCH",
@@ -5762,17 +5555,30 @@ type ManagementExperimentsUpdateCall struct {
 	profileId     string
 	experimentId  string
 	experiment    *Experiment
-	opt_          map[string]interface{}
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Update: Update an existing experiment.
+
 func (r *ManagementExperimentsService) Update(accountId string, webPropertyId string, profileId string, experimentId string, experiment *Experiment) *ManagementExperimentsUpdateCall {
-	c := &ManagementExperimentsUpdateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.webPropertyId = webPropertyId
-	c.profileId = profileId
-	c.experimentId = experimentId
-	c.experiment = experiment
+	return &ManagementExperimentsUpdateCall{
+		s:             r.s,
+		accountId:     accountId,
+		webPropertyId: webPropertyId,
+		profileId:     profileId,
+		experimentId:  experimentId,
+		experiment:    experiment,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "management/accounts/{accountId}/webproperties/{webPropertyId}/profiles/{profileId}/experiments/{experimentId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *ManagementExperimentsUpdateCall) Context(ctx context.Context) *ManagementExperimentsUpdateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -5780,46 +5586,27 @@ func (r *ManagementExperimentsService) Update(accountId string, webPropertyId st
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ManagementExperimentsUpdateCall) Fields(s ...googleapi.Field) *ManagementExperimentsUpdateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ManagementExperimentsUpdateCall) Do() (*Experiment, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.experiment)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts/{accountId}/webproperties/{webPropertyId}/profiles/{profileId}/experiments/{experimentId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Experiment
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId":     c.accountId,
 		"webPropertyId": c.webPropertyId,
 		"profileId":     c.profileId,
 		"experimentId":  c.experimentId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.experiment,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Experiment
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Update an existing experiment.",
 	//   "httpMethod": "PUT",
@@ -5874,17 +5661,30 @@ func (c *ManagementExperimentsUpdateCall) Do() (*Experiment, error) {
 // method id "analytics.management.filters.delete":
 
 type ManagementFiltersDeleteCall struct {
-	s         *Service
-	accountId string
-	filterId  string
-	opt_      map[string]interface{}
+	s             *Service
+	accountId     string
+	filterId      string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Delete: Delete a filter.
+
 func (r *ManagementFiltersService) Delete(accountId string, filterId string) *ManagementFiltersDeleteCall {
-	c := &ManagementFiltersDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.filterId = filterId
+	return &ManagementFiltersDeleteCall{
+		s:             r.s,
+		accountId:     accountId,
+		filterId:      filterId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "management/accounts/{accountId}/filters/{filterId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *ManagementFiltersDeleteCall) Context(ctx context.Context) *ManagementFiltersDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -5892,38 +5692,24 @@ func (r *ManagementFiltersService) Delete(accountId string, filterId string) *Ma
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ManagementFiltersDeleteCall) Fields(s ...googleapi.Field) *ManagementFiltersDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ManagementFiltersDeleteCall) Do() (*Filter, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts/{accountId}/filters/{filterId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Filter
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId": c.accountId,
 		"filterId":  c.filterId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Filter
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Delete a filter.",
 	//   "httpMethod": "DELETE",
@@ -5960,17 +5746,30 @@ func (c *ManagementFiltersDeleteCall) Do() (*Filter, error) {
 // method id "analytics.management.filters.get":
 
 type ManagementFiltersGetCall struct {
-	s         *Service
-	accountId string
-	filterId  string
-	opt_      map[string]interface{}
+	s             *Service
+	accountId     string
+	filterId      string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Returns a filters to which the user has access.
+
 func (r *ManagementFiltersService) Get(accountId string, filterId string) *ManagementFiltersGetCall {
-	c := &ManagementFiltersGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.filterId = filterId
+	return &ManagementFiltersGetCall{
+		s:             r.s,
+		accountId:     accountId,
+		filterId:      filterId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "management/accounts/{accountId}/filters/{filterId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *ManagementFiltersGetCall) Context(ctx context.Context) *ManagementFiltersGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -5978,38 +5777,24 @@ func (r *ManagementFiltersService) Get(accountId string, filterId string) *Manag
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ManagementFiltersGetCall) Fields(s ...googleapi.Field) *ManagementFiltersGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ManagementFiltersGetCall) Do() (*Filter, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts/{accountId}/filters/{filterId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Filter
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId": c.accountId,
 		"filterId":  c.filterId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Filter
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Returns a filters to which the user has access.",
 	//   "httpMethod": "GET",
@@ -6047,17 +5832,30 @@ func (c *ManagementFiltersGetCall) Do() (*Filter, error) {
 // method id "analytics.management.filters.insert":
 
 type ManagementFiltersInsertCall struct {
-	s         *Service
-	accountId string
-	filter    *Filter
-	opt_      map[string]interface{}
+	s             *Service
+	accountId     string
+	filter        *Filter
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Insert: Create a new filter.
+
 func (r *ManagementFiltersService) Insert(accountId string, filter *Filter) *ManagementFiltersInsertCall {
-	c := &ManagementFiltersInsertCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.filter = filter
+	return &ManagementFiltersInsertCall{
+		s:             r.s,
+		accountId:     accountId,
+		filter:        filter,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "management/accounts/{accountId}/filters",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *ManagementFiltersInsertCall) Context(ctx context.Context) *ManagementFiltersInsertCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -6065,43 +5863,24 @@ func (r *ManagementFiltersService) Insert(accountId string, filter *Filter) *Man
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ManagementFiltersInsertCall) Fields(s ...googleapi.Field) *ManagementFiltersInsertCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ManagementFiltersInsertCall) Do() (*Filter, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.filter)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts/{accountId}/filters")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Filter
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId": c.accountId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.filter,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Filter
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Create a new filter.",
 	//   "httpMethod": "POST",
@@ -6134,22 +5913,31 @@ func (c *ManagementFiltersInsertCall) Do() (*Filter, error) {
 // method id "analytics.management.filters.list":
 
 type ManagementFiltersListCall struct {
-	s         *Service
-	accountId string
-	opt_      map[string]interface{}
+	s             *Service
+	accountId     string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Lists all filters for an account
+
 func (r *ManagementFiltersService) List(accountId string) *ManagementFiltersListCall {
-	c := &ManagementFiltersListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	return c
+	return &ManagementFiltersListCall{
+		s:             r.s,
+		accountId:     accountId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "management/accounts/{accountId}/filters",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // MaxResults sets the optional parameter "max-results": The maximum
 // number of filters to include in this response.
 func (c *ManagementFiltersListCall) MaxResults(maxResults int64) *ManagementFiltersListCall {
-	c.opt_["max-results"] = maxResults
+	c.params_.Set("max-results", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
@@ -6157,7 +5945,11 @@ func (c *ManagementFiltersListCall) MaxResults(maxResults int64) *ManagementFilt
 // first entity to retrieve. Use this parameter as a pagination
 // mechanism along with the max-results parameter.
 func (c *ManagementFiltersListCall) StartIndex(startIndex int64) *ManagementFiltersListCall {
-	c.opt_["start-index"] = startIndex
+	c.params_.Set("start-index", fmt.Sprintf("%v", startIndex))
+	return c
+}
+func (c *ManagementFiltersListCall) Context(ctx context.Context) *ManagementFiltersListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -6165,43 +5957,23 @@ func (c *ManagementFiltersListCall) StartIndex(startIndex int64) *ManagementFilt
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ManagementFiltersListCall) Fields(s ...googleapi.Field) *ManagementFiltersListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ManagementFiltersListCall) Do() (*Filters, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["max-results"]; ok {
-		params.Set("max-results", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["start-index"]; ok {
-		params.Set("start-index", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts/{accountId}/filters")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Filters
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId": c.accountId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Filters
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Lists all filters for an account",
 	//   "httpMethod": "GET",
@@ -6246,20 +6018,33 @@ func (c *ManagementFiltersListCall) Do() (*Filters, error) {
 // method id "analytics.management.filters.patch":
 
 type ManagementFiltersPatchCall struct {
-	s         *Service
-	accountId string
-	filterId  string
-	filter    *Filter
-	opt_      map[string]interface{}
+	s             *Service
+	accountId     string
+	filterId      string
+	filter        *Filter
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Patch: Updates an existing filter. This method supports patch
 // semantics.
+
 func (r *ManagementFiltersService) Patch(accountId string, filterId string, filter *Filter) *ManagementFiltersPatchCall {
-	c := &ManagementFiltersPatchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.filterId = filterId
-	c.filter = filter
+	return &ManagementFiltersPatchCall{
+		s:             r.s,
+		accountId:     accountId,
+		filterId:      filterId,
+		filter:        filter,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "management/accounts/{accountId}/filters/{filterId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *ManagementFiltersPatchCall) Context(ctx context.Context) *ManagementFiltersPatchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -6267,44 +6052,25 @@ func (r *ManagementFiltersService) Patch(accountId string, filterId string, filt
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ManagementFiltersPatchCall) Fields(s ...googleapi.Field) *ManagementFiltersPatchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ManagementFiltersPatchCall) Do() (*Filter, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.filter)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts/{accountId}/filters/{filterId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PATCH", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Filter
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId": c.accountId,
 		"filterId":  c.filterId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PATCH",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.filter,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Filter
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates an existing filter. This method supports patch semantics.",
 	//   "httpMethod": "PATCH",
@@ -6344,19 +6110,32 @@ func (c *ManagementFiltersPatchCall) Do() (*Filter, error) {
 // method id "analytics.management.filters.update":
 
 type ManagementFiltersUpdateCall struct {
-	s         *Service
-	accountId string
-	filterId  string
-	filter    *Filter
-	opt_      map[string]interface{}
+	s             *Service
+	accountId     string
+	filterId      string
+	filter        *Filter
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Update: Updates an existing filter.
+
 func (r *ManagementFiltersService) Update(accountId string, filterId string, filter *Filter) *ManagementFiltersUpdateCall {
-	c := &ManagementFiltersUpdateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.filterId = filterId
-	c.filter = filter
+	return &ManagementFiltersUpdateCall{
+		s:             r.s,
+		accountId:     accountId,
+		filterId:      filterId,
+		filter:        filter,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "management/accounts/{accountId}/filters/{filterId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *ManagementFiltersUpdateCall) Context(ctx context.Context) *ManagementFiltersUpdateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -6364,44 +6143,25 @@ func (r *ManagementFiltersService) Update(accountId string, filterId string, fil
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ManagementFiltersUpdateCall) Fields(s ...googleapi.Field) *ManagementFiltersUpdateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ManagementFiltersUpdateCall) Do() (*Filter, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.filter)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts/{accountId}/filters/{filterId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Filter
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId": c.accountId,
 		"filterId":  c.filterId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.filter,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Filter
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates an existing filter.",
 	//   "httpMethod": "PUT",
@@ -6446,16 +6206,29 @@ type ManagementGoalsGetCall struct {
 	webPropertyId string
 	profileId     string
 	goalId        string
-	opt_          map[string]interface{}
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Gets a goal to which the user has access.
+
 func (r *ManagementGoalsService) Get(accountId string, webPropertyId string, profileId string, goalId string) *ManagementGoalsGetCall {
-	c := &ManagementGoalsGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.webPropertyId = webPropertyId
-	c.profileId = profileId
-	c.goalId = goalId
+	return &ManagementGoalsGetCall{
+		s:             r.s,
+		accountId:     accountId,
+		webPropertyId: webPropertyId,
+		profileId:     profileId,
+		goalId:        goalId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "management/accounts/{accountId}/webproperties/{webPropertyId}/profiles/{profileId}/goals/{goalId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *ManagementGoalsGetCall) Context(ctx context.Context) *ManagementGoalsGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -6463,40 +6236,26 @@ func (r *ManagementGoalsService) Get(accountId string, webPropertyId string, pro
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ManagementGoalsGetCall) Fields(s ...googleapi.Field) *ManagementGoalsGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ManagementGoalsGetCall) Do() (*Goal, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts/{accountId}/webproperties/{webPropertyId}/profiles/{profileId}/goals/{goalId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Goal
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId":     c.accountId,
 		"webPropertyId": c.webPropertyId,
 		"profileId":     c.profileId,
 		"goalId":        c.goalId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Goal
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Gets a goal to which the user has access.",
 	//   "httpMethod": "GET",
@@ -6553,16 +6312,29 @@ type ManagementGoalsInsertCall struct {
 	webPropertyId string
 	profileId     string
 	goal          *Goal
-	opt_          map[string]interface{}
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Insert: Create a new goal.
+
 func (r *ManagementGoalsService) Insert(accountId string, webPropertyId string, profileId string, goal *Goal) *ManagementGoalsInsertCall {
-	c := &ManagementGoalsInsertCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.webPropertyId = webPropertyId
-	c.profileId = profileId
-	c.goal = goal
+	return &ManagementGoalsInsertCall{
+		s:             r.s,
+		accountId:     accountId,
+		webPropertyId: webPropertyId,
+		profileId:     profileId,
+		goal:          goal,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "management/accounts/{accountId}/webproperties/{webPropertyId}/profiles/{profileId}/goals",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *ManagementGoalsInsertCall) Context(ctx context.Context) *ManagementGoalsInsertCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -6570,45 +6342,26 @@ func (r *ManagementGoalsService) Insert(accountId string, webPropertyId string, 
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ManagementGoalsInsertCall) Fields(s ...googleapi.Field) *ManagementGoalsInsertCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ManagementGoalsInsertCall) Do() (*Goal, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.goal)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts/{accountId}/webproperties/{webPropertyId}/profiles/{profileId}/goals")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Goal
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId":     c.accountId,
 		"webPropertyId": c.webPropertyId,
 		"profileId":     c.profileId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.goal,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Goal
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Create a new goal.",
 	//   "httpMethod": "POST",
@@ -6659,22 +6412,31 @@ type ManagementGoalsListCall struct {
 	accountId     string
 	webPropertyId string
 	profileId     string
-	opt_          map[string]interface{}
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Lists goals to which the user has access.
+
 func (r *ManagementGoalsService) List(accountId string, webPropertyId string, profileId string) *ManagementGoalsListCall {
-	c := &ManagementGoalsListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.webPropertyId = webPropertyId
-	c.profileId = profileId
-	return c
+	return &ManagementGoalsListCall{
+		s:             r.s,
+		accountId:     accountId,
+		webPropertyId: webPropertyId,
+		profileId:     profileId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "management/accounts/{accountId}/webproperties/{webPropertyId}/profiles/{profileId}/goals",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // MaxResults sets the optional parameter "max-results": The maximum
 // number of goals to include in this response.
 func (c *ManagementGoalsListCall) MaxResults(maxResults int64) *ManagementGoalsListCall {
-	c.opt_["max-results"] = maxResults
+	c.params_.Set("max-results", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
@@ -6682,7 +6444,11 @@ func (c *ManagementGoalsListCall) MaxResults(maxResults int64) *ManagementGoalsL
 // first goal to retrieve. Use this parameter as a pagination mechanism
 // along with the max-results parameter.
 func (c *ManagementGoalsListCall) StartIndex(startIndex int64) *ManagementGoalsListCall {
-	c.opt_["start-index"] = startIndex
+	c.params_.Set("start-index", fmt.Sprintf("%v", startIndex))
+	return c
+}
+func (c *ManagementGoalsListCall) Context(ctx context.Context) *ManagementGoalsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -6690,45 +6456,25 @@ func (c *ManagementGoalsListCall) StartIndex(startIndex int64) *ManagementGoalsL
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ManagementGoalsListCall) Fields(s ...googleapi.Field) *ManagementGoalsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ManagementGoalsListCall) Do() (*Goals, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["max-results"]; ok {
-		params.Set("max-results", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["start-index"]; ok {
-		params.Set("start-index", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts/{accountId}/webproperties/{webPropertyId}/profiles/{profileId}/goals")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Goals
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId":     c.accountId,
 		"webPropertyId": c.webPropertyId,
 		"profileId":     c.profileId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Goals
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Lists goals to which the user has access.",
 	//   "httpMethod": "GET",
@@ -6793,18 +6539,31 @@ type ManagementGoalsPatchCall struct {
 	profileId     string
 	goalId        string
 	goal          *Goal
-	opt_          map[string]interface{}
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Patch: Updates an existing view (profile). This method supports patch
 // semantics.
+
 func (r *ManagementGoalsService) Patch(accountId string, webPropertyId string, profileId string, goalId string, goal *Goal) *ManagementGoalsPatchCall {
-	c := &ManagementGoalsPatchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.webPropertyId = webPropertyId
-	c.profileId = profileId
-	c.goalId = goalId
-	c.goal = goal
+	return &ManagementGoalsPatchCall{
+		s:             r.s,
+		accountId:     accountId,
+		webPropertyId: webPropertyId,
+		profileId:     profileId,
+		goalId:        goalId,
+		goal:          goal,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "management/accounts/{accountId}/webproperties/{webPropertyId}/profiles/{profileId}/goals/{goalId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *ManagementGoalsPatchCall) Context(ctx context.Context) *ManagementGoalsPatchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -6812,46 +6571,27 @@ func (r *ManagementGoalsService) Patch(accountId string, webPropertyId string, p
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ManagementGoalsPatchCall) Fields(s ...googleapi.Field) *ManagementGoalsPatchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ManagementGoalsPatchCall) Do() (*Goal, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.goal)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts/{accountId}/webproperties/{webPropertyId}/profiles/{profileId}/goals/{goalId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PATCH", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Goal
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId":     c.accountId,
 		"webPropertyId": c.webPropertyId,
 		"profileId":     c.profileId,
 		"goalId":        c.goalId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PATCH",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.goal,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Goal
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates an existing view (profile). This method supports patch semantics.",
 	//   "httpMethod": "PATCH",
@@ -6911,17 +6651,30 @@ type ManagementGoalsUpdateCall struct {
 	profileId     string
 	goalId        string
 	goal          *Goal
-	opt_          map[string]interface{}
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Update: Updates an existing view (profile).
+
 func (r *ManagementGoalsService) Update(accountId string, webPropertyId string, profileId string, goalId string, goal *Goal) *ManagementGoalsUpdateCall {
-	c := &ManagementGoalsUpdateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.webPropertyId = webPropertyId
-	c.profileId = profileId
-	c.goalId = goalId
-	c.goal = goal
+	return &ManagementGoalsUpdateCall{
+		s:             r.s,
+		accountId:     accountId,
+		webPropertyId: webPropertyId,
+		profileId:     profileId,
+		goalId:        goalId,
+		goal:          goal,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "management/accounts/{accountId}/webproperties/{webPropertyId}/profiles/{profileId}/goals/{goalId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *ManagementGoalsUpdateCall) Context(ctx context.Context) *ManagementGoalsUpdateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -6929,46 +6682,27 @@ func (r *ManagementGoalsService) Update(accountId string, webPropertyId string, 
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ManagementGoalsUpdateCall) Fields(s ...googleapi.Field) *ManagementGoalsUpdateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ManagementGoalsUpdateCall) Do() (*Goal, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.goal)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts/{accountId}/webproperties/{webPropertyId}/profiles/{profileId}/goals/{goalId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Goal
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId":     c.accountId,
 		"webPropertyId": c.webPropertyId,
 		"profileId":     c.profileId,
 		"goalId":        c.goalId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.goal,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Goal
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates an existing view (profile).",
 	//   "httpMethod": "PUT",
@@ -7027,53 +6761,46 @@ type ManagementProfileFilterLinksDeleteCall struct {
 	webPropertyId string
 	profileId     string
 	linkId        string
-	opt_          map[string]interface{}
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Delete: Delete a profile filter link.
-func (r *ManagementProfileFilterLinksService) Delete(accountId string, webPropertyId string, profileId string, linkId string) *ManagementProfileFilterLinksDeleteCall {
-	c := &ManagementProfileFilterLinksDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.webPropertyId = webPropertyId
-	c.profileId = profileId
-	c.linkId = linkId
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *ManagementProfileFilterLinksDeleteCall) Fields(s ...googleapi.Field) *ManagementProfileFilterLinksDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *ManagementProfileFilterLinksService) Delete(accountId string, webPropertyId string, profileId string, linkId string) *ManagementProfileFilterLinksDeleteCall {
+	return &ManagementProfileFilterLinksDeleteCall{
+		s:             r.s,
+		accountId:     accountId,
+		webPropertyId: webPropertyId,
+		profileId:     profileId,
+		linkId:        linkId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "management/accounts/{accountId}/webproperties/{webPropertyId}/profiles/{profileId}/profileFilterLinks/{linkId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *ManagementProfileFilterLinksDeleteCall) Context(ctx context.Context) *ManagementProfileFilterLinksDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *ManagementProfileFilterLinksDeleteCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts/{accountId}/webproperties/{webPropertyId}/profiles/{profileId}/profileFilterLinks/{linkId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId":     c.accountId,
 		"webPropertyId": c.webPropertyId,
 		"profileId":     c.profileId,
 		"linkId":        c.linkId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Delete a profile filter link.",
 	//   "httpMethod": "DELETE",
@@ -7130,16 +6857,29 @@ type ManagementProfileFilterLinksGetCall struct {
 	webPropertyId string
 	profileId     string
 	linkId        string
-	opt_          map[string]interface{}
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Returns a single profile filter link.
+
 func (r *ManagementProfileFilterLinksService) Get(accountId string, webPropertyId string, profileId string, linkId string) *ManagementProfileFilterLinksGetCall {
-	c := &ManagementProfileFilterLinksGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.webPropertyId = webPropertyId
-	c.profileId = profileId
-	c.linkId = linkId
+	return &ManagementProfileFilterLinksGetCall{
+		s:             r.s,
+		accountId:     accountId,
+		webPropertyId: webPropertyId,
+		profileId:     profileId,
+		linkId:        linkId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "management/accounts/{accountId}/webproperties/{webPropertyId}/profiles/{profileId}/profileFilterLinks/{linkId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *ManagementProfileFilterLinksGetCall) Context(ctx context.Context) *ManagementProfileFilterLinksGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -7147,40 +6887,26 @@ func (r *ManagementProfileFilterLinksService) Get(accountId string, webPropertyI
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ManagementProfileFilterLinksGetCall) Fields(s ...googleapi.Field) *ManagementProfileFilterLinksGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ManagementProfileFilterLinksGetCall) Do() (*ProfileFilterLink, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts/{accountId}/webproperties/{webPropertyId}/profiles/{profileId}/profileFilterLinks/{linkId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *ProfileFilterLink
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId":     c.accountId,
 		"webPropertyId": c.webPropertyId,
 		"profileId":     c.profileId,
 		"linkId":        c.linkId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ProfileFilterLink
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Returns a single profile filter link.",
 	//   "httpMethod": "GET",
@@ -7241,16 +6967,29 @@ type ManagementProfileFilterLinksInsertCall struct {
 	webPropertyId     string
 	profileId         string
 	profilefilterlink *ProfileFilterLink
-	opt_              map[string]interface{}
+	caller_           googleapi.Caller
+	params_           url.Values
+	pathTemplate_     string
+	context_          context.Context
 }
 
 // Insert: Create a new profile filter link.
+
 func (r *ManagementProfileFilterLinksService) Insert(accountId string, webPropertyId string, profileId string, profilefilterlink *ProfileFilterLink) *ManagementProfileFilterLinksInsertCall {
-	c := &ManagementProfileFilterLinksInsertCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.webPropertyId = webPropertyId
-	c.profileId = profileId
-	c.profilefilterlink = profilefilterlink
+	return &ManagementProfileFilterLinksInsertCall{
+		s:                 r.s,
+		accountId:         accountId,
+		webPropertyId:     webPropertyId,
+		profileId:         profileId,
+		profilefilterlink: profilefilterlink,
+		caller_:           googleapi.JSONCall{},
+		params_:           make(map[string][]string),
+		pathTemplate_:     "management/accounts/{accountId}/webproperties/{webPropertyId}/profiles/{profileId}/profileFilterLinks",
+		context_:          googleapi.NoContext,
+	}
+}
+func (c *ManagementProfileFilterLinksInsertCall) Context(ctx context.Context) *ManagementProfileFilterLinksInsertCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -7258,45 +6997,26 @@ func (r *ManagementProfileFilterLinksService) Insert(accountId string, webProper
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ManagementProfileFilterLinksInsertCall) Fields(s ...googleapi.Field) *ManagementProfileFilterLinksInsertCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ManagementProfileFilterLinksInsertCall) Do() (*ProfileFilterLink, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.profilefilterlink)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts/{accountId}/webproperties/{webPropertyId}/profiles/{profileId}/profileFilterLinks")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *ProfileFilterLink
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId":     c.accountId,
 		"webPropertyId": c.webPropertyId,
 		"profileId":     c.profileId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.profilefilterlink,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ProfileFilterLink
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Create a new profile filter link.",
 	//   "httpMethod": "POST",
@@ -7350,22 +7070,31 @@ type ManagementProfileFilterLinksListCall struct {
 	accountId     string
 	webPropertyId string
 	profileId     string
-	opt_          map[string]interface{}
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Lists all profile filter links for a profile.
+
 func (r *ManagementProfileFilterLinksService) List(accountId string, webPropertyId string, profileId string) *ManagementProfileFilterLinksListCall {
-	c := &ManagementProfileFilterLinksListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.webPropertyId = webPropertyId
-	c.profileId = profileId
-	return c
+	return &ManagementProfileFilterLinksListCall{
+		s:             r.s,
+		accountId:     accountId,
+		webPropertyId: webPropertyId,
+		profileId:     profileId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "management/accounts/{accountId}/webproperties/{webPropertyId}/profiles/{profileId}/profileFilterLinks",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // MaxResults sets the optional parameter "max-results": The maximum
 // number of profile filter links to include in this response.
 func (c *ManagementProfileFilterLinksListCall) MaxResults(maxResults int64) *ManagementProfileFilterLinksListCall {
-	c.opt_["max-results"] = maxResults
+	c.params_.Set("max-results", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
@@ -7373,7 +7102,11 @@ func (c *ManagementProfileFilterLinksListCall) MaxResults(maxResults int64) *Man
 // first entity to retrieve. Use this parameter as a pagination
 // mechanism along with the max-results parameter.
 func (c *ManagementProfileFilterLinksListCall) StartIndex(startIndex int64) *ManagementProfileFilterLinksListCall {
-	c.opt_["start-index"] = startIndex
+	c.params_.Set("start-index", fmt.Sprintf("%v", startIndex))
+	return c
+}
+func (c *ManagementProfileFilterLinksListCall) Context(ctx context.Context) *ManagementProfileFilterLinksListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -7381,45 +7114,25 @@ func (c *ManagementProfileFilterLinksListCall) StartIndex(startIndex int64) *Man
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ManagementProfileFilterLinksListCall) Fields(s ...googleapi.Field) *ManagementProfileFilterLinksListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ManagementProfileFilterLinksListCall) Do() (*ProfileFilterLinks, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["max-results"]; ok {
-		params.Set("max-results", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["start-index"]; ok {
-		params.Set("start-index", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts/{accountId}/webproperties/{webPropertyId}/profiles/{profileId}/profileFilterLinks")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *ProfileFilterLinks
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId":     c.accountId,
 		"webPropertyId": c.webPropertyId,
 		"profileId":     c.profileId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ProfileFilterLinks
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Lists all profile filter links for a profile.",
 	//   "httpMethod": "GET",
@@ -7484,18 +7197,31 @@ type ManagementProfileFilterLinksPatchCall struct {
 	profileId         string
 	linkId            string
 	profilefilterlink *ProfileFilterLink
-	opt_              map[string]interface{}
+	caller_           googleapi.Caller
+	params_           url.Values
+	pathTemplate_     string
+	context_          context.Context
 }
 
 // Patch: Update an existing profile filter link. This method supports
 // patch semantics.
+
 func (r *ManagementProfileFilterLinksService) Patch(accountId string, webPropertyId string, profileId string, linkId string, profilefilterlink *ProfileFilterLink) *ManagementProfileFilterLinksPatchCall {
-	c := &ManagementProfileFilterLinksPatchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.webPropertyId = webPropertyId
-	c.profileId = profileId
-	c.linkId = linkId
-	c.profilefilterlink = profilefilterlink
+	return &ManagementProfileFilterLinksPatchCall{
+		s:                 r.s,
+		accountId:         accountId,
+		webPropertyId:     webPropertyId,
+		profileId:         profileId,
+		linkId:            linkId,
+		profilefilterlink: profilefilterlink,
+		caller_:           googleapi.JSONCall{},
+		params_:           make(map[string][]string),
+		pathTemplate_:     "management/accounts/{accountId}/webproperties/{webPropertyId}/profiles/{profileId}/profileFilterLinks/{linkId}",
+		context_:          googleapi.NoContext,
+	}
+}
+func (c *ManagementProfileFilterLinksPatchCall) Context(ctx context.Context) *ManagementProfileFilterLinksPatchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -7503,46 +7229,27 @@ func (r *ManagementProfileFilterLinksService) Patch(accountId string, webPropert
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ManagementProfileFilterLinksPatchCall) Fields(s ...googleapi.Field) *ManagementProfileFilterLinksPatchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ManagementProfileFilterLinksPatchCall) Do() (*ProfileFilterLink, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.profilefilterlink)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts/{accountId}/webproperties/{webPropertyId}/profiles/{profileId}/profileFilterLinks/{linkId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PATCH", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *ProfileFilterLink
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId":     c.accountId,
 		"webPropertyId": c.webPropertyId,
 		"profileId":     c.profileId,
 		"linkId":        c.linkId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PATCH",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.profilefilterlink,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ProfileFilterLink
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Update an existing profile filter link. This method supports patch semantics.",
 	//   "httpMethod": "PATCH",
@@ -7606,17 +7313,30 @@ type ManagementProfileFilterLinksUpdateCall struct {
 	profileId         string
 	linkId            string
 	profilefilterlink *ProfileFilterLink
-	opt_              map[string]interface{}
+	caller_           googleapi.Caller
+	params_           url.Values
+	pathTemplate_     string
+	context_          context.Context
 }
 
 // Update: Update an existing profile filter link.
+
 func (r *ManagementProfileFilterLinksService) Update(accountId string, webPropertyId string, profileId string, linkId string, profilefilterlink *ProfileFilterLink) *ManagementProfileFilterLinksUpdateCall {
-	c := &ManagementProfileFilterLinksUpdateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.webPropertyId = webPropertyId
-	c.profileId = profileId
-	c.linkId = linkId
-	c.profilefilterlink = profilefilterlink
+	return &ManagementProfileFilterLinksUpdateCall{
+		s:                 r.s,
+		accountId:         accountId,
+		webPropertyId:     webPropertyId,
+		profileId:         profileId,
+		linkId:            linkId,
+		profilefilterlink: profilefilterlink,
+		caller_:           googleapi.JSONCall{},
+		params_:           make(map[string][]string),
+		pathTemplate_:     "management/accounts/{accountId}/webproperties/{webPropertyId}/profiles/{profileId}/profileFilterLinks/{linkId}",
+		context_:          googleapi.NoContext,
+	}
+}
+func (c *ManagementProfileFilterLinksUpdateCall) Context(ctx context.Context) *ManagementProfileFilterLinksUpdateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -7624,46 +7344,27 @@ func (r *ManagementProfileFilterLinksService) Update(accountId string, webProper
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ManagementProfileFilterLinksUpdateCall) Fields(s ...googleapi.Field) *ManagementProfileFilterLinksUpdateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ManagementProfileFilterLinksUpdateCall) Do() (*ProfileFilterLink, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.profilefilterlink)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts/{accountId}/webproperties/{webPropertyId}/profiles/{profileId}/profileFilterLinks/{linkId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *ProfileFilterLink
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId":     c.accountId,
 		"webPropertyId": c.webPropertyId,
 		"profileId":     c.profileId,
 		"linkId":        c.linkId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.profilefilterlink,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ProfileFilterLink
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Update an existing profile filter link.",
 	//   "httpMethod": "PUT",
@@ -7726,53 +7427,46 @@ type ManagementProfileUserLinksDeleteCall struct {
 	webPropertyId string
 	profileId     string
 	linkId        string
-	opt_          map[string]interface{}
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Delete: Removes a user from the given view (profile).
-func (r *ManagementProfileUserLinksService) Delete(accountId string, webPropertyId string, profileId string, linkId string) *ManagementProfileUserLinksDeleteCall {
-	c := &ManagementProfileUserLinksDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.webPropertyId = webPropertyId
-	c.profileId = profileId
-	c.linkId = linkId
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *ManagementProfileUserLinksDeleteCall) Fields(s ...googleapi.Field) *ManagementProfileUserLinksDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *ManagementProfileUserLinksService) Delete(accountId string, webPropertyId string, profileId string, linkId string) *ManagementProfileUserLinksDeleteCall {
+	return &ManagementProfileUserLinksDeleteCall{
+		s:             r.s,
+		accountId:     accountId,
+		webPropertyId: webPropertyId,
+		profileId:     profileId,
+		linkId:        linkId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "management/accounts/{accountId}/webproperties/{webPropertyId}/profiles/{profileId}/entityUserLinks/{linkId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *ManagementProfileUserLinksDeleteCall) Context(ctx context.Context) *ManagementProfileUserLinksDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *ManagementProfileUserLinksDeleteCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts/{accountId}/webproperties/{webPropertyId}/profiles/{profileId}/entityUserLinks/{linkId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId":     c.accountId,
 		"webPropertyId": c.webPropertyId,
 		"profileId":     c.profileId,
 		"linkId":        c.linkId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Removes a user from the given view (profile).",
 	//   "httpMethod": "DELETE",
@@ -7825,16 +7519,29 @@ type ManagementProfileUserLinksInsertCall struct {
 	webPropertyId  string
 	profileId      string
 	entityuserlink *EntityUserLink
-	opt_           map[string]interface{}
+	caller_        googleapi.Caller
+	params_        url.Values
+	pathTemplate_  string
+	context_       context.Context
 }
 
 // Insert: Adds a new user to the given view (profile).
+
 func (r *ManagementProfileUserLinksService) Insert(accountId string, webPropertyId string, profileId string, entityuserlink *EntityUserLink) *ManagementProfileUserLinksInsertCall {
-	c := &ManagementProfileUserLinksInsertCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.webPropertyId = webPropertyId
-	c.profileId = profileId
-	c.entityuserlink = entityuserlink
+	return &ManagementProfileUserLinksInsertCall{
+		s:              r.s,
+		accountId:      accountId,
+		webPropertyId:  webPropertyId,
+		profileId:      profileId,
+		entityuserlink: entityuserlink,
+		caller_:        googleapi.JSONCall{},
+		params_:        make(map[string][]string),
+		pathTemplate_:  "management/accounts/{accountId}/webproperties/{webPropertyId}/profiles/{profileId}/entityUserLinks",
+		context_:       googleapi.NoContext,
+	}
+}
+func (c *ManagementProfileUserLinksInsertCall) Context(ctx context.Context) *ManagementProfileUserLinksInsertCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -7842,45 +7549,26 @@ func (r *ManagementProfileUserLinksService) Insert(accountId string, webProperty
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ManagementProfileUserLinksInsertCall) Fields(s ...googleapi.Field) *ManagementProfileUserLinksInsertCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ManagementProfileUserLinksInsertCall) Do() (*EntityUserLink, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.entityuserlink)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts/{accountId}/webproperties/{webPropertyId}/profiles/{profileId}/entityUserLinks")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *EntityUserLink
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId":     c.accountId,
 		"webPropertyId": c.webPropertyId,
 		"profileId":     c.profileId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.entityuserlink,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *EntityUserLink
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Adds a new user to the given view (profile).",
 	//   "httpMethod": "POST",
@@ -7931,22 +7619,31 @@ type ManagementProfileUserLinksListCall struct {
 	accountId     string
 	webPropertyId string
 	profileId     string
-	opt_          map[string]interface{}
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Lists profile-user links for a given view (profile).
+
 func (r *ManagementProfileUserLinksService) List(accountId string, webPropertyId string, profileId string) *ManagementProfileUserLinksListCall {
-	c := &ManagementProfileUserLinksListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.webPropertyId = webPropertyId
-	c.profileId = profileId
-	return c
+	return &ManagementProfileUserLinksListCall{
+		s:             r.s,
+		accountId:     accountId,
+		webPropertyId: webPropertyId,
+		profileId:     profileId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "management/accounts/{accountId}/webproperties/{webPropertyId}/profiles/{profileId}/entityUserLinks",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // MaxResults sets the optional parameter "max-results": The maximum
 // number of profile-user links to include in this response.
 func (c *ManagementProfileUserLinksListCall) MaxResults(maxResults int64) *ManagementProfileUserLinksListCall {
-	c.opt_["max-results"] = maxResults
+	c.params_.Set("max-results", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
@@ -7954,7 +7651,11 @@ func (c *ManagementProfileUserLinksListCall) MaxResults(maxResults int64) *Manag
 // first profile-user link to retrieve. Use this parameter as a
 // pagination mechanism along with the max-results parameter.
 func (c *ManagementProfileUserLinksListCall) StartIndex(startIndex int64) *ManagementProfileUserLinksListCall {
-	c.opt_["start-index"] = startIndex
+	c.params_.Set("start-index", fmt.Sprintf("%v", startIndex))
+	return c
+}
+func (c *ManagementProfileUserLinksListCall) Context(ctx context.Context) *ManagementProfileUserLinksListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -7962,45 +7663,25 @@ func (c *ManagementProfileUserLinksListCall) StartIndex(startIndex int64) *Manag
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ManagementProfileUserLinksListCall) Fields(s ...googleapi.Field) *ManagementProfileUserLinksListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ManagementProfileUserLinksListCall) Do() (*EntityUserLinks, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["max-results"]; ok {
-		params.Set("max-results", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["start-index"]; ok {
-		params.Set("start-index", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts/{accountId}/webproperties/{webPropertyId}/profiles/{profileId}/entityUserLinks")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *EntityUserLinks
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId":     c.accountId,
 		"webPropertyId": c.webPropertyId,
 		"profileId":     c.profileId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *EntityUserLinks
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Lists profile-user links for a given view (profile).",
 	//   "httpMethod": "GET",
@@ -8064,18 +7745,31 @@ type ManagementProfileUserLinksUpdateCall struct {
 	profileId      string
 	linkId         string
 	entityuserlink *EntityUserLink
-	opt_           map[string]interface{}
+	caller_        googleapi.Caller
+	params_        url.Values
+	pathTemplate_  string
+	context_       context.Context
 }
 
 // Update: Updates permissions for an existing user on the given view
 // (profile).
+
 func (r *ManagementProfileUserLinksService) Update(accountId string, webPropertyId string, profileId string, linkId string, entityuserlink *EntityUserLink) *ManagementProfileUserLinksUpdateCall {
-	c := &ManagementProfileUserLinksUpdateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.webPropertyId = webPropertyId
-	c.profileId = profileId
-	c.linkId = linkId
-	c.entityuserlink = entityuserlink
+	return &ManagementProfileUserLinksUpdateCall{
+		s:              r.s,
+		accountId:      accountId,
+		webPropertyId:  webPropertyId,
+		profileId:      profileId,
+		linkId:         linkId,
+		entityuserlink: entityuserlink,
+		caller_:        googleapi.JSONCall{},
+		params_:        make(map[string][]string),
+		pathTemplate_:  "management/accounts/{accountId}/webproperties/{webPropertyId}/profiles/{profileId}/entityUserLinks/{linkId}",
+		context_:       googleapi.NoContext,
+	}
+}
+func (c *ManagementProfileUserLinksUpdateCall) Context(ctx context.Context) *ManagementProfileUserLinksUpdateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -8083,46 +7777,27 @@ func (r *ManagementProfileUserLinksService) Update(accountId string, webProperty
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ManagementProfileUserLinksUpdateCall) Fields(s ...googleapi.Field) *ManagementProfileUserLinksUpdateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ManagementProfileUserLinksUpdateCall) Do() (*EntityUserLink, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.entityuserlink)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts/{accountId}/webproperties/{webPropertyId}/profiles/{profileId}/entityUserLinks/{linkId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *EntityUserLink
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId":     c.accountId,
 		"webPropertyId": c.webPropertyId,
 		"profileId":     c.profileId,
 		"linkId":        c.linkId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.entityuserlink,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *EntityUserLink
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates permissions for an existing user on the given view (profile).",
 	//   "httpMethod": "PUT",
@@ -8180,51 +7855,44 @@ type ManagementProfilesDeleteCall struct {
 	accountId     string
 	webPropertyId string
 	profileId     string
-	opt_          map[string]interface{}
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Delete: Deletes a view (profile).
-func (r *ManagementProfilesService) Delete(accountId string, webPropertyId string, profileId string) *ManagementProfilesDeleteCall {
-	c := &ManagementProfilesDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.webPropertyId = webPropertyId
-	c.profileId = profileId
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *ManagementProfilesDeleteCall) Fields(s ...googleapi.Field) *ManagementProfilesDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *ManagementProfilesService) Delete(accountId string, webPropertyId string, profileId string) *ManagementProfilesDeleteCall {
+	return &ManagementProfilesDeleteCall{
+		s:             r.s,
+		accountId:     accountId,
+		webPropertyId: webPropertyId,
+		profileId:     profileId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "management/accounts/{accountId}/webproperties/{webPropertyId}/profiles/{profileId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *ManagementProfilesDeleteCall) Context(ctx context.Context) *ManagementProfilesDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *ManagementProfilesDeleteCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts/{accountId}/webproperties/{webPropertyId}/profiles/{profileId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId":     c.accountId,
 		"webPropertyId": c.webPropertyId,
 		"profileId":     c.profileId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Deletes a view (profile).",
 	//   "httpMethod": "DELETE",
@@ -8269,15 +7937,28 @@ type ManagementProfilesGetCall struct {
 	accountId     string
 	webPropertyId string
 	profileId     string
-	opt_          map[string]interface{}
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Gets a view (profile) to which the user has access.
+
 func (r *ManagementProfilesService) Get(accountId string, webPropertyId string, profileId string) *ManagementProfilesGetCall {
-	c := &ManagementProfilesGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.webPropertyId = webPropertyId
-	c.profileId = profileId
+	return &ManagementProfilesGetCall{
+		s:             r.s,
+		accountId:     accountId,
+		webPropertyId: webPropertyId,
+		profileId:     profileId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "management/accounts/{accountId}/webproperties/{webPropertyId}/profiles/{profileId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *ManagementProfilesGetCall) Context(ctx context.Context) *ManagementProfilesGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -8285,39 +7966,25 @@ func (r *ManagementProfilesService) Get(accountId string, webPropertyId string, 
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ManagementProfilesGetCall) Fields(s ...googleapi.Field) *ManagementProfilesGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ManagementProfilesGetCall) Do() (*Profile, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts/{accountId}/webproperties/{webPropertyId}/profiles/{profileId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Profile
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId":     c.accountId,
 		"webPropertyId": c.webPropertyId,
 		"profileId":     c.profileId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Profile
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Gets a view (profile) to which the user has access.",
 	//   "httpMethod": "GET",
@@ -8369,15 +8036,28 @@ type ManagementProfilesInsertCall struct {
 	accountId     string
 	webPropertyId string
 	profile       *Profile
-	opt_          map[string]interface{}
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Insert: Create a new view (profile).
+
 func (r *ManagementProfilesService) Insert(accountId string, webPropertyId string, profile *Profile) *ManagementProfilesInsertCall {
-	c := &ManagementProfilesInsertCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.webPropertyId = webPropertyId
-	c.profile = profile
+	return &ManagementProfilesInsertCall{
+		s:             r.s,
+		accountId:     accountId,
+		webPropertyId: webPropertyId,
+		profile:       profile,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "management/accounts/{accountId}/webproperties/{webPropertyId}/profiles",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *ManagementProfilesInsertCall) Context(ctx context.Context) *ManagementProfilesInsertCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -8385,44 +8065,25 @@ func (r *ManagementProfilesService) Insert(accountId string, webPropertyId strin
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ManagementProfilesInsertCall) Fields(s ...googleapi.Field) *ManagementProfilesInsertCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ManagementProfilesInsertCall) Do() (*Profile, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.profile)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts/{accountId}/webproperties/{webPropertyId}/profiles")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Profile
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId":     c.accountId,
 		"webPropertyId": c.webPropertyId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.profile,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Profile
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Create a new view (profile).",
 	//   "httpMethod": "POST",
@@ -8465,21 +8126,30 @@ type ManagementProfilesListCall struct {
 	s             *Service
 	accountId     string
 	webPropertyId string
-	opt_          map[string]interface{}
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Lists views (profiles) to which the user has access.
+
 func (r *ManagementProfilesService) List(accountId string, webPropertyId string) *ManagementProfilesListCall {
-	c := &ManagementProfilesListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.webPropertyId = webPropertyId
-	return c
+	return &ManagementProfilesListCall{
+		s:             r.s,
+		accountId:     accountId,
+		webPropertyId: webPropertyId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "management/accounts/{accountId}/webproperties/{webPropertyId}/profiles",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // MaxResults sets the optional parameter "max-results": The maximum
 // number of views (profiles) to include in this response.
 func (c *ManagementProfilesListCall) MaxResults(maxResults int64) *ManagementProfilesListCall {
-	c.opt_["max-results"] = maxResults
+	c.params_.Set("max-results", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
@@ -8487,7 +8157,11 @@ func (c *ManagementProfilesListCall) MaxResults(maxResults int64) *ManagementPro
 // first entity to retrieve. Use this parameter as a pagination
 // mechanism along with the max-results parameter.
 func (c *ManagementProfilesListCall) StartIndex(startIndex int64) *ManagementProfilesListCall {
-	c.opt_["start-index"] = startIndex
+	c.params_.Set("start-index", fmt.Sprintf("%v", startIndex))
+	return c
+}
+func (c *ManagementProfilesListCall) Context(ctx context.Context) *ManagementProfilesListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -8495,44 +8169,24 @@ func (c *ManagementProfilesListCall) StartIndex(startIndex int64) *ManagementPro
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ManagementProfilesListCall) Fields(s ...googleapi.Field) *ManagementProfilesListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ManagementProfilesListCall) Do() (*Profiles, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["max-results"]; ok {
-		params.Set("max-results", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["start-index"]; ok {
-		params.Set("start-index", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts/{accountId}/webproperties/{webPropertyId}/profiles")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Profiles
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId":     c.accountId,
 		"webPropertyId": c.webPropertyId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Profiles
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Lists views (profiles) to which the user has access.",
 	//   "httpMethod": "GET",
@@ -8589,17 +8243,30 @@ type ManagementProfilesPatchCall struct {
 	webPropertyId string
 	profileId     string
 	profile       *Profile
-	opt_          map[string]interface{}
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Patch: Updates an existing view (profile). This method supports patch
 // semantics.
+
 func (r *ManagementProfilesService) Patch(accountId string, webPropertyId string, profileId string, profile *Profile) *ManagementProfilesPatchCall {
-	c := &ManagementProfilesPatchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.webPropertyId = webPropertyId
-	c.profileId = profileId
-	c.profile = profile
+	return &ManagementProfilesPatchCall{
+		s:             r.s,
+		accountId:     accountId,
+		webPropertyId: webPropertyId,
+		profileId:     profileId,
+		profile:       profile,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "management/accounts/{accountId}/webproperties/{webPropertyId}/profiles/{profileId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *ManagementProfilesPatchCall) Context(ctx context.Context) *ManagementProfilesPatchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -8607,45 +8274,26 @@ func (r *ManagementProfilesService) Patch(accountId string, webPropertyId string
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ManagementProfilesPatchCall) Fields(s ...googleapi.Field) *ManagementProfilesPatchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ManagementProfilesPatchCall) Do() (*Profile, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.profile)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts/{accountId}/webproperties/{webPropertyId}/profiles/{profileId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PATCH", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Profile
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId":     c.accountId,
 		"webPropertyId": c.webPropertyId,
 		"profileId":     c.profileId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PATCH",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.profile,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Profile
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates an existing view (profile). This method supports patch semantics.",
 	//   "httpMethod": "PATCH",
@@ -8697,16 +8345,29 @@ type ManagementProfilesUpdateCall struct {
 	webPropertyId string
 	profileId     string
 	profile       *Profile
-	opt_          map[string]interface{}
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Update: Updates an existing view (profile).
+
 func (r *ManagementProfilesService) Update(accountId string, webPropertyId string, profileId string, profile *Profile) *ManagementProfilesUpdateCall {
-	c := &ManagementProfilesUpdateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.webPropertyId = webPropertyId
-	c.profileId = profileId
-	c.profile = profile
+	return &ManagementProfilesUpdateCall{
+		s:             r.s,
+		accountId:     accountId,
+		webPropertyId: webPropertyId,
+		profileId:     profileId,
+		profile:       profile,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "management/accounts/{accountId}/webproperties/{webPropertyId}/profiles/{profileId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *ManagementProfilesUpdateCall) Context(ctx context.Context) *ManagementProfilesUpdateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -8714,45 +8375,26 @@ func (r *ManagementProfilesService) Update(accountId string, webPropertyId strin
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ManagementProfilesUpdateCall) Fields(s ...googleapi.Field) *ManagementProfilesUpdateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ManagementProfilesUpdateCall) Do() (*Profile, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.profile)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts/{accountId}/webproperties/{webPropertyId}/profiles/{profileId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Profile
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId":     c.accountId,
 		"webPropertyId": c.webPropertyId,
 		"profileId":     c.profileId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.profile,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Profile
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates an existing view (profile).",
 	//   "httpMethod": "PUT",
@@ -8799,20 +8441,29 @@ func (c *ManagementProfilesUpdateCall) Do() (*Profile, error) {
 // method id "analytics.management.segments.list":
 
 type ManagementSegmentsListCall struct {
-	s    *Service
-	opt_ map[string]interface{}
+	s             *Service
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Lists segments to which the user has access.
+
 func (r *ManagementSegmentsService) List() *ManagementSegmentsListCall {
-	c := &ManagementSegmentsListCall{s: r.s, opt_: make(map[string]interface{})}
-	return c
+	return &ManagementSegmentsListCall{
+		s:             r.s,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "management/segments",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // MaxResults sets the optional parameter "max-results": The maximum
 // number of segments to include in this response.
 func (c *ManagementSegmentsListCall) MaxResults(maxResults int64) *ManagementSegmentsListCall {
-	c.opt_["max-results"] = maxResults
+	c.params_.Set("max-results", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
@@ -8820,7 +8471,11 @@ func (c *ManagementSegmentsListCall) MaxResults(maxResults int64) *ManagementSeg
 // first segment to retrieve. Use this parameter as a pagination
 // mechanism along with the max-results parameter.
 func (c *ManagementSegmentsListCall) StartIndex(startIndex int64) *ManagementSegmentsListCall {
-	c.opt_["start-index"] = startIndex
+	c.params_.Set("start-index", fmt.Sprintf("%v", startIndex))
+	return c
+}
+func (c *ManagementSegmentsListCall) Context(ctx context.Context) *ManagementSegmentsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -8828,41 +8483,21 @@ func (c *ManagementSegmentsListCall) StartIndex(startIndex int64) *ManagementSeg
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ManagementSegmentsListCall) Fields(s ...googleapi.Field) *ManagementSegmentsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ManagementSegmentsListCall) Do() (*Segments, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["max-results"]; ok {
-		params.Set("max-results", fmt.Sprintf("%v", v))
+	var returnValue *Segments
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	if v, ok := c.opt_["start-index"]; ok {
-		params.Set("start-index", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "management/segments")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Segments
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Lists segments to which the user has access.",
 	//   "httpMethod": "GET",
@@ -8903,16 +8538,29 @@ type ManagementUnsampledReportsGetCall struct {
 	webPropertyId     string
 	profileId         string
 	unsampledReportId string
-	opt_              map[string]interface{}
+	caller_           googleapi.Caller
+	params_           url.Values
+	pathTemplate_     string
+	context_          context.Context
 }
 
 // Get: Returns a single unsampled report.
+
 func (r *ManagementUnsampledReportsService) Get(accountId string, webPropertyId string, profileId string, unsampledReportId string) *ManagementUnsampledReportsGetCall {
-	c := &ManagementUnsampledReportsGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.webPropertyId = webPropertyId
-	c.profileId = profileId
-	c.unsampledReportId = unsampledReportId
+	return &ManagementUnsampledReportsGetCall{
+		s:                 r.s,
+		accountId:         accountId,
+		webPropertyId:     webPropertyId,
+		profileId:         profileId,
+		unsampledReportId: unsampledReportId,
+		caller_:           googleapi.JSONCall{},
+		params_:           make(map[string][]string),
+		pathTemplate_:     "management/accounts/{accountId}/webproperties/{webPropertyId}/profiles/{profileId}/unsampledReports/{unsampledReportId}",
+		context_:          googleapi.NoContext,
+	}
+}
+func (c *ManagementUnsampledReportsGetCall) Context(ctx context.Context) *ManagementUnsampledReportsGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -8920,40 +8568,26 @@ func (r *ManagementUnsampledReportsService) Get(accountId string, webPropertyId 
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ManagementUnsampledReportsGetCall) Fields(s ...googleapi.Field) *ManagementUnsampledReportsGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ManagementUnsampledReportsGetCall) Do() (*UnsampledReport, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts/{accountId}/webproperties/{webPropertyId}/profiles/{profileId}/unsampledReports/{unsampledReportId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *UnsampledReport
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId":         c.accountId,
 		"webPropertyId":     c.webPropertyId,
 		"profileId":         c.profileId,
 		"unsampledReportId": c.unsampledReportId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *UnsampledReport
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Returns a single unsampled report.",
 	//   "httpMethod": "GET",
@@ -9011,16 +8645,29 @@ type ManagementUnsampledReportsInsertCall struct {
 	webPropertyId   string
 	profileId       string
 	unsampledreport *UnsampledReport
-	opt_            map[string]interface{}
+	caller_         googleapi.Caller
+	params_         url.Values
+	pathTemplate_   string
+	context_        context.Context
 }
 
 // Insert: Create a new unsampled report.
+
 func (r *ManagementUnsampledReportsService) Insert(accountId string, webPropertyId string, profileId string, unsampledreport *UnsampledReport) *ManagementUnsampledReportsInsertCall {
-	c := &ManagementUnsampledReportsInsertCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.webPropertyId = webPropertyId
-	c.profileId = profileId
-	c.unsampledreport = unsampledreport
+	return &ManagementUnsampledReportsInsertCall{
+		s:               r.s,
+		accountId:       accountId,
+		webPropertyId:   webPropertyId,
+		profileId:       profileId,
+		unsampledreport: unsampledreport,
+		caller_:         googleapi.JSONCall{},
+		params_:         make(map[string][]string),
+		pathTemplate_:   "management/accounts/{accountId}/webproperties/{webPropertyId}/profiles/{profileId}/unsampledReports",
+		context_:        googleapi.NoContext,
+	}
+}
+func (c *ManagementUnsampledReportsInsertCall) Context(ctx context.Context) *ManagementUnsampledReportsInsertCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -9028,45 +8675,26 @@ func (r *ManagementUnsampledReportsService) Insert(accountId string, webProperty
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ManagementUnsampledReportsInsertCall) Fields(s ...googleapi.Field) *ManagementUnsampledReportsInsertCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ManagementUnsampledReportsInsertCall) Do() (*UnsampledReport, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.unsampledreport)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts/{accountId}/webproperties/{webPropertyId}/profiles/{profileId}/unsampledReports")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *UnsampledReport
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId":     c.accountId,
 		"webPropertyId": c.webPropertyId,
 		"profileId":     c.profileId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.unsampledreport,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *UnsampledReport
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Create a new unsampled report.",
 	//   "httpMethod": "POST",
@@ -9118,22 +8746,31 @@ type ManagementUnsampledReportsListCall struct {
 	accountId     string
 	webPropertyId string
 	profileId     string
-	opt_          map[string]interface{}
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Lists unsampled reports to which the user has access.
+
 func (r *ManagementUnsampledReportsService) List(accountId string, webPropertyId string, profileId string) *ManagementUnsampledReportsListCall {
-	c := &ManagementUnsampledReportsListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.webPropertyId = webPropertyId
-	c.profileId = profileId
-	return c
+	return &ManagementUnsampledReportsListCall{
+		s:             r.s,
+		accountId:     accountId,
+		webPropertyId: webPropertyId,
+		profileId:     profileId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "management/accounts/{accountId}/webproperties/{webPropertyId}/profiles/{profileId}/unsampledReports",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // MaxResults sets the optional parameter "max-results": The maximum
 // number of unsampled reports to include in this response.
 func (c *ManagementUnsampledReportsListCall) MaxResults(maxResults int64) *ManagementUnsampledReportsListCall {
-	c.opt_["max-results"] = maxResults
+	c.params_.Set("max-results", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
@@ -9141,7 +8778,11 @@ func (c *ManagementUnsampledReportsListCall) MaxResults(maxResults int64) *Manag
 // first unsampled report to retrieve. Use this parameter as a
 // pagination mechanism along with the max-results parameter.
 func (c *ManagementUnsampledReportsListCall) StartIndex(startIndex int64) *ManagementUnsampledReportsListCall {
-	c.opt_["start-index"] = startIndex
+	c.params_.Set("start-index", fmt.Sprintf("%v", startIndex))
+	return c
+}
+func (c *ManagementUnsampledReportsListCall) Context(ctx context.Context) *ManagementUnsampledReportsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -9149,45 +8790,25 @@ func (c *ManagementUnsampledReportsListCall) StartIndex(startIndex int64) *Manag
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ManagementUnsampledReportsListCall) Fields(s ...googleapi.Field) *ManagementUnsampledReportsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ManagementUnsampledReportsListCall) Do() (*UnsampledReports, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["max-results"]; ok {
-		params.Set("max-results", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["start-index"]; ok {
-		params.Set("start-index", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts/{accountId}/webproperties/{webPropertyId}/profiles/{profileId}/unsampledReports")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *UnsampledReports
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId":     c.accountId,
 		"webPropertyId": c.webPropertyId,
 		"profileId":     c.profileId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *UnsampledReports
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Lists unsampled reports to which the user has access.",
 	//   "httpMethod": "GET",
@@ -9251,58 +8872,46 @@ type ManagementUploadsDeleteUploadDataCall struct {
 	webPropertyId                              string
 	customDataSourceId                         string
 	analyticsdataimportdeleteuploaddatarequest *AnalyticsDataimportDeleteUploadDataRequest
-	opt_                                       map[string]interface{}
+	caller_                                    googleapi.Caller
+	params_                                    url.Values
+	pathTemplate_                              string
+	context_                                   context.Context
 }
 
 // DeleteUploadData: Delete data associated with a previous upload.
-func (r *ManagementUploadsService) DeleteUploadData(accountId string, webPropertyId string, customDataSourceId string, analyticsdataimportdeleteuploaddatarequest *AnalyticsDataimportDeleteUploadDataRequest) *ManagementUploadsDeleteUploadDataCall {
-	c := &ManagementUploadsDeleteUploadDataCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.webPropertyId = webPropertyId
-	c.customDataSourceId = customDataSourceId
-	c.analyticsdataimportdeleteuploaddatarequest = analyticsdataimportdeleteuploaddatarequest
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *ManagementUploadsDeleteUploadDataCall) Fields(s ...googleapi.Field) *ManagementUploadsDeleteUploadDataCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *ManagementUploadsService) DeleteUploadData(accountId string, webPropertyId string, customDataSourceId string, analyticsdataimportdeleteuploaddatarequest *AnalyticsDataimportDeleteUploadDataRequest) *ManagementUploadsDeleteUploadDataCall {
+	return &ManagementUploadsDeleteUploadDataCall{
+		s:                                          r.s,
+		accountId:                                  accountId,
+		webPropertyId:                              webPropertyId,
+		customDataSourceId:                         customDataSourceId,
+		analyticsdataimportdeleteuploaddatarequest: analyticsdataimportdeleteuploaddatarequest,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "management/accounts/{accountId}/webproperties/{webPropertyId}/customDataSources/{customDataSourceId}/deleteUploadData",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *ManagementUploadsDeleteUploadDataCall) Context(ctx context.Context) *ManagementUploadsDeleteUploadDataCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *ManagementUploadsDeleteUploadDataCall) Do() error {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.analyticsdataimportdeleteuploaddatarequest)
-	if err != nil {
-		return err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts/{accountId}/webproperties/{webPropertyId}/customDataSources/{customDataSourceId}/deleteUploadData")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId":          c.accountId,
 		"webPropertyId":      c.webPropertyId,
 		"customDataSourceId": c.customDataSourceId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.analyticsdataimportdeleteuploaddatarequest,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Delete data associated with a previous upload.",
 	//   "httpMethod": "POST",
@@ -9355,16 +8964,29 @@ type ManagementUploadsGetCall struct {
 	webPropertyId      string
 	customDataSourceId string
 	uploadId           string
-	opt_               map[string]interface{}
+	caller_            googleapi.Caller
+	params_            url.Values
+	pathTemplate_      string
+	context_           context.Context
 }
 
 // Get: List uploads to which the user has access.
+
 func (r *ManagementUploadsService) Get(accountId string, webPropertyId string, customDataSourceId string, uploadId string) *ManagementUploadsGetCall {
-	c := &ManagementUploadsGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.webPropertyId = webPropertyId
-	c.customDataSourceId = customDataSourceId
-	c.uploadId = uploadId
+	return &ManagementUploadsGetCall{
+		s:                  r.s,
+		accountId:          accountId,
+		webPropertyId:      webPropertyId,
+		customDataSourceId: customDataSourceId,
+		uploadId:           uploadId,
+		caller_:            googleapi.JSONCall{},
+		params_:            make(map[string][]string),
+		pathTemplate_:      "management/accounts/{accountId}/webproperties/{webPropertyId}/customDataSources/{customDataSourceId}/uploads/{uploadId}",
+		context_:           googleapi.NoContext,
+	}
+}
+func (c *ManagementUploadsGetCall) Context(ctx context.Context) *ManagementUploadsGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -9372,40 +8994,26 @@ func (r *ManagementUploadsService) Get(accountId string, webPropertyId string, c
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ManagementUploadsGetCall) Fields(s ...googleapi.Field) *ManagementUploadsGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ManagementUploadsGetCall) Do() (*Upload, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts/{accountId}/webproperties/{webPropertyId}/customDataSources/{customDataSourceId}/uploads/{uploadId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Upload
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId":          c.accountId,
 		"webPropertyId":      c.webPropertyId,
 		"customDataSourceId": c.customDataSourceId,
 		"uploadId":           c.uploadId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Upload
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "List uploads to which the user has access.",
 	//   "httpMethod": "GET",
@@ -9466,22 +9074,31 @@ type ManagementUploadsListCall struct {
 	accountId          string
 	webPropertyId      string
 	customDataSourceId string
-	opt_               map[string]interface{}
+	caller_            googleapi.Caller
+	params_            url.Values
+	pathTemplate_      string
+	context_           context.Context
 }
 
 // List: List uploads to which the user has access.
+
 func (r *ManagementUploadsService) List(accountId string, webPropertyId string, customDataSourceId string) *ManagementUploadsListCall {
-	c := &ManagementUploadsListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.webPropertyId = webPropertyId
-	c.customDataSourceId = customDataSourceId
-	return c
+	return &ManagementUploadsListCall{
+		s:                  r.s,
+		accountId:          accountId,
+		webPropertyId:      webPropertyId,
+		customDataSourceId: customDataSourceId,
+		caller_:            googleapi.JSONCall{},
+		params_:            make(map[string][]string),
+		pathTemplate_:      "management/accounts/{accountId}/webproperties/{webPropertyId}/customDataSources/{customDataSourceId}/uploads",
+		context_:           googleapi.NoContext,
+	}
 }
 
 // MaxResults sets the optional parameter "max-results": The maximum
 // number of uploads to include in this response.
 func (c *ManagementUploadsListCall) MaxResults(maxResults int64) *ManagementUploadsListCall {
-	c.opt_["max-results"] = maxResults
+	c.params_.Set("max-results", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
@@ -9489,7 +9106,11 @@ func (c *ManagementUploadsListCall) MaxResults(maxResults int64) *ManagementUplo
 // of the first upload to retrieve. Use this parameter as a pagination
 // mechanism along with the max-results parameter.
 func (c *ManagementUploadsListCall) StartIndex(startIndex int64) *ManagementUploadsListCall {
-	c.opt_["start-index"] = startIndex
+	c.params_.Set("start-index", fmt.Sprintf("%v", startIndex))
+	return c
+}
+func (c *ManagementUploadsListCall) Context(ctx context.Context) *ManagementUploadsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -9497,45 +9118,25 @@ func (c *ManagementUploadsListCall) StartIndex(startIndex int64) *ManagementUplo
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ManagementUploadsListCall) Fields(s ...googleapi.Field) *ManagementUploadsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ManagementUploadsListCall) Do() (*Uploads, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["max-results"]; ok {
-		params.Set("max-results", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["start-index"]; ok {
-		params.Set("start-index", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts/{accountId}/webproperties/{webPropertyId}/customDataSources/{customDataSourceId}/uploads")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Uploads
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId":          c.accountId,
 		"webPropertyId":      c.webPropertyId,
 		"customDataSourceId": c.customDataSourceId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Uploads
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "List uploads to which the user has access.",
 	//   "httpMethod": "GET",
@@ -9602,28 +9203,53 @@ type ManagementUploadsUploadDataCall struct {
 	accountId          string
 	webPropertyId      string
 	customDataSourceId string
-	opt_               map[string]interface{}
-	media_             io.Reader
-	resumable_         googleapi.SizeReaderAt
-	mediaType_         string
-	ctx_               context.Context
-	protocol_          string
+	caller_            googleapi.Caller
+	params_            url.Values
+	pathTemplate_      string
+	context_           context.Context
+	callback_          googleapi.ProgressUpdater
 }
 
 // UploadData: Upload data for a custom data source.
+
 func (r *ManagementUploadsService) UploadData(accountId string, webPropertyId string, customDataSourceId string) *ManagementUploadsUploadDataCall {
-	c := &ManagementUploadsUploadDataCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.webPropertyId = webPropertyId
-	c.customDataSourceId = customDataSourceId
+	return &ManagementUploadsUploadDataCall{
+		s:                  r.s,
+		accountId:          accountId,
+		webPropertyId:      webPropertyId,
+		customDataSourceId: customDataSourceId,
+		caller_:            googleapi.JSONCall{},
+		params_:            make(map[string][]string),
+		pathTemplate_:      "management/accounts/{accountId}/webproperties/{webPropertyId}/customDataSources/{customDataSourceId}/uploads",
+		context_:           googleapi.NoContext,
+	}
+}
+func (c *ManagementUploadsUploadDataCall) Context(ctx context.Context) *ManagementUploadsUploadDataCall {
+	c.context_ = ctx
+	return c
+}
+
+// MediaUpload takes a context and UploadCaller interface
+func (c *ManagementUploadsUploadDataCall) Upload(ctx context.Context, u googleapi.UploadCaller) *ManagementUploadsUploadDataCall {
+	c.caller_ = u
+	c.context_ = ctx
+	switch u.(type) {
+	case *googleapi.MediaUpload:
+		c.pathTemplate_ = "/upload/analytics/v3/management/accounts/{accountId}/webproperties/{webPropertyId}/customDataSources/{customDataSourceId}/uploads"
+	case *googleapi.ResumableUpload:
+		c.pathTemplate_ = "/resumable/upload/analytics/v3/management/accounts/{accountId}/webproperties/{webPropertyId}/customDataSources/{customDataSourceId}/uploads"
+	}
 	return c
 }
 
 // Media specifies the media to upload in a single chunk.
 // At most one of Media and ResumableMedia may be set.
+// The mime type type will be auto-detected unless r is a googleapi.ContentTyper as well.
 func (c *ManagementUploadsUploadDataCall) Media(r io.Reader) *ManagementUploadsUploadDataCall {
-	c.media_ = r
-	c.protocol_ = "multipart"
+	c.caller_ = &googleapi.MediaUpload{
+		Media: r,
+	}
+	c.pathTemplate_ = "/upload/analytics/v3/management/accounts/{accountId}/webproperties/{webPropertyId}/customDataSources/{customDataSourceId}/uploads"
 	return c
 }
 
@@ -9632,10 +9258,14 @@ func (c *ManagementUploadsUploadDataCall) Media(r io.Reader) *ManagementUploadsU
 // mediaType identifies the MIME media type of the upload, such as "image/png".
 // If mediaType is "", it will be auto-detected.
 func (c *ManagementUploadsUploadDataCall) ResumableMedia(ctx context.Context, r io.ReaderAt, size int64, mediaType string) *ManagementUploadsUploadDataCall {
-	c.ctx_ = ctx
-	c.resumable_ = io.NewSectionReader(r, 0, size)
-	c.mediaType_ = mediaType
-	c.protocol_ = "resumable"
+	c.caller_ = &googleapi.ResumableUpload{
+		Media:         io.NewSectionReader(r, 0, size),
+		MediaType:     mediaType,
+		ContentLength: size,
+		Callback:      c.callback_,
+	}
+	c.pathTemplate_ = "/resumable/upload/analytics/v3/management/accounts/{accountId}/webproperties/{webPropertyId}/customDataSources/{customDataSourceId}/uploads"
+	c.context_ = ctx
 	return c
 }
 
@@ -9643,7 +9273,10 @@ func (c *ManagementUploadsUploadDataCall) ResumableMedia(ctx context.Context, r 
 // It should be a low-latency function in order to not slow down the upload operation.
 // This should only be called when using ResumableMedia (as opposed to Media).
 func (c *ManagementUploadsUploadDataCall) ProgressUpdater(pu googleapi.ProgressUpdater) *ManagementUploadsUploadDataCall {
-	c.opt_["progressUpdater"] = pu
+	c.callback_ = pu
+	if rx, ok := c.caller_.(*googleapi.ResumableUpload); ok {
+		rx.Callback = pu
+	}
 	return c
 }
 
@@ -9651,85 +9284,25 @@ func (c *ManagementUploadsUploadDataCall) ProgressUpdater(pu googleapi.ProgressU
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ManagementUploadsUploadDataCall) Fields(s ...googleapi.Field) *ManagementUploadsUploadDataCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ManagementUploadsUploadDataCall) Do() (*Upload, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts/{accountId}/webproperties/{webPropertyId}/customDataSources/{customDataSourceId}/uploads")
-	var progressUpdater_ googleapi.ProgressUpdater
-	if v, ok := c.opt_["progressUpdater"]; ok {
-		if pu, ok := v.(googleapi.ProgressUpdater); ok {
-			progressUpdater_ = pu
-		}
-	}
-	if c.media_ != nil || c.resumable_ != nil {
-		urls = strings.Replace(urls, "https://www.googleapis.com/", "https://www.googleapis.com/upload/", 1)
-		params.Set("uploadType", c.protocol_)
-	}
-	urls += "?" + params.Encode()
-	body = new(bytes.Buffer)
-	ctype := "application/json"
-	if c.protocol_ != "resumable" {
-		var cancel func()
-		cancel, _ = googleapi.ConditionallyIncludeMedia(c.media_, &body, &ctype)
-		if cancel != nil {
-			defer cancel()
-		}
-	}
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Upload
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId":          c.accountId,
 		"webPropertyId":      c.webPropertyId,
 		"customDataSourceId": c.customDataSourceId,
 	})
-	if c.protocol_ == "resumable" {
-		req.ContentLength = 0
-		if c.mediaType_ == "" {
-			c.mediaType_ = googleapi.DetectMediaType(c.resumable_)
-		}
-		req.Header.Set("X-Upload-Content-Type", c.mediaType_)
-		req.Body = nil
-	} else {
-		req.Header.Set("Content-Type", ctype)
+	call := &googleapi.Call{
+		Method: "POST",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	if c.protocol_ == "resumable" {
-		loc := res.Header.Get("Location")
-		rx := &googleapi.ResumableUpload{
-			Client:        c.s.client,
-			UserAgent:     c.s.userAgent(),
-			URI:           loc,
-			Media:         c.resumable_,
-			MediaType:     c.mediaType_,
-			ContentLength: c.resumable_.Size(),
-			Callback:      progressUpdater_,
-		}
-		res, err = rx.Upload(c.ctx_)
-		if err != nil {
-			return nil, err
-		}
-		defer res.Body.Close()
-	}
-	var ret *Upload
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Upload data for a custom data source.",
 	//   "httpMethod": "POST",
@@ -9797,51 +9370,44 @@ type ManagementWebPropertyAdWordsLinksDeleteCall struct {
 	accountId                string
 	webPropertyId            string
 	webPropertyAdWordsLinkId string
-	opt_                     map[string]interface{}
+	caller_                  googleapi.Caller
+	params_                  url.Values
+	pathTemplate_            string
+	context_                 context.Context
 }
 
 // Delete: Deletes a web property-AdWords link.
-func (r *ManagementWebPropertyAdWordsLinksService) Delete(accountId string, webPropertyId string, webPropertyAdWordsLinkId string) *ManagementWebPropertyAdWordsLinksDeleteCall {
-	c := &ManagementWebPropertyAdWordsLinksDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.webPropertyId = webPropertyId
-	c.webPropertyAdWordsLinkId = webPropertyAdWordsLinkId
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *ManagementWebPropertyAdWordsLinksDeleteCall) Fields(s ...googleapi.Field) *ManagementWebPropertyAdWordsLinksDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *ManagementWebPropertyAdWordsLinksService) Delete(accountId string, webPropertyId string, webPropertyAdWordsLinkId string) *ManagementWebPropertyAdWordsLinksDeleteCall {
+	return &ManagementWebPropertyAdWordsLinksDeleteCall{
+		s:                        r.s,
+		accountId:                accountId,
+		webPropertyId:            webPropertyId,
+		webPropertyAdWordsLinkId: webPropertyAdWordsLinkId,
+		caller_:                  googleapi.JSONCall{},
+		params_:                  make(map[string][]string),
+		pathTemplate_:            "management/accounts/{accountId}/webproperties/{webPropertyId}/entityAdWordsLinks/{webPropertyAdWordsLinkId}",
+		context_:                 googleapi.NoContext,
+	}
+}
+func (c *ManagementWebPropertyAdWordsLinksDeleteCall) Context(ctx context.Context) *ManagementWebPropertyAdWordsLinksDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *ManagementWebPropertyAdWordsLinksDeleteCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts/{accountId}/webproperties/{webPropertyId}/entityAdWordsLinks/{webPropertyAdWordsLinkId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId":                c.accountId,
 		"webPropertyId":            c.webPropertyId,
 		"webPropertyAdWordsLinkId": c.webPropertyAdWordsLinkId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Deletes a web property-AdWords link.",
 	//   "httpMethod": "DELETE",
@@ -9886,16 +9452,29 @@ type ManagementWebPropertyAdWordsLinksGetCall struct {
 	accountId                string
 	webPropertyId            string
 	webPropertyAdWordsLinkId string
-	opt_                     map[string]interface{}
+	caller_                  googleapi.Caller
+	params_                  url.Values
+	pathTemplate_            string
+	context_                 context.Context
 }
 
 // Get: Returns a web property-AdWords link to which the user has
 // access.
+
 func (r *ManagementWebPropertyAdWordsLinksService) Get(accountId string, webPropertyId string, webPropertyAdWordsLinkId string) *ManagementWebPropertyAdWordsLinksGetCall {
-	c := &ManagementWebPropertyAdWordsLinksGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.webPropertyId = webPropertyId
-	c.webPropertyAdWordsLinkId = webPropertyAdWordsLinkId
+	return &ManagementWebPropertyAdWordsLinksGetCall{
+		s:                        r.s,
+		accountId:                accountId,
+		webPropertyId:            webPropertyId,
+		webPropertyAdWordsLinkId: webPropertyAdWordsLinkId,
+		caller_:                  googleapi.JSONCall{},
+		params_:                  make(map[string][]string),
+		pathTemplate_:            "management/accounts/{accountId}/webproperties/{webPropertyId}/entityAdWordsLinks/{webPropertyAdWordsLinkId}",
+		context_:                 googleapi.NoContext,
+	}
+}
+func (c *ManagementWebPropertyAdWordsLinksGetCall) Context(ctx context.Context) *ManagementWebPropertyAdWordsLinksGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -9903,39 +9482,25 @@ func (r *ManagementWebPropertyAdWordsLinksService) Get(accountId string, webProp
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ManagementWebPropertyAdWordsLinksGetCall) Fields(s ...googleapi.Field) *ManagementWebPropertyAdWordsLinksGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ManagementWebPropertyAdWordsLinksGetCall) Do() (*EntityAdWordsLink, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts/{accountId}/webproperties/{webPropertyId}/entityAdWordsLinks/{webPropertyAdWordsLinkId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *EntityAdWordsLink
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId":                c.accountId,
 		"webPropertyId":            c.webPropertyId,
 		"webPropertyAdWordsLinkId": c.webPropertyAdWordsLinkId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *EntityAdWordsLink
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Returns a web property-AdWords link to which the user has access.",
 	//   "httpMethod": "GET",
@@ -9984,15 +9549,28 @@ type ManagementWebPropertyAdWordsLinksInsertCall struct {
 	accountId         string
 	webPropertyId     string
 	entityadwordslink *EntityAdWordsLink
-	opt_              map[string]interface{}
+	caller_           googleapi.Caller
+	params_           url.Values
+	pathTemplate_     string
+	context_          context.Context
 }
 
 // Insert: Creates a webProperty-AdWords link.
+
 func (r *ManagementWebPropertyAdWordsLinksService) Insert(accountId string, webPropertyId string, entityadwordslink *EntityAdWordsLink) *ManagementWebPropertyAdWordsLinksInsertCall {
-	c := &ManagementWebPropertyAdWordsLinksInsertCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.webPropertyId = webPropertyId
-	c.entityadwordslink = entityadwordslink
+	return &ManagementWebPropertyAdWordsLinksInsertCall{
+		s:                 r.s,
+		accountId:         accountId,
+		webPropertyId:     webPropertyId,
+		entityadwordslink: entityadwordslink,
+		caller_:           googleapi.JSONCall{},
+		params_:           make(map[string][]string),
+		pathTemplate_:     "management/accounts/{accountId}/webproperties/{webPropertyId}/entityAdWordsLinks",
+		context_:          googleapi.NoContext,
+	}
+}
+func (c *ManagementWebPropertyAdWordsLinksInsertCall) Context(ctx context.Context) *ManagementWebPropertyAdWordsLinksInsertCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -10000,44 +9578,25 @@ func (r *ManagementWebPropertyAdWordsLinksService) Insert(accountId string, webP
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ManagementWebPropertyAdWordsLinksInsertCall) Fields(s ...googleapi.Field) *ManagementWebPropertyAdWordsLinksInsertCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ManagementWebPropertyAdWordsLinksInsertCall) Do() (*EntityAdWordsLink, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.entityadwordslink)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts/{accountId}/webproperties/{webPropertyId}/entityAdWordsLinks")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *EntityAdWordsLink
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId":     c.accountId,
 		"webPropertyId": c.webPropertyId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.entityadwordslink,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *EntityAdWordsLink
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Creates a webProperty-AdWords link.",
 	//   "httpMethod": "POST",
@@ -10080,21 +9639,30 @@ type ManagementWebPropertyAdWordsLinksListCall struct {
 	s             *Service
 	accountId     string
 	webPropertyId string
-	opt_          map[string]interface{}
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Lists webProperty-AdWords links for a given web property.
+
 func (r *ManagementWebPropertyAdWordsLinksService) List(accountId string, webPropertyId string) *ManagementWebPropertyAdWordsLinksListCall {
-	c := &ManagementWebPropertyAdWordsLinksListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.webPropertyId = webPropertyId
-	return c
+	return &ManagementWebPropertyAdWordsLinksListCall{
+		s:             r.s,
+		accountId:     accountId,
+		webPropertyId: webPropertyId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "management/accounts/{accountId}/webproperties/{webPropertyId}/entityAdWordsLinks",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // MaxResults sets the optional parameter "max-results": The maximum
 // number of webProperty-AdWords links to include in this response.
 func (c *ManagementWebPropertyAdWordsLinksListCall) MaxResults(maxResults int64) *ManagementWebPropertyAdWordsLinksListCall {
-	c.opt_["max-results"] = maxResults
+	c.params_.Set("max-results", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
@@ -10102,7 +9670,11 @@ func (c *ManagementWebPropertyAdWordsLinksListCall) MaxResults(maxResults int64)
 // first webProperty-AdWords link to retrieve. Use this parameter as a
 // pagination mechanism along with the max-results parameter.
 func (c *ManagementWebPropertyAdWordsLinksListCall) StartIndex(startIndex int64) *ManagementWebPropertyAdWordsLinksListCall {
-	c.opt_["start-index"] = startIndex
+	c.params_.Set("start-index", fmt.Sprintf("%v", startIndex))
+	return c
+}
+func (c *ManagementWebPropertyAdWordsLinksListCall) Context(ctx context.Context) *ManagementWebPropertyAdWordsLinksListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -10110,44 +9682,24 @@ func (c *ManagementWebPropertyAdWordsLinksListCall) StartIndex(startIndex int64)
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ManagementWebPropertyAdWordsLinksListCall) Fields(s ...googleapi.Field) *ManagementWebPropertyAdWordsLinksListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ManagementWebPropertyAdWordsLinksListCall) Do() (*EntityAdWordsLinks, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["max-results"]; ok {
-		params.Set("max-results", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["start-index"]; ok {
-		params.Set("start-index", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts/{accountId}/webproperties/{webPropertyId}/entityAdWordsLinks")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *EntityAdWordsLinks
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId":     c.accountId,
 		"webPropertyId": c.webPropertyId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *EntityAdWordsLinks
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Lists webProperty-AdWords links for a given web property.",
 	//   "httpMethod": "GET",
@@ -10204,17 +9756,30 @@ type ManagementWebPropertyAdWordsLinksPatchCall struct {
 	webPropertyId            string
 	webPropertyAdWordsLinkId string
 	entityadwordslink        *EntityAdWordsLink
-	opt_                     map[string]interface{}
+	caller_                  googleapi.Caller
+	params_                  url.Values
+	pathTemplate_            string
+	context_                 context.Context
 }
 
 // Patch: Updates an existing webProperty-AdWords link. This method
 // supports patch semantics.
+
 func (r *ManagementWebPropertyAdWordsLinksService) Patch(accountId string, webPropertyId string, webPropertyAdWordsLinkId string, entityadwordslink *EntityAdWordsLink) *ManagementWebPropertyAdWordsLinksPatchCall {
-	c := &ManagementWebPropertyAdWordsLinksPatchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.webPropertyId = webPropertyId
-	c.webPropertyAdWordsLinkId = webPropertyAdWordsLinkId
-	c.entityadwordslink = entityadwordslink
+	return &ManagementWebPropertyAdWordsLinksPatchCall{
+		s:                        r.s,
+		accountId:                accountId,
+		webPropertyId:            webPropertyId,
+		webPropertyAdWordsLinkId: webPropertyAdWordsLinkId,
+		entityadwordslink:        entityadwordslink,
+		caller_:                  googleapi.JSONCall{},
+		params_:                  make(map[string][]string),
+		pathTemplate_:            "management/accounts/{accountId}/webproperties/{webPropertyId}/entityAdWordsLinks/{webPropertyAdWordsLinkId}",
+		context_:                 googleapi.NoContext,
+	}
+}
+func (c *ManagementWebPropertyAdWordsLinksPatchCall) Context(ctx context.Context) *ManagementWebPropertyAdWordsLinksPatchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -10222,45 +9787,26 @@ func (r *ManagementWebPropertyAdWordsLinksService) Patch(accountId string, webPr
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ManagementWebPropertyAdWordsLinksPatchCall) Fields(s ...googleapi.Field) *ManagementWebPropertyAdWordsLinksPatchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ManagementWebPropertyAdWordsLinksPatchCall) Do() (*EntityAdWordsLink, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.entityadwordslink)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts/{accountId}/webproperties/{webPropertyId}/entityAdWordsLinks/{webPropertyAdWordsLinkId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PATCH", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *EntityAdWordsLink
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId":                c.accountId,
 		"webPropertyId":            c.webPropertyId,
 		"webPropertyAdWordsLinkId": c.webPropertyAdWordsLinkId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PATCH",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.entityadwordslink,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *EntityAdWordsLink
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates an existing webProperty-AdWords link. This method supports patch semantics.",
 	//   "httpMethod": "PATCH",
@@ -10312,16 +9858,29 @@ type ManagementWebPropertyAdWordsLinksUpdateCall struct {
 	webPropertyId            string
 	webPropertyAdWordsLinkId string
 	entityadwordslink        *EntityAdWordsLink
-	opt_                     map[string]interface{}
+	caller_                  googleapi.Caller
+	params_                  url.Values
+	pathTemplate_            string
+	context_                 context.Context
 }
 
 // Update: Updates an existing webProperty-AdWords link.
+
 func (r *ManagementWebPropertyAdWordsLinksService) Update(accountId string, webPropertyId string, webPropertyAdWordsLinkId string, entityadwordslink *EntityAdWordsLink) *ManagementWebPropertyAdWordsLinksUpdateCall {
-	c := &ManagementWebPropertyAdWordsLinksUpdateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.webPropertyId = webPropertyId
-	c.webPropertyAdWordsLinkId = webPropertyAdWordsLinkId
-	c.entityadwordslink = entityadwordslink
+	return &ManagementWebPropertyAdWordsLinksUpdateCall{
+		s:                        r.s,
+		accountId:                accountId,
+		webPropertyId:            webPropertyId,
+		webPropertyAdWordsLinkId: webPropertyAdWordsLinkId,
+		entityadwordslink:        entityadwordslink,
+		caller_:                  googleapi.JSONCall{},
+		params_:                  make(map[string][]string),
+		pathTemplate_:            "management/accounts/{accountId}/webproperties/{webPropertyId}/entityAdWordsLinks/{webPropertyAdWordsLinkId}",
+		context_:                 googleapi.NoContext,
+	}
+}
+func (c *ManagementWebPropertyAdWordsLinksUpdateCall) Context(ctx context.Context) *ManagementWebPropertyAdWordsLinksUpdateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -10329,45 +9888,26 @@ func (r *ManagementWebPropertyAdWordsLinksService) Update(accountId string, webP
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ManagementWebPropertyAdWordsLinksUpdateCall) Fields(s ...googleapi.Field) *ManagementWebPropertyAdWordsLinksUpdateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ManagementWebPropertyAdWordsLinksUpdateCall) Do() (*EntityAdWordsLink, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.entityadwordslink)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts/{accountId}/webproperties/{webPropertyId}/entityAdWordsLinks/{webPropertyAdWordsLinkId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *EntityAdWordsLink
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId":                c.accountId,
 		"webPropertyId":            c.webPropertyId,
 		"webPropertyAdWordsLinkId": c.webPropertyAdWordsLinkId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.entityadwordslink,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *EntityAdWordsLink
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates an existing webProperty-AdWords link.",
 	//   "httpMethod": "PUT",
@@ -10417,14 +9957,27 @@ type ManagementWebpropertiesGetCall struct {
 	s             *Service
 	accountId     string
 	webPropertyId string
-	opt_          map[string]interface{}
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Gets a web property to which the user has access.
+
 func (r *ManagementWebpropertiesService) Get(accountId string, webPropertyId string) *ManagementWebpropertiesGetCall {
-	c := &ManagementWebpropertiesGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.webPropertyId = webPropertyId
+	return &ManagementWebpropertiesGetCall{
+		s:             r.s,
+		accountId:     accountId,
+		webPropertyId: webPropertyId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "management/accounts/{accountId}/webproperties/{webPropertyId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *ManagementWebpropertiesGetCall) Context(ctx context.Context) *ManagementWebpropertiesGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -10432,38 +9985,24 @@ func (r *ManagementWebpropertiesService) Get(accountId string, webPropertyId str
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ManagementWebpropertiesGetCall) Fields(s ...googleapi.Field) *ManagementWebpropertiesGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ManagementWebpropertiesGetCall) Do() (*Webproperty, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts/{accountId}/webproperties/{webPropertyId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Webproperty
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId":     c.accountId,
 		"webPropertyId": c.webPropertyId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Webproperty
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Gets a web property to which the user has access.",
 	//   "httpMethod": "GET",
@@ -10503,19 +10042,32 @@ func (c *ManagementWebpropertiesGetCall) Do() (*Webproperty, error) {
 // method id "analytics.management.webproperties.insert":
 
 type ManagementWebpropertiesInsertCall struct {
-	s           *Service
-	accountId   string
-	webproperty *Webproperty
-	opt_        map[string]interface{}
+	s             *Service
+	accountId     string
+	webproperty   *Webproperty
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Insert: Create a new property if the account has fewer than 20
 // properties. Web properties are visible in the Google Analytics
 // interface only if they have at least one profile.
+
 func (r *ManagementWebpropertiesService) Insert(accountId string, webproperty *Webproperty) *ManagementWebpropertiesInsertCall {
-	c := &ManagementWebpropertiesInsertCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.webproperty = webproperty
+	return &ManagementWebpropertiesInsertCall{
+		s:             r.s,
+		accountId:     accountId,
+		webproperty:   webproperty,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "management/accounts/{accountId}/webproperties",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *ManagementWebpropertiesInsertCall) Context(ctx context.Context) *ManagementWebpropertiesInsertCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -10523,43 +10075,24 @@ func (r *ManagementWebpropertiesService) Insert(accountId string, webproperty *W
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ManagementWebpropertiesInsertCall) Fields(s ...googleapi.Field) *ManagementWebpropertiesInsertCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ManagementWebpropertiesInsertCall) Do() (*Webproperty, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.webproperty)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts/{accountId}/webproperties")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Webproperty
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId": c.accountId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.webproperty,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Webproperty
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Create a new property if the account has fewer than 20 properties. Web properties are visible in the Google Analytics interface only if they have at least one profile.",
 	//   "httpMethod": "POST",
@@ -10592,22 +10125,31 @@ func (c *ManagementWebpropertiesInsertCall) Do() (*Webproperty, error) {
 // method id "analytics.management.webproperties.list":
 
 type ManagementWebpropertiesListCall struct {
-	s         *Service
-	accountId string
-	opt_      map[string]interface{}
+	s             *Service
+	accountId     string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Lists web properties to which the user has access.
+
 func (r *ManagementWebpropertiesService) List(accountId string) *ManagementWebpropertiesListCall {
-	c := &ManagementWebpropertiesListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	return c
+	return &ManagementWebpropertiesListCall{
+		s:             r.s,
+		accountId:     accountId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "management/accounts/{accountId}/webproperties",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // MaxResults sets the optional parameter "max-results": The maximum
 // number of web properties to include in this response.
 func (c *ManagementWebpropertiesListCall) MaxResults(maxResults int64) *ManagementWebpropertiesListCall {
-	c.opt_["max-results"] = maxResults
+	c.params_.Set("max-results", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
@@ -10615,7 +10157,11 @@ func (c *ManagementWebpropertiesListCall) MaxResults(maxResults int64) *Manageme
 // first entity to retrieve. Use this parameter as a pagination
 // mechanism along with the max-results parameter.
 func (c *ManagementWebpropertiesListCall) StartIndex(startIndex int64) *ManagementWebpropertiesListCall {
-	c.opt_["start-index"] = startIndex
+	c.params_.Set("start-index", fmt.Sprintf("%v", startIndex))
+	return c
+}
+func (c *ManagementWebpropertiesListCall) Context(ctx context.Context) *ManagementWebpropertiesListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -10623,43 +10169,23 @@ func (c *ManagementWebpropertiesListCall) StartIndex(startIndex int64) *Manageme
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ManagementWebpropertiesListCall) Fields(s ...googleapi.Field) *ManagementWebpropertiesListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ManagementWebpropertiesListCall) Do() (*Webproperties, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["max-results"]; ok {
-		params.Set("max-results", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["start-index"]; ok {
-		params.Set("start-index", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts/{accountId}/webproperties")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Webproperties
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId": c.accountId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Webproperties
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Lists web properties to which the user has access.",
 	//   "httpMethod": "GET",
@@ -10708,16 +10234,29 @@ type ManagementWebpropertiesPatchCall struct {
 	accountId     string
 	webPropertyId string
 	webproperty   *Webproperty
-	opt_          map[string]interface{}
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Patch: Updates an existing web property. This method supports patch
 // semantics.
+
 func (r *ManagementWebpropertiesService) Patch(accountId string, webPropertyId string, webproperty *Webproperty) *ManagementWebpropertiesPatchCall {
-	c := &ManagementWebpropertiesPatchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.webPropertyId = webPropertyId
-	c.webproperty = webproperty
+	return &ManagementWebpropertiesPatchCall{
+		s:             r.s,
+		accountId:     accountId,
+		webPropertyId: webPropertyId,
+		webproperty:   webproperty,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "management/accounts/{accountId}/webproperties/{webPropertyId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *ManagementWebpropertiesPatchCall) Context(ctx context.Context) *ManagementWebpropertiesPatchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -10725,44 +10264,25 @@ func (r *ManagementWebpropertiesService) Patch(accountId string, webPropertyId s
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ManagementWebpropertiesPatchCall) Fields(s ...googleapi.Field) *ManagementWebpropertiesPatchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ManagementWebpropertiesPatchCall) Do() (*Webproperty, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.webproperty)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts/{accountId}/webproperties/{webPropertyId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PATCH", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Webproperty
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId":     c.accountId,
 		"webPropertyId": c.webPropertyId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PATCH",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.webproperty,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Webproperty
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates an existing web property. This method supports patch semantics.",
 	//   "httpMethod": "PATCH",
@@ -10806,15 +10326,28 @@ type ManagementWebpropertiesUpdateCall struct {
 	accountId     string
 	webPropertyId string
 	webproperty   *Webproperty
-	opt_          map[string]interface{}
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Update: Updates an existing web property.
+
 func (r *ManagementWebpropertiesService) Update(accountId string, webPropertyId string, webproperty *Webproperty) *ManagementWebpropertiesUpdateCall {
-	c := &ManagementWebpropertiesUpdateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.webPropertyId = webPropertyId
-	c.webproperty = webproperty
+	return &ManagementWebpropertiesUpdateCall{
+		s:             r.s,
+		accountId:     accountId,
+		webPropertyId: webPropertyId,
+		webproperty:   webproperty,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "management/accounts/{accountId}/webproperties/{webPropertyId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *ManagementWebpropertiesUpdateCall) Context(ctx context.Context) *ManagementWebpropertiesUpdateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -10822,44 +10355,25 @@ func (r *ManagementWebpropertiesService) Update(accountId string, webPropertyId 
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ManagementWebpropertiesUpdateCall) Fields(s ...googleapi.Field) *ManagementWebpropertiesUpdateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ManagementWebpropertiesUpdateCall) Do() (*Webproperty, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.webproperty)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts/{accountId}/webproperties/{webPropertyId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Webproperty
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId":     c.accountId,
 		"webPropertyId": c.webPropertyId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.webproperty,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Webproperty
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates an existing web property.",
 	//   "httpMethod": "PUT",
@@ -10903,51 +10417,44 @@ type ManagementWebpropertyUserLinksDeleteCall struct {
 	accountId     string
 	webPropertyId string
 	linkId        string
-	opt_          map[string]interface{}
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Delete: Removes a user from the given web property.
-func (r *ManagementWebpropertyUserLinksService) Delete(accountId string, webPropertyId string, linkId string) *ManagementWebpropertyUserLinksDeleteCall {
-	c := &ManagementWebpropertyUserLinksDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.webPropertyId = webPropertyId
-	c.linkId = linkId
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *ManagementWebpropertyUserLinksDeleteCall) Fields(s ...googleapi.Field) *ManagementWebpropertyUserLinksDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *ManagementWebpropertyUserLinksService) Delete(accountId string, webPropertyId string, linkId string) *ManagementWebpropertyUserLinksDeleteCall {
+	return &ManagementWebpropertyUserLinksDeleteCall{
+		s:             r.s,
+		accountId:     accountId,
+		webPropertyId: webPropertyId,
+		linkId:        linkId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "management/accounts/{accountId}/webproperties/{webPropertyId}/entityUserLinks/{linkId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *ManagementWebpropertyUserLinksDeleteCall) Context(ctx context.Context) *ManagementWebpropertyUserLinksDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *ManagementWebpropertyUserLinksDeleteCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts/{accountId}/webproperties/{webPropertyId}/entityUserLinks/{linkId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId":     c.accountId,
 		"webPropertyId": c.webPropertyId,
 		"linkId":        c.linkId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Removes a user from the given web property.",
 	//   "httpMethod": "DELETE",
@@ -10992,15 +10499,28 @@ type ManagementWebpropertyUserLinksInsertCall struct {
 	accountId      string
 	webPropertyId  string
 	entityuserlink *EntityUserLink
-	opt_           map[string]interface{}
+	caller_        googleapi.Caller
+	params_        url.Values
+	pathTemplate_  string
+	context_       context.Context
 }
 
 // Insert: Adds a new user to the given web property.
+
 func (r *ManagementWebpropertyUserLinksService) Insert(accountId string, webPropertyId string, entityuserlink *EntityUserLink) *ManagementWebpropertyUserLinksInsertCall {
-	c := &ManagementWebpropertyUserLinksInsertCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.webPropertyId = webPropertyId
-	c.entityuserlink = entityuserlink
+	return &ManagementWebpropertyUserLinksInsertCall{
+		s:              r.s,
+		accountId:      accountId,
+		webPropertyId:  webPropertyId,
+		entityuserlink: entityuserlink,
+		caller_:        googleapi.JSONCall{},
+		params_:        make(map[string][]string),
+		pathTemplate_:  "management/accounts/{accountId}/webproperties/{webPropertyId}/entityUserLinks",
+		context_:       googleapi.NoContext,
+	}
+}
+func (c *ManagementWebpropertyUserLinksInsertCall) Context(ctx context.Context) *ManagementWebpropertyUserLinksInsertCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -11008,44 +10528,25 @@ func (r *ManagementWebpropertyUserLinksService) Insert(accountId string, webProp
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ManagementWebpropertyUserLinksInsertCall) Fields(s ...googleapi.Field) *ManagementWebpropertyUserLinksInsertCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ManagementWebpropertyUserLinksInsertCall) Do() (*EntityUserLink, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.entityuserlink)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts/{accountId}/webproperties/{webPropertyId}/entityUserLinks")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *EntityUserLink
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId":     c.accountId,
 		"webPropertyId": c.webPropertyId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.entityuserlink,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *EntityUserLink
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Adds a new user to the given web property.",
 	//   "httpMethod": "POST",
@@ -11088,21 +10589,30 @@ type ManagementWebpropertyUserLinksListCall struct {
 	s             *Service
 	accountId     string
 	webPropertyId string
-	opt_          map[string]interface{}
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Lists webProperty-user links for a given web property.
+
 func (r *ManagementWebpropertyUserLinksService) List(accountId string, webPropertyId string) *ManagementWebpropertyUserLinksListCall {
-	c := &ManagementWebpropertyUserLinksListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.webPropertyId = webPropertyId
-	return c
+	return &ManagementWebpropertyUserLinksListCall{
+		s:             r.s,
+		accountId:     accountId,
+		webPropertyId: webPropertyId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "management/accounts/{accountId}/webproperties/{webPropertyId}/entityUserLinks",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // MaxResults sets the optional parameter "max-results": The maximum
 // number of webProperty-user Links to include in this response.
 func (c *ManagementWebpropertyUserLinksListCall) MaxResults(maxResults int64) *ManagementWebpropertyUserLinksListCall {
-	c.opt_["max-results"] = maxResults
+	c.params_.Set("max-results", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
@@ -11110,7 +10620,11 @@ func (c *ManagementWebpropertyUserLinksListCall) MaxResults(maxResults int64) *M
 // first webProperty-user link to retrieve. Use this parameter as a
 // pagination mechanism along with the max-results parameter.
 func (c *ManagementWebpropertyUserLinksListCall) StartIndex(startIndex int64) *ManagementWebpropertyUserLinksListCall {
-	c.opt_["start-index"] = startIndex
+	c.params_.Set("start-index", fmt.Sprintf("%v", startIndex))
+	return c
+}
+func (c *ManagementWebpropertyUserLinksListCall) Context(ctx context.Context) *ManagementWebpropertyUserLinksListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -11118,44 +10632,24 @@ func (c *ManagementWebpropertyUserLinksListCall) StartIndex(startIndex int64) *M
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ManagementWebpropertyUserLinksListCall) Fields(s ...googleapi.Field) *ManagementWebpropertyUserLinksListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ManagementWebpropertyUserLinksListCall) Do() (*EntityUserLinks, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["max-results"]; ok {
-		params.Set("max-results", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["start-index"]; ok {
-		params.Set("start-index", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts/{accountId}/webproperties/{webPropertyId}/entityUserLinks")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *EntityUserLinks
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId":     c.accountId,
 		"webPropertyId": c.webPropertyId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *EntityUserLinks
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Lists webProperty-user links for a given web property.",
 	//   "httpMethod": "GET",
@@ -11211,17 +10705,30 @@ type ManagementWebpropertyUserLinksUpdateCall struct {
 	webPropertyId  string
 	linkId         string
 	entityuserlink *EntityUserLink
-	opt_           map[string]interface{}
+	caller_        googleapi.Caller
+	params_        url.Values
+	pathTemplate_  string
+	context_       context.Context
 }
 
 // Update: Updates permissions for an existing user on the given web
 // property.
+
 func (r *ManagementWebpropertyUserLinksService) Update(accountId string, webPropertyId string, linkId string, entityuserlink *EntityUserLink) *ManagementWebpropertyUserLinksUpdateCall {
-	c := &ManagementWebpropertyUserLinksUpdateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountId = accountId
-	c.webPropertyId = webPropertyId
-	c.linkId = linkId
-	c.entityuserlink = entityuserlink
+	return &ManagementWebpropertyUserLinksUpdateCall{
+		s:              r.s,
+		accountId:      accountId,
+		webPropertyId:  webPropertyId,
+		linkId:         linkId,
+		entityuserlink: entityuserlink,
+		caller_:        googleapi.JSONCall{},
+		params_:        make(map[string][]string),
+		pathTemplate_:  "management/accounts/{accountId}/webproperties/{webPropertyId}/entityUserLinks/{linkId}",
+		context_:       googleapi.NoContext,
+	}
+}
+func (c *ManagementWebpropertyUserLinksUpdateCall) Context(ctx context.Context) *ManagementWebpropertyUserLinksUpdateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -11229,45 +10736,26 @@ func (r *ManagementWebpropertyUserLinksService) Update(accountId string, webProp
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ManagementWebpropertyUserLinksUpdateCall) Fields(s ...googleapi.Field) *ManagementWebpropertyUserLinksUpdateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ManagementWebpropertyUserLinksUpdateCall) Do() (*EntityUserLink, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.entityuserlink)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts/{accountId}/webproperties/{webPropertyId}/entityUserLinks/{linkId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *EntityUserLink
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"accountId":     c.accountId,
 		"webPropertyId": c.webPropertyId,
 		"linkId":        c.linkId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.entityuserlink,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *EntityUserLink
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates permissions for an existing user on the given web property.",
 	//   "httpMethod": "PUT",
@@ -11314,15 +10802,28 @@ func (c *ManagementWebpropertyUserLinksUpdateCall) Do() (*EntityUserLink, error)
 // method id "analytics.metadata.columns.list":
 
 type MetadataColumnsListCall struct {
-	s          *Service
-	reportType string
-	opt_       map[string]interface{}
+	s             *Service
+	reportType    string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Lists all columns for a report type
+
 func (r *MetadataColumnsService) List(reportType string) *MetadataColumnsListCall {
-	c := &MetadataColumnsListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.reportType = reportType
+	return &MetadataColumnsListCall{
+		s:             r.s,
+		reportType:    reportType,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "metadata/{reportType}/columns",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *MetadataColumnsListCall) Context(ctx context.Context) *MetadataColumnsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -11330,37 +10831,23 @@ func (r *MetadataColumnsService) List(reportType string) *MetadataColumnsListCal
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *MetadataColumnsListCall) Fields(s ...googleapi.Field) *MetadataColumnsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *MetadataColumnsListCall) Do() (*Columns, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "metadata/{reportType}/columns")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Columns
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"reportType": c.reportType,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Columns
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Lists all columns for a report type",
 	//   "httpMethod": "GET",
@@ -11395,13 +10882,26 @@ func (c *MetadataColumnsListCall) Do() (*Columns, error) {
 type ProvisioningCreateAccountTicketCall struct {
 	s             *Service
 	accountticket *AccountTicket
-	opt_          map[string]interface{}
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // CreateAccountTicket: Creates an account ticket.
+
 func (r *ProvisioningService) CreateAccountTicket(accountticket *AccountTicket) *ProvisioningCreateAccountTicketCall {
-	c := &ProvisioningCreateAccountTicketCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountticket = accountticket
+	return &ProvisioningCreateAccountTicketCall{
+		s:             r.s,
+		accountticket: accountticket,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "provisioning/createAccountTicket",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *ProvisioningCreateAccountTicketCall) Context(ctx context.Context) *ProvisioningCreateAccountTicketCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -11409,41 +10909,22 @@ func (r *ProvisioningService) CreateAccountTicket(accountticket *AccountTicket) 
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ProvisioningCreateAccountTicketCall) Fields(s ...googleapi.Field) *ProvisioningCreateAccountTicketCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ProvisioningCreateAccountTicketCall) Do() (*AccountTicket, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.accountticket)
-	if err != nil {
-		return nil, err
+	var returnValue *AccountTicket
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.accountticket,
+		Result:  &returnValue,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "provisioning/createAccountTicket")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *AccountTicket
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Creates an account ticket.",
 	//   "httpMethod": "POST",

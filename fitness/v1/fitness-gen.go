@@ -4,18 +4,16 @@
 //
 // Usage example:
 //
-//   import "google.golang.org/api/fitness/v1"
+//   import "github.com/jfcote87/api2/fitness/v1"
 //   ...
 //   fitnessService, err := fitness.New(oauthHttpClient)
 package fitness
 
 import (
-	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/jfcote87/api2/googleapi"
 	"golang.org/x/net/context"
-	"google.golang.org/api/googleapi"
 	"io"
 	"net/http"
 	"net/url"
@@ -25,10 +23,8 @@ import (
 
 // Always reference these packages, just in case the auto-generated code
 // below doesn't.
-var _ = bytes.NewBuffer
 var _ = strconv.Itoa
 var _ = fmt.Sprintf
-var _ = json.NewDecoder
 var _ = io.Copy
 var _ = url.Parse
 var _ = googleapi.Version
@@ -39,7 +35,8 @@ var _ = context.Background
 const apiId = "fitness:v1"
 const apiName = "fitness"
 const apiVersion = "v1"
-const basePath = "https://www.googleapis.com/fitness/v1/users/"
+
+var baseURL *url.URL = &url.URL{Scheme: "https", Host: "www.googleapis.com", Path: "/fitness/v1/users/"}
 
 // OAuth2 scopes used by this API.
 const (
@@ -66,24 +63,15 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
+	s := &Service{client: client}
 	s.Users = NewUsersService(s)
 	return s, nil
 }
 
 type Service struct {
-	client    *http.Client
-	BasePath  string // API endpoint base URL
-	UserAgent string // optional additional User-Agent fragment
+	client *http.Client
 
 	Users *UsersService
-}
-
-func (s *Service) userAgent() string {
-	if s.UserAgent == "" {
-		return googleapi.UserAgent
-	}
-	return googleapi.UserAgent + " " + s.UserAgent
 }
 
 func NewUsersService(s *Service) *UsersService {
@@ -360,7 +348,19 @@ type ListSessionsResponse struct {
 	Session []*Session `json:"session,omitempty"`
 }
 
+type MapValue struct {
+	// FpVal: Floating point value.
+	FpVal float64 `json:"fpVal,omitempty"`
+}
+
 type Session struct {
+	// ActiveTimeMillis: Session active time. While start_time_millis and
+	// end_time_millis define the full session time, the active time can be
+	// shorter and specified by active_time_millis. If the inactive time
+	// during the session is known, it should also be inserted via a
+	// com.google.activity.segment data point with a STILL activity value
+	ActiveTimeMillis int64 `json:"activeTimeMillis,omitempty,string"`
+
 	// ActivityType: The type of activity this session represents.
 	ActivityType int64 `json:"activityType,omitempty"`
 
@@ -390,21 +390,42 @@ type Session struct {
 }
 
 type Value struct {
+	// FloatListVal: Float list value. When this is set, other values must
+	// not be set.
+	FloatListVal []float64 `json:"floatListVal,omitempty"`
+
 	// FpVal: Floating point value. When this is set, intVal must not be
 	// set.
 	FpVal float64 `json:"fpVal,omitempty"`
 
+	// Int64ListVal: Long list value. When this is set, other values must
+	// not be set.
+	Int64ListVal googleapi.Int64s `json:"int64ListVal,omitempty"`
+
 	// IntVal: Integer value. When this is set, fpVal must not be set.
 	IntVal int64 `json:"intVal,omitempty"`
+
+	MapVal []*ValueMapValEntry `json:"mapVal,omitempty"`
+
+	StringVal string `json:"stringVal,omitempty"`
+}
+
+type ValueMapValEntry struct {
+	Key string `json:"key,omitempty"`
+
+	Value *MapValue `json:"value,omitempty"`
 }
 
 // method id "fitness.users.dataSources.create":
 
 type UsersDataSourcesCreateCall struct {
-	s          *Service
-	userId     string
-	datasource *DataSource
-	opt_       map[string]interface{}
+	s             *Service
+	userId        string
+	datasource    *DataSource
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Create: Creates a new data source that is unique across all data
@@ -416,10 +437,20 @@ type UsersDataSourcesCreateCall struct {
 // when creating the data source is included. This developer project
 // number is obfuscated when read by any other developer reading public
 // data types.
+
 func (r *UsersDataSourcesService) Create(userId string, datasource *DataSource) *UsersDataSourcesCreateCall {
-	c := &UsersDataSourcesCreateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.userId = userId
-	c.datasource = datasource
+	return &UsersDataSourcesCreateCall{
+		s:             r.s,
+		userId:        userId,
+		datasource:    datasource,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{userId}/dataSources",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *UsersDataSourcesCreateCall) Context(ctx context.Context) *UsersDataSourcesCreateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -427,43 +458,24 @@ func (r *UsersDataSourcesService) Create(userId string, datasource *DataSource) 
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *UsersDataSourcesCreateCall) Fields(s ...googleapi.Field) *UsersDataSourcesCreateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *UsersDataSourcesCreateCall) Do() (*DataSource, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.datasource)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{userId}/dataSources")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *DataSource
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"userId": c.userId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.datasource,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *DataSource
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Creates a new data source that is unique across all data sources belonging to this user. The data stream ID field can be omitted and will be generated by the server with the correct format. The data stream ID is an ordered combination of some fields from the data source. In addition to the data source fields reflected into the data source ID, the developer project number that is authenticated when creating the data source is included. This developer project number is obfuscated when read by any other developer reading public data types.",
 	//   "httpMethod": "POST",
@@ -495,20 +507,116 @@ func (c *UsersDataSourcesCreateCall) Do() (*DataSource, error) {
 
 }
 
+// method id "fitness.users.dataSources.delete":
+
+type UsersDataSourcesDeleteCall struct {
+	s             *Service
+	userId        string
+	dataSourceId  string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
+}
+
+// Delete: Delete the data source if there are no datapoints associated
+// with it
+
+func (r *UsersDataSourcesService) Delete(userId string, dataSourceId string) *UsersDataSourcesDeleteCall {
+	return &UsersDataSourcesDeleteCall{
+		s:             r.s,
+		userId:        userId,
+		dataSourceId:  dataSourceId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{userId}/dataSources/{dataSourceId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *UsersDataSourcesDeleteCall) Context(ctx context.Context) *UsersDataSourcesDeleteCall {
+	c.context_ = ctx
+	return c
+}
+
+// Fields allows partial responses to be retrieved.
+// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
+// for more information.
+func (c *UsersDataSourcesDeleteCall) Fields(s ...googleapi.Field) *UsersDataSourcesDeleteCall {
+	c.params_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+func (c *UsersDataSourcesDeleteCall) Do() (*DataSource, error) {
+	var returnValue *DataSource
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
+		"userId":       c.userId,
+		"dataSourceId": c.dataSourceId,
+	})
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
+	}
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
+	// {
+	//   "description": "Delete the data source if there are no datapoints associated with it",
+	//   "httpMethod": "DELETE",
+	//   "id": "fitness.users.dataSources.delete",
+	//   "parameterOrder": [
+	//     "userId",
+	//     "dataSourceId"
+	//   ],
+	//   "parameters": {
+	//     "dataSourceId": {
+	//       "description": "The data stream ID of the data source to delete.",
+	//       "location": "path",
+	//       "required": true,
+	//       "type": "string"
+	//     },
+	//     "userId": {
+	//       "description": "Retrieve a data source for the person identified. Use me to indicate the authenticated user. Only me is supported at this time.",
+	//       "location": "path",
+	//       "required": true,
+	//       "type": "string"
+	//     }
+	//   },
+	//   "path": "{userId}/dataSources/{dataSourceId}",
+	//   "response": {
+	//     "$ref": "DataSource"
+	//   }
+	// }
+
+}
+
 // method id "fitness.users.dataSources.get":
 
 type UsersDataSourcesGetCall struct {
-	s            *Service
-	userId       string
-	dataSourceId string
-	opt_         map[string]interface{}
+	s             *Service
+	userId        string
+	dataSourceId  string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Returns a data source identified by a data stream ID.
+
 func (r *UsersDataSourcesService) Get(userId string, dataSourceId string) *UsersDataSourcesGetCall {
-	c := &UsersDataSourcesGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.userId = userId
-	c.dataSourceId = dataSourceId
+	return &UsersDataSourcesGetCall{
+		s:             r.s,
+		userId:        userId,
+		dataSourceId:  dataSourceId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{userId}/dataSources/{dataSourceId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *UsersDataSourcesGetCall) Context(ctx context.Context) *UsersDataSourcesGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -516,38 +624,24 @@ func (r *UsersDataSourcesService) Get(userId string, dataSourceId string) *Users
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *UsersDataSourcesGetCall) Fields(s ...googleapi.Field) *UsersDataSourcesGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *UsersDataSourcesGetCall) Do() (*DataSource, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{userId}/dataSources/{dataSourceId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *DataSource
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"userId":       c.userId,
 		"dataSourceId": c.dataSourceId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *DataSource
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Returns a data source identified by a data stream ID.",
 	//   "httpMethod": "GET",
@@ -589,26 +683,39 @@ func (c *UsersDataSourcesGetCall) Do() (*DataSource, error) {
 // method id "fitness.users.dataSources.list":
 
 type UsersDataSourcesListCall struct {
-	s      *Service
-	userId string
-	opt_   map[string]interface{}
+	s             *Service
+	userId        string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Lists all data sources that are visible to the developer, using
 // the OAuth scopes provided. The list is not exhaustive: the user may
 // have private data sources that are only visible to other developers
 // or calls using other scopes.
+
 func (r *UsersDataSourcesService) List(userId string) *UsersDataSourcesListCall {
-	c := &UsersDataSourcesListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.userId = userId
-	return c
+	return &UsersDataSourcesListCall{
+		s:             r.s,
+		userId:        userId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{userId}/dataSources",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // DataTypeName sets the optional parameter "dataTypeName": The names of
 // data types to include in the list. If not specified, all data sources
 // will be returned.
-func (c *UsersDataSourcesListCall) DataTypeName(dataTypeName string) *UsersDataSourcesListCall {
-	c.opt_["dataTypeName"] = dataTypeName
+func (c *UsersDataSourcesListCall) DataTypeName(dataTypeName ...string) *UsersDataSourcesListCall {
+	c.params_["dataTypeName"] = dataTypeName
+	return c
+}
+func (c *UsersDataSourcesListCall) Context(ctx context.Context) *UsersDataSourcesListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -616,40 +723,23 @@ func (c *UsersDataSourcesListCall) DataTypeName(dataTypeName string) *UsersDataS
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *UsersDataSourcesListCall) Fields(s ...googleapi.Field) *UsersDataSourcesListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *UsersDataSourcesListCall) Do() (*ListDataSourcesResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["dataTypeName"]; ok {
-		params.Set("dataTypeName", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{userId}/dataSources")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *ListDataSourcesResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"userId": c.userId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ListDataSourcesResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Lists all data sources that are visible to the developer, using the OAuth scopes provided. The list is not exhaustive: the user may have private data sources that are only visible to other developers or calls using other scopes.",
 	//   "httpMethod": "GET",
@@ -690,11 +780,14 @@ func (c *UsersDataSourcesListCall) Do() (*ListDataSourcesResponse, error) {
 // method id "fitness.users.dataSources.patch":
 
 type UsersDataSourcesPatchCall struct {
-	s            *Service
-	userId       string
-	dataSourceId string
-	datasource   *DataSource
-	opt_         map[string]interface{}
+	s             *Service
+	userId        string
+	dataSourceId  string
+	datasource    *DataSource
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Patch: Updates a given data source. It is an error to modify the data
@@ -705,11 +798,21 @@ type UsersDataSourcesPatchCall struct {
 //
 // Data sources are identified by their data stream ID. This
 // method supports patch semantics.
+
 func (r *UsersDataSourcesService) Patch(userId string, dataSourceId string, datasource *DataSource) *UsersDataSourcesPatchCall {
-	c := &UsersDataSourcesPatchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.userId = userId
-	c.dataSourceId = dataSourceId
-	c.datasource = datasource
+	return &UsersDataSourcesPatchCall{
+		s:             r.s,
+		userId:        userId,
+		dataSourceId:  dataSourceId,
+		datasource:    datasource,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{userId}/dataSources/{dataSourceId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *UsersDataSourcesPatchCall) Context(ctx context.Context) *UsersDataSourcesPatchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -717,44 +820,25 @@ func (r *UsersDataSourcesService) Patch(userId string, dataSourceId string, data
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *UsersDataSourcesPatchCall) Fields(s ...googleapi.Field) *UsersDataSourcesPatchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *UsersDataSourcesPatchCall) Do() (*DataSource, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.datasource)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{userId}/dataSources/{dataSourceId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PATCH", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *DataSource
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"userId":       c.userId,
 		"dataSourceId": c.dataSourceId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PATCH",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.datasource,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *DataSource
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates a given data source. It is an error to modify the data source's data stream ID, data type, type, stream name or device information apart from the device version. Changing these fields would require a new unique data stream ID and separate data source.\n\nData sources are identified by their data stream ID. This method supports patch semantics.",
 	//   "httpMethod": "PATCH",
@@ -796,11 +880,14 @@ func (c *UsersDataSourcesPatchCall) Do() (*DataSource, error) {
 // method id "fitness.users.dataSources.update":
 
 type UsersDataSourcesUpdateCall struct {
-	s            *Service
-	userId       string
-	dataSourceId string
-	datasource   *DataSource
-	opt_         map[string]interface{}
+	s             *Service
+	userId        string
+	dataSourceId  string
+	datasource    *DataSource
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Update: Updates a given data source. It is an error to modify the
@@ -810,11 +897,21 @@ type UsersDataSourcesUpdateCall struct {
 // source.
 //
 // Data sources are identified by their data stream ID.
+
 func (r *UsersDataSourcesService) Update(userId string, dataSourceId string, datasource *DataSource) *UsersDataSourcesUpdateCall {
-	c := &UsersDataSourcesUpdateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.userId = userId
-	c.dataSourceId = dataSourceId
-	c.datasource = datasource
+	return &UsersDataSourcesUpdateCall{
+		s:             r.s,
+		userId:        userId,
+		dataSourceId:  dataSourceId,
+		datasource:    datasource,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{userId}/dataSources/{dataSourceId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *UsersDataSourcesUpdateCall) Context(ctx context.Context) *UsersDataSourcesUpdateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -822,44 +919,25 @@ func (r *UsersDataSourcesService) Update(userId string, dataSourceId string, dat
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *UsersDataSourcesUpdateCall) Fields(s ...googleapi.Field) *UsersDataSourcesUpdateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *UsersDataSourcesUpdateCall) Do() (*DataSource, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.datasource)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{userId}/dataSources/{dataSourceId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *DataSource
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"userId":       c.userId,
 		"dataSourceId": c.dataSourceId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.datasource,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *DataSource
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates a given data source. It is an error to modify the data source's data stream ID, data type, type, stream name or device information apart from the device version. Changing these fields would require a new unique data stream ID and separate data source.\n\nData sources are identified by their data stream ID.",
 	//   "httpMethod": "PUT",
@@ -901,11 +979,14 @@ func (c *UsersDataSourcesUpdateCall) Do() (*DataSource, error) {
 // method id "fitness.users.dataSources.datasets.delete":
 
 type UsersDataSourcesDatasetsDeleteCall struct {
-	s            *Service
-	userId       string
-	dataSourceId string
-	datasetId    string
-	opt_         map[string]interface{}
+	s             *Service
+	userId        string
+	dataSourceId  string
+	datasetId     string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Delete: Performs an inclusive delete of all data points whose start
@@ -915,67 +996,51 @@ type UsersDataSourcesDatasetsDeleteCall struct {
 // value (such as com.google.activity.segment), and a data point
 // straddles either end point of the dataset, only the overlapping
 // portion of the data point will be deleted.
+
 func (r *UsersDataSourcesDatasetsService) Delete(userId string, dataSourceId string, datasetId string) *UsersDataSourcesDatasetsDeleteCall {
-	c := &UsersDataSourcesDatasetsDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.userId = userId
-	c.dataSourceId = dataSourceId
-	c.datasetId = datasetId
-	return c
+	return &UsersDataSourcesDatasetsDeleteCall{
+		s:             r.s,
+		userId:        userId,
+		dataSourceId:  dataSourceId,
+		datasetId:     datasetId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{userId}/dataSources/{dataSourceId}/datasets/{datasetId}",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // CurrentTimeMillis sets the optional parameter "currentTimeMillis":
 // The client's current time in milliseconds since epoch.
 func (c *UsersDataSourcesDatasetsDeleteCall) CurrentTimeMillis(currentTimeMillis int64) *UsersDataSourcesDatasetsDeleteCall {
-	c.opt_["currentTimeMillis"] = currentTimeMillis
+	c.params_.Set("currentTimeMillis", fmt.Sprintf("%v", currentTimeMillis))
 	return c
 }
 
 // ModifiedTimeMillis sets the optional parameter "modifiedTimeMillis":
 // When the operation was performed on the client.
 func (c *UsersDataSourcesDatasetsDeleteCall) ModifiedTimeMillis(modifiedTimeMillis int64) *UsersDataSourcesDatasetsDeleteCall {
-	c.opt_["modifiedTimeMillis"] = modifiedTimeMillis
+	c.params_.Set("modifiedTimeMillis", fmt.Sprintf("%v", modifiedTimeMillis))
 	return c
 }
-
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *UsersDataSourcesDatasetsDeleteCall) Fields(s ...googleapi.Field) *UsersDataSourcesDatasetsDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (c *UsersDataSourcesDatasetsDeleteCall) Context(ctx context.Context) *UsersDataSourcesDatasetsDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *UsersDataSourcesDatasetsDeleteCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["currentTimeMillis"]; ok {
-		params.Set("currentTimeMillis", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["modifiedTimeMillis"]; ok {
-		params.Set("modifiedTimeMillis", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{userId}/dataSources/{dataSourceId}/datasets/{datasetId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"userId":       c.userId,
 		"dataSourceId": c.dataSourceId,
 		"datasetId":    c.datasetId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Performs an inclusive delete of all data points whose start and end times have any overlap with the time range specified by the dataset ID. For most data types, the entire data point will be deleted. For data types where the time span represents a consistent value (such as com.google.activity.segment), and a data point straddles either end point of the dataset, only the overlapping portion of the data point will be deleted.",
 	//   "httpMethod": "DELETE",
@@ -1030,11 +1095,14 @@ func (c *UsersDataSourcesDatasetsDeleteCall) Do() error {
 // method id "fitness.users.dataSources.datasets.get":
 
 type UsersDataSourcesDatasetsGetCall struct {
-	s            *Service
-	userId       string
-	dataSourceId string
-	datasetId    string
-	opt_         map[string]interface{}
+	s             *Service
+	userId        string
+	dataSourceId  string
+	datasetId     string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Returns a dataset containing all data points whose start and end
@@ -1042,12 +1110,18 @@ type UsersDataSourcesDatasetsGetCall struct {
 // time and maximum end time. Specifically, any data point whose start
 // time is less than or equal to the dataset end time and whose end time
 // is greater than or equal to the dataset start time.
+
 func (r *UsersDataSourcesDatasetsService) Get(userId string, dataSourceId string, datasetId string) *UsersDataSourcesDatasetsGetCall {
-	c := &UsersDataSourcesDatasetsGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.userId = userId
-	c.dataSourceId = dataSourceId
-	c.datasetId = datasetId
-	return c
+	return &UsersDataSourcesDatasetsGetCall{
+		s:             r.s,
+		userId:        userId,
+		dataSourceId:  dataSourceId,
+		datasetId:     datasetId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{userId}/dataSources/{dataSourceId}/datasets/{datasetId}",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Limit sets the optional parameter "limit": If specified, no more than
@@ -1055,7 +1129,7 @@ func (r *UsersDataSourcesDatasetsService) Get(userId string, dataSourceId string
 // are more data points in the dataset, nextPageToken will be set in the
 // dataset response.
 func (c *UsersDataSourcesDatasetsGetCall) Limit(limit int64) *UsersDataSourcesDatasetsGetCall {
-	c.opt_["limit"] = limit
+	c.params_.Set("limit", fmt.Sprintf("%v", limit))
 	return c
 }
 
@@ -1066,7 +1140,11 @@ func (c *UsersDataSourcesDatasetsGetCall) Limit(limit int64) *UsersDataSourcesDa
 // dataset with data point end timestamps that are strictly smaller than
 // those in the previous partial response.
 func (c *UsersDataSourcesDatasetsGetCall) PageToken(pageToken string) *UsersDataSourcesDatasetsGetCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
+	return c
+}
+func (c *UsersDataSourcesDatasetsGetCall) Context(ctx context.Context) *UsersDataSourcesDatasetsGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1074,45 +1152,25 @@ func (c *UsersDataSourcesDatasetsGetCall) PageToken(pageToken string) *UsersData
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *UsersDataSourcesDatasetsGetCall) Fields(s ...googleapi.Field) *UsersDataSourcesDatasetsGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *UsersDataSourcesDatasetsGetCall) Do() (*Dataset, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["limit"]; ok {
-		params.Set("limit", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{userId}/dataSources/{dataSourceId}/datasets/{datasetId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Dataset
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"userId":       c.userId,
 		"dataSourceId": c.dataSourceId,
 		"datasetId":    c.datasetId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Dataset
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Returns a dataset containing all data points whose start and end times overlap with the specified range of the dataset minimum start time and maximum end time. Specifically, any data point whose start time is less than or equal to the dataset end time and whose end time is greater than or equal to the dataset start time.",
 	//   "httpMethod": "GET",
@@ -1172,12 +1230,15 @@ func (c *UsersDataSourcesDatasetsGetCall) Do() (*Dataset, error) {
 // method id "fitness.users.dataSources.datasets.patch":
 
 type UsersDataSourcesDatasetsPatchCall struct {
-	s            *Service
-	userId       string
-	dataSourceId string
-	datasetId    string
-	dataset      *Dataset
-	opt_         map[string]interface{}
+	s             *Service
+	userId        string
+	dataSourceId  string
+	datasetId     string
+	dataset       *Dataset
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Patch: Adds data points to a dataset. The dataset need not be
@@ -1185,13 +1246,19 @@ type UsersDataSourcesDatasetsPatchCall struct {
 // returned with subsquent calls to retrieve this dataset. Data points
 // can belong to more than one dataset. This method does not use patch
 // semantics.
+
 func (r *UsersDataSourcesDatasetsService) Patch(userId string, dataSourceId string, datasetId string, dataset *Dataset) *UsersDataSourcesDatasetsPatchCall {
-	c := &UsersDataSourcesDatasetsPatchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.userId = userId
-	c.dataSourceId = dataSourceId
-	c.datasetId = datasetId
-	c.dataset = dataset
-	return c
+	return &UsersDataSourcesDatasetsPatchCall{
+		s:             r.s,
+		userId:        userId,
+		dataSourceId:  dataSourceId,
+		datasetId:     datasetId,
+		dataset:       dataset,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{userId}/dataSources/{dataSourceId}/datasets/{datasetId}",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // CurrentTimeMillis sets the optional parameter "currentTimeMillis":
@@ -1199,7 +1266,11 @@ func (r *UsersDataSourcesDatasetsService) Patch(userId string, dataSourceId stri
 // minStartTimeNs and maxEndTimeNs properties in the request body are in
 // nanoseconds instead of milliseconds.
 func (c *UsersDataSourcesDatasetsPatchCall) CurrentTimeMillis(currentTimeMillis int64) *UsersDataSourcesDatasetsPatchCall {
-	c.opt_["currentTimeMillis"] = currentTimeMillis
+	c.params_.Set("currentTimeMillis", fmt.Sprintf("%v", currentTimeMillis))
+	return c
+}
+func (c *UsersDataSourcesDatasetsPatchCall) Context(ctx context.Context) *UsersDataSourcesDatasetsPatchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1207,48 +1278,26 @@ func (c *UsersDataSourcesDatasetsPatchCall) CurrentTimeMillis(currentTimeMillis 
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *UsersDataSourcesDatasetsPatchCall) Fields(s ...googleapi.Field) *UsersDataSourcesDatasetsPatchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *UsersDataSourcesDatasetsPatchCall) Do() (*Dataset, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.dataset)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["currentTimeMillis"]; ok {
-		params.Set("currentTimeMillis", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{userId}/dataSources/{dataSourceId}/datasets/{datasetId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PATCH", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Dataset
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"userId":       c.userId,
 		"dataSourceId": c.dataSourceId,
 		"datasetId":    c.datasetId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PATCH",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.dataset,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Dataset
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Adds data points to a dataset. The dataset need not be previously created. All points within the given dataset will be returned with subsquent calls to retrieve this dataset. Data points can belong to more than one dataset. This method does not use patch semantics.",
 	//   "httpMethod": "PATCH",
@@ -1303,62 +1352,52 @@ func (c *UsersDataSourcesDatasetsPatchCall) Do() (*Dataset, error) {
 // method id "fitness.users.sessions.delete":
 
 type UsersSessionsDeleteCall struct {
-	s         *Service
-	userId    string
-	sessionId string
-	opt_      map[string]interface{}
+	s             *Service
+	userId        string
+	sessionId     string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Delete: Deletes a session specified by the given session ID.
+
 func (r *UsersSessionsService) Delete(userId string, sessionId string) *UsersSessionsDeleteCall {
-	c := &UsersSessionsDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.userId = userId
-	c.sessionId = sessionId
-	return c
+	return &UsersSessionsDeleteCall{
+		s:             r.s,
+		userId:        userId,
+		sessionId:     sessionId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{userId}/sessions/{sessionId}",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // CurrentTimeMillis sets the optional parameter "currentTimeMillis":
 // The client's current time in milliseconds since epoch.
 func (c *UsersSessionsDeleteCall) CurrentTimeMillis(currentTimeMillis int64) *UsersSessionsDeleteCall {
-	c.opt_["currentTimeMillis"] = currentTimeMillis
+	c.params_.Set("currentTimeMillis", fmt.Sprintf("%v", currentTimeMillis))
 	return c
 }
-
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *UsersSessionsDeleteCall) Fields(s ...googleapi.Field) *UsersSessionsDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (c *UsersSessionsDeleteCall) Context(ctx context.Context) *UsersSessionsDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *UsersSessionsDeleteCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["currentTimeMillis"]; ok {
-		params.Set("currentTimeMillis", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{userId}/sessions/{sessionId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"userId":    c.userId,
 		"sessionId": c.sessionId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Deletes a session specified by the given session ID.",
 	//   "httpMethod": "DELETE",
@@ -1398,23 +1437,32 @@ func (c *UsersSessionsDeleteCall) Do() error {
 // method id "fitness.users.sessions.list":
 
 type UsersSessionsListCall struct {
-	s      *Service
-	userId string
-	opt_   map[string]interface{}
+	s             *Service
+	userId        string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Lists sessions previously created.
+
 func (r *UsersSessionsService) List(userId string) *UsersSessionsListCall {
-	c := &UsersSessionsListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.userId = userId
-	return c
+	return &UsersSessionsListCall{
+		s:             r.s,
+		userId:        userId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{userId}/sessions",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // EndTime sets the optional parameter "endTime": An RFC3339 timestamp.
 // Only sessions ending between the start and end times will be included
 // in the response.
 func (c *UsersSessionsListCall) EndTime(endTime string) *UsersSessionsListCall {
-	c.opt_["endTime"] = endTime
+	c.params_.Set("endTime", fmt.Sprintf("%v", endTime))
 	return c
 }
 
@@ -1423,7 +1471,7 @@ func (c *UsersSessionsListCall) EndTime(endTime string) *UsersSessionsListCall {
 // returned in this response will only have an ID and will not have any
 // other fields.
 func (c *UsersSessionsListCall) IncludeDeleted(includeDeleted bool) *UsersSessionsListCall {
-	c.opt_["includeDeleted"] = includeDeleted
+	c.params_.Set("includeDeleted", fmt.Sprintf("%v", includeDeleted))
 	return c
 }
 
@@ -1432,7 +1480,7 @@ func (c *UsersSessionsListCall) IncludeDeleted(includeDeleted bool) *UsersSessio
 // next page of results, set this parameter to the value of
 // nextPageToken from the previous response.
 func (c *UsersSessionsListCall) PageToken(pageToken string) *UsersSessionsListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
 	return c
 }
 
@@ -1440,7 +1488,11 @@ func (c *UsersSessionsListCall) PageToken(pageToken string) *UsersSessionsListCa
 // timestamp. Only sessions ending between the start and end times will
 // be included in the response.
 func (c *UsersSessionsListCall) StartTime(startTime string) *UsersSessionsListCall {
-	c.opt_["startTime"] = startTime
+	c.params_.Set("startTime", fmt.Sprintf("%v", startTime))
+	return c
+}
+func (c *UsersSessionsListCall) Context(ctx context.Context) *UsersSessionsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1448,49 +1500,23 @@ func (c *UsersSessionsListCall) StartTime(startTime string) *UsersSessionsListCa
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *UsersSessionsListCall) Fields(s ...googleapi.Field) *UsersSessionsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *UsersSessionsListCall) Do() (*ListSessionsResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["endTime"]; ok {
-		params.Set("endTime", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["includeDeleted"]; ok {
-		params.Set("includeDeleted", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["startTime"]; ok {
-		params.Set("startTime", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{userId}/sessions")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *ListSessionsResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"userId": c.userId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ListSessionsResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Lists sessions previously created.",
 	//   "httpMethod": "GET",
@@ -1545,26 +1571,39 @@ func (c *UsersSessionsListCall) Do() (*ListSessionsResponse, error) {
 // method id "fitness.users.sessions.update":
 
 type UsersSessionsUpdateCall struct {
-	s         *Service
-	userId    string
-	sessionId string
-	session   *Session
-	opt_      map[string]interface{}
+	s             *Service
+	userId        string
+	sessionId     string
+	session       *Session
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Update: Updates or insert a given session.
+
 func (r *UsersSessionsService) Update(userId string, sessionId string, session *Session) *UsersSessionsUpdateCall {
-	c := &UsersSessionsUpdateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.userId = userId
-	c.sessionId = sessionId
-	c.session = session
-	return c
+	return &UsersSessionsUpdateCall{
+		s:             r.s,
+		userId:        userId,
+		sessionId:     sessionId,
+		session:       session,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{userId}/sessions/{sessionId}",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // CurrentTimeMillis sets the optional parameter "currentTimeMillis":
 // The client's current time in milliseconds since epoch.
 func (c *UsersSessionsUpdateCall) CurrentTimeMillis(currentTimeMillis int64) *UsersSessionsUpdateCall {
-	c.opt_["currentTimeMillis"] = currentTimeMillis
+	c.params_.Set("currentTimeMillis", fmt.Sprintf("%v", currentTimeMillis))
+	return c
+}
+func (c *UsersSessionsUpdateCall) Context(ctx context.Context) *UsersSessionsUpdateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1572,47 +1611,25 @@ func (c *UsersSessionsUpdateCall) CurrentTimeMillis(currentTimeMillis int64) *Us
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *UsersSessionsUpdateCall) Fields(s ...googleapi.Field) *UsersSessionsUpdateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *UsersSessionsUpdateCall) Do() (*Session, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.session)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["currentTimeMillis"]; ok {
-		params.Set("currentTimeMillis", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{userId}/sessions/{sessionId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Session
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"userId":    c.userId,
 		"sessionId": c.sessionId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.session,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Session
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates or insert a given session.",
 	//   "httpMethod": "PUT",

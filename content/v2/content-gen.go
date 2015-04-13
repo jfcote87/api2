@@ -4,18 +4,16 @@
 //
 // Usage example:
 //
-//   import "google.golang.org/api/content/v2"
+//   import "github.com/jfcote87/api2/content/v2"
 //   ...
 //   contentService, err := content.New(oauthHttpClient)
 package content
 
 import (
-	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/jfcote87/api2/googleapi"
 	"golang.org/x/net/context"
-	"google.golang.org/api/googleapi"
 	"io"
 	"net/http"
 	"net/url"
@@ -25,10 +23,8 @@ import (
 
 // Always reference these packages, just in case the auto-generated code
 // below doesn't.
-var _ = bytes.NewBuffer
 var _ = strconv.Itoa
 var _ = fmt.Sprintf
-var _ = json.NewDecoder
 var _ = io.Copy
 var _ = url.Parse
 var _ = googleapi.Version
@@ -39,7 +35,8 @@ var _ = context.Background
 const apiId = "content:v2"
 const apiName = "content"
 const apiVersion = "v2"
-const basePath = "https://www.googleapis.com/content/v2/"
+
+var baseURL *url.URL = &url.URL{Scheme: "https", Host: "www.googleapis.com", Path: "/content/v2/"}
 
 // OAuth2 scopes used by this API.
 const (
@@ -51,7 +48,7 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
+	s := &Service{client: client}
 	s.Accounts = NewAccountsService(s)
 	s.Accountshipping = NewAccountshippingService(s)
 	s.Accountstatuses = NewAccountstatusesService(s)
@@ -65,9 +62,7 @@ func New(client *http.Client) (*Service, error) {
 }
 
 type Service struct {
-	client    *http.Client
-	BasePath  string // API endpoint base URL
-	UserAgent string // optional additional User-Agent fragment
+	client *http.Client
 
 	Accounts *AccountsService
 
@@ -86,13 +81,6 @@ type Service struct {
 	Products *ProductsService
 
 	Productstatuses *ProductstatusesService
-}
-
-func (s *Service) userAgent() string {
-	if s.UserAgent == "" {
-		return googleapi.UserAgent
-	}
-	return googleapi.UserAgent + " " + s.UserAgent
 }
 
 func NewAccountsService(s *Service) *AccountsService {
@@ -867,6 +855,9 @@ type DatafeedStatus struct {
 	// Kind: Identifies what kind of resource this is. Value: the fixed
 	// string "content#datafeedStatus".
 	Kind string `json:"kind,omitempty"`
+
+	// LastUploadDate: The last date at which the feed was uploaded.
+	LastUploadDate string `json:"lastUploadDate,omitempty"`
 
 	// ProcessingStatus: The processing status of the feed.
 	ProcessingStatus string `json:"processingStatus,omitempty"`
@@ -1740,13 +1731,26 @@ type Weight struct {
 // method id "content.accounts.authinfo":
 
 type AccountsAuthinfoCall struct {
-	s    *Service
-	opt_ map[string]interface{}
+	s             *Service
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Authinfo: Returns information about the authenticated user.
+
 func (r *AccountsService) Authinfo() *AccountsAuthinfoCall {
-	c := &AccountsAuthinfoCall{s: r.s, opt_: make(map[string]interface{})}
+	return &AccountsAuthinfoCall{
+		s:             r.s,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "accounts/authinfo",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *AccountsAuthinfoCall) Context(ctx context.Context) *AccountsAuthinfoCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1754,35 +1758,21 @@ func (r *AccountsService) Authinfo() *AccountsAuthinfoCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AccountsAuthinfoCall) Fields(s ...googleapi.Field) *AccountsAuthinfoCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AccountsAuthinfoCall) Do() (*AccountsAuthInfoResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
+	var returnValue *AccountsAuthInfoResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "accounts/authinfo")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *AccountsAuthInfoResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Returns information about the authenticated user.",
 	//   "httpMethod": "GET",
@@ -1803,14 +1793,27 @@ func (c *AccountsAuthinfoCall) Do() (*AccountsAuthInfoResponse, error) {
 type AccountsCustombatchCall struct {
 	s                          *Service
 	accountscustombatchrequest *AccountsCustomBatchRequest
-	opt_                       map[string]interface{}
+	caller_                    googleapi.Caller
+	params_                    url.Values
+	pathTemplate_              string
+	context_                   context.Context
 }
 
 // Custombatch: Retrieves, inserts, updates, and deletes multiple
 // Merchant Center (sub-)accounts in a single request.
+
 func (r *AccountsService) Custombatch(accountscustombatchrequest *AccountsCustomBatchRequest) *AccountsCustombatchCall {
-	c := &AccountsCustombatchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountscustombatchrequest = accountscustombatchrequest
+	return &AccountsCustombatchCall{
+		s: r.s,
+		accountscustombatchrequest: accountscustombatchrequest,
+		caller_:                    googleapi.JSONCall{},
+		params_:                    make(map[string][]string),
+		pathTemplate_:              "accounts/batch",
+		context_:                   googleapi.NoContext,
+	}
+}
+func (c *AccountsCustombatchCall) Context(ctx context.Context) *AccountsCustombatchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1818,41 +1821,22 @@ func (r *AccountsService) Custombatch(accountscustombatchrequest *AccountsCustom
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AccountsCustombatchCall) Fields(s ...googleapi.Field) *AccountsCustombatchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AccountsCustombatchCall) Do() (*AccountsCustomBatchResponse, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.accountscustombatchrequest)
-	if err != nil {
-		return nil, err
+	var returnValue *AccountsCustomBatchResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.accountscustombatchrequest,
+		Result:  &returnValue,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "accounts/batch")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *AccountsCustomBatchResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves, inserts, updates, and deletes multiple Merchant Center (sub-)accounts in a single request.",
 	//   "httpMethod": "POST",
@@ -1874,52 +1858,45 @@ func (c *AccountsCustombatchCall) Do() (*AccountsCustomBatchResponse, error) {
 // method id "content.accounts.delete":
 
 type AccountsDeleteCall struct {
-	s          *Service
-	merchantId uint64
-	accountId  uint64
-	opt_       map[string]interface{}
+	s             *Service
+	merchantId    uint64
+	accountId     uint64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Delete: Deletes a Merchant Center sub-account.
-func (r *AccountsService) Delete(merchantId uint64, accountId uint64) *AccountsDeleteCall {
-	c := &AccountsDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.merchantId = merchantId
-	c.accountId = accountId
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *AccountsDeleteCall) Fields(s ...googleapi.Field) *AccountsDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *AccountsService) Delete(merchantId uint64, accountId uint64) *AccountsDeleteCall {
+	return &AccountsDeleteCall{
+		s:             r.s,
+		merchantId:    merchantId,
+		accountId:     accountId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{merchantId}/accounts/{accountId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *AccountsDeleteCall) Context(ctx context.Context) *AccountsDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *AccountsDeleteCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{merchantId}/accounts/{accountId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"merchantId": strconv.FormatUint(c.merchantId, 10),
 		"accountId":  strconv.FormatUint(c.accountId, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Deletes a Merchant Center sub-account.",
 	//   "httpMethod": "DELETE",
@@ -1955,17 +1932,30 @@ func (c *AccountsDeleteCall) Do() error {
 // method id "content.accounts.get":
 
 type AccountsGetCall struct {
-	s          *Service
-	merchantId uint64
-	accountId  uint64
-	opt_       map[string]interface{}
+	s             *Service
+	merchantId    uint64
+	accountId     uint64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Retrieves a Merchant Center account.
+
 func (r *AccountsService) Get(merchantId uint64, accountId uint64) *AccountsGetCall {
-	c := &AccountsGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.merchantId = merchantId
-	c.accountId = accountId
+	return &AccountsGetCall{
+		s:             r.s,
+		merchantId:    merchantId,
+		accountId:     accountId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{merchantId}/accounts/{accountId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *AccountsGetCall) Context(ctx context.Context) *AccountsGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1973,38 +1963,24 @@ func (r *AccountsService) Get(merchantId uint64, accountId uint64) *AccountsGetC
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AccountsGetCall) Fields(s ...googleapi.Field) *AccountsGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AccountsGetCall) Do() (*Account, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{merchantId}/accounts/{accountId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Account
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"merchantId": strconv.FormatUint(c.merchantId, 10),
 		"accountId":  strconv.FormatUint(c.accountId, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Account
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves a Merchant Center account.",
 	//   "httpMethod": "GET",
@@ -2043,17 +2019,30 @@ func (c *AccountsGetCall) Do() (*Account, error) {
 // method id "content.accounts.insert":
 
 type AccountsInsertCall struct {
-	s          *Service
-	merchantId uint64
-	account    *Account
-	opt_       map[string]interface{}
+	s             *Service
+	merchantId    uint64
+	account       *Account
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Insert: Creates a Merchant Center sub-account.
+
 func (r *AccountsService) Insert(merchantId uint64, account *Account) *AccountsInsertCall {
-	c := &AccountsInsertCall{s: r.s, opt_: make(map[string]interface{})}
-	c.merchantId = merchantId
-	c.account = account
+	return &AccountsInsertCall{
+		s:             r.s,
+		merchantId:    merchantId,
+		account:       account,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{merchantId}/accounts",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *AccountsInsertCall) Context(ctx context.Context) *AccountsInsertCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2061,43 +2050,24 @@ func (r *AccountsService) Insert(merchantId uint64, account *Account) *AccountsI
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AccountsInsertCall) Fields(s ...googleapi.Field) *AccountsInsertCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AccountsInsertCall) Do() (*Account, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.account)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{merchantId}/accounts")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Account
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"merchantId": strconv.FormatUint(c.merchantId, 10),
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.account,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Account
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Creates a Merchant Center sub-account.",
 	//   "httpMethod": "POST",
@@ -2131,29 +2101,42 @@ func (c *AccountsInsertCall) Do() (*Account, error) {
 // method id "content.accounts.list":
 
 type AccountsListCall struct {
-	s          *Service
-	merchantId uint64
-	opt_       map[string]interface{}
+	s             *Service
+	merchantId    uint64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Lists the sub-accounts in your Merchant Center account.
+
 func (r *AccountsService) List(merchantId uint64) *AccountsListCall {
-	c := &AccountsListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.merchantId = merchantId
-	return c
+	return &AccountsListCall{
+		s:             r.s,
+		merchantId:    merchantId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{merchantId}/accounts",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // MaxResults sets the optional parameter "maxResults": The maximum
 // number of accounts to return in the response, used for paging.
 func (c *AccountsListCall) MaxResults(maxResults int64) *AccountsListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
 // PageToken sets the optional parameter "pageToken": The token returned
 // by the previous request.
 func (c *AccountsListCall) PageToken(pageToken string) *AccountsListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
+	return c
+}
+func (c *AccountsListCall) Context(ctx context.Context) *AccountsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2161,43 +2144,23 @@ func (c *AccountsListCall) PageToken(pageToken string) *AccountsListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AccountsListCall) Fields(s ...googleapi.Field) *AccountsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AccountsListCall) Do() (*AccountsListResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{merchantId}/accounts")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *AccountsListResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"merchantId": strconv.FormatUint(c.merchantId, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *AccountsListResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Lists the sub-accounts in your Merchant Center account.",
 	//   "httpMethod": "GET",
@@ -2239,20 +2202,33 @@ func (c *AccountsListCall) Do() (*AccountsListResponse, error) {
 // method id "content.accounts.patch":
 
 type AccountsPatchCall struct {
-	s          *Service
-	merchantId uint64
-	accountId  uint64
-	account    *Account
-	opt_       map[string]interface{}
+	s             *Service
+	merchantId    uint64
+	accountId     uint64
+	account       *Account
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Patch: Updates a Merchant Center account. This method supports patch
 // semantics.
+
 func (r *AccountsService) Patch(merchantId uint64, accountId uint64, account *Account) *AccountsPatchCall {
-	c := &AccountsPatchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.merchantId = merchantId
-	c.accountId = accountId
-	c.account = account
+	return &AccountsPatchCall{
+		s:             r.s,
+		merchantId:    merchantId,
+		accountId:     accountId,
+		account:       account,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{merchantId}/accounts/{accountId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *AccountsPatchCall) Context(ctx context.Context) *AccountsPatchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2260,44 +2236,25 @@ func (r *AccountsService) Patch(merchantId uint64, accountId uint64, account *Ac
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AccountsPatchCall) Fields(s ...googleapi.Field) *AccountsPatchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AccountsPatchCall) Do() (*Account, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.account)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{merchantId}/accounts/{accountId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PATCH", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Account
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"merchantId": strconv.FormatUint(c.merchantId, 10),
 		"accountId":  strconv.FormatUint(c.accountId, 10),
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PATCH",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.account,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Account
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates a Merchant Center account. This method supports patch semantics.",
 	//   "httpMethod": "PATCH",
@@ -2339,19 +2296,32 @@ func (c *AccountsPatchCall) Do() (*Account, error) {
 // method id "content.accounts.update":
 
 type AccountsUpdateCall struct {
-	s          *Service
-	merchantId uint64
-	accountId  uint64
-	account    *Account
-	opt_       map[string]interface{}
+	s             *Service
+	merchantId    uint64
+	accountId     uint64
+	account       *Account
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Update: Updates a Merchant Center account.
+
 func (r *AccountsService) Update(merchantId uint64, accountId uint64, account *Account) *AccountsUpdateCall {
-	c := &AccountsUpdateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.merchantId = merchantId
-	c.accountId = accountId
-	c.account = account
+	return &AccountsUpdateCall{
+		s:             r.s,
+		merchantId:    merchantId,
+		accountId:     accountId,
+		account:       account,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{merchantId}/accounts/{accountId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *AccountsUpdateCall) Context(ctx context.Context) *AccountsUpdateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2359,44 +2329,25 @@ func (r *AccountsService) Update(merchantId uint64, accountId uint64, account *A
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AccountsUpdateCall) Fields(s ...googleapi.Field) *AccountsUpdateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AccountsUpdateCall) Do() (*Account, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.account)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{merchantId}/accounts/{accountId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Account
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"merchantId": strconv.FormatUint(c.merchantId, 10),
 		"accountId":  strconv.FormatUint(c.accountId, 10),
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.account,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Account
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates a Merchant Center account.",
 	//   "httpMethod": "PUT",
@@ -2440,14 +2391,27 @@ func (c *AccountsUpdateCall) Do() (*Account, error) {
 type AccountshippingCustombatchCall struct {
 	s                                 *Service
 	accountshippingcustombatchrequest *AccountshippingCustomBatchRequest
-	opt_                              map[string]interface{}
+	caller_                           googleapi.Caller
+	params_                           url.Values
+	pathTemplate_                     string
+	context_                          context.Context
 }
 
 // Custombatch: Retrieves and updates the shipping settings of multiple
 // accounts in a single request.
+
 func (r *AccountshippingService) Custombatch(accountshippingcustombatchrequest *AccountshippingCustomBatchRequest) *AccountshippingCustombatchCall {
-	c := &AccountshippingCustombatchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountshippingcustombatchrequest = accountshippingcustombatchrequest
+	return &AccountshippingCustombatchCall{
+		s: r.s,
+		accountshippingcustombatchrequest: accountshippingcustombatchrequest,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "accountshipping/batch",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *AccountshippingCustombatchCall) Context(ctx context.Context) *AccountshippingCustombatchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2455,41 +2419,22 @@ func (r *AccountshippingService) Custombatch(accountshippingcustombatchrequest *
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AccountshippingCustombatchCall) Fields(s ...googleapi.Field) *AccountshippingCustombatchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AccountshippingCustombatchCall) Do() (*AccountshippingCustomBatchResponse, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.accountshippingcustombatchrequest)
-	if err != nil {
-		return nil, err
+	var returnValue *AccountshippingCustomBatchResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.accountshippingcustombatchrequest,
+		Result:  &returnValue,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "accountshipping/batch")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *AccountshippingCustomBatchResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves and updates the shipping settings of multiple accounts in a single request.",
 	//   "httpMethod": "POST",
@@ -2511,17 +2456,30 @@ func (c *AccountshippingCustombatchCall) Do() (*AccountshippingCustomBatchRespon
 // method id "content.accountshipping.get":
 
 type AccountshippingGetCall struct {
-	s          *Service
-	merchantId uint64
-	accountId  uint64
-	opt_       map[string]interface{}
+	s             *Service
+	merchantId    uint64
+	accountId     uint64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Retrieves the shipping settings of the account.
+
 func (r *AccountshippingService) Get(merchantId uint64, accountId uint64) *AccountshippingGetCall {
-	c := &AccountshippingGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.merchantId = merchantId
-	c.accountId = accountId
+	return &AccountshippingGetCall{
+		s:             r.s,
+		merchantId:    merchantId,
+		accountId:     accountId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{merchantId}/accountshipping/{accountId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *AccountshippingGetCall) Context(ctx context.Context) *AccountshippingGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2529,38 +2487,24 @@ func (r *AccountshippingService) Get(merchantId uint64, accountId uint64) *Accou
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AccountshippingGetCall) Fields(s ...googleapi.Field) *AccountshippingGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AccountshippingGetCall) Do() (*AccountShipping, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{merchantId}/accountshipping/{accountId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *AccountShipping
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"merchantId": strconv.FormatUint(c.merchantId, 10),
 		"accountId":  strconv.FormatUint(c.accountId, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *AccountShipping
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves the shipping settings of the account.",
 	//   "httpMethod": "GET",
@@ -2599,31 +2543,44 @@ func (c *AccountshippingGetCall) Do() (*AccountShipping, error) {
 // method id "content.accountshipping.list":
 
 type AccountshippingListCall struct {
-	s          *Service
-	merchantId uint64
-	opt_       map[string]interface{}
+	s             *Service
+	merchantId    uint64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Lists the shipping settings of the sub-accounts in your
 // Merchant Center account.
+
 func (r *AccountshippingService) List(merchantId uint64) *AccountshippingListCall {
-	c := &AccountshippingListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.merchantId = merchantId
-	return c
+	return &AccountshippingListCall{
+		s:             r.s,
+		merchantId:    merchantId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{merchantId}/accountshipping",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // MaxResults sets the optional parameter "maxResults": The maximum
 // number of shipping settings to return in the response, used for
 // paging.
 func (c *AccountshippingListCall) MaxResults(maxResults int64) *AccountshippingListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
 // PageToken sets the optional parameter "pageToken": The token returned
 // by the previous request.
 func (c *AccountshippingListCall) PageToken(pageToken string) *AccountshippingListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
+	return c
+}
+func (c *AccountshippingListCall) Context(ctx context.Context) *AccountshippingListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2631,43 +2588,23 @@ func (c *AccountshippingListCall) PageToken(pageToken string) *AccountshippingLi
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AccountshippingListCall) Fields(s ...googleapi.Field) *AccountshippingListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AccountshippingListCall) Do() (*AccountshippingListResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{merchantId}/accountshipping")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *AccountshippingListResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"merchantId": strconv.FormatUint(c.merchantId, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *AccountshippingListResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Lists the shipping settings of the sub-accounts in your Merchant Center account.",
 	//   "httpMethod": "GET",
@@ -2713,16 +2650,29 @@ type AccountshippingPatchCall struct {
 	merchantId      uint64
 	accountId       uint64
 	accountshipping *AccountShipping
-	opt_            map[string]interface{}
+	caller_         googleapi.Caller
+	params_         url.Values
+	pathTemplate_   string
+	context_        context.Context
 }
 
 // Patch: Updates the shipping settings of the account. This method
 // supports patch semantics.
+
 func (r *AccountshippingService) Patch(merchantId uint64, accountId uint64, accountshipping *AccountShipping) *AccountshippingPatchCall {
-	c := &AccountshippingPatchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.merchantId = merchantId
-	c.accountId = accountId
-	c.accountshipping = accountshipping
+	return &AccountshippingPatchCall{
+		s:               r.s,
+		merchantId:      merchantId,
+		accountId:       accountId,
+		accountshipping: accountshipping,
+		caller_:         googleapi.JSONCall{},
+		params_:         make(map[string][]string),
+		pathTemplate_:   "{merchantId}/accountshipping/{accountId}",
+		context_:        googleapi.NoContext,
+	}
+}
+func (c *AccountshippingPatchCall) Context(ctx context.Context) *AccountshippingPatchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2730,44 +2680,25 @@ func (r *AccountshippingService) Patch(merchantId uint64, accountId uint64, acco
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AccountshippingPatchCall) Fields(s ...googleapi.Field) *AccountshippingPatchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AccountshippingPatchCall) Do() (*AccountShipping, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.accountshipping)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{merchantId}/accountshipping/{accountId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PATCH", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *AccountShipping
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"merchantId": strconv.FormatUint(c.merchantId, 10),
 		"accountId":  strconv.FormatUint(c.accountId, 10),
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PATCH",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.accountshipping,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *AccountShipping
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates the shipping settings of the account. This method supports patch semantics.",
 	//   "httpMethod": "PATCH",
@@ -2813,15 +2744,28 @@ type AccountshippingUpdateCall struct {
 	merchantId      uint64
 	accountId       uint64
 	accountshipping *AccountShipping
-	opt_            map[string]interface{}
+	caller_         googleapi.Caller
+	params_         url.Values
+	pathTemplate_   string
+	context_        context.Context
 }
 
 // Update: Updates the shipping settings of the account.
+
 func (r *AccountshippingService) Update(merchantId uint64, accountId uint64, accountshipping *AccountShipping) *AccountshippingUpdateCall {
-	c := &AccountshippingUpdateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.merchantId = merchantId
-	c.accountId = accountId
-	c.accountshipping = accountshipping
+	return &AccountshippingUpdateCall{
+		s:               r.s,
+		merchantId:      merchantId,
+		accountId:       accountId,
+		accountshipping: accountshipping,
+		caller_:         googleapi.JSONCall{},
+		params_:         make(map[string][]string),
+		pathTemplate_:   "{merchantId}/accountshipping/{accountId}",
+		context_:        googleapi.NoContext,
+	}
+}
+func (c *AccountshippingUpdateCall) Context(ctx context.Context) *AccountshippingUpdateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2829,44 +2773,25 @@ func (r *AccountshippingService) Update(merchantId uint64, accountId uint64, acc
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AccountshippingUpdateCall) Fields(s ...googleapi.Field) *AccountshippingUpdateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AccountshippingUpdateCall) Do() (*AccountShipping, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.accountshipping)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{merchantId}/accountshipping/{accountId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *AccountShipping
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"merchantId": strconv.FormatUint(c.merchantId, 10),
 		"accountId":  strconv.FormatUint(c.accountId, 10),
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.accountshipping,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *AccountShipping
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates the shipping settings of the account.",
 	//   "httpMethod": "PUT",
@@ -2910,13 +2835,26 @@ func (c *AccountshippingUpdateCall) Do() (*AccountShipping, error) {
 type AccountstatusesCustombatchCall struct {
 	s                                 *Service
 	accountstatusescustombatchrequest *AccountstatusesCustomBatchRequest
-	opt_                              map[string]interface{}
+	caller_                           googleapi.Caller
+	params_                           url.Values
+	pathTemplate_                     string
+	context_                          context.Context
 }
 
 // Custombatch:
+
 func (r *AccountstatusesService) Custombatch(accountstatusescustombatchrequest *AccountstatusesCustomBatchRequest) *AccountstatusesCustombatchCall {
-	c := &AccountstatusesCustombatchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accountstatusescustombatchrequest = accountstatusescustombatchrequest
+	return &AccountstatusesCustombatchCall{
+		s: r.s,
+		accountstatusescustombatchrequest: accountstatusescustombatchrequest,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "accountstatuses/batch",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *AccountstatusesCustombatchCall) Context(ctx context.Context) *AccountstatusesCustombatchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2924,41 +2862,22 @@ func (r *AccountstatusesService) Custombatch(accountstatusescustombatchrequest *
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AccountstatusesCustombatchCall) Fields(s ...googleapi.Field) *AccountstatusesCustombatchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AccountstatusesCustombatchCall) Do() (*AccountstatusesCustomBatchResponse, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.accountstatusescustombatchrequest)
-	if err != nil {
-		return nil, err
+	var returnValue *AccountstatusesCustomBatchResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.accountstatusescustombatchrequest,
+		Result:  &returnValue,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "accountstatuses/batch")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *AccountstatusesCustomBatchResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "httpMethod": "POST",
 	//   "id": "content.accountstatuses.custombatch",
@@ -2979,17 +2898,30 @@ func (c *AccountstatusesCustombatchCall) Do() (*AccountstatusesCustomBatchRespon
 // method id "content.accountstatuses.get":
 
 type AccountstatusesGetCall struct {
-	s          *Service
-	merchantId uint64
-	accountId  uint64
-	opt_       map[string]interface{}
+	s             *Service
+	merchantId    uint64
+	accountId     uint64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Retrieves the status of a Merchant Center account.
+
 func (r *AccountstatusesService) Get(merchantId uint64, accountId uint64) *AccountstatusesGetCall {
-	c := &AccountstatusesGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.merchantId = merchantId
-	c.accountId = accountId
+	return &AccountstatusesGetCall{
+		s:             r.s,
+		merchantId:    merchantId,
+		accountId:     accountId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{merchantId}/accountstatuses/{accountId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *AccountstatusesGetCall) Context(ctx context.Context) *AccountstatusesGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2997,38 +2929,24 @@ func (r *AccountstatusesService) Get(merchantId uint64, accountId uint64) *Accou
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AccountstatusesGetCall) Fields(s ...googleapi.Field) *AccountstatusesGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AccountstatusesGetCall) Do() (*AccountStatus, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{merchantId}/accountstatuses/{accountId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *AccountStatus
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"merchantId": strconv.FormatUint(c.merchantId, 10),
 		"accountId":  strconv.FormatUint(c.accountId, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *AccountStatus
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves the status of a Merchant Center account.",
 	//   "httpMethod": "GET",
@@ -3067,31 +2985,44 @@ func (c *AccountstatusesGetCall) Do() (*AccountStatus, error) {
 // method id "content.accountstatuses.list":
 
 type AccountstatusesListCall struct {
-	s          *Service
-	merchantId uint64
-	opt_       map[string]interface{}
+	s             *Service
+	merchantId    uint64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Lists the statuses of the sub-accounts in your Merchant Center
 // account.
+
 func (r *AccountstatusesService) List(merchantId uint64) *AccountstatusesListCall {
-	c := &AccountstatusesListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.merchantId = merchantId
-	return c
+	return &AccountstatusesListCall{
+		s:             r.s,
+		merchantId:    merchantId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{merchantId}/accountstatuses",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // MaxResults sets the optional parameter "maxResults": The maximum
 // number of account statuses to return in the response, used for
 // paging.
 func (c *AccountstatusesListCall) MaxResults(maxResults int64) *AccountstatusesListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
 // PageToken sets the optional parameter "pageToken": The token returned
 // by the previous request.
 func (c *AccountstatusesListCall) PageToken(pageToken string) *AccountstatusesListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
+	return c
+}
+func (c *AccountstatusesListCall) Context(ctx context.Context) *AccountstatusesListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -3099,43 +3030,23 @@ func (c *AccountstatusesListCall) PageToken(pageToken string) *AccountstatusesLi
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AccountstatusesListCall) Fields(s ...googleapi.Field) *AccountstatusesListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AccountstatusesListCall) Do() (*AccountstatusesListResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{merchantId}/accountstatuses")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *AccountstatusesListResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"merchantId": strconv.FormatUint(c.merchantId, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *AccountstatusesListResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Lists the statuses of the sub-accounts in your Merchant Center account.",
 	//   "httpMethod": "GET",
@@ -3179,14 +3090,27 @@ func (c *AccountstatusesListCall) Do() (*AccountstatusesListResponse, error) {
 type AccounttaxCustombatchCall struct {
 	s                            *Service
 	accounttaxcustombatchrequest *AccounttaxCustomBatchRequest
-	opt_                         map[string]interface{}
+	caller_                      googleapi.Caller
+	params_                      url.Values
+	pathTemplate_                string
+	context_                     context.Context
 }
 
 // Custombatch: Retrieves and updates tax settings of multiple accounts
 // in a single request.
+
 func (r *AccounttaxService) Custombatch(accounttaxcustombatchrequest *AccounttaxCustomBatchRequest) *AccounttaxCustombatchCall {
-	c := &AccounttaxCustombatchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.accounttaxcustombatchrequest = accounttaxcustombatchrequest
+	return &AccounttaxCustombatchCall{
+		s: r.s,
+		accounttaxcustombatchrequest: accounttaxcustombatchrequest,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "accounttax/batch",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *AccounttaxCustombatchCall) Context(ctx context.Context) *AccounttaxCustombatchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -3194,41 +3118,22 @@ func (r *AccounttaxService) Custombatch(accounttaxcustombatchrequest *Accounttax
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AccounttaxCustombatchCall) Fields(s ...googleapi.Field) *AccounttaxCustombatchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AccounttaxCustombatchCall) Do() (*AccounttaxCustomBatchResponse, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.accounttaxcustombatchrequest)
-	if err != nil {
-		return nil, err
+	var returnValue *AccounttaxCustomBatchResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.accounttaxcustombatchrequest,
+		Result:  &returnValue,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "accounttax/batch")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *AccounttaxCustomBatchResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves and updates tax settings of multiple accounts in a single request.",
 	//   "httpMethod": "POST",
@@ -3250,17 +3155,30 @@ func (c *AccounttaxCustombatchCall) Do() (*AccounttaxCustomBatchResponse, error)
 // method id "content.accounttax.get":
 
 type AccounttaxGetCall struct {
-	s          *Service
-	merchantId uint64
-	accountId  uint64
-	opt_       map[string]interface{}
+	s             *Service
+	merchantId    uint64
+	accountId     uint64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Retrieves the tax settings of the account.
+
 func (r *AccounttaxService) Get(merchantId uint64, accountId uint64) *AccounttaxGetCall {
-	c := &AccounttaxGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.merchantId = merchantId
-	c.accountId = accountId
+	return &AccounttaxGetCall{
+		s:             r.s,
+		merchantId:    merchantId,
+		accountId:     accountId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{merchantId}/accounttax/{accountId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *AccounttaxGetCall) Context(ctx context.Context) *AccounttaxGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -3268,38 +3186,24 @@ func (r *AccounttaxService) Get(merchantId uint64, accountId uint64) *Accounttax
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AccounttaxGetCall) Fields(s ...googleapi.Field) *AccounttaxGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AccounttaxGetCall) Do() (*AccountTax, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{merchantId}/accounttax/{accountId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *AccountTax
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"merchantId": strconv.FormatUint(c.merchantId, 10),
 		"accountId":  strconv.FormatUint(c.accountId, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *AccountTax
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves the tax settings of the account.",
 	//   "httpMethod": "GET",
@@ -3338,30 +3242,43 @@ func (c *AccounttaxGetCall) Do() (*AccountTax, error) {
 // method id "content.accounttax.list":
 
 type AccounttaxListCall struct {
-	s          *Service
-	merchantId uint64
-	opt_       map[string]interface{}
+	s             *Service
+	merchantId    uint64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Lists the tax settings of the sub-accounts in your Merchant
 // Center account.
+
 func (r *AccounttaxService) List(merchantId uint64) *AccounttaxListCall {
-	c := &AccounttaxListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.merchantId = merchantId
-	return c
+	return &AccounttaxListCall{
+		s:             r.s,
+		merchantId:    merchantId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{merchantId}/accounttax",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // MaxResults sets the optional parameter "maxResults": The maximum
 // number of tax settings to return in the response, used for paging.
 func (c *AccounttaxListCall) MaxResults(maxResults int64) *AccounttaxListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
 // PageToken sets the optional parameter "pageToken": The token returned
 // by the previous request.
 func (c *AccounttaxListCall) PageToken(pageToken string) *AccounttaxListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
+	return c
+}
+func (c *AccounttaxListCall) Context(ctx context.Context) *AccounttaxListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -3369,43 +3286,23 @@ func (c *AccounttaxListCall) PageToken(pageToken string) *AccounttaxListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AccounttaxListCall) Fields(s ...googleapi.Field) *AccounttaxListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AccounttaxListCall) Do() (*AccounttaxListResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{merchantId}/accounttax")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *AccounttaxListResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"merchantId": strconv.FormatUint(c.merchantId, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *AccounttaxListResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Lists the tax settings of the sub-accounts in your Merchant Center account.",
 	//   "httpMethod": "GET",
@@ -3447,20 +3344,33 @@ func (c *AccounttaxListCall) Do() (*AccounttaxListResponse, error) {
 // method id "content.accounttax.patch":
 
 type AccounttaxPatchCall struct {
-	s          *Service
-	merchantId uint64
-	accountId  uint64
-	accounttax *AccountTax
-	opt_       map[string]interface{}
+	s             *Service
+	merchantId    uint64
+	accountId     uint64
+	accounttax    *AccountTax
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Patch: Updates the tax settings of the account. This method supports
 // patch semantics.
+
 func (r *AccounttaxService) Patch(merchantId uint64, accountId uint64, accounttax *AccountTax) *AccounttaxPatchCall {
-	c := &AccounttaxPatchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.merchantId = merchantId
-	c.accountId = accountId
-	c.accounttax = accounttax
+	return &AccounttaxPatchCall{
+		s:             r.s,
+		merchantId:    merchantId,
+		accountId:     accountId,
+		accounttax:    accounttax,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{merchantId}/accounttax/{accountId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *AccounttaxPatchCall) Context(ctx context.Context) *AccounttaxPatchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -3468,44 +3378,25 @@ func (r *AccounttaxService) Patch(merchantId uint64, accountId uint64, accountta
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AccounttaxPatchCall) Fields(s ...googleapi.Field) *AccounttaxPatchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AccounttaxPatchCall) Do() (*AccountTax, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.accounttax)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{merchantId}/accounttax/{accountId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PATCH", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *AccountTax
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"merchantId": strconv.FormatUint(c.merchantId, 10),
 		"accountId":  strconv.FormatUint(c.accountId, 10),
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PATCH",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.accounttax,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *AccountTax
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates the tax settings of the account. This method supports patch semantics.",
 	//   "httpMethod": "PATCH",
@@ -3547,19 +3438,32 @@ func (c *AccounttaxPatchCall) Do() (*AccountTax, error) {
 // method id "content.accounttax.update":
 
 type AccounttaxUpdateCall struct {
-	s          *Service
-	merchantId uint64
-	accountId  uint64
-	accounttax *AccountTax
-	opt_       map[string]interface{}
+	s             *Service
+	merchantId    uint64
+	accountId     uint64
+	accounttax    *AccountTax
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Update: Updates the tax settings of the account.
+
 func (r *AccounttaxService) Update(merchantId uint64, accountId uint64, accounttax *AccountTax) *AccounttaxUpdateCall {
-	c := &AccounttaxUpdateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.merchantId = merchantId
-	c.accountId = accountId
-	c.accounttax = accounttax
+	return &AccounttaxUpdateCall{
+		s:             r.s,
+		merchantId:    merchantId,
+		accountId:     accountId,
+		accounttax:    accounttax,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{merchantId}/accounttax/{accountId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *AccounttaxUpdateCall) Context(ctx context.Context) *AccounttaxUpdateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -3567,44 +3471,25 @@ func (r *AccounttaxService) Update(merchantId uint64, accountId uint64, accountt
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AccounttaxUpdateCall) Fields(s ...googleapi.Field) *AccounttaxUpdateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AccounttaxUpdateCall) Do() (*AccountTax, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.accounttax)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{merchantId}/accounttax/{accountId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *AccountTax
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"merchantId": strconv.FormatUint(c.merchantId, 10),
 		"accountId":  strconv.FormatUint(c.accountId, 10),
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.accounttax,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *AccountTax
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates the tax settings of the account.",
 	//   "httpMethod": "PUT",
@@ -3648,13 +3533,26 @@ func (c *AccounttaxUpdateCall) Do() (*AccountTax, error) {
 type DatafeedsCustombatchCall struct {
 	s                           *Service
 	datafeedscustombatchrequest *DatafeedsCustomBatchRequest
-	opt_                        map[string]interface{}
+	caller_                     googleapi.Caller
+	params_                     url.Values
+	pathTemplate_               string
+	context_                    context.Context
 }
 
 // Custombatch:
+
 func (r *DatafeedsService) Custombatch(datafeedscustombatchrequest *DatafeedsCustomBatchRequest) *DatafeedsCustombatchCall {
-	c := &DatafeedsCustombatchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.datafeedscustombatchrequest = datafeedscustombatchrequest
+	return &DatafeedsCustombatchCall{
+		s: r.s,
+		datafeedscustombatchrequest: datafeedscustombatchrequest,
+		caller_:                     googleapi.JSONCall{},
+		params_:                     make(map[string][]string),
+		pathTemplate_:               "datafeeds/batch",
+		context_:                    googleapi.NoContext,
+	}
+}
+func (c *DatafeedsCustombatchCall) Context(ctx context.Context) *DatafeedsCustombatchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -3662,41 +3560,22 @@ func (r *DatafeedsService) Custombatch(datafeedscustombatchrequest *DatafeedsCus
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *DatafeedsCustombatchCall) Fields(s ...googleapi.Field) *DatafeedsCustombatchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *DatafeedsCustombatchCall) Do() (*DatafeedsCustomBatchResponse, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.datafeedscustombatchrequest)
-	if err != nil {
-		return nil, err
+	var returnValue *DatafeedsCustomBatchResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.datafeedscustombatchrequest,
+		Result:  &returnValue,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "datafeeds/batch")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *DatafeedsCustomBatchResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "httpMethod": "POST",
 	//   "id": "content.datafeeds.custombatch",
@@ -3717,52 +3596,45 @@ func (c *DatafeedsCustombatchCall) Do() (*DatafeedsCustomBatchResponse, error) {
 // method id "content.datafeeds.delete":
 
 type DatafeedsDeleteCall struct {
-	s          *Service
-	merchantId uint64
-	datafeedId uint64
-	opt_       map[string]interface{}
+	s             *Service
+	merchantId    uint64
+	datafeedId    uint64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Delete: Deletes a datafeed from your Merchant Center account.
-func (r *DatafeedsService) Delete(merchantId uint64, datafeedId uint64) *DatafeedsDeleteCall {
-	c := &DatafeedsDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.merchantId = merchantId
-	c.datafeedId = datafeedId
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *DatafeedsDeleteCall) Fields(s ...googleapi.Field) *DatafeedsDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *DatafeedsService) Delete(merchantId uint64, datafeedId uint64) *DatafeedsDeleteCall {
+	return &DatafeedsDeleteCall{
+		s:             r.s,
+		merchantId:    merchantId,
+		datafeedId:    datafeedId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{merchantId}/datafeeds/{datafeedId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *DatafeedsDeleteCall) Context(ctx context.Context) *DatafeedsDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *DatafeedsDeleteCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{merchantId}/datafeeds/{datafeedId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"merchantId": strconv.FormatUint(c.merchantId, 10),
 		"datafeedId": strconv.FormatUint(c.datafeedId, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Deletes a datafeed from your Merchant Center account.",
 	//   "httpMethod": "DELETE",
@@ -3796,17 +3668,30 @@ func (c *DatafeedsDeleteCall) Do() error {
 // method id "content.datafeeds.get":
 
 type DatafeedsGetCall struct {
-	s          *Service
-	merchantId uint64
-	datafeedId uint64
-	opt_       map[string]interface{}
+	s             *Service
+	merchantId    uint64
+	datafeedId    uint64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Retrieves a datafeed from your Merchant Center account.
+
 func (r *DatafeedsService) Get(merchantId uint64, datafeedId uint64) *DatafeedsGetCall {
-	c := &DatafeedsGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.merchantId = merchantId
-	c.datafeedId = datafeedId
+	return &DatafeedsGetCall{
+		s:             r.s,
+		merchantId:    merchantId,
+		datafeedId:    datafeedId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{merchantId}/datafeeds/{datafeedId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *DatafeedsGetCall) Context(ctx context.Context) *DatafeedsGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -3814,38 +3699,24 @@ func (r *DatafeedsService) Get(merchantId uint64, datafeedId uint64) *DatafeedsG
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *DatafeedsGetCall) Fields(s ...googleapi.Field) *DatafeedsGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *DatafeedsGetCall) Do() (*Datafeed, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{merchantId}/datafeeds/{datafeedId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Datafeed
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"merchantId": strconv.FormatUint(c.merchantId, 10),
 		"datafeedId": strconv.FormatUint(c.datafeedId, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Datafeed
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves a datafeed from your Merchant Center account.",
 	//   "httpMethod": "GET",
@@ -3882,17 +3753,30 @@ func (c *DatafeedsGetCall) Do() (*Datafeed, error) {
 // method id "content.datafeeds.insert":
 
 type DatafeedsInsertCall struct {
-	s          *Service
-	merchantId uint64
-	datafeed   *Datafeed
-	opt_       map[string]interface{}
+	s             *Service
+	merchantId    uint64
+	datafeed      *Datafeed
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Insert: Registers a datafeed with your Merchant Center account.
+
 func (r *DatafeedsService) Insert(merchantId uint64, datafeed *Datafeed) *DatafeedsInsertCall {
-	c := &DatafeedsInsertCall{s: r.s, opt_: make(map[string]interface{})}
-	c.merchantId = merchantId
-	c.datafeed = datafeed
+	return &DatafeedsInsertCall{
+		s:             r.s,
+		merchantId:    merchantId,
+		datafeed:      datafeed,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{merchantId}/datafeeds",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *DatafeedsInsertCall) Context(ctx context.Context) *DatafeedsInsertCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -3900,43 +3784,24 @@ func (r *DatafeedsService) Insert(merchantId uint64, datafeed *Datafeed) *Datafe
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *DatafeedsInsertCall) Fields(s ...googleapi.Field) *DatafeedsInsertCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *DatafeedsInsertCall) Do() (*Datafeed, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.datafeed)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{merchantId}/datafeeds")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Datafeed
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"merchantId": strconv.FormatUint(c.merchantId, 10),
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.datafeed,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Datafeed
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Registers a datafeed with your Merchant Center account.",
 	//   "httpMethod": "POST",
@@ -3969,29 +3834,42 @@ func (c *DatafeedsInsertCall) Do() (*Datafeed, error) {
 // method id "content.datafeeds.list":
 
 type DatafeedsListCall struct {
-	s          *Service
-	merchantId uint64
-	opt_       map[string]interface{}
+	s             *Service
+	merchantId    uint64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Lists the datafeeds in your Merchant Center account.
+
 func (r *DatafeedsService) List(merchantId uint64) *DatafeedsListCall {
-	c := &DatafeedsListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.merchantId = merchantId
-	return c
+	return &DatafeedsListCall{
+		s:             r.s,
+		merchantId:    merchantId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{merchantId}/datafeeds",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // MaxResults sets the optional parameter "maxResults": The maximum
 // number of products to return in the response, used for paging.
 func (c *DatafeedsListCall) MaxResults(maxResults int64) *DatafeedsListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
 // PageToken sets the optional parameter "pageToken": The token returned
 // by the previous request.
 func (c *DatafeedsListCall) PageToken(pageToken string) *DatafeedsListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
+	return c
+}
+func (c *DatafeedsListCall) Context(ctx context.Context) *DatafeedsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -3999,43 +3877,23 @@ func (c *DatafeedsListCall) PageToken(pageToken string) *DatafeedsListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *DatafeedsListCall) Fields(s ...googleapi.Field) *DatafeedsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *DatafeedsListCall) Do() (*DatafeedsListResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{merchantId}/datafeeds")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *DatafeedsListResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"merchantId": strconv.FormatUint(c.merchantId, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *DatafeedsListResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Lists the datafeeds in your Merchant Center account.",
 	//   "httpMethod": "GET",
@@ -4077,20 +3935,33 @@ func (c *DatafeedsListCall) Do() (*DatafeedsListResponse, error) {
 // method id "content.datafeeds.patch":
 
 type DatafeedsPatchCall struct {
-	s          *Service
-	merchantId uint64
-	datafeedId uint64
-	datafeed   *Datafeed
-	opt_       map[string]interface{}
+	s             *Service
+	merchantId    uint64
+	datafeedId    uint64
+	datafeed      *Datafeed
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Patch: Updates a datafeed of your Merchant Center account. This
 // method supports patch semantics.
+
 func (r *DatafeedsService) Patch(merchantId uint64, datafeedId uint64, datafeed *Datafeed) *DatafeedsPatchCall {
-	c := &DatafeedsPatchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.merchantId = merchantId
-	c.datafeedId = datafeedId
-	c.datafeed = datafeed
+	return &DatafeedsPatchCall{
+		s:             r.s,
+		merchantId:    merchantId,
+		datafeedId:    datafeedId,
+		datafeed:      datafeed,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{merchantId}/datafeeds/{datafeedId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *DatafeedsPatchCall) Context(ctx context.Context) *DatafeedsPatchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -4098,44 +3969,25 @@ func (r *DatafeedsService) Patch(merchantId uint64, datafeedId uint64, datafeed 
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *DatafeedsPatchCall) Fields(s ...googleapi.Field) *DatafeedsPatchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *DatafeedsPatchCall) Do() (*Datafeed, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.datafeed)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{merchantId}/datafeeds/{datafeedId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PATCH", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Datafeed
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"merchantId": strconv.FormatUint(c.merchantId, 10),
 		"datafeedId": strconv.FormatUint(c.datafeedId, 10),
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PATCH",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.datafeed,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Datafeed
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates a datafeed of your Merchant Center account. This method supports patch semantics.",
 	//   "httpMethod": "PATCH",
@@ -4175,19 +4027,32 @@ func (c *DatafeedsPatchCall) Do() (*Datafeed, error) {
 // method id "content.datafeeds.update":
 
 type DatafeedsUpdateCall struct {
-	s          *Service
-	merchantId uint64
-	datafeedId uint64
-	datafeed   *Datafeed
-	opt_       map[string]interface{}
+	s             *Service
+	merchantId    uint64
+	datafeedId    uint64
+	datafeed      *Datafeed
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Update: Updates a datafeed of your Merchant Center account.
+
 func (r *DatafeedsService) Update(merchantId uint64, datafeedId uint64, datafeed *Datafeed) *DatafeedsUpdateCall {
-	c := &DatafeedsUpdateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.merchantId = merchantId
-	c.datafeedId = datafeedId
-	c.datafeed = datafeed
+	return &DatafeedsUpdateCall{
+		s:             r.s,
+		merchantId:    merchantId,
+		datafeedId:    datafeedId,
+		datafeed:      datafeed,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{merchantId}/datafeeds/{datafeedId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *DatafeedsUpdateCall) Context(ctx context.Context) *DatafeedsUpdateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -4195,44 +4060,25 @@ func (r *DatafeedsService) Update(merchantId uint64, datafeedId uint64, datafeed
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *DatafeedsUpdateCall) Fields(s ...googleapi.Field) *DatafeedsUpdateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *DatafeedsUpdateCall) Do() (*Datafeed, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.datafeed)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{merchantId}/datafeeds/{datafeedId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Datafeed
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"merchantId": strconv.FormatUint(c.merchantId, 10),
 		"datafeedId": strconv.FormatUint(c.datafeedId, 10),
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.datafeed,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Datafeed
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates a datafeed of your Merchant Center account.",
 	//   "httpMethod": "PUT",
@@ -4274,13 +4120,26 @@ func (c *DatafeedsUpdateCall) Do() (*Datafeed, error) {
 type DatafeedstatusesCustombatchCall struct {
 	s                                  *Service
 	datafeedstatusescustombatchrequest *DatafeedstatusesCustomBatchRequest
-	opt_                               map[string]interface{}
+	caller_                            googleapi.Caller
+	params_                            url.Values
+	pathTemplate_                      string
+	context_                           context.Context
 }
 
 // Custombatch:
+
 func (r *DatafeedstatusesService) Custombatch(datafeedstatusescustombatchrequest *DatafeedstatusesCustomBatchRequest) *DatafeedstatusesCustombatchCall {
-	c := &DatafeedstatusesCustombatchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.datafeedstatusescustombatchrequest = datafeedstatusescustombatchrequest
+	return &DatafeedstatusesCustombatchCall{
+		s: r.s,
+		datafeedstatusescustombatchrequest: datafeedstatusescustombatchrequest,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "datafeedstatuses/batch",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *DatafeedstatusesCustombatchCall) Context(ctx context.Context) *DatafeedstatusesCustombatchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -4288,41 +4147,22 @@ func (r *DatafeedstatusesService) Custombatch(datafeedstatusescustombatchrequest
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *DatafeedstatusesCustombatchCall) Fields(s ...googleapi.Field) *DatafeedstatusesCustombatchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *DatafeedstatusesCustombatchCall) Do() (*DatafeedstatusesCustomBatchResponse, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.datafeedstatusescustombatchrequest)
-	if err != nil {
-		return nil, err
+	var returnValue *DatafeedstatusesCustomBatchResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.datafeedstatusescustombatchrequest,
+		Result:  &returnValue,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "datafeedstatuses/batch")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *DatafeedstatusesCustomBatchResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "httpMethod": "POST",
 	//   "id": "content.datafeedstatuses.custombatch",
@@ -4343,18 +4183,31 @@ func (c *DatafeedstatusesCustombatchCall) Do() (*DatafeedstatusesCustomBatchResp
 // method id "content.datafeedstatuses.get":
 
 type DatafeedstatusesGetCall struct {
-	s          *Service
-	merchantId uint64
-	datafeedId uint64
-	opt_       map[string]interface{}
+	s             *Service
+	merchantId    uint64
+	datafeedId    uint64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Retrieves the status of a datafeed from your Merchant Center
 // account.
+
 func (r *DatafeedstatusesService) Get(merchantId uint64, datafeedId uint64) *DatafeedstatusesGetCall {
-	c := &DatafeedstatusesGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.merchantId = merchantId
-	c.datafeedId = datafeedId
+	return &DatafeedstatusesGetCall{
+		s:             r.s,
+		merchantId:    merchantId,
+		datafeedId:    datafeedId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{merchantId}/datafeedstatuses/{datafeedId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *DatafeedstatusesGetCall) Context(ctx context.Context) *DatafeedstatusesGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -4362,38 +4215,24 @@ func (r *DatafeedstatusesService) Get(merchantId uint64, datafeedId uint64) *Dat
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *DatafeedstatusesGetCall) Fields(s ...googleapi.Field) *DatafeedstatusesGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *DatafeedstatusesGetCall) Do() (*DatafeedStatus, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{merchantId}/datafeedstatuses/{datafeedId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *DatafeedStatus
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"merchantId": strconv.FormatUint(c.merchantId, 10),
 		"datafeedId": strconv.FormatUint(c.datafeedId, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *DatafeedStatus
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves the status of a datafeed from your Merchant Center account.",
 	//   "httpMethod": "GET",
@@ -4430,30 +4269,43 @@ func (c *DatafeedstatusesGetCall) Do() (*DatafeedStatus, error) {
 // method id "content.datafeedstatuses.list":
 
 type DatafeedstatusesListCall struct {
-	s          *Service
-	merchantId uint64
-	opt_       map[string]interface{}
+	s             *Service
+	merchantId    uint64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Lists the statuses of the datafeeds in your Merchant Center
 // account.
+
 func (r *DatafeedstatusesService) List(merchantId uint64) *DatafeedstatusesListCall {
-	c := &DatafeedstatusesListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.merchantId = merchantId
-	return c
+	return &DatafeedstatusesListCall{
+		s:             r.s,
+		merchantId:    merchantId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{merchantId}/datafeedstatuses",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // MaxResults sets the optional parameter "maxResults": The maximum
 // number of products to return in the response, used for paging.
 func (c *DatafeedstatusesListCall) MaxResults(maxResults int64) *DatafeedstatusesListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
 // PageToken sets the optional parameter "pageToken": The token returned
 // by the previous request.
 func (c *DatafeedstatusesListCall) PageToken(pageToken string) *DatafeedstatusesListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
+	return c
+}
+func (c *DatafeedstatusesListCall) Context(ctx context.Context) *DatafeedstatusesListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -4461,43 +4313,23 @@ func (c *DatafeedstatusesListCall) PageToken(pageToken string) *Datafeedstatuses
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *DatafeedstatusesListCall) Fields(s ...googleapi.Field) *DatafeedstatusesListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *DatafeedstatusesListCall) Do() (*DatafeedstatusesListResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{merchantId}/datafeedstatuses")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *DatafeedstatusesListResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"merchantId": strconv.FormatUint(c.merchantId, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *DatafeedstatusesListResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Lists the statuses of the datafeeds in your Merchant Center account.",
 	//   "httpMethod": "GET",
@@ -4541,14 +4373,27 @@ func (c *DatafeedstatusesListCall) Do() (*DatafeedstatusesListResponse, error) {
 type InventoryCustombatchCall struct {
 	s                           *Service
 	inventorycustombatchrequest *InventoryCustomBatchRequest
-	opt_                        map[string]interface{}
+	caller_                     googleapi.Caller
+	params_                     url.Values
+	pathTemplate_               string
+	context_                    context.Context
 }
 
 // Custombatch: Updates price and availability for multiple products or
 // stores in a single request.
+
 func (r *InventoryService) Custombatch(inventorycustombatchrequest *InventoryCustomBatchRequest) *InventoryCustombatchCall {
-	c := &InventoryCustombatchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.inventorycustombatchrequest = inventorycustombatchrequest
+	return &InventoryCustombatchCall{
+		s: r.s,
+		inventorycustombatchrequest: inventorycustombatchrequest,
+		caller_:                     googleapi.JSONCall{},
+		params_:                     make(map[string][]string),
+		pathTemplate_:               "inventory/batch",
+		context_:                    googleapi.NoContext,
+	}
+}
+func (c *InventoryCustombatchCall) Context(ctx context.Context) *InventoryCustombatchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -4556,41 +4401,22 @@ func (r *InventoryService) Custombatch(inventorycustombatchrequest *InventoryCus
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *InventoryCustombatchCall) Fields(s ...googleapi.Field) *InventoryCustombatchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *InventoryCustombatchCall) Do() (*InventoryCustomBatchResponse, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.inventorycustombatchrequest)
-	if err != nil {
-		return nil, err
+	var returnValue *InventoryCustomBatchResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.inventorycustombatchrequest,
+		Result:  &returnValue,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "inventory/batch")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *InventoryCustomBatchResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates price and availability for multiple products or stores in a single request.",
 	//   "httpMethod": "POST",
@@ -4617,17 +4443,30 @@ type InventorySetCall struct {
 	storeCode           string
 	productId           string
 	inventorysetrequest *InventorySetRequest
-	opt_                map[string]interface{}
+	caller_             googleapi.Caller
+	params_             url.Values
+	pathTemplate_       string
+	context_            context.Context
 }
 
 // Set: Updates price and availability of a product in your Merchant
 // Center account.
+
 func (r *InventoryService) Set(merchantId uint64, storeCode string, productId string, inventorysetrequest *InventorySetRequest) *InventorySetCall {
-	c := &InventorySetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.merchantId = merchantId
-	c.storeCode = storeCode
-	c.productId = productId
-	c.inventorysetrequest = inventorysetrequest
+	return &InventorySetCall{
+		s:                   r.s,
+		merchantId:          merchantId,
+		storeCode:           storeCode,
+		productId:           productId,
+		inventorysetrequest: inventorysetrequest,
+		caller_:             googleapi.JSONCall{},
+		params_:             make(map[string][]string),
+		pathTemplate_:       "{merchantId}/inventory/{storeCode}/products/{productId}",
+		context_:            googleapi.NoContext,
+	}
+}
+func (c *InventorySetCall) Context(ctx context.Context) *InventorySetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -4635,45 +4474,26 @@ func (r *InventoryService) Set(merchantId uint64, storeCode string, productId st
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *InventorySetCall) Fields(s ...googleapi.Field) *InventorySetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *InventorySetCall) Do() (*InventorySetResponse, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.inventorysetrequest)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{merchantId}/inventory/{storeCode}/products/{productId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *InventorySetResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"merchantId": strconv.FormatUint(c.merchantId, 10),
 		"storeCode":  c.storeCode,
 		"productId":  c.productId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.inventorysetrequest,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *InventorySetResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates price and availability of a product in your Merchant Center account.",
 	//   "httpMethod": "POST",
@@ -4723,21 +4543,34 @@ func (c *InventorySetCall) Do() (*InventorySetResponse, error) {
 type ProductsCustombatchCall struct {
 	s                          *Service
 	productscustombatchrequest *ProductsCustomBatchRequest
-	opt_                       map[string]interface{}
+	caller_                    googleapi.Caller
+	params_                    url.Values
+	pathTemplate_              string
+	context_                   context.Context
 }
 
 // Custombatch: Retrieves, inserts, and deletes multiple products in a
 // single request.
+
 func (r *ProductsService) Custombatch(productscustombatchrequest *ProductsCustomBatchRequest) *ProductsCustombatchCall {
-	c := &ProductsCustombatchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.productscustombatchrequest = productscustombatchrequest
-	return c
+	return &ProductsCustombatchCall{
+		s: r.s,
+		productscustombatchrequest: productscustombatchrequest,
+		caller_:                    googleapi.JSONCall{},
+		params_:                    make(map[string][]string),
+		pathTemplate_:              "products/batch",
+		context_:                   googleapi.NoContext,
+	}
 }
 
 // DryRun sets the optional parameter "dryRun": Flag to run the request
 // in dry-run mode.
 func (c *ProductsCustombatchCall) DryRun(dryRun bool) *ProductsCustombatchCall {
-	c.opt_["dryRun"] = dryRun
+	c.params_.Set("dryRun", fmt.Sprintf("%v", dryRun))
+	return c
+}
+func (c *ProductsCustombatchCall) Context(ctx context.Context) *ProductsCustombatchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -4745,44 +4578,22 @@ func (c *ProductsCustombatchCall) DryRun(dryRun bool) *ProductsCustombatchCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ProductsCustombatchCall) Fields(s ...googleapi.Field) *ProductsCustombatchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ProductsCustombatchCall) Do() (*ProductsCustomBatchResponse, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.productscustombatchrequest)
-	if err != nil {
-		return nil, err
+	var returnValue *ProductsCustomBatchResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.productscustombatchrequest,
+		Result:  &returnValue,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["dryRun"]; ok {
-		params.Set("dryRun", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "products/batch")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ProductsCustomBatchResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves, inserts, and deletes multiple products in a single request.",
 	//   "httpMethod": "POST",
@@ -4811,62 +4622,52 @@ func (c *ProductsCustombatchCall) Do() (*ProductsCustomBatchResponse, error) {
 // method id "content.products.delete":
 
 type ProductsDeleteCall struct {
-	s          *Service
-	merchantId uint64
-	productId  string
-	opt_       map[string]interface{}
+	s             *Service
+	merchantId    uint64
+	productId     string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Delete: Deletes a product from your Merchant Center account.
+
 func (r *ProductsService) Delete(merchantId uint64, productId string) *ProductsDeleteCall {
-	c := &ProductsDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.merchantId = merchantId
-	c.productId = productId
-	return c
+	return &ProductsDeleteCall{
+		s:             r.s,
+		merchantId:    merchantId,
+		productId:     productId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{merchantId}/products/{productId}",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // DryRun sets the optional parameter "dryRun": Flag to run the request
 // in dry-run mode.
 func (c *ProductsDeleteCall) DryRun(dryRun bool) *ProductsDeleteCall {
-	c.opt_["dryRun"] = dryRun
+	c.params_.Set("dryRun", fmt.Sprintf("%v", dryRun))
 	return c
 }
-
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *ProductsDeleteCall) Fields(s ...googleapi.Field) *ProductsDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (c *ProductsDeleteCall) Context(ctx context.Context) *ProductsDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *ProductsDeleteCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["dryRun"]; ok {
-		params.Set("dryRun", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{merchantId}/products/{productId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"merchantId": strconv.FormatUint(c.merchantId, 10),
 		"productId":  c.productId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Deletes a product from your Merchant Center account.",
 	//   "httpMethod": "DELETE",
@@ -4906,17 +4707,30 @@ func (c *ProductsDeleteCall) Do() error {
 // method id "content.products.get":
 
 type ProductsGetCall struct {
-	s          *Service
-	merchantId uint64
-	productId  string
-	opt_       map[string]interface{}
+	s             *Service
+	merchantId    uint64
+	productId     string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Retrieves a product from your Merchant Center account.
+
 func (r *ProductsService) Get(merchantId uint64, productId string) *ProductsGetCall {
-	c := &ProductsGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.merchantId = merchantId
-	c.productId = productId
+	return &ProductsGetCall{
+		s:             r.s,
+		merchantId:    merchantId,
+		productId:     productId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{merchantId}/products/{productId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *ProductsGetCall) Context(ctx context.Context) *ProductsGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -4924,38 +4738,24 @@ func (r *ProductsService) Get(merchantId uint64, productId string) *ProductsGetC
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ProductsGetCall) Fields(s ...googleapi.Field) *ProductsGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ProductsGetCall) Do() (*Product, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{merchantId}/products/{productId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Product
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"merchantId": strconv.FormatUint(c.merchantId, 10),
 		"productId":  c.productId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Product
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves a product from your Merchant Center account.",
 	//   "httpMethod": "GET",
@@ -4993,24 +4793,37 @@ func (c *ProductsGetCall) Do() (*Product, error) {
 // method id "content.products.insert":
 
 type ProductsInsertCall struct {
-	s          *Service
-	merchantId uint64
-	product    *Product
-	opt_       map[string]interface{}
+	s             *Service
+	merchantId    uint64
+	product       *Product
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Insert: Uploads a product to your Merchant Center account.
+
 func (r *ProductsService) Insert(merchantId uint64, product *Product) *ProductsInsertCall {
-	c := &ProductsInsertCall{s: r.s, opt_: make(map[string]interface{})}
-	c.merchantId = merchantId
-	c.product = product
-	return c
+	return &ProductsInsertCall{
+		s:             r.s,
+		merchantId:    merchantId,
+		product:       product,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{merchantId}/products",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // DryRun sets the optional parameter "dryRun": Flag to run the request
 // in dry-run mode.
 func (c *ProductsInsertCall) DryRun(dryRun bool) *ProductsInsertCall {
-	c.opt_["dryRun"] = dryRun
+	c.params_.Set("dryRun", fmt.Sprintf("%v", dryRun))
+	return c
+}
+func (c *ProductsInsertCall) Context(ctx context.Context) *ProductsInsertCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -5018,46 +4831,24 @@ func (c *ProductsInsertCall) DryRun(dryRun bool) *ProductsInsertCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ProductsInsertCall) Fields(s ...googleapi.Field) *ProductsInsertCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ProductsInsertCall) Do() (*Product, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.product)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["dryRun"]; ok {
-		params.Set("dryRun", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{merchantId}/products")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Product
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"merchantId": strconv.FormatUint(c.merchantId, 10),
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.product,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Product
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Uploads a product to your Merchant Center account.",
 	//   "httpMethod": "POST",
@@ -5096,29 +4887,42 @@ func (c *ProductsInsertCall) Do() (*Product, error) {
 // method id "content.products.list":
 
 type ProductsListCall struct {
-	s          *Service
-	merchantId uint64
-	opt_       map[string]interface{}
+	s             *Service
+	merchantId    uint64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Lists the products in your Merchant Center account.
+
 func (r *ProductsService) List(merchantId uint64) *ProductsListCall {
-	c := &ProductsListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.merchantId = merchantId
-	return c
+	return &ProductsListCall{
+		s:             r.s,
+		merchantId:    merchantId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{merchantId}/products",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // MaxResults sets the optional parameter "maxResults": The maximum
 // number of products to return in the response, used for paging.
 func (c *ProductsListCall) MaxResults(maxResults int64) *ProductsListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
 // PageToken sets the optional parameter "pageToken": The token returned
 // by the previous request.
 func (c *ProductsListCall) PageToken(pageToken string) *ProductsListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
+	return c
+}
+func (c *ProductsListCall) Context(ctx context.Context) *ProductsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -5126,43 +4930,23 @@ func (c *ProductsListCall) PageToken(pageToken string) *ProductsListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ProductsListCall) Fields(s ...googleapi.Field) *ProductsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ProductsListCall) Do() (*ProductsListResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{merchantId}/products")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *ProductsListResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"merchantId": strconv.FormatUint(c.merchantId, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ProductsListResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Lists the products in your Merchant Center account.",
 	//   "httpMethod": "GET",
@@ -5206,14 +4990,27 @@ func (c *ProductsListCall) Do() (*ProductsListResponse, error) {
 type ProductstatusesCustombatchCall struct {
 	s                                 *Service
 	productstatusescustombatchrequest *ProductstatusesCustomBatchRequest
-	opt_                              map[string]interface{}
+	caller_                           googleapi.Caller
+	params_                           url.Values
+	pathTemplate_                     string
+	context_                          context.Context
 }
 
 // Custombatch: Gets the statuses of multiple products in a single
 // request.
+
 func (r *ProductstatusesService) Custombatch(productstatusescustombatchrequest *ProductstatusesCustomBatchRequest) *ProductstatusesCustombatchCall {
-	c := &ProductstatusesCustombatchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.productstatusescustombatchrequest = productstatusescustombatchrequest
+	return &ProductstatusesCustombatchCall{
+		s: r.s,
+		productstatusescustombatchrequest: productstatusescustombatchrequest,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "productstatuses/batch",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *ProductstatusesCustombatchCall) Context(ctx context.Context) *ProductstatusesCustombatchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -5221,41 +5018,22 @@ func (r *ProductstatusesService) Custombatch(productstatusescustombatchrequest *
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ProductstatusesCustombatchCall) Fields(s ...googleapi.Field) *ProductstatusesCustombatchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ProductstatusesCustombatchCall) Do() (*ProductstatusesCustomBatchResponse, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.productstatusescustombatchrequest)
-	if err != nil {
-		return nil, err
+	var returnValue *ProductstatusesCustomBatchResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.productstatusescustombatchrequest,
+		Result:  &returnValue,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "productstatuses/batch")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ProductstatusesCustomBatchResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Gets the statuses of multiple products in a single request.",
 	//   "httpMethod": "POST",
@@ -5277,17 +5055,30 @@ func (c *ProductstatusesCustombatchCall) Do() (*ProductstatusesCustomBatchRespon
 // method id "content.productstatuses.get":
 
 type ProductstatusesGetCall struct {
-	s          *Service
-	merchantId uint64
-	productId  string
-	opt_       map[string]interface{}
+	s             *Service
+	merchantId    uint64
+	productId     string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Gets the status of a product from your Merchant Center account.
+
 func (r *ProductstatusesService) Get(merchantId uint64, productId string) *ProductstatusesGetCall {
-	c := &ProductstatusesGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.merchantId = merchantId
-	c.productId = productId
+	return &ProductstatusesGetCall{
+		s:             r.s,
+		merchantId:    merchantId,
+		productId:     productId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{merchantId}/productstatuses/{productId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *ProductstatusesGetCall) Context(ctx context.Context) *ProductstatusesGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -5295,38 +5086,24 @@ func (r *ProductstatusesService) Get(merchantId uint64, productId string) *Produ
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ProductstatusesGetCall) Fields(s ...googleapi.Field) *ProductstatusesGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ProductstatusesGetCall) Do() (*ProductStatus, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{merchantId}/productstatuses/{productId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *ProductStatus
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"merchantId": strconv.FormatUint(c.merchantId, 10),
 		"productId":  c.productId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ProductStatus
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Gets the status of a product from your Merchant Center account.",
 	//   "httpMethod": "GET",
@@ -5364,31 +5141,44 @@ func (c *ProductstatusesGetCall) Do() (*ProductStatus, error) {
 // method id "content.productstatuses.list":
 
 type ProductstatusesListCall struct {
-	s          *Service
-	merchantId uint64
-	opt_       map[string]interface{}
+	s             *Service
+	merchantId    uint64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Lists the statuses of the products in your Merchant Center
 // account.
+
 func (r *ProductstatusesService) List(merchantId uint64) *ProductstatusesListCall {
-	c := &ProductstatusesListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.merchantId = merchantId
-	return c
+	return &ProductstatusesListCall{
+		s:             r.s,
+		merchantId:    merchantId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{merchantId}/productstatuses",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // MaxResults sets the optional parameter "maxResults": The maximum
 // number of product statuses to return in the response, used for
 // paging.
 func (c *ProductstatusesListCall) MaxResults(maxResults int64) *ProductstatusesListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
 // PageToken sets the optional parameter "pageToken": The token returned
 // by the previous request.
 func (c *ProductstatusesListCall) PageToken(pageToken string) *ProductstatusesListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
+	return c
+}
+func (c *ProductstatusesListCall) Context(ctx context.Context) *ProductstatusesListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -5396,43 +5186,23 @@ func (c *ProductstatusesListCall) PageToken(pageToken string) *ProductstatusesLi
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ProductstatusesListCall) Fields(s ...googleapi.Field) *ProductstatusesListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ProductstatusesListCall) Do() (*ProductstatusesListResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{merchantId}/productstatuses")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *ProductstatusesListResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"merchantId": strconv.FormatUint(c.merchantId, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ProductstatusesListResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Lists the statuses of the products in your Merchant Center account.",
 	//   "httpMethod": "GET",

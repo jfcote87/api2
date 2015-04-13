@@ -4,18 +4,16 @@
 //
 // Usage example:
 //
-//   import "google.golang.org/api/dfareporting/v2.0"
+//   import "github.com/jfcote87/api2/dfareporting/v2.0"
 //   ...
 //   dfareportingService, err := dfareporting.New(oauthHttpClient)
 package dfareporting
 
 import (
-	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/jfcote87/api2/googleapi"
 	"golang.org/x/net/context"
-	"google.golang.org/api/googleapi"
 	"io"
 	"net/http"
 	"net/url"
@@ -25,10 +23,8 @@ import (
 
 // Always reference these packages, just in case the auto-generated code
 // below doesn't.
-var _ = bytes.NewBuffer
 var _ = strconv.Itoa
 var _ = fmt.Sprintf
-var _ = json.NewDecoder
 var _ = io.Copy
 var _ = url.Parse
 var _ = googleapi.Version
@@ -39,7 +35,8 @@ var _ = context.Background
 const apiId = "dfareporting:v2.0"
 const apiName = "dfareporting"
 const apiVersion = "v2.0"
-const basePath = "https://www.googleapis.com/dfareporting/v2.0/"
+
+var baseURL *url.URL = &url.URL{Scheme: "https", Host: "www.googleapis.com", Path: "/dfareporting/v2.0/"}
 
 // OAuth2 scopes used by this API.
 const (
@@ -55,7 +52,7 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
+	s := &Service{client: client}
 	s.AccountActiveAdSummaries = NewAccountActiveAdSummariesService(s)
 	s.AccountPermissionGroups = NewAccountPermissionGroupsService(s)
 	s.AccountPermissions = NewAccountPermissionsService(s)
@@ -108,9 +105,7 @@ func New(client *http.Client) (*Service, error) {
 }
 
 type Service struct {
-	client    *http.Client
-	BasePath  string // API endpoint base URL
-	UserAgent string // optional additional User-Agent fragment
+	client *http.Client
 
 	AccountActiveAdSummaries *AccountActiveAdSummariesService
 
@@ -207,13 +202,6 @@ type Service struct {
 	UserRolePermissions *UserRolePermissionsService
 
 	UserRoles *UserRolesService
-}
-
-func (s *Service) userAgent() string {
-	if s.UserAgent == "" {
-		return googleapi.UserAgent
-	}
-	return googleapi.UserAgent + " " + s.UserAgent
 }
 
 func NewAccountActiveAdSummariesService(s *Service) *AccountActiveAdSummariesService {
@@ -869,7 +857,7 @@ type AccountPermissionGroup struct {
 }
 
 type AccountPermissionGroupsListResponse struct {
-	// AccountPermissionGroups: Account permission group collection
+	// AccountPermissionGroups: Account permission group collection.
 	AccountPermissionGroups []*AccountPermissionGroup `json:"accountPermissionGroups,omitempty"`
 
 	// Kind: Identifies what kind of resource this is. Value: the fixed
@@ -878,7 +866,7 @@ type AccountPermissionGroupsListResponse struct {
 }
 
 type AccountPermissionsListResponse struct {
-	// AccountPermissions: Account permission collection
+	// AccountPermissions: Account permission collection.
 	AccountPermissions []*AccountPermission `json:"accountPermissions,omitempty"`
 
 	// Kind: Identifies what kind of resource this is. Value: the fixed
@@ -975,7 +963,7 @@ type AccountUserProfile struct {
 }
 
 type AccountUserProfilesListResponse struct {
-	// AccountUserProfiles: Account user profile collection
+	// AccountUserProfiles: Account user profile collection.
 	AccountUserProfiles []*AccountUserProfile `json:"accountUserProfiles,omitempty"`
 
 	// Kind: Identifies what kind of resource this is. Value: the fixed
@@ -988,7 +976,7 @@ type AccountUserProfilesListResponse struct {
 }
 
 type AccountsListResponse struct {
-	// Accounts: Account collection
+	// Accounts: Account collection.
 	Accounts []*Account `json:"accounts,omitempty"`
 
 	// Kind: Identifies what kind of resource this is. Value: the fixed
@@ -1173,7 +1161,7 @@ type Ad struct {
 }
 
 type AdsListResponse struct {
-	// Ads: Ad collection
+	// Ads: Ad collection.
 	Ads []*Ad `json:"ads,omitempty"`
 
 	// Kind: Identifies what kind of resource this is. Value: the fixed
@@ -1270,7 +1258,7 @@ type AdvertiserGroup struct {
 }
 
 type AdvertiserGroupsListResponse struct {
-	// AdvertiserGroups: Advertiser group collection
+	// AdvertiserGroups: Advertiser group collection.
 	AdvertiserGroups []*AdvertiserGroup `json:"advertiserGroups,omitempty"`
 
 	// Kind: Identifies what kind of resource this is. Value: the fixed
@@ -1283,7 +1271,7 @@ type AdvertiserGroupsListResponse struct {
 }
 
 type AdvertisersListResponse struct {
-	// Advertisers: Advertiser collection
+	// Advertisers: Advertiser collection.
 	Advertisers []*Advertiser `json:"advertisers,omitempty"`
 
 	// Kind: Identifies what kind of resource this is. Value: the fixed
@@ -1364,7 +1352,7 @@ type Browser struct {
 }
 
 type BrowsersListResponse struct {
-	// Browsers: Browser collection
+	// Browsers: Browser collection.
 	Browsers []*Browser `json:"browsers,omitempty"`
 
 	// Kind: Identifies what kind of resource this is. Value: the fixed
@@ -1513,7 +1501,7 @@ type CampaignCreativeAssociationsListResponse struct {
 }
 
 type CampaignsListResponse struct {
-	// Campaigns: Campaign collection
+	// Campaigns: Campaign collection.
 	Campaigns []*Campaign `json:"campaigns,omitempty"`
 
 	// Kind: Identifies what kind of resource this is. Value: the fixed
@@ -1575,7 +1563,7 @@ type ChangeLog struct {
 }
 
 type ChangeLogsListResponse struct {
-	// ChangeLogs: Change log collection
+	// ChangeLogs: Change log collection.
 	ChangeLogs []*ChangeLog `json:"changeLogs,omitempty"`
 
 	// Kind: Identifies what kind of resource this is. Value: the fixed
@@ -1588,7 +1576,7 @@ type ChangeLogsListResponse struct {
 }
 
 type CitiesListResponse struct {
-	// Cities: City collection
+	// Cities: City collection.
 	Cities []*City `json:"cities,omitempty"`
 
 	// Kind: Identifies what kind of resource this is. Value: the fixed
@@ -1719,7 +1707,8 @@ type ConnectionType struct {
 }
 
 type ConnectionTypesListResponse struct {
-	// ConnectionTypes: Connection Type Collection.
+	// ConnectionTypes: Collection of connection types such as broadband and
+	// mobile.
 	ConnectionTypes []*ConnectionType `json:"connectionTypes,omitempty"`
 
 	// Kind: Identifies what kind of resource this is. Value: the fixed
@@ -1728,7 +1717,7 @@ type ConnectionTypesListResponse struct {
 }
 
 type ContentCategoriesListResponse struct {
-	// ContentCategories: Content category collection
+	// ContentCategories: Content category collection.
 	ContentCategories []*ContentCategory `json:"contentCategories,omitempty"`
 
 	// Kind: Identifies what kind of resource this is. Value: the fixed
@@ -1763,7 +1752,7 @@ type ContentCategory struct {
 }
 
 type CountriesListResponse struct {
-	// Countries: Country collection
+	// Countries: Country collection.
 	Countries []*Country `json:"countries,omitempty"`
 
 	// Kind: Identifies what kind of resource this is. Value: the fixed
@@ -2588,7 +2577,7 @@ type CreativeFieldValue struct {
 }
 
 type CreativeFieldValuesListResponse struct {
-	// CreativeFieldValues: Creative field value collection
+	// CreativeFieldValues: Creative field value collection.
 	CreativeFieldValues []*CreativeFieldValue `json:"creativeFieldValues,omitempty"`
 
 	// Kind: Identifies what kind of resource this is. Value: the fixed
@@ -2601,7 +2590,7 @@ type CreativeFieldValuesListResponse struct {
 }
 
 type CreativeFieldsListResponse struct {
-	// CreativeFields: Creative field collection
+	// CreativeFields: Creative field collection.
 	CreativeFields []*CreativeField `json:"creativeFields,omitempty"`
 
 	// Kind: Identifies what kind of resource this is. Value: the fixed
@@ -2663,7 +2652,7 @@ type CreativeGroupAssignment struct {
 }
 
 type CreativeGroupsListResponse struct {
-	// CreativeGroups: Creative group collection
+	// CreativeGroups: Creative group collection.
 	CreativeGroups []*CreativeGroup `json:"creativeGroups,omitempty"`
 
 	// Kind: Identifies what kind of resource this is. Value: the fixed
@@ -2724,7 +2713,7 @@ type CreativeSettings struct {
 }
 
 type CreativesListResponse struct {
-	// Creatives: Creative collection
+	// Creatives: Creative collection.
 	Creatives []*Creative `json:"creatives,omitempty"`
 
 	// Kind: Identifies what kind of resource this is. Value: the fixed
@@ -2864,7 +2853,7 @@ type DfpSettings struct {
 	PubPaidPlacementAccepted bool `json:"pubPaidPlacementAccepted,omitempty"`
 
 	// PublisherPortalOnly: Whether this directory site is available only
-	// via Publisher Portal.
+	// via DoubleClick Publisher Portal.
 	PublisherPortalOnly bool `json:"publisherPortalOnly,omitempty"`
 }
 
@@ -3134,7 +3123,7 @@ type DirectorySiteSettings struct {
 	NielsenOcrOptOut bool `json:"nielsenOcrOptOut,omitempty"`
 
 	// VerificationTagOptOut: Whether this directory site has disabled
-	// generation of Verification tags.
+	// generation of Verification ins tags.
 	VerificationTagOptOut bool `json:"verificationTagOptOut,omitempty"`
 
 	// VideoActiveViewOptOut: Whether this directory site has disabled
@@ -3143,7 +3132,7 @@ type DirectorySiteSettings struct {
 }
 
 type DirectorySitesListResponse struct {
-	// DirectorySites: Directory site collection
+	// DirectorySites: Directory site collection.
 	DirectorySites []*DirectorySite `json:"directorySites,omitempty"`
 
 	// Kind: Identifies what kind of resource this is. Value: the fixed
@@ -3239,7 +3228,7 @@ type EventTagOverride struct {
 }
 
 type EventTagsListResponse struct {
-	// EventTags: Event tag collection
+	// EventTags: Event tag collection.
 	EventTags []*EventTag `json:"eventTags,omitempty"`
 
 	// Kind: Identifies what kind of resource this is. Value: the fixed
@@ -3319,7 +3308,7 @@ type FloodlightActivitiesGenerateTagResponse struct {
 }
 
 type FloodlightActivitiesListResponse struct {
-	// FloodlightActivities: Floodlight activity collection
+	// FloodlightActivities: Floodlight activity collection.
 	FloodlightActivities []*FloodlightActivity `json:"floodlightActivities,omitempty"`
 
 	// Kind: Identifies what kind of resource this is. Value: the fixed
@@ -3545,7 +3534,7 @@ type FloodlightActivityGroup struct {
 }
 
 type FloodlightActivityGroupsListResponse struct {
-	// FloodlightActivityGroups: Floodlight activity group collection
+	// FloodlightActivityGroups: Floodlight activity group collection.
 	FloodlightActivityGroups []*FloodlightActivityGroup `json:"floodlightActivityGroups,omitempty"`
 
 	// Kind: Identifies what kind of resource this is. Value: the fixed
@@ -3657,7 +3646,7 @@ type FloodlightConfiguration struct {
 }
 
 type FloodlightConfigurationsListResponse struct {
-	// FloodlightConfigurations: Floodlight configuration collection
+	// FloodlightConfigurations: Floodlight configuration collection.
 	FloodlightConfigurations []*FloodlightConfiguration `json:"floodlightConfigurations,omitempty"`
 
 	// Kind: Identifies what kind of resource this is. Value: the fixed
@@ -3770,7 +3759,7 @@ type LandingPage struct {
 	// string "dfareporting#landingPage".
 	Kind string `json:"kind,omitempty"`
 
-	// Name: Name of this landing page. This is a required field. Must be
+	// Name: Name of this landing page. This is a required field. It must be
 	// less than 256 characters long, and must be unique among landing pages
 	// of the same campaign.
 	Name string `json:"name,omitempty"`
@@ -3855,7 +3844,7 @@ type MetrosListResponse struct {
 	// string "dfareporting#metrosListResponse".
 	Kind string `json:"kind,omitempty"`
 
-	// Metros: Metro collection
+	// Metros: Metro collection.
 	Metros []*Metro `json:"metros,omitempty"`
 }
 
@@ -3884,7 +3873,7 @@ type MobileCarriersListResponse struct {
 	// string "dfareporting#mobileCarriersListResponse".
 	Kind string `json:"kind,omitempty"`
 
-	// MobileCarriers: Mobile carrier collection
+	// MobileCarriers: Mobile carrier collection.
 	MobileCarriers []*MobileCarrier `json:"mobileCarriers,omitempty"`
 }
 
@@ -3955,8 +3944,8 @@ type OperatingSystemVersion struct {
 	// system version.
 	MajorVersion string `json:"majorVersion,omitempty"`
 
-	// MinorVersion: Minor version (number after first dot on the left) of
-	// this operating system version.
+	// MinorVersion: Minor version (number after the first dot) of this
+	// operating system version.
 	MinorVersion string `json:"minorVersion,omitempty"`
 
 	// Name: Name of this operating system version.
@@ -3971,7 +3960,7 @@ type OperatingSystemVersionsListResponse struct {
 	// string "dfareporting#operatingSystemVersionsListResponse".
 	Kind string `json:"kind,omitempty"`
 
-	// OperatingSystemVersions: Operating system version collection
+	// OperatingSystemVersions: Operating system version collection.
 	OperatingSystemVersions []*OperatingSystemVersion `json:"operatingSystemVersions,omitempty"`
 }
 
@@ -3980,7 +3969,7 @@ type OperatingSystemsListResponse struct {
 	// string "dfareporting#operatingSystemsListResponse".
 	Kind string `json:"kind,omitempty"`
 
-	// OperatingSystems: Operating system collection
+	// OperatingSystems: Operating system collection.
 	OperatingSystems []*OperatingSystem `json:"operatingSystems,omitempty"`
 }
 
@@ -4343,7 +4332,7 @@ type PlacementGroupsListResponse struct {
 	// operation.
 	NextPageToken string `json:"nextPageToken,omitempty"`
 
-	// PlacementGroups: Placement group collection
+	// PlacementGroups: Placement group collection.
 	PlacementGroups []*PlacementGroup `json:"placementGroups,omitempty"`
 }
 
@@ -4356,7 +4345,7 @@ type PlacementStrategiesListResponse struct {
 	// operation.
 	NextPageToken string `json:"nextPageToken,omitempty"`
 
-	// PlacementStrategies: Placement strategy collection
+	// PlacementStrategies: Placement strategy collection.
 	PlacementStrategies []*PlacementStrategy `json:"placementStrategies,omitempty"`
 }
 
@@ -4373,8 +4362,8 @@ type PlacementStrategy struct {
 	// string "dfareporting#placementStrategy".
 	Kind string `json:"kind,omitempty"`
 
-	// Name: Name of this placement strategy. This is a required field. Must
-	// be less than 256 characters long and unique among placement
+	// Name: Name of this placement strategy. This is a required field. It
+	// must be less than 256 characters long and unique among placement
 	// strategies of the same account.
 	Name string `json:"name,omitempty"`
 }
@@ -4405,7 +4394,7 @@ type PlacementsListResponse struct {
 	// operation.
 	NextPageToken string `json:"nextPageToken,omitempty"`
 
-	// Placements: Placement collection
+	// Placements: Placement collection.
 	Placements []*Placement `json:"placements,omitempty"`
 }
 
@@ -4426,7 +4415,7 @@ type PlatformTypesListResponse struct {
 	// string "dfareporting#platformTypesListResponse".
 	Kind string `json:"kind,omitempty"`
 
-	// PlatformTypes: Platform type collection
+	// PlatformTypes: Platform type collection.
 	PlatformTypes []*PlatformType `json:"platformTypes,omitempty"`
 }
 
@@ -4485,7 +4474,7 @@ type PostalCodesListResponse struct {
 	// string "dfareporting#postalCodesListResponse".
 	Kind string `json:"kind,omitempty"`
 
-	// PostalCodes: Postal code collection
+	// PostalCodes: Postal code collection.
 	PostalCodes []*PostalCode `json:"postalCodes,omitempty"`
 }
 
@@ -4496,13 +4485,13 @@ type PricingSchedule struct {
 	// DisregardOverdelivery: Whether cap costs are ignored by ad serving.
 	DisregardOverdelivery bool `json:"disregardOverdelivery,omitempty"`
 
-	// EndDate: Placement end date. This date must be later than or be the
-	// same day as the placement start date, but not later than the campaign
-	// end date. If, for example, you set 6/25/2015 as both the start and
-	// end dates, the effective placement date is just that day only,
-	// 6/25/2015. The hours, minutes, and seconds of the end date should not
-	// be set, as doing so will result in an error. This field is required
-	// on insertion.
+	// EndDate: Placement end date. This date must be later than, or the
+	// same day as, the placement start date, but not later than the
+	// campaign end date. If, for example, you set 6/25/2015 as both the
+	// start and end dates, the effective placement date is just that day
+	// only, 6/25/2015. The hours, minutes, and seconds of the end date
+	// should not be set, as doing so will result in an error. This field is
+	// required on insertion.
 	EndDate string `json:"endDate,omitempty"`
 
 	// Flighted: Whether this placement is flighted. If true, pricing
@@ -4521,10 +4510,10 @@ type PricingSchedule struct {
 	// insertion.
 	PricingType string `json:"pricingType,omitempty"`
 
-	// StartDate: Placement start date. This date cannot be earlier than the
-	// campaign start date. The hours, minutes, and seconds of the start
-	// date should not be set, as doing so will result in an error. This
-	// field is required on insertion.
+	// StartDate: Placement start date. This date must be later than, or the
+	// same day as, the campaign start date. The hours, minutes, and seconds
+	// of the start date should not be set, as doing so will result in an
+	// error. This field is required on insertion.
 	StartDate string `json:"startDate,omitempty"`
 
 	// TestingStartDate: Testing start date of this placement. The hours,
@@ -4534,10 +4523,10 @@ type PricingSchedule struct {
 }
 
 type PricingSchedulePricingPeriod struct {
-	// EndDate: Pricing period end date. This date must be later than or be
-	// the same day as the pricing period start date, but not later than the
-	// placement end date. The period end date can be the same date as the
-	// period start date. If, for example, you set 6/25/2015 as both the
+	// EndDate: Pricing period end date. This date must be later than, or
+	// the same day as, the pricing period start date, but not later than
+	// the placement end date. The period end date can be the same date as
+	// the period start date. If, for example, you set 6/25/2015 as both the
 	// start and end dates, the effective pricing period date is just that
 	// day only, 6/25/2015. The hours, minutes, and seconds of the end date
 	// should not be set, as doing so will result in an error.
@@ -4549,9 +4538,10 @@ type PricingSchedulePricingPeriod struct {
 	// RateOrCostNanos: Rate or cost of this pricing period.
 	RateOrCostNanos int64 `json:"rateOrCostNanos,omitempty,string"`
 
-	// StartDate: Pricing period start date. This date cannot be earlier
-	// than the placement start date. The hours, minutes, and seconds of the
-	// start date should not be set, as doing so will result in an error.
+	// StartDate: Pricing period start date. This date must be later than,
+	// or the same day as, the placement start date. The hours, minutes, and
+	// seconds of the start date should not be set, as doing so will result
+	// in an error.
 	StartDate string `json:"startDate,omitempty"`
 
 	// Units: Units of this pricing period.
@@ -4645,7 +4635,7 @@ type RegionsListResponse struct {
 	// string "dfareporting#regionsListResponse".
 	Kind string `json:"kind,omitempty"`
 
-	// Regions: Region Collection.
+	// Regions: Region collection.
 	Regions []*Region `json:"regions,omitempty"`
 }
 
@@ -5209,7 +5199,7 @@ type SizesListResponse struct {
 	// string "dfareporting#sizesListResponse".
 	Kind string `json:"kind,omitempty"`
 
-	// Sizes: Size collection
+	// Sizes: Size collection.
 	Sizes []*Size `json:"sizes,omitempty"`
 }
 
@@ -5256,7 +5246,7 @@ type SubaccountsListResponse struct {
 	// operation.
 	NextPageToken string `json:"nextPageToken,omitempty"`
 
-	// Subaccounts: Subaccount collection
+	// Subaccounts: Subaccount collection.
 	Subaccounts []*Subaccount `json:"subaccounts,omitempty"`
 }
 
@@ -5493,7 +5483,7 @@ type UserRolePermissionGroupsListResponse struct {
 	// string "dfareporting#userRolePermissionGroupsListResponse".
 	Kind string `json:"kind,omitempty"`
 
-	// UserRolePermissionGroups: User role permission group collection
+	// UserRolePermissionGroups: User role permission group collection.
 	UserRolePermissionGroups []*UserRolePermissionGroup `json:"userRolePermissionGroups,omitempty"`
 }
 
@@ -5502,7 +5492,7 @@ type UserRolePermissionsListResponse struct {
 	// string "dfareporting#userRolePermissionsListResponse".
 	Kind string `json:"kind,omitempty"`
 
-	// UserRolePermissions: User role permission collection
+	// UserRolePermissions: User role permission collection.
 	UserRolePermissions []*UserRolePermission `json:"userRolePermissions,omitempty"`
 }
 
@@ -5515,7 +5505,7 @@ type UserRolesListResponse struct {
 	// operation.
 	NextPageToken string `json:"nextPageToken,omitempty"`
 
-	// UserRoles: User role collection
+	// UserRoles: User role collection.
 	UserRoles []*UserRole `json:"userRoles,omitempty"`
 }
 
@@ -5525,14 +5515,27 @@ type AccountActiveAdSummariesGetCall struct {
 	s                *Service
 	profileId        int64
 	summaryAccountId int64
-	opt_             map[string]interface{}
+	caller_          googleapi.Caller
+	params_          url.Values
+	pathTemplate_    string
+	context_         context.Context
 }
 
 // Get: Gets the account's active ad summary by account ID.
+
 func (r *AccountActiveAdSummariesService) Get(profileId int64, summaryAccountId int64) *AccountActiveAdSummariesGetCall {
-	c := &AccountActiveAdSummariesGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.summaryAccountId = summaryAccountId
+	return &AccountActiveAdSummariesGetCall{
+		s:                r.s,
+		profileId:        profileId,
+		summaryAccountId: summaryAccountId,
+		caller_:          googleapi.JSONCall{},
+		params_:          make(map[string][]string),
+		pathTemplate_:    "userprofiles/{profileId}/accountActiveAdSummaries/{summaryAccountId}",
+		context_:         googleapi.NoContext,
+	}
+}
+func (c *AccountActiveAdSummariesGetCall) Context(ctx context.Context) *AccountActiveAdSummariesGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -5540,38 +5543,24 @@ func (r *AccountActiveAdSummariesService) Get(profileId int64, summaryAccountId 
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AccountActiveAdSummariesGetCall) Fields(s ...googleapi.Field) *AccountActiveAdSummariesGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AccountActiveAdSummariesGetCall) Do() (*AccountActiveAdSummary, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/accountActiveAdSummaries/{summaryAccountId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *AccountActiveAdSummary
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId":        strconv.FormatInt(c.profileId, 10),
 		"summaryAccountId": strconv.FormatInt(c.summaryAccountId, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *AccountActiveAdSummary
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Gets the account's active ad summary by account ID.",
 	//   "httpMethod": "GET",
@@ -5610,17 +5599,30 @@ func (c *AccountActiveAdSummariesGetCall) Do() (*AccountActiveAdSummary, error) 
 // method id "dfareporting.accountPermissionGroups.get":
 
 type AccountPermissionGroupsGetCall struct {
-	s         *Service
-	profileId int64
-	id        int64
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	id            int64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Gets one account permission group by ID.
+
 func (r *AccountPermissionGroupsService) Get(profileId int64, id int64) *AccountPermissionGroupsGetCall {
-	c := &AccountPermissionGroupsGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.id = id
+	return &AccountPermissionGroupsGetCall{
+		s:             r.s,
+		profileId:     profileId,
+		id:            id,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/accountPermissionGroups/{id}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *AccountPermissionGroupsGetCall) Context(ctx context.Context) *AccountPermissionGroupsGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -5628,38 +5630,24 @@ func (r *AccountPermissionGroupsService) Get(profileId int64, id int64) *Account
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AccountPermissionGroupsGetCall) Fields(s ...googleapi.Field) *AccountPermissionGroupsGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AccountPermissionGroupsGetCall) Do() (*AccountPermissionGroup, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/accountPermissionGroups/{id}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *AccountPermissionGroup
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 		"id":        strconv.FormatInt(c.id, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *AccountPermissionGroup
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Gets one account permission group by ID.",
 	//   "httpMethod": "GET",
@@ -5698,15 +5686,28 @@ func (c *AccountPermissionGroupsGetCall) Do() (*AccountPermissionGroup, error) {
 // method id "dfareporting.accountPermissionGroups.list":
 
 type AccountPermissionGroupsListCall struct {
-	s         *Service
-	profileId int64
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Retrieves the list of account permission groups.
+
 func (r *AccountPermissionGroupsService) List(profileId int64) *AccountPermissionGroupsListCall {
-	c := &AccountPermissionGroupsListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
+	return &AccountPermissionGroupsListCall{
+		s:             r.s,
+		profileId:     profileId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/accountPermissionGroups",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *AccountPermissionGroupsListCall) Context(ctx context.Context) *AccountPermissionGroupsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -5714,37 +5715,23 @@ func (r *AccountPermissionGroupsService) List(profileId int64) *AccountPermissio
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AccountPermissionGroupsListCall) Fields(s ...googleapi.Field) *AccountPermissionGroupsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AccountPermissionGroupsListCall) Do() (*AccountPermissionGroupsListResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/accountPermissionGroups")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *AccountPermissionGroupsListResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *AccountPermissionGroupsListResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves the list of account permission groups.",
 	//   "httpMethod": "GET",
@@ -5775,17 +5762,30 @@ func (c *AccountPermissionGroupsListCall) Do() (*AccountPermissionGroupsListResp
 // method id "dfareporting.accountPermissions.get":
 
 type AccountPermissionsGetCall struct {
-	s         *Service
-	profileId int64
-	id        int64
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	id            int64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Gets one account permission by ID.
+
 func (r *AccountPermissionsService) Get(profileId int64, id int64) *AccountPermissionsGetCall {
-	c := &AccountPermissionsGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.id = id
+	return &AccountPermissionsGetCall{
+		s:             r.s,
+		profileId:     profileId,
+		id:            id,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/accountPermissions/{id}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *AccountPermissionsGetCall) Context(ctx context.Context) *AccountPermissionsGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -5793,38 +5793,24 @@ func (r *AccountPermissionsService) Get(profileId int64, id int64) *AccountPermi
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AccountPermissionsGetCall) Fields(s ...googleapi.Field) *AccountPermissionsGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AccountPermissionsGetCall) Do() (*AccountPermission, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/accountPermissions/{id}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *AccountPermission
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 		"id":        strconv.FormatInt(c.id, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *AccountPermission
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Gets one account permission by ID.",
 	//   "httpMethod": "GET",
@@ -5863,15 +5849,28 @@ func (c *AccountPermissionsGetCall) Do() (*AccountPermission, error) {
 // method id "dfareporting.accountPermissions.list":
 
 type AccountPermissionsListCall struct {
-	s         *Service
-	profileId int64
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Retrieves the list of account permissions.
+
 func (r *AccountPermissionsService) List(profileId int64) *AccountPermissionsListCall {
-	c := &AccountPermissionsListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
+	return &AccountPermissionsListCall{
+		s:             r.s,
+		profileId:     profileId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/accountPermissions",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *AccountPermissionsListCall) Context(ctx context.Context) *AccountPermissionsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -5879,37 +5878,23 @@ func (r *AccountPermissionsService) List(profileId int64) *AccountPermissionsLis
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AccountPermissionsListCall) Fields(s ...googleapi.Field) *AccountPermissionsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AccountPermissionsListCall) Do() (*AccountPermissionsListResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/accountPermissions")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *AccountPermissionsListResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *AccountPermissionsListResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves the list of account permissions.",
 	//   "httpMethod": "GET",
@@ -5940,17 +5925,30 @@ func (c *AccountPermissionsListCall) Do() (*AccountPermissionsListResponse, erro
 // method id "dfareporting.accountUserProfiles.get":
 
 type AccountUserProfilesGetCall struct {
-	s         *Service
-	profileId int64
-	id        int64
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	id            int64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Gets one account user profile by ID.
+
 func (r *AccountUserProfilesService) Get(profileId int64, id int64) *AccountUserProfilesGetCall {
-	c := &AccountUserProfilesGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.id = id
+	return &AccountUserProfilesGetCall{
+		s:             r.s,
+		profileId:     profileId,
+		id:            id,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/accountUserProfiles/{id}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *AccountUserProfilesGetCall) Context(ctx context.Context) *AccountUserProfilesGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -5958,38 +5956,24 @@ func (r *AccountUserProfilesService) Get(profileId int64, id int64) *AccountUser
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AccountUserProfilesGetCall) Fields(s ...googleapi.Field) *AccountUserProfilesGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AccountUserProfilesGetCall) Do() (*AccountUserProfile, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/accountUserProfiles/{id}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *AccountUserProfile
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 		"id":        strconv.FormatInt(c.id, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *AccountUserProfile
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Gets one account user profile by ID.",
 	//   "httpMethod": "GET",
@@ -6028,84 +6012,100 @@ func (c *AccountUserProfilesGetCall) Do() (*AccountUserProfile, error) {
 // method id "dfareporting.accountUserProfiles.list":
 
 type AccountUserProfilesListCall struct {
-	s         *Service
-	profileId int64
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Retrieves a list of account user profiles, possibly filtered.
+
 func (r *AccountUserProfilesService) List(profileId int64) *AccountUserProfilesListCall {
-	c := &AccountUserProfilesListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	return c
+	return &AccountUserProfilesListCall{
+		s:             r.s,
+		profileId:     profileId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/accountUserProfiles",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Active sets the optional parameter "active": Select only active user
 // profiles.
 func (c *AccountUserProfilesListCall) Active(active bool) *AccountUserProfilesListCall {
-	c.opt_["active"] = active
+	c.params_.Set("active", fmt.Sprintf("%v", active))
 	return c
 }
 
 // Ids sets the optional parameter "ids": Select only user profiles with
 // these IDs.
-func (c *AccountUserProfilesListCall) Ids(ids int64) *AccountUserProfilesListCall {
-	c.opt_["ids"] = ids
+func (c *AccountUserProfilesListCall) Ids(ids ...int64) *AccountUserProfilesListCall {
+	for _, v_ := range ids {
+		c.params_.Add("ids", fmt.Sprintf("%v", v_))
+	}
 	return c
 }
 
 // MaxResults sets the optional parameter "maxResults": Maximum number
 // of results to return.
 func (c *AccountUserProfilesListCall) MaxResults(maxResults int64) *AccountUserProfilesListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
 // PageToken sets the optional parameter "pageToken": Value of the
 // nextPageToken from the previous result page.
 func (c *AccountUserProfilesListCall) PageToken(pageToken string) *AccountUserProfilesListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
 	return c
 }
 
 // SearchString sets the optional parameter "searchString": Allows
 // searching for objects by name, ID or email. Wildcards (*) are
 // allowed. For example, "user profile*2015" will return objects with
-// names like "user profile June 2015", "user profile April 2015" or
+// names like "user profile June 2015", "user profile April 2015", or
 // simply "user profile 2015". Most of the searches also add wildcards
 // implicitly at the start and the end of the search string. For
 // example, a search string of "user profile" will match objects with
-// name "my user profile", "user profile 2015" or simply "user profile".
+// name "my user profile", "user profile 2015", or simply "user
+// profile".
 func (c *AccountUserProfilesListCall) SearchString(searchString string) *AccountUserProfilesListCall {
-	c.opt_["searchString"] = searchString
+	c.params_.Set("searchString", fmt.Sprintf("%v", searchString))
 	return c
 }
 
 // SortField sets the optional parameter "sortField": Field by which to
 // sort the list.
 func (c *AccountUserProfilesListCall) SortField(sortField string) *AccountUserProfilesListCall {
-	c.opt_["sortField"] = sortField
+	c.params_.Set("sortField", fmt.Sprintf("%v", sortField))
 	return c
 }
 
 // SortOrder sets the optional parameter "sortOrder": Order of sorted
 // results, default is ASCENDING.
 func (c *AccountUserProfilesListCall) SortOrder(sortOrder string) *AccountUserProfilesListCall {
-	c.opt_["sortOrder"] = sortOrder
+	c.params_.Set("sortOrder", fmt.Sprintf("%v", sortOrder))
 	return c
 }
 
 // SubaccountId sets the optional parameter "subaccountId": Select only
 // user profiles with the specified subaccount ID.
 func (c *AccountUserProfilesListCall) SubaccountId(subaccountId int64) *AccountUserProfilesListCall {
-	c.opt_["subaccountId"] = subaccountId
+	c.params_.Set("subaccountId", fmt.Sprintf("%v", subaccountId))
 	return c
 }
 
 // UserRoleId sets the optional parameter "userRoleId": Select only user
 // profiles with the specified user role ID.
 func (c *AccountUserProfilesListCall) UserRoleId(userRoleId int64) *AccountUserProfilesListCall {
-	c.opt_["userRoleId"] = userRoleId
+	c.params_.Set("userRoleId", fmt.Sprintf("%v", userRoleId))
+	return c
+}
+func (c *AccountUserProfilesListCall) Context(ctx context.Context) *AccountUserProfilesListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -6113,64 +6113,23 @@ func (c *AccountUserProfilesListCall) UserRoleId(userRoleId int64) *AccountUserP
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AccountUserProfilesListCall) Fields(s ...googleapi.Field) *AccountUserProfilesListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AccountUserProfilesListCall) Do() (*AccountUserProfilesListResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["active"]; ok {
-		params.Set("active", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["ids"]; ok {
-		params.Set("ids", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["searchString"]; ok {
-		params.Set("searchString", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["sortField"]; ok {
-		params.Set("sortField", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["sortOrder"]; ok {
-		params.Set("sortOrder", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["subaccountId"]; ok {
-		params.Set("subaccountId", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["userRoleId"]; ok {
-		params.Set("userRoleId", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/accountUserProfiles")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *AccountUserProfilesListResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *AccountUserProfilesListResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves a list of account user profiles, possibly filtered.",
 	//   "httpMethod": "GET",
@@ -6210,7 +6169,7 @@ func (c *AccountUserProfilesListCall) Do() (*AccountUserProfilesListResponse, er
 	//       "type": "string"
 	//     },
 	//     "searchString": {
-	//       "description": "Allows searching for objects by name, ID or email. Wildcards (*) are allowed. For example, \"user profile*2015\" will return objects with names like \"user profile June 2015\", \"user profile April 2015\" or simply \"user profile 2015\". Most of the searches also add wildcards implicitly at the start and the end of the search string. For example, a search string of \"user profile\" will match objects with name \"my user profile\", \"user profile 2015\" or simply \"user profile\".",
+	//       "description": "Allows searching for objects by name, ID or email. Wildcards (*) are allowed. For example, \"user profile*2015\" will return objects with names like \"user profile June 2015\", \"user profile April 2015\", or simply \"user profile 2015\". Most of the searches also add wildcards implicitly at the start and the end of the search string. For example, a search string of \"user profile\" will match objects with name \"my user profile\", \"user profile 2015\", or simply \"user profile\".",
 	//       "location": "query",
 	//       "type": "string"
 	//     },
@@ -6271,16 +6230,29 @@ type AccountUserProfilesPatchCall struct {
 	profileId          int64
 	id                 int64
 	accountuserprofile *AccountUserProfile
-	opt_               map[string]interface{}
+	caller_            googleapi.Caller
+	params_            url.Values
+	pathTemplate_      string
+	context_           context.Context
 }
 
 // Patch: Updates an existing account user profile. This method supports
 // patch semantics.
+
 func (r *AccountUserProfilesService) Patch(profileId int64, id int64, accountuserprofile *AccountUserProfile) *AccountUserProfilesPatchCall {
-	c := &AccountUserProfilesPatchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.id = id
-	c.accountuserprofile = accountuserprofile
+	return &AccountUserProfilesPatchCall{
+		s:                  r.s,
+		profileId:          profileId,
+		id:                 id,
+		accountuserprofile: accountuserprofile,
+		caller_:            googleapi.JSONCall{},
+		params_:            make(map[string][]string),
+		pathTemplate_:      "userprofiles/{profileId}/accountUserProfiles",
+		context_:           googleapi.NoContext,
+	}
+}
+func (c *AccountUserProfilesPatchCall) Context(ctx context.Context) *AccountUserProfilesPatchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -6288,44 +6260,25 @@ func (r *AccountUserProfilesService) Patch(profileId int64, id int64, accountuse
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AccountUserProfilesPatchCall) Fields(s ...googleapi.Field) *AccountUserProfilesPatchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AccountUserProfilesPatchCall) Do() (*AccountUserProfile, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.accountuserprofile)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("id", fmt.Sprintf("%v", c.id))
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/accountUserProfiles")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PATCH", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *AccountUserProfile
+	c.params_.Set("id", fmt.Sprintf("%v", c.id))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PATCH",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.accountuserprofile,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *AccountUserProfile
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates an existing account user profile. This method supports patch semantics.",
 	//   "httpMethod": "PATCH",
@@ -6370,14 +6323,27 @@ type AccountUserProfilesUpdateCall struct {
 	s                  *Service
 	profileId          int64
 	accountuserprofile *AccountUserProfile
-	opt_               map[string]interface{}
+	caller_            googleapi.Caller
+	params_            url.Values
+	pathTemplate_      string
+	context_           context.Context
 }
 
 // Update: Updates an existing account user profile.
+
 func (r *AccountUserProfilesService) Update(profileId int64, accountuserprofile *AccountUserProfile) *AccountUserProfilesUpdateCall {
-	c := &AccountUserProfilesUpdateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.accountuserprofile = accountuserprofile
+	return &AccountUserProfilesUpdateCall{
+		s:                  r.s,
+		profileId:          profileId,
+		accountuserprofile: accountuserprofile,
+		caller_:            googleapi.JSONCall{},
+		params_:            make(map[string][]string),
+		pathTemplate_:      "userprofiles/{profileId}/accountUserProfiles",
+		context_:           googleapi.NoContext,
+	}
+}
+func (c *AccountUserProfilesUpdateCall) Context(ctx context.Context) *AccountUserProfilesUpdateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -6385,43 +6351,24 @@ func (r *AccountUserProfilesService) Update(profileId int64, accountuserprofile 
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AccountUserProfilesUpdateCall) Fields(s ...googleapi.Field) *AccountUserProfilesUpdateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AccountUserProfilesUpdateCall) Do() (*AccountUserProfile, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.accountuserprofile)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/accountUserProfiles")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *AccountUserProfile
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.accountuserprofile,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *AccountUserProfile
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates an existing account user profile.",
 	//   "httpMethod": "PUT",
@@ -6455,17 +6402,30 @@ func (c *AccountUserProfilesUpdateCall) Do() (*AccountUserProfile, error) {
 // method id "dfareporting.accounts.get":
 
 type AccountsGetCall struct {
-	s         *Service
-	profileId int64
-	id        int64
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	id            int64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Gets one account by ID.
+
 func (r *AccountsService) Get(profileId int64, id int64) *AccountsGetCall {
-	c := &AccountsGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.id = id
+	return &AccountsGetCall{
+		s:             r.s,
+		profileId:     profileId,
+		id:            id,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/accounts/{id}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *AccountsGetCall) Context(ctx context.Context) *AccountsGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -6473,38 +6433,24 @@ func (r *AccountsService) Get(profileId int64, id int64) *AccountsGetCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AccountsGetCall) Fields(s ...googleapi.Field) *AccountsGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AccountsGetCall) Do() (*Account, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/accounts/{id}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Account
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 		"id":        strconv.FormatInt(c.id, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Account
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Gets one account by ID.",
 	//   "httpMethod": "GET",
@@ -6543,71 +6489,86 @@ func (c *AccountsGetCall) Do() (*Account, error) {
 // method id "dfareporting.accounts.list":
 
 type AccountsListCall struct {
-	s         *Service
-	profileId int64
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Retrieves the list of accounts, possibly filtered.
+
 func (r *AccountsService) List(profileId int64) *AccountsListCall {
-	c := &AccountsListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	return c
+	return &AccountsListCall{
+		s:             r.s,
+		profileId:     profileId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/accounts",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Active sets the optional parameter "active": Select only active
 // accounts. Don't set this field to select both active and non-active
 // accounts.
 func (c *AccountsListCall) Active(active bool) *AccountsListCall {
-	c.opt_["active"] = active
+	c.params_.Set("active", fmt.Sprintf("%v", active))
 	return c
 }
 
 // Ids sets the optional parameter "ids": Select only accounts with
 // these IDs.
-func (c *AccountsListCall) Ids(ids int64) *AccountsListCall {
-	c.opt_["ids"] = ids
+func (c *AccountsListCall) Ids(ids ...int64) *AccountsListCall {
+	for _, v_ := range ids {
+		c.params_.Add("ids", fmt.Sprintf("%v", v_))
+	}
 	return c
 }
 
 // MaxResults sets the optional parameter "maxResults": Maximum number
 // of results to return.
 func (c *AccountsListCall) MaxResults(maxResults int64) *AccountsListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
 // PageToken sets the optional parameter "pageToken": Value of the
 // nextPageToken from the previous result page.
 func (c *AccountsListCall) PageToken(pageToken string) *AccountsListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
 	return c
 }
 
 // SearchString sets the optional parameter "searchString": Allows
 // searching for objects by name or ID. Wildcards (*) are allowed. For
 // example, "account*2015" will return objects with names like "account
-// June 2015", "account April 2015" or simply "account 2015". Most of
+// June 2015", "account April 2015", or simply "account 2015". Most of
 // the searches also add wildcards implicitly at the start and the end
 // of the search string. For example, a search string of "account" will
-// match objects with name "my account", "account 2015" or simply
+// match objects with name "my account", "account 2015", or simply
 // "account".
 func (c *AccountsListCall) SearchString(searchString string) *AccountsListCall {
-	c.opt_["searchString"] = searchString
+	c.params_.Set("searchString", fmt.Sprintf("%v", searchString))
 	return c
 }
 
 // SortField sets the optional parameter "sortField": Field by which to
 // sort the list.
 func (c *AccountsListCall) SortField(sortField string) *AccountsListCall {
-	c.opt_["sortField"] = sortField
+	c.params_.Set("sortField", fmt.Sprintf("%v", sortField))
 	return c
 }
 
 // SortOrder sets the optional parameter "sortOrder": Order of sorted
 // results, default is ASCENDING.
 func (c *AccountsListCall) SortOrder(sortOrder string) *AccountsListCall {
-	c.opt_["sortOrder"] = sortOrder
+	c.params_.Set("sortOrder", fmt.Sprintf("%v", sortOrder))
+	return c
+}
+func (c *AccountsListCall) Context(ctx context.Context) *AccountsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -6615,58 +6576,23 @@ func (c *AccountsListCall) SortOrder(sortOrder string) *AccountsListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AccountsListCall) Fields(s ...googleapi.Field) *AccountsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AccountsListCall) Do() (*AccountsListResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["active"]; ok {
-		params.Set("active", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["ids"]; ok {
-		params.Set("ids", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["searchString"]; ok {
-		params.Set("searchString", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["sortField"]; ok {
-		params.Set("sortField", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["sortOrder"]; ok {
-		params.Set("sortOrder", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/accounts")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *AccountsListResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *AccountsListResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves the list of accounts, possibly filtered.",
 	//   "httpMethod": "GET",
@@ -6706,7 +6632,7 @@ func (c *AccountsListCall) Do() (*AccountsListResponse, error) {
 	//       "type": "string"
 	//     },
 	//     "searchString": {
-	//       "description": "Allows searching for objects by name or ID. Wildcards (*) are allowed. For example, \"account*2015\" will return objects with names like \"account June 2015\", \"account April 2015\" or simply \"account 2015\". Most of the searches also add wildcards implicitly at the start and the end of the search string. For example, a search string of \"account\" will match objects with name \"my account\", \"account 2015\" or simply \"account\".",
+	//       "description": "Allows searching for objects by name or ID. Wildcards (*) are allowed. For example, \"account*2015\" will return objects with names like \"account June 2015\", \"account April 2015\", or simply \"account 2015\". Most of the searches also add wildcards implicitly at the start and the end of the search string. For example, a search string of \"account\" will match objects with name \"my account\", \"account 2015\", or simply \"account\".",
 	//       "location": "query",
 	//       "type": "string"
 	//     },
@@ -6751,20 +6677,33 @@ func (c *AccountsListCall) Do() (*AccountsListResponse, error) {
 // method id "dfareporting.accounts.patch":
 
 type AccountsPatchCall struct {
-	s         *Service
-	profileId int64
-	id        int64
-	account   *Account
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	id            int64
+	account       *Account
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Patch: Updates an existing account. This method supports patch
 // semantics.
+
 func (r *AccountsService) Patch(profileId int64, id int64, account *Account) *AccountsPatchCall {
-	c := &AccountsPatchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.id = id
-	c.account = account
+	return &AccountsPatchCall{
+		s:             r.s,
+		profileId:     profileId,
+		id:            id,
+		account:       account,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/accounts",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *AccountsPatchCall) Context(ctx context.Context) *AccountsPatchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -6772,44 +6711,25 @@ func (r *AccountsService) Patch(profileId int64, id int64, account *Account) *Ac
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AccountsPatchCall) Fields(s ...googleapi.Field) *AccountsPatchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AccountsPatchCall) Do() (*Account, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.account)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("id", fmt.Sprintf("%v", c.id))
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/accounts")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PATCH", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Account
+	c.params_.Set("id", fmt.Sprintf("%v", c.id))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PATCH",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.account,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Account
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates an existing account. This method supports patch semantics.",
 	//   "httpMethod": "PATCH",
@@ -6851,17 +6771,30 @@ func (c *AccountsPatchCall) Do() (*Account, error) {
 // method id "dfareporting.accounts.update":
 
 type AccountsUpdateCall struct {
-	s         *Service
-	profileId int64
-	account   *Account
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	account       *Account
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Update: Updates an existing account.
+
 func (r *AccountsService) Update(profileId int64, account *Account) *AccountsUpdateCall {
-	c := &AccountsUpdateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.account = account
+	return &AccountsUpdateCall{
+		s:             r.s,
+		profileId:     profileId,
+		account:       account,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/accounts",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *AccountsUpdateCall) Context(ctx context.Context) *AccountsUpdateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -6869,43 +6802,24 @@ func (r *AccountsService) Update(profileId int64, account *Account) *AccountsUpd
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AccountsUpdateCall) Fields(s ...googleapi.Field) *AccountsUpdateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AccountsUpdateCall) Do() (*Account, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.account)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/accounts")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Account
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.account,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Account
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates an existing account.",
 	//   "httpMethod": "PUT",
@@ -6939,17 +6853,30 @@ func (c *AccountsUpdateCall) Do() (*Account, error) {
 // method id "dfareporting.ads.get":
 
 type AdsGetCall struct {
-	s         *Service
-	profileId int64
-	id        int64
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	id            int64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Gets one ad by ID.
+
 func (r *AdsService) Get(profileId int64, id int64) *AdsGetCall {
-	c := &AdsGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.id = id
+	return &AdsGetCall{
+		s:             r.s,
+		profileId:     profileId,
+		id:            id,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/ads/{id}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *AdsGetCall) Context(ctx context.Context) *AdsGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -6957,38 +6884,24 @@ func (r *AdsService) Get(profileId int64, id int64) *AdsGetCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AdsGetCall) Fields(s ...googleapi.Field) *AdsGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AdsGetCall) Do() (*Ad, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/ads/{id}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Ad
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 		"id":        strconv.FormatInt(c.id, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Ad
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Gets one ad by ID.",
 	//   "httpMethod": "GET",
@@ -7027,17 +6940,30 @@ func (c *AdsGetCall) Do() (*Ad, error) {
 // method id "dfareporting.ads.insert":
 
 type AdsInsertCall struct {
-	s         *Service
-	profileId int64
-	ad        *Ad
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	ad            *Ad
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Insert: Inserts a new ad.
+
 func (r *AdsService) Insert(profileId int64, ad *Ad) *AdsInsertCall {
-	c := &AdsInsertCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.ad = ad
+	return &AdsInsertCall{
+		s:             r.s,
+		profileId:     profileId,
+		ad:            ad,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/ads",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *AdsInsertCall) Context(ctx context.Context) *AdsInsertCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -7045,43 +6971,24 @@ func (r *AdsService) Insert(profileId int64, ad *Ad) *AdsInsertCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AdsInsertCall) Fields(s ...googleapi.Field) *AdsInsertCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AdsInsertCall) Do() (*Ad, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.ad)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/ads")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Ad
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.ad,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Ad
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Inserts a new ad.",
 	//   "httpMethod": "POST",
@@ -7115,49 +7022,62 @@ func (c *AdsInsertCall) Do() (*Ad, error) {
 // method id "dfareporting.ads.list":
 
 type AdsListCall struct {
-	s         *Service
-	profileId int64
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Retrieves a list of ads, possibly filtered.
+
 func (r *AdsService) List(profileId int64) *AdsListCall {
-	c := &AdsListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	return c
+	return &AdsListCall{
+		s:             r.s,
+		profileId:     profileId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/ads",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Active sets the optional parameter "active": Select only active ads.
 func (c *AdsListCall) Active(active bool) *AdsListCall {
-	c.opt_["active"] = active
+	c.params_.Set("active", fmt.Sprintf("%v", active))
 	return c
 }
 
 // AdvertiserId sets the optional parameter "advertiserId": Select only
 // ads with this advertiser ID.
 func (c *AdsListCall) AdvertiserId(advertiserId int64) *AdsListCall {
-	c.opt_["advertiserId"] = advertiserId
+	c.params_.Set("advertiserId", fmt.Sprintf("%v", advertiserId))
 	return c
 }
 
 // Archived sets the optional parameter "archived": Select only archived
 // ads.
 func (c *AdsListCall) Archived(archived bool) *AdsListCall {
-	c.opt_["archived"] = archived
+	c.params_.Set("archived", fmt.Sprintf("%v", archived))
 	return c
 }
 
 // AudienceSegmentIds sets the optional parameter "audienceSegmentIds":
 // Select only ads with these audience segment IDs.
-func (c *AdsListCall) AudienceSegmentIds(audienceSegmentIds int64) *AdsListCall {
-	c.opt_["audienceSegmentIds"] = audienceSegmentIds
+func (c *AdsListCall) AudienceSegmentIds(audienceSegmentIds ...int64) *AdsListCall {
+	for _, v_ := range audienceSegmentIds {
+		c.params_.Add("audienceSegmentIds", fmt.Sprintf("%v", v_))
+	}
 	return c
 }
 
 // CampaignIds sets the optional parameter "campaignIds": Select only
 // ads with these campaign IDs.
-func (c *AdsListCall) CampaignIds(campaignIds int64) *AdsListCall {
-	c.opt_["campaignIds"] = campaignIds
+func (c *AdsListCall) CampaignIds(campaignIds ...int64) *AdsListCall {
+	for _, v_ := range campaignIds {
+		c.params_.Add("campaignIds", fmt.Sprintf("%v", v_))
+	}
 	return c
 }
 
@@ -7169,29 +7089,33 @@ func (c *AdsListCall) CampaignIds(campaignIds int64) *AdsListCall {
 // mobile apps. IN_STREAM_VIDEO refers to rendering an in-stream video
 // ads developed with the VAST standard.
 func (c *AdsListCall) Compatibility(compatibility string) *AdsListCall {
-	c.opt_["compatibility"] = compatibility
+	c.params_.Set("compatibility", fmt.Sprintf("%v", compatibility))
 	return c
 }
 
 // CreativeIds sets the optional parameter "creativeIds": Select only
 // ads with these creative IDs assigned.
-func (c *AdsListCall) CreativeIds(creativeIds int64) *AdsListCall {
-	c.opt_["creativeIds"] = creativeIds
+func (c *AdsListCall) CreativeIds(creativeIds ...int64) *AdsListCall {
+	for _, v_ := range creativeIds {
+		c.params_.Add("creativeIds", fmt.Sprintf("%v", v_))
+	}
 	return c
 }
 
 // CreativeOptimizationConfigurationIds sets the optional parameter
 // "creativeOptimizationConfigurationIds": Select only ads with these
 // creative optimization configuration IDs.
-func (c *AdsListCall) CreativeOptimizationConfigurationIds(creativeOptimizationConfigurationIds int64) *AdsListCall {
-	c.opt_["creativeOptimizationConfigurationIds"] = creativeOptimizationConfigurationIds
+func (c *AdsListCall) CreativeOptimizationConfigurationIds(creativeOptimizationConfigurationIds ...int64) *AdsListCall {
+	for _, v_ := range creativeOptimizationConfigurationIds {
+		c.params_.Add("creativeOptimizationConfigurationIds", fmt.Sprintf("%v", v_))
+	}
 	return c
 }
 
 // CreativeType sets the optional parameter "creativeType": Select only
 // ads with the specified creativeType.
 func (c *AdsListCall) CreativeType(creativeType string) *AdsListCall {
-	c.opt_["creativeType"] = creativeType
+	c.params_.Set("creativeType", fmt.Sprintf("%v", creativeType))
 	return c
 }
 
@@ -7201,28 +7125,32 @@ func (c *AdsListCall) CreativeType(creativeType string) *AdsListCall {
 // trackers. If false, select static click trackers. Leave unset to
 // select both.
 func (c *AdsListCall) DynamicClickTracker(dynamicClickTracker bool) *AdsListCall {
-	c.opt_["dynamicClickTracker"] = dynamicClickTracker
+	c.params_.Set("dynamicClickTracker", fmt.Sprintf("%v", dynamicClickTracker))
 	return c
 }
 
 // Ids sets the optional parameter "ids": Select only ads with these
 // IDs.
-func (c *AdsListCall) Ids(ids int64) *AdsListCall {
-	c.opt_["ids"] = ids
+func (c *AdsListCall) Ids(ids ...int64) *AdsListCall {
+	for _, v_ := range ids {
+		c.params_.Add("ids", fmt.Sprintf("%v", v_))
+	}
 	return c
 }
 
 // LandingPageIds sets the optional parameter "landingPageIds": Select
 // only ads with these landing page IDs.
-func (c *AdsListCall) LandingPageIds(landingPageIds int64) *AdsListCall {
-	c.opt_["landingPageIds"] = landingPageIds
+func (c *AdsListCall) LandingPageIds(landingPageIds ...int64) *AdsListCall {
+	for _, v_ := range landingPageIds {
+		c.params_.Add("landingPageIds", fmt.Sprintf("%v", v_))
+	}
 	return c
 }
 
 // MaxResults sets the optional parameter "maxResults": Maximum number
 // of results to return.
 func (c *AdsListCall) MaxResults(maxResults int64) *AdsListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
@@ -7230,83 +7158,93 @@ func (c *AdsListCall) MaxResults(maxResults int64) *AdsListCall {
 // "overriddenEventTagId": Select only ads with this event tag override
 // ID.
 func (c *AdsListCall) OverriddenEventTagId(overriddenEventTagId int64) *AdsListCall {
-	c.opt_["overriddenEventTagId"] = overriddenEventTagId
+	c.params_.Set("overriddenEventTagId", fmt.Sprintf("%v", overriddenEventTagId))
 	return c
 }
 
 // PageToken sets the optional parameter "pageToken": Value of the
 // nextPageToken from the previous result page.
 func (c *AdsListCall) PageToken(pageToken string) *AdsListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
 	return c
 }
 
 // PlacementIds sets the optional parameter "placementIds": Select only
 // ads with these placement IDs assigned.
-func (c *AdsListCall) PlacementIds(placementIds int64) *AdsListCall {
-	c.opt_["placementIds"] = placementIds
+func (c *AdsListCall) PlacementIds(placementIds ...int64) *AdsListCall {
+	for _, v_ := range placementIds {
+		c.params_.Add("placementIds", fmt.Sprintf("%v", v_))
+	}
 	return c
 }
 
 // RemarketingListIds sets the optional parameter "remarketingListIds":
 // Select only ads whose list targeting expression use these remarketing
 // list IDs.
-func (c *AdsListCall) RemarketingListIds(remarketingListIds int64) *AdsListCall {
-	c.opt_["remarketingListIds"] = remarketingListIds
+func (c *AdsListCall) RemarketingListIds(remarketingListIds ...int64) *AdsListCall {
+	for _, v_ := range remarketingListIds {
+		c.params_.Add("remarketingListIds", fmt.Sprintf("%v", v_))
+	}
 	return c
 }
 
 // SearchString sets the optional parameter "searchString": Allows
 // searching for objects by name or ID. Wildcards (*) are allowed. For
 // example, "ad*2015" will return objects with names like "ad June
-// 2015", "ad April 2015" or simply "ad 2015". Most of the searches also
-// add wildcards implicitly at the start and the end of the search
+// 2015", "ad April 2015", or simply "ad 2015". Most of the searches
+// also add wildcards implicitly at the start and the end of the search
 // string. For example, a search string of "ad" will match objects with
-// name "my ad", "ad 2015" or simply "ad".
+// name "my ad", "ad 2015", or simply "ad".
 func (c *AdsListCall) SearchString(searchString string) *AdsListCall {
-	c.opt_["searchString"] = searchString
+	c.params_.Set("searchString", fmt.Sprintf("%v", searchString))
 	return c
 }
 
 // SizeIds sets the optional parameter "sizeIds": Select only ads with
 // these size IDs.
-func (c *AdsListCall) SizeIds(sizeIds int64) *AdsListCall {
-	c.opt_["sizeIds"] = sizeIds
+func (c *AdsListCall) SizeIds(sizeIds ...int64) *AdsListCall {
+	for _, v_ := range sizeIds {
+		c.params_.Add("sizeIds", fmt.Sprintf("%v", v_))
+	}
 	return c
 }
 
 // SortField sets the optional parameter "sortField": Field by which to
 // sort the list.
 func (c *AdsListCall) SortField(sortField string) *AdsListCall {
-	c.opt_["sortField"] = sortField
+	c.params_.Set("sortField", fmt.Sprintf("%v", sortField))
 	return c
 }
 
 // SortOrder sets the optional parameter "sortOrder": Order of sorted
 // results, default is ASCENDING.
 func (c *AdsListCall) SortOrder(sortOrder string) *AdsListCall {
-	c.opt_["sortOrder"] = sortOrder
+	c.params_.Set("sortOrder", fmt.Sprintf("%v", sortOrder))
 	return c
 }
 
 // SslCompliant sets the optional parameter "sslCompliant": Select only
 // ads that are SSL-compliant.
 func (c *AdsListCall) SslCompliant(sslCompliant bool) *AdsListCall {
-	c.opt_["sslCompliant"] = sslCompliant
+	c.params_.Set("sslCompliant", fmt.Sprintf("%v", sslCompliant))
 	return c
 }
 
 // SslRequired sets the optional parameter "sslRequired": Select only
 // ads that require SSL.
 func (c *AdsListCall) SslRequired(sslRequired bool) *AdsListCall {
-	c.opt_["sslRequired"] = sslRequired
+	c.params_.Set("sslRequired", fmt.Sprintf("%v", sslRequired))
 	return c
 }
 
 // Type sets the optional parameter "type": Select only ads with these
 // types.
-func (c *AdsListCall) Type(type_ string) *AdsListCall {
-	c.opt_["type"] = type_
+func (c *AdsListCall) Type(type_ ...string) *AdsListCall {
+	c.params_["type"] = type_
+	return c
+}
+func (c *AdsListCall) Context(ctx context.Context) *AdsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -7314,109 +7252,23 @@ func (c *AdsListCall) Type(type_ string) *AdsListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AdsListCall) Fields(s ...googleapi.Field) *AdsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AdsListCall) Do() (*AdsListResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["active"]; ok {
-		params.Set("active", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["advertiserId"]; ok {
-		params.Set("advertiserId", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["archived"]; ok {
-		params.Set("archived", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["audienceSegmentIds"]; ok {
-		params.Set("audienceSegmentIds", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["campaignIds"]; ok {
-		params.Set("campaignIds", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["compatibility"]; ok {
-		params.Set("compatibility", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["creativeIds"]; ok {
-		params.Set("creativeIds", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["creativeOptimizationConfigurationIds"]; ok {
-		params.Set("creativeOptimizationConfigurationIds", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["creativeType"]; ok {
-		params.Set("creativeType", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["dynamicClickTracker"]; ok {
-		params.Set("dynamicClickTracker", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["ids"]; ok {
-		params.Set("ids", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["landingPageIds"]; ok {
-		params.Set("landingPageIds", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["overriddenEventTagId"]; ok {
-		params.Set("overriddenEventTagId", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["placementIds"]; ok {
-		params.Set("placementIds", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["remarketingListIds"]; ok {
-		params.Set("remarketingListIds", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["searchString"]; ok {
-		params.Set("searchString", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["sizeIds"]; ok {
-		params.Set("sizeIds", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["sortField"]; ok {
-		params.Set("sortField", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["sortOrder"]; ok {
-		params.Set("sortOrder", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["sslCompliant"]; ok {
-		params.Set("sslCompliant", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["sslRequired"]; ok {
-		params.Set("sslRequired", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["type"]; ok {
-		params.Set("type", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/ads")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *AdsListResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *AdsListResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves a list of ads, possibly filtered.",
 	//   "httpMethod": "GET",
@@ -7601,7 +7453,7 @@ func (c *AdsListCall) Do() (*AdsListResponse, error) {
 	//       "type": "string"
 	//     },
 	//     "searchString": {
-	//       "description": "Allows searching for objects by name or ID. Wildcards (*) are allowed. For example, \"ad*2015\" will return objects with names like \"ad June 2015\", \"ad April 2015\" or simply \"ad 2015\". Most of the searches also add wildcards implicitly at the start and the end of the search string. For example, a search string of \"ad\" will match objects with name \"my ad\", \"ad 2015\" or simply \"ad\".",
+	//       "description": "Allows searching for objects by name or ID. Wildcards (*) are allowed. For example, \"ad*2015\" will return objects with names like \"ad June 2015\", \"ad April 2015\", or simply \"ad 2015\". Most of the searches also add wildcards implicitly at the start and the end of the search string. For example, a search string of \"ad\" will match objects with name \"my ad\", \"ad 2015\", or simply \"ad\".",
 	//       "location": "query",
 	//       "type": "string"
 	//     },
@@ -7681,19 +7533,32 @@ func (c *AdsListCall) Do() (*AdsListResponse, error) {
 // method id "dfareporting.ads.patch":
 
 type AdsPatchCall struct {
-	s         *Service
-	profileId int64
-	id        int64
-	ad        *Ad
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	id            int64
+	ad            *Ad
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Patch: Updates an existing ad. This method supports patch semantics.
+
 func (r *AdsService) Patch(profileId int64, id int64, ad *Ad) *AdsPatchCall {
-	c := &AdsPatchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.id = id
-	c.ad = ad
+	return &AdsPatchCall{
+		s:             r.s,
+		profileId:     profileId,
+		id:            id,
+		ad:            ad,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/ads",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *AdsPatchCall) Context(ctx context.Context) *AdsPatchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -7701,44 +7566,25 @@ func (r *AdsService) Patch(profileId int64, id int64, ad *Ad) *AdsPatchCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AdsPatchCall) Fields(s ...googleapi.Field) *AdsPatchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AdsPatchCall) Do() (*Ad, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.ad)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("id", fmt.Sprintf("%v", c.id))
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/ads")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PATCH", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Ad
+	c.params_.Set("id", fmt.Sprintf("%v", c.id))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PATCH",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.ad,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Ad
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates an existing ad. This method supports patch semantics.",
 	//   "httpMethod": "PATCH",
@@ -7780,17 +7626,30 @@ func (c *AdsPatchCall) Do() (*Ad, error) {
 // method id "dfareporting.ads.update":
 
 type AdsUpdateCall struct {
-	s         *Service
-	profileId int64
-	ad        *Ad
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	ad            *Ad
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Update: Updates an existing ad.
+
 func (r *AdsService) Update(profileId int64, ad *Ad) *AdsUpdateCall {
-	c := &AdsUpdateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.ad = ad
+	return &AdsUpdateCall{
+		s:             r.s,
+		profileId:     profileId,
+		ad:            ad,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/ads",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *AdsUpdateCall) Context(ctx context.Context) *AdsUpdateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -7798,43 +7657,24 @@ func (r *AdsService) Update(profileId int64, ad *Ad) *AdsUpdateCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AdsUpdateCall) Fields(s ...googleapi.Field) *AdsUpdateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AdsUpdateCall) Do() (*Ad, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.ad)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/ads")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Ad
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.ad,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Ad
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates an existing ad.",
 	//   "httpMethod": "PUT",
@@ -7868,52 +7708,45 @@ func (c *AdsUpdateCall) Do() (*Ad, error) {
 // method id "dfareporting.advertiserGroups.delete":
 
 type AdvertiserGroupsDeleteCall struct {
-	s         *Service
-	profileId int64
-	id        int64
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	id            int64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Delete: Deletes an existing advertiser group.
-func (r *AdvertiserGroupsService) Delete(profileId int64, id int64) *AdvertiserGroupsDeleteCall {
-	c := &AdvertiserGroupsDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.id = id
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *AdvertiserGroupsDeleteCall) Fields(s ...googleapi.Field) *AdvertiserGroupsDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *AdvertiserGroupsService) Delete(profileId int64, id int64) *AdvertiserGroupsDeleteCall {
+	return &AdvertiserGroupsDeleteCall{
+		s:             r.s,
+		profileId:     profileId,
+		id:            id,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/advertiserGroups/{id}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *AdvertiserGroupsDeleteCall) Context(ctx context.Context) *AdvertiserGroupsDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *AdvertiserGroupsDeleteCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/advertiserGroups/{id}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 		"id":        strconv.FormatInt(c.id, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Deletes an existing advertiser group.",
 	//   "httpMethod": "DELETE",
@@ -7949,17 +7782,30 @@ func (c *AdvertiserGroupsDeleteCall) Do() error {
 // method id "dfareporting.advertiserGroups.get":
 
 type AdvertiserGroupsGetCall struct {
-	s         *Service
-	profileId int64
-	id        int64
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	id            int64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Gets one advertiser group by ID.
+
 func (r *AdvertiserGroupsService) Get(profileId int64, id int64) *AdvertiserGroupsGetCall {
-	c := &AdvertiserGroupsGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.id = id
+	return &AdvertiserGroupsGetCall{
+		s:             r.s,
+		profileId:     profileId,
+		id:            id,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/advertiserGroups/{id}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *AdvertiserGroupsGetCall) Context(ctx context.Context) *AdvertiserGroupsGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -7967,38 +7813,24 @@ func (r *AdvertiserGroupsService) Get(profileId int64, id int64) *AdvertiserGrou
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AdvertiserGroupsGetCall) Fields(s ...googleapi.Field) *AdvertiserGroupsGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AdvertiserGroupsGetCall) Do() (*AdvertiserGroup, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/advertiserGroups/{id}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *AdvertiserGroup
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 		"id":        strconv.FormatInt(c.id, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *AdvertiserGroup
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Gets one advertiser group by ID.",
 	//   "httpMethod": "GET",
@@ -8040,14 +7872,27 @@ type AdvertiserGroupsInsertCall struct {
 	s               *Service
 	profileId       int64
 	advertisergroup *AdvertiserGroup
-	opt_            map[string]interface{}
+	caller_         googleapi.Caller
+	params_         url.Values
+	pathTemplate_   string
+	context_        context.Context
 }
 
 // Insert: Inserts a new advertiser group.
+
 func (r *AdvertiserGroupsService) Insert(profileId int64, advertisergroup *AdvertiserGroup) *AdvertiserGroupsInsertCall {
-	c := &AdvertiserGroupsInsertCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.advertisergroup = advertisergroup
+	return &AdvertiserGroupsInsertCall{
+		s:               r.s,
+		profileId:       profileId,
+		advertisergroup: advertisergroup,
+		caller_:         googleapi.JSONCall{},
+		params_:         make(map[string][]string),
+		pathTemplate_:   "userprofiles/{profileId}/advertiserGroups",
+		context_:        googleapi.NoContext,
+	}
+}
+func (c *AdvertiserGroupsInsertCall) Context(ctx context.Context) *AdvertiserGroupsInsertCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -8055,43 +7900,24 @@ func (r *AdvertiserGroupsService) Insert(profileId int64, advertisergroup *Adver
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AdvertiserGroupsInsertCall) Fields(s ...googleapi.Field) *AdvertiserGroupsInsertCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AdvertiserGroupsInsertCall) Do() (*AdvertiserGroup, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.advertisergroup)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/advertiserGroups")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *AdvertiserGroup
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.advertisergroup,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *AdvertiserGroup
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Inserts a new advertiser group.",
 	//   "httpMethod": "POST",
@@ -8125,64 +7951,79 @@ func (c *AdvertiserGroupsInsertCall) Do() (*AdvertiserGroup, error) {
 // method id "dfareporting.advertiserGroups.list":
 
 type AdvertiserGroupsListCall struct {
-	s         *Service
-	profileId int64
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Retrieves a list of advertiser groups, possibly filtered.
+
 func (r *AdvertiserGroupsService) List(profileId int64) *AdvertiserGroupsListCall {
-	c := &AdvertiserGroupsListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	return c
+	return &AdvertiserGroupsListCall{
+		s:             r.s,
+		profileId:     profileId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/advertiserGroups",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Ids sets the optional parameter "ids": Select only advertiser groups
 // with these IDs.
-func (c *AdvertiserGroupsListCall) Ids(ids int64) *AdvertiserGroupsListCall {
-	c.opt_["ids"] = ids
+func (c *AdvertiserGroupsListCall) Ids(ids ...int64) *AdvertiserGroupsListCall {
+	for _, v_ := range ids {
+		c.params_.Add("ids", fmt.Sprintf("%v", v_))
+	}
 	return c
 }
 
 // MaxResults sets the optional parameter "maxResults": Maximum number
 // of results to return.
 func (c *AdvertiserGroupsListCall) MaxResults(maxResults int64) *AdvertiserGroupsListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
 // PageToken sets the optional parameter "pageToken": Value of the
 // nextPageToken from the previous result page.
 func (c *AdvertiserGroupsListCall) PageToken(pageToken string) *AdvertiserGroupsListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
 	return c
 }
 
 // SearchString sets the optional parameter "searchString": Allows
 // searching for objects by name or ID. Wildcards (*) are allowed. For
 // example, "advertiser*2015" will return objects with names like
-// "advertiser group June 2015", "advertiser group April 2015" or simply
-// "advertiser group 2015". Most of the searches also add wildcards
-// implicitly at the start and the end of the search string. For
-// example, a search string of "advertisergroup" will match objects with
-// name "my advertisergroup", "advertisergroup 2015" or simply
+// "advertiser group June 2015", "advertiser group April 2015", or
+// simply "advertiser group 2015". Most of the searches also add
+// wildcards implicitly at the start and the end of the search string.
+// For example, a search string of "advertisergroup" will match objects
+// with name "my advertisergroup", "advertisergroup 2015", or simply
 // "advertisergroup".
 func (c *AdvertiserGroupsListCall) SearchString(searchString string) *AdvertiserGroupsListCall {
-	c.opt_["searchString"] = searchString
+	c.params_.Set("searchString", fmt.Sprintf("%v", searchString))
 	return c
 }
 
 // SortField sets the optional parameter "sortField": Field by which to
 // sort the list.
 func (c *AdvertiserGroupsListCall) SortField(sortField string) *AdvertiserGroupsListCall {
-	c.opt_["sortField"] = sortField
+	c.params_.Set("sortField", fmt.Sprintf("%v", sortField))
 	return c
 }
 
 // SortOrder sets the optional parameter "sortOrder": Order of sorted
 // results, default is ASCENDING.
 func (c *AdvertiserGroupsListCall) SortOrder(sortOrder string) *AdvertiserGroupsListCall {
-	c.opt_["sortOrder"] = sortOrder
+	c.params_.Set("sortOrder", fmt.Sprintf("%v", sortOrder))
+	return c
+}
+func (c *AdvertiserGroupsListCall) Context(ctx context.Context) *AdvertiserGroupsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -8190,55 +8031,23 @@ func (c *AdvertiserGroupsListCall) SortOrder(sortOrder string) *AdvertiserGroups
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AdvertiserGroupsListCall) Fields(s ...googleapi.Field) *AdvertiserGroupsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AdvertiserGroupsListCall) Do() (*AdvertiserGroupsListResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["ids"]; ok {
-		params.Set("ids", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["searchString"]; ok {
-		params.Set("searchString", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["sortField"]; ok {
-		params.Set("sortField", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["sortOrder"]; ok {
-		params.Set("sortOrder", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/advertiserGroups")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *AdvertiserGroupsListResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *AdvertiserGroupsListResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves a list of advertiser groups, possibly filtered.",
 	//   "httpMethod": "GET",
@@ -8273,7 +8082,7 @@ func (c *AdvertiserGroupsListCall) Do() (*AdvertiserGroupsListResponse, error) {
 	//       "type": "string"
 	//     },
 	//     "searchString": {
-	//       "description": "Allows searching for objects by name or ID. Wildcards (*) are allowed. For example, \"advertiser*2015\" will return objects with names like \"advertiser group June 2015\", \"advertiser group April 2015\" or simply \"advertiser group 2015\". Most of the searches also add wildcards implicitly at the start and the end of the search string. For example, a search string of \"advertisergroup\" will match objects with name \"my advertisergroup\", \"advertisergroup 2015\" or simply \"advertisergroup\".",
+	//       "description": "Allows searching for objects by name or ID. Wildcards (*) are allowed. For example, \"advertiser*2015\" will return objects with names like \"advertiser group June 2015\", \"advertiser group April 2015\", or simply \"advertiser group 2015\". Most of the searches also add wildcards implicitly at the start and the end of the search string. For example, a search string of \"advertisergroup\" will match objects with name \"my advertisergroup\", \"advertisergroup 2015\", or simply \"advertisergroup\".",
 	//       "location": "query",
 	//       "type": "string"
 	//     },
@@ -8322,16 +8131,29 @@ type AdvertiserGroupsPatchCall struct {
 	profileId       int64
 	id              int64
 	advertisergroup *AdvertiserGroup
-	opt_            map[string]interface{}
+	caller_         googleapi.Caller
+	params_         url.Values
+	pathTemplate_   string
+	context_        context.Context
 }
 
 // Patch: Updates an existing advertiser group. This method supports
 // patch semantics.
+
 func (r *AdvertiserGroupsService) Patch(profileId int64, id int64, advertisergroup *AdvertiserGroup) *AdvertiserGroupsPatchCall {
-	c := &AdvertiserGroupsPatchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.id = id
-	c.advertisergroup = advertisergroup
+	return &AdvertiserGroupsPatchCall{
+		s:               r.s,
+		profileId:       profileId,
+		id:              id,
+		advertisergroup: advertisergroup,
+		caller_:         googleapi.JSONCall{},
+		params_:         make(map[string][]string),
+		pathTemplate_:   "userprofiles/{profileId}/advertiserGroups",
+		context_:        googleapi.NoContext,
+	}
+}
+func (c *AdvertiserGroupsPatchCall) Context(ctx context.Context) *AdvertiserGroupsPatchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -8339,44 +8161,25 @@ func (r *AdvertiserGroupsService) Patch(profileId int64, id int64, advertisergro
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AdvertiserGroupsPatchCall) Fields(s ...googleapi.Field) *AdvertiserGroupsPatchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AdvertiserGroupsPatchCall) Do() (*AdvertiserGroup, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.advertisergroup)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("id", fmt.Sprintf("%v", c.id))
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/advertiserGroups")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PATCH", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *AdvertiserGroup
+	c.params_.Set("id", fmt.Sprintf("%v", c.id))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PATCH",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.advertisergroup,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *AdvertiserGroup
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates an existing advertiser group. This method supports patch semantics.",
 	//   "httpMethod": "PATCH",
@@ -8421,14 +8224,27 @@ type AdvertiserGroupsUpdateCall struct {
 	s               *Service
 	profileId       int64
 	advertisergroup *AdvertiserGroup
-	opt_            map[string]interface{}
+	caller_         googleapi.Caller
+	params_         url.Values
+	pathTemplate_   string
+	context_        context.Context
 }
 
 // Update: Updates an existing advertiser group.
+
 func (r *AdvertiserGroupsService) Update(profileId int64, advertisergroup *AdvertiserGroup) *AdvertiserGroupsUpdateCall {
-	c := &AdvertiserGroupsUpdateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.advertisergroup = advertisergroup
+	return &AdvertiserGroupsUpdateCall{
+		s:               r.s,
+		profileId:       profileId,
+		advertisergroup: advertisergroup,
+		caller_:         googleapi.JSONCall{},
+		params_:         make(map[string][]string),
+		pathTemplate_:   "userprofiles/{profileId}/advertiserGroups",
+		context_:        googleapi.NoContext,
+	}
+}
+func (c *AdvertiserGroupsUpdateCall) Context(ctx context.Context) *AdvertiserGroupsUpdateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -8436,43 +8252,24 @@ func (r *AdvertiserGroupsService) Update(profileId int64, advertisergroup *Adver
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AdvertiserGroupsUpdateCall) Fields(s ...googleapi.Field) *AdvertiserGroupsUpdateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AdvertiserGroupsUpdateCall) Do() (*AdvertiserGroup, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.advertisergroup)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/advertiserGroups")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *AdvertiserGroup
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.advertisergroup,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *AdvertiserGroup
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates an existing advertiser group.",
 	//   "httpMethod": "PUT",
@@ -8506,17 +8303,30 @@ func (c *AdvertiserGroupsUpdateCall) Do() (*AdvertiserGroup, error) {
 // method id "dfareporting.advertisers.get":
 
 type AdvertisersGetCall struct {
-	s         *Service
-	profileId int64
-	id        int64
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	id            int64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Gets one advertiser by ID.
+
 func (r *AdvertisersService) Get(profileId int64, id int64) *AdvertisersGetCall {
-	c := &AdvertisersGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.id = id
+	return &AdvertisersGetCall{
+		s:             r.s,
+		profileId:     profileId,
+		id:            id,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/advertisers/{id}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *AdvertisersGetCall) Context(ctx context.Context) *AdvertisersGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -8524,38 +8334,24 @@ func (r *AdvertisersService) Get(profileId int64, id int64) *AdvertisersGetCall 
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AdvertisersGetCall) Fields(s ...googleapi.Field) *AdvertisersGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AdvertisersGetCall) Do() (*Advertiser, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/advertisers/{id}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Advertiser
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 		"id":        strconv.FormatInt(c.id, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Advertiser
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Gets one advertiser by ID.",
 	//   "httpMethod": "GET",
@@ -8594,17 +8390,30 @@ func (c *AdvertisersGetCall) Do() (*Advertiser, error) {
 // method id "dfareporting.advertisers.insert":
 
 type AdvertisersInsertCall struct {
-	s          *Service
-	profileId  int64
-	advertiser *Advertiser
-	opt_       map[string]interface{}
+	s             *Service
+	profileId     int64
+	advertiser    *Advertiser
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Insert: Inserts a new advertiser.
+
 func (r *AdvertisersService) Insert(profileId int64, advertiser *Advertiser) *AdvertisersInsertCall {
-	c := &AdvertisersInsertCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.advertiser = advertiser
+	return &AdvertisersInsertCall{
+		s:             r.s,
+		profileId:     profileId,
+		advertiser:    advertiser,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/advertisers",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *AdvertisersInsertCall) Context(ctx context.Context) *AdvertisersInsertCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -8612,43 +8421,24 @@ func (r *AdvertisersService) Insert(profileId int64, advertiser *Advertiser) *Ad
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AdvertisersInsertCall) Fields(s ...googleapi.Field) *AdvertisersInsertCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AdvertisersInsertCall) Do() (*Advertiser, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.advertiser)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/advertisers")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Advertiser
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.advertiser,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Advertiser
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Inserts a new advertiser.",
 	//   "httpMethod": "POST",
@@ -8682,37 +8472,52 @@ func (c *AdvertisersInsertCall) Do() (*Advertiser, error) {
 // method id "dfareporting.advertisers.list":
 
 type AdvertisersListCall struct {
-	s         *Service
-	profileId int64
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Retrieves a list of advertisers, possibly filtered.
+
 func (r *AdvertisersService) List(profileId int64) *AdvertisersListCall {
-	c := &AdvertisersListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	return c
+	return &AdvertisersListCall{
+		s:             r.s,
+		profileId:     profileId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/advertisers",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // AdvertiserGroupIds sets the optional parameter "advertiserGroupIds":
 // Select only advertisers with these advertiser group IDs.
-func (c *AdvertisersListCall) AdvertiserGroupIds(advertiserGroupIds int64) *AdvertisersListCall {
-	c.opt_["advertiserGroupIds"] = advertiserGroupIds
+func (c *AdvertisersListCall) AdvertiserGroupIds(advertiserGroupIds ...int64) *AdvertisersListCall {
+	for _, v_ := range advertiserGroupIds {
+		c.params_.Add("advertiserGroupIds", fmt.Sprintf("%v", v_))
+	}
 	return c
 }
 
 // FloodlightConfigurationIds sets the optional parameter
 // "floodlightConfigurationIds": Select only advertisers with these
 // floodlight configuration IDs.
-func (c *AdvertisersListCall) FloodlightConfigurationIds(floodlightConfigurationIds int64) *AdvertisersListCall {
-	c.opt_["floodlightConfigurationIds"] = floodlightConfigurationIds
+func (c *AdvertisersListCall) FloodlightConfigurationIds(floodlightConfigurationIds ...int64) *AdvertisersListCall {
+	for _, v_ := range floodlightConfigurationIds {
+		c.params_.Add("floodlightConfigurationIds", fmt.Sprintf("%v", v_))
+	}
 	return c
 }
 
 // Ids sets the optional parameter "ids": Select only advertisers with
 // these IDs.
-func (c *AdvertisersListCall) Ids(ids int64) *AdvertisersListCall {
-	c.opt_["ids"] = ids
+func (c *AdvertisersListCall) Ids(ids ...int64) *AdvertisersListCall {
+	for _, v_ := range ids {
+		c.params_.Add("ids", fmt.Sprintf("%v", v_))
+	}
 	return c
 }
 
@@ -8720,69 +8525,73 @@ func (c *AdvertisersListCall) Ids(ids int64) *AdvertisersListCall {
 // "includeAdvertisersWithoutGroupsOnly": Select only advertisers which
 // do not belong to any advertiser group.
 func (c *AdvertisersListCall) IncludeAdvertisersWithoutGroupsOnly(includeAdvertisersWithoutGroupsOnly bool) *AdvertisersListCall {
-	c.opt_["includeAdvertisersWithoutGroupsOnly"] = includeAdvertisersWithoutGroupsOnly
+	c.params_.Set("includeAdvertisersWithoutGroupsOnly", fmt.Sprintf("%v", includeAdvertisersWithoutGroupsOnly))
 	return c
 }
 
 // MaxResults sets the optional parameter "maxResults": Maximum number
 // of results to return.
 func (c *AdvertisersListCall) MaxResults(maxResults int64) *AdvertisersListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
 // OnlyParent sets the optional parameter "onlyParent": Select only
 // advertisers which use another advertiser's floodlight configuration.
 func (c *AdvertisersListCall) OnlyParent(onlyParent bool) *AdvertisersListCall {
-	c.opt_["onlyParent"] = onlyParent
+	c.params_.Set("onlyParent", fmt.Sprintf("%v", onlyParent))
 	return c
 }
 
 // PageToken sets the optional parameter "pageToken": Value of the
 // nextPageToken from the previous result page.
 func (c *AdvertisersListCall) PageToken(pageToken string) *AdvertisersListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
 	return c
 }
 
 // SearchString sets the optional parameter "searchString": Allows
 // searching for objects by name or ID. Wildcards (*) are allowed. For
 // example, "advertiser*2015" will return objects with names like
-// "advertiser June 2015", "advertiser April 2015" or simply "advertiser
-// 2015". Most of the searches also add wildcards implicitly at the
-// start and the end of the search string. For example, a search string
-// of "advertiser" will match objects with name "my advertiser",
-// "advertiser 2015" or simply "advertiser".
+// "advertiser June 2015", "advertiser April 2015", or simply
+// "advertiser 2015". Most of the searches also add wildcards implicitly
+// at the start and the end of the search string. For example, a search
+// string of "advertiser" will match objects with name "my advertiser",
+// "advertiser 2015", or simply "advertiser".
 func (c *AdvertisersListCall) SearchString(searchString string) *AdvertisersListCall {
-	c.opt_["searchString"] = searchString
+	c.params_.Set("searchString", fmt.Sprintf("%v", searchString))
 	return c
 }
 
 // SortField sets the optional parameter "sortField": Field by which to
 // sort the list.
 func (c *AdvertisersListCall) SortField(sortField string) *AdvertisersListCall {
-	c.opt_["sortField"] = sortField
+	c.params_.Set("sortField", fmt.Sprintf("%v", sortField))
 	return c
 }
 
 // SortOrder sets the optional parameter "sortOrder": Order of sorted
 // results, default is ASCENDING.
 func (c *AdvertisersListCall) SortOrder(sortOrder string) *AdvertisersListCall {
-	c.opt_["sortOrder"] = sortOrder
+	c.params_.Set("sortOrder", fmt.Sprintf("%v", sortOrder))
 	return c
 }
 
 // Status sets the optional parameter "status": Select only advertisers
 // with the specified status.
 func (c *AdvertisersListCall) Status(status string) *AdvertisersListCall {
-	c.opt_["status"] = status
+	c.params_.Set("status", fmt.Sprintf("%v", status))
 	return c
 }
 
 // SubaccountId sets the optional parameter "subaccountId": Select only
 // advertisers with these subaccount IDs.
 func (c *AdvertisersListCall) SubaccountId(subaccountId int64) *AdvertisersListCall {
-	c.opt_["subaccountId"] = subaccountId
+	c.params_.Set("subaccountId", fmt.Sprintf("%v", subaccountId))
+	return c
+}
+func (c *AdvertisersListCall) Context(ctx context.Context) *AdvertisersListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -8790,73 +8599,23 @@ func (c *AdvertisersListCall) SubaccountId(subaccountId int64) *AdvertisersListC
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AdvertisersListCall) Fields(s ...googleapi.Field) *AdvertisersListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AdvertisersListCall) Do() (*AdvertisersListResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["advertiserGroupIds"]; ok {
-		params.Set("advertiserGroupIds", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["floodlightConfigurationIds"]; ok {
-		params.Set("floodlightConfigurationIds", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["ids"]; ok {
-		params.Set("ids", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["includeAdvertisersWithoutGroupsOnly"]; ok {
-		params.Set("includeAdvertisersWithoutGroupsOnly", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["onlyParent"]; ok {
-		params.Set("onlyParent", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["searchString"]; ok {
-		params.Set("searchString", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["sortField"]; ok {
-		params.Set("sortField", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["sortOrder"]; ok {
-		params.Set("sortOrder", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["status"]; ok {
-		params.Set("status", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["subaccountId"]; ok {
-		params.Set("subaccountId", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/advertisers")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *AdvertisersListResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *AdvertisersListResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves a list of advertisers, possibly filtered.",
 	//   "httpMethod": "GET",
@@ -8915,7 +8674,7 @@ func (c *AdvertisersListCall) Do() (*AdvertisersListResponse, error) {
 	//       "type": "string"
 	//     },
 	//     "searchString": {
-	//       "description": "Allows searching for objects by name or ID. Wildcards (*) are allowed. For example, \"advertiser*2015\" will return objects with names like \"advertiser June 2015\", \"advertiser April 2015\" or simply \"advertiser 2015\". Most of the searches also add wildcards implicitly at the start and the end of the search string. For example, a search string of \"advertiser\" will match objects with name \"my advertiser\", \"advertiser 2015\" or simply \"advertiser\".",
+	//       "description": "Allows searching for objects by name or ID. Wildcards (*) are allowed. For example, \"advertiser*2015\" will return objects with names like \"advertiser June 2015\", \"advertiser April 2015\", or simply \"advertiser 2015\". Most of the searches also add wildcards implicitly at the start and the end of the search string. For example, a search string of \"advertiser\" will match objects with name \"my advertiser\", \"advertiser 2015\", or simply \"advertiser\".",
 	//       "location": "query",
 	//       "type": "string"
 	//     },
@@ -8979,20 +8738,33 @@ func (c *AdvertisersListCall) Do() (*AdvertisersListResponse, error) {
 // method id "dfareporting.advertisers.patch":
 
 type AdvertisersPatchCall struct {
-	s          *Service
-	profileId  int64
-	id         int64
-	advertiser *Advertiser
-	opt_       map[string]interface{}
+	s             *Service
+	profileId     int64
+	id            int64
+	advertiser    *Advertiser
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Patch: Updates an existing advertiser. This method supports patch
 // semantics.
+
 func (r *AdvertisersService) Patch(profileId int64, id int64, advertiser *Advertiser) *AdvertisersPatchCall {
-	c := &AdvertisersPatchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.id = id
-	c.advertiser = advertiser
+	return &AdvertisersPatchCall{
+		s:             r.s,
+		profileId:     profileId,
+		id:            id,
+		advertiser:    advertiser,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/advertisers",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *AdvertisersPatchCall) Context(ctx context.Context) *AdvertisersPatchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -9000,44 +8772,25 @@ func (r *AdvertisersService) Patch(profileId int64, id int64, advertiser *Advert
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AdvertisersPatchCall) Fields(s ...googleapi.Field) *AdvertisersPatchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AdvertisersPatchCall) Do() (*Advertiser, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.advertiser)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("id", fmt.Sprintf("%v", c.id))
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/advertisers")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PATCH", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Advertiser
+	c.params_.Set("id", fmt.Sprintf("%v", c.id))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PATCH",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.advertiser,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Advertiser
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates an existing advertiser. This method supports patch semantics.",
 	//   "httpMethod": "PATCH",
@@ -9079,17 +8832,30 @@ func (c *AdvertisersPatchCall) Do() (*Advertiser, error) {
 // method id "dfareporting.advertisers.update":
 
 type AdvertisersUpdateCall struct {
-	s          *Service
-	profileId  int64
-	advertiser *Advertiser
-	opt_       map[string]interface{}
+	s             *Service
+	profileId     int64
+	advertiser    *Advertiser
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Update: Updates an existing advertiser.
+
 func (r *AdvertisersService) Update(profileId int64, advertiser *Advertiser) *AdvertisersUpdateCall {
-	c := &AdvertisersUpdateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.advertiser = advertiser
+	return &AdvertisersUpdateCall{
+		s:             r.s,
+		profileId:     profileId,
+		advertiser:    advertiser,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/advertisers",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *AdvertisersUpdateCall) Context(ctx context.Context) *AdvertisersUpdateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -9097,43 +8863,24 @@ func (r *AdvertisersService) Update(profileId int64, advertiser *Advertiser) *Ad
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AdvertisersUpdateCall) Fields(s ...googleapi.Field) *AdvertisersUpdateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AdvertisersUpdateCall) Do() (*Advertiser, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.advertiser)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/advertisers")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Advertiser
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.advertiser,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Advertiser
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates an existing advertiser.",
 	//   "httpMethod": "PUT",
@@ -9167,15 +8914,28 @@ func (c *AdvertisersUpdateCall) Do() (*Advertiser, error) {
 // method id "dfareporting.browsers.list":
 
 type BrowsersListCall struct {
-	s         *Service
-	profileId int64
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Retrieves a list of browsers.
+
 func (r *BrowsersService) List(profileId int64) *BrowsersListCall {
-	c := &BrowsersListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
+	return &BrowsersListCall{
+		s:             r.s,
+		profileId:     profileId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/browsers",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *BrowsersListCall) Context(ctx context.Context) *BrowsersListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -9183,37 +8943,23 @@ func (r *BrowsersService) List(profileId int64) *BrowsersListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *BrowsersListCall) Fields(s ...googleapi.Field) *BrowsersListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *BrowsersListCall) Do() (*BrowsersListResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/browsers")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *BrowsersListResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *BrowsersListResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves a list of browsers.",
 	//   "httpMethod": "GET",
@@ -9248,17 +8994,30 @@ type CampaignCreativeAssociationsInsertCall struct {
 	profileId                   int64
 	campaignId                  int64
 	campaigncreativeassociation *CampaignCreativeAssociation
-	opt_                        map[string]interface{}
+	caller_                     googleapi.Caller
+	params_                     url.Values
+	pathTemplate_               string
+	context_                    context.Context
 }
 
 // Insert: Associates a creative with the specified campaign. This
 // method creates a default ad with dimensions matching the creative in
 // the campaign if such a default ad does not exist already.
+
 func (r *CampaignCreativeAssociationsService) Insert(profileId int64, campaignId int64, campaigncreativeassociation *CampaignCreativeAssociation) *CampaignCreativeAssociationsInsertCall {
-	c := &CampaignCreativeAssociationsInsertCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.campaignId = campaignId
-	c.campaigncreativeassociation = campaigncreativeassociation
+	return &CampaignCreativeAssociationsInsertCall{
+		s:                           r.s,
+		profileId:                   profileId,
+		campaignId:                  campaignId,
+		campaigncreativeassociation: campaigncreativeassociation,
+		caller_:                     googleapi.JSONCall{},
+		params_:                     make(map[string][]string),
+		pathTemplate_:               "userprofiles/{profileId}/campaigns/{campaignId}/campaignCreativeAssociations",
+		context_:                    googleapi.NoContext,
+	}
+}
+func (c *CampaignCreativeAssociationsInsertCall) Context(ctx context.Context) *CampaignCreativeAssociationsInsertCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -9266,44 +9025,25 @@ func (r *CampaignCreativeAssociationsService) Insert(profileId int64, campaignId
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *CampaignCreativeAssociationsInsertCall) Fields(s ...googleapi.Field) *CampaignCreativeAssociationsInsertCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *CampaignCreativeAssociationsInsertCall) Do() (*CampaignCreativeAssociation, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.campaigncreativeassociation)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/campaigns/{campaignId}/campaignCreativeAssociations")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *CampaignCreativeAssociation
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId":  strconv.FormatInt(c.profileId, 10),
 		"campaignId": strconv.FormatInt(c.campaignId, 10),
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.campaigncreativeassociation,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *CampaignCreativeAssociation
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Associates a creative with the specified campaign. This method creates a default ad with dimensions matching the creative in the campaign if such a default ad does not exist already.",
 	//   "httpMethod": "POST",
@@ -9345,39 +9085,52 @@ func (c *CampaignCreativeAssociationsInsertCall) Do() (*CampaignCreativeAssociat
 // method id "dfareporting.campaignCreativeAssociations.list":
 
 type CampaignCreativeAssociationsListCall struct {
-	s          *Service
-	profileId  int64
-	campaignId int64
-	opt_       map[string]interface{}
+	s             *Service
+	profileId     int64
+	campaignId    int64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Retrieves the list of creative IDs associated with the
 // specified campaign.
+
 func (r *CampaignCreativeAssociationsService) List(profileId int64, campaignId int64) *CampaignCreativeAssociationsListCall {
-	c := &CampaignCreativeAssociationsListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.campaignId = campaignId
-	return c
+	return &CampaignCreativeAssociationsListCall{
+		s:             r.s,
+		profileId:     profileId,
+		campaignId:    campaignId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/campaigns/{campaignId}/campaignCreativeAssociations",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // MaxResults sets the optional parameter "maxResults": Maximum number
 // of results to return.
 func (c *CampaignCreativeAssociationsListCall) MaxResults(maxResults int64) *CampaignCreativeAssociationsListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
 // PageToken sets the optional parameter "pageToken": Value of the
 // nextPageToken from the previous result page.
 func (c *CampaignCreativeAssociationsListCall) PageToken(pageToken string) *CampaignCreativeAssociationsListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
 	return c
 }
 
 // SortOrder sets the optional parameter "sortOrder": Order of sorted
 // results, default is ASCENDING.
 func (c *CampaignCreativeAssociationsListCall) SortOrder(sortOrder string) *CampaignCreativeAssociationsListCall {
-	c.opt_["sortOrder"] = sortOrder
+	c.params_.Set("sortOrder", fmt.Sprintf("%v", sortOrder))
+	return c
+}
+func (c *CampaignCreativeAssociationsListCall) Context(ctx context.Context) *CampaignCreativeAssociationsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -9385,47 +9138,24 @@ func (c *CampaignCreativeAssociationsListCall) SortOrder(sortOrder string) *Camp
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *CampaignCreativeAssociationsListCall) Fields(s ...googleapi.Field) *CampaignCreativeAssociationsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *CampaignCreativeAssociationsListCall) Do() (*CampaignCreativeAssociationsListResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["sortOrder"]; ok {
-		params.Set("sortOrder", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/campaigns/{campaignId}/campaignCreativeAssociations")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *CampaignCreativeAssociationsListResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId":  strconv.FormatInt(c.profileId, 10),
 		"campaignId": strconv.FormatInt(c.campaignId, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *CampaignCreativeAssociationsListResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves the list of creative IDs associated with the specified campaign.",
 	//   "httpMethod": "GET",
@@ -9488,17 +9218,30 @@ func (c *CampaignCreativeAssociationsListCall) Do() (*CampaignCreativeAssociatio
 // method id "dfareporting.campaigns.get":
 
 type CampaignsGetCall struct {
-	s         *Service
-	profileId int64
-	id        int64
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	id            int64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Gets one campaign by ID.
+
 func (r *CampaignsService) Get(profileId int64, id int64) *CampaignsGetCall {
-	c := &CampaignsGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.id = id
+	return &CampaignsGetCall{
+		s:             r.s,
+		profileId:     profileId,
+		id:            id,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/campaigns/{id}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *CampaignsGetCall) Context(ctx context.Context) *CampaignsGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -9506,38 +9249,24 @@ func (r *CampaignsService) Get(profileId int64, id int64) *CampaignsGetCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *CampaignsGetCall) Fields(s ...googleapi.Field) *CampaignsGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *CampaignsGetCall) Do() (*Campaign, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/campaigns/{id}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Campaign
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 		"id":        strconv.FormatInt(c.id, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Campaign
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Gets one campaign by ID.",
 	//   "httpMethod": "GET",
@@ -9581,16 +9310,29 @@ type CampaignsInsertCall struct {
 	defaultLandingPageName string
 	defaultLandingPageUrl  string
 	campaign               *Campaign
-	opt_                   map[string]interface{}
+	caller_                googleapi.Caller
+	params_                url.Values
+	pathTemplate_          string
+	context_               context.Context
 }
 
 // Insert: Inserts a new campaign.
+
 func (r *CampaignsService) Insert(profileId int64, defaultLandingPageName string, defaultLandingPageUrl string, campaign *Campaign) *CampaignsInsertCall {
-	c := &CampaignsInsertCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.defaultLandingPageName = defaultLandingPageName
-	c.defaultLandingPageUrl = defaultLandingPageUrl
-	c.campaign = campaign
+	return &CampaignsInsertCall{
+		s:                      r.s,
+		profileId:              profileId,
+		defaultLandingPageName: defaultLandingPageName,
+		defaultLandingPageUrl:  defaultLandingPageUrl,
+		campaign:               campaign,
+		caller_:                googleapi.JSONCall{},
+		params_:                make(map[string][]string),
+		pathTemplate_:          "userprofiles/{profileId}/campaigns",
+		context_:               googleapi.NoContext,
+	}
+}
+func (c *CampaignsInsertCall) Context(ctx context.Context) *CampaignsInsertCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -9598,45 +9340,26 @@ func (r *CampaignsService) Insert(profileId int64, defaultLandingPageName string
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *CampaignsInsertCall) Fields(s ...googleapi.Field) *CampaignsInsertCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *CampaignsInsertCall) Do() (*Campaign, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.campaign)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("defaultLandingPageName", fmt.Sprintf("%v", c.defaultLandingPageName))
-	params.Set("defaultLandingPageUrl", fmt.Sprintf("%v", c.defaultLandingPageUrl))
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/campaigns")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Campaign
+	c.params_.Set("defaultLandingPageName", fmt.Sprintf("%v", c.defaultLandingPageName))
+	c.params_.Set("defaultLandingPageUrl", fmt.Sprintf("%v", c.defaultLandingPageUrl))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.campaign,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Campaign
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Inserts a new campaign.",
 	//   "httpMethod": "POST",
@@ -9684,30 +9407,43 @@ func (c *CampaignsInsertCall) Do() (*Campaign, error) {
 // method id "dfareporting.campaigns.list":
 
 type CampaignsListCall struct {
-	s         *Service
-	profileId int64
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Retrieves a list of campaigns, possibly filtered.
+
 func (r *CampaignsService) List(profileId int64) *CampaignsListCall {
-	c := &CampaignsListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	return c
+	return &CampaignsListCall{
+		s:             r.s,
+		profileId:     profileId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/campaigns",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // AdvertiserGroupIds sets the optional parameter "advertiserGroupIds":
 // Select only campaigns whose advertisers belong to these advertiser
 // groups.
-func (c *CampaignsListCall) AdvertiserGroupIds(advertiserGroupIds int64) *CampaignsListCall {
-	c.opt_["advertiserGroupIds"] = advertiserGroupIds
+func (c *CampaignsListCall) AdvertiserGroupIds(advertiserGroupIds ...int64) *CampaignsListCall {
+	for _, v_ := range advertiserGroupIds {
+		c.params_.Add("advertiserGroupIds", fmt.Sprintf("%v", v_))
+	}
 	return c
 }
 
 // AdvertiserIds sets the optional parameter "advertiserIds": Select
 // only campaigns that belong to these advertisers.
-func (c *CampaignsListCall) AdvertiserIds(advertiserIds int64) *CampaignsListCall {
-	c.opt_["advertiserIds"] = advertiserIds
+func (c *CampaignsListCall) AdvertiserIds(advertiserIds ...int64) *CampaignsListCall {
+	for _, v_ := range advertiserIds {
+		c.params_.Add("advertiserIds", fmt.Sprintf("%v", v_))
+	}
 	return c
 }
 
@@ -9715,7 +9451,7 @@ func (c *CampaignsListCall) AdvertiserIds(advertiserIds int64) *CampaignsListCal
 // campaigns. Don't set this field to select both archived and
 // non-archived campaigns.
 func (c *CampaignsListCall) Archived(archived bool) *CampaignsListCall {
-	c.opt_["archived"] = archived
+	c.params_.Set("archived", fmt.Sprintf("%v", archived))
 	return c
 }
 
@@ -9723,28 +9459,32 @@ func (c *CampaignsListCall) Archived(archived bool) *CampaignsListCall {
 // "atLeastOneOptimizationActivity": Select only campaigns that have at
 // least one optimization activity.
 func (c *CampaignsListCall) AtLeastOneOptimizationActivity(atLeastOneOptimizationActivity bool) *CampaignsListCall {
-	c.opt_["atLeastOneOptimizationActivity"] = atLeastOneOptimizationActivity
+	c.params_.Set("atLeastOneOptimizationActivity", fmt.Sprintf("%v", atLeastOneOptimizationActivity))
 	return c
 }
 
 // ExcludedIds sets the optional parameter "excludedIds": Exclude
 // campaigns with these IDs.
-func (c *CampaignsListCall) ExcludedIds(excludedIds int64) *CampaignsListCall {
-	c.opt_["excludedIds"] = excludedIds
+func (c *CampaignsListCall) ExcludedIds(excludedIds ...int64) *CampaignsListCall {
+	for _, v_ := range excludedIds {
+		c.params_.Add("excludedIds", fmt.Sprintf("%v", v_))
+	}
 	return c
 }
 
 // Ids sets the optional parameter "ids": Select only campaigns with
 // these IDs.
-func (c *CampaignsListCall) Ids(ids int64) *CampaignsListCall {
-	c.opt_["ids"] = ids
+func (c *CampaignsListCall) Ids(ids ...int64) *CampaignsListCall {
+	for _, v_ := range ids {
+		c.params_.Add("ids", fmt.Sprintf("%v", v_))
+	}
 	return c
 }
 
 // MaxResults sets the optional parameter "maxResults": Maximum number
 // of results to return.
 func (c *CampaignsListCall) MaxResults(maxResults int64) *CampaignsListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
@@ -9752,48 +9492,52 @@ func (c *CampaignsListCall) MaxResults(maxResults int64) *CampaignsListCall {
 // "overriddenEventTagId": Select only campaigns that have overridden
 // this event tag ID.
 func (c *CampaignsListCall) OverriddenEventTagId(overriddenEventTagId int64) *CampaignsListCall {
-	c.opt_["overriddenEventTagId"] = overriddenEventTagId
+	c.params_.Set("overriddenEventTagId", fmt.Sprintf("%v", overriddenEventTagId))
 	return c
 }
 
 // PageToken sets the optional parameter "pageToken": Value of the
 // nextPageToken from the previous result page.
 func (c *CampaignsListCall) PageToken(pageToken string) *CampaignsListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
 	return c
 }
 
 // SearchString sets the optional parameter "searchString": Allows
 // searching for campaigns by name or ID. Wildcards (*) are allowed. For
 // example, "campaign*2015" will return campaigns with names like
-// "campaign June 2015", "campaign April 2015" or simply "campaign
+// "campaign June 2015", "campaign April 2015", or simply "campaign
 // 2015". Most of the searches also add wildcards implicitly at the
 // start and the end of the search string. For example, a search string
 // of "campaign" will match campaigns with name "my campaign", "campaign
-// 2015" or simply "campaign".
+// 2015", or simply "campaign".
 func (c *CampaignsListCall) SearchString(searchString string) *CampaignsListCall {
-	c.opt_["searchString"] = searchString
+	c.params_.Set("searchString", fmt.Sprintf("%v", searchString))
 	return c
 }
 
 // SortField sets the optional parameter "sortField": Field by which to
 // sort the list.
 func (c *CampaignsListCall) SortField(sortField string) *CampaignsListCall {
-	c.opt_["sortField"] = sortField
+	c.params_.Set("sortField", fmt.Sprintf("%v", sortField))
 	return c
 }
 
 // SortOrder sets the optional parameter "sortOrder": Order of sorted
 // results, default is ASCENDING.
 func (c *CampaignsListCall) SortOrder(sortOrder string) *CampaignsListCall {
-	c.opt_["sortOrder"] = sortOrder
+	c.params_.Set("sortOrder", fmt.Sprintf("%v", sortOrder))
 	return c
 }
 
 // SubaccountId sets the optional parameter "subaccountId": Select only
 // campaigns that belong to this subaccount.
 func (c *CampaignsListCall) SubaccountId(subaccountId int64) *CampaignsListCall {
-	c.opt_["subaccountId"] = subaccountId
+	c.params_.Set("subaccountId", fmt.Sprintf("%v", subaccountId))
+	return c
+}
+func (c *CampaignsListCall) Context(ctx context.Context) *CampaignsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -9801,76 +9545,23 @@ func (c *CampaignsListCall) SubaccountId(subaccountId int64) *CampaignsListCall 
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *CampaignsListCall) Fields(s ...googleapi.Field) *CampaignsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *CampaignsListCall) Do() (*CampaignsListResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["advertiserGroupIds"]; ok {
-		params.Set("advertiserGroupIds", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["advertiserIds"]; ok {
-		params.Set("advertiserIds", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["archived"]; ok {
-		params.Set("archived", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["atLeastOneOptimizationActivity"]; ok {
-		params.Set("atLeastOneOptimizationActivity", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["excludedIds"]; ok {
-		params.Set("excludedIds", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["ids"]; ok {
-		params.Set("ids", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["overriddenEventTagId"]; ok {
-		params.Set("overriddenEventTagId", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["searchString"]; ok {
-		params.Set("searchString", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["sortField"]; ok {
-		params.Set("sortField", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["sortOrder"]; ok {
-		params.Set("sortOrder", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["subaccountId"]; ok {
-		params.Set("subaccountId", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/campaigns")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *CampaignsListResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *CampaignsListResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves a list of campaigns, possibly filtered.",
 	//   "httpMethod": "GET",
@@ -9942,7 +9633,7 @@ func (c *CampaignsListCall) Do() (*CampaignsListResponse, error) {
 	//       "type": "string"
 	//     },
 	//     "searchString": {
-	//       "description": "Allows searching for campaigns by name or ID. Wildcards (*) are allowed. For example, \"campaign*2015\" will return campaigns with names like \"campaign June 2015\", \"campaign April 2015\" or simply \"campaign 2015\". Most of the searches also add wildcards implicitly at the start and the end of the search string. For example, a search string of \"campaign\" will match campaigns with name \"my campaign\", \"campaign 2015\" or simply \"campaign\".",
+	//       "description": "Allows searching for campaigns by name or ID. Wildcards (*) are allowed. For example, \"campaign*2015\" will return campaigns with names like \"campaign June 2015\", \"campaign April 2015\", or simply \"campaign 2015\". Most of the searches also add wildcards implicitly at the start and the end of the search string. For example, a search string of \"campaign\" will match campaigns with name \"my campaign\", \"campaign 2015\", or simply \"campaign\".",
 	//       "location": "query",
 	//       "type": "string"
 	//     },
@@ -9993,20 +9684,33 @@ func (c *CampaignsListCall) Do() (*CampaignsListResponse, error) {
 // method id "dfareporting.campaigns.patch":
 
 type CampaignsPatchCall struct {
-	s         *Service
-	profileId int64
-	id        int64
-	campaign  *Campaign
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	id            int64
+	campaign      *Campaign
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Patch: Updates an existing campaign. This method supports patch
 // semantics.
+
 func (r *CampaignsService) Patch(profileId int64, id int64, campaign *Campaign) *CampaignsPatchCall {
-	c := &CampaignsPatchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.id = id
-	c.campaign = campaign
+	return &CampaignsPatchCall{
+		s:             r.s,
+		profileId:     profileId,
+		id:            id,
+		campaign:      campaign,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/campaigns",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *CampaignsPatchCall) Context(ctx context.Context) *CampaignsPatchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -10014,44 +9718,25 @@ func (r *CampaignsService) Patch(profileId int64, id int64, campaign *Campaign) 
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *CampaignsPatchCall) Fields(s ...googleapi.Field) *CampaignsPatchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *CampaignsPatchCall) Do() (*Campaign, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.campaign)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("id", fmt.Sprintf("%v", c.id))
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/campaigns")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PATCH", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Campaign
+	c.params_.Set("id", fmt.Sprintf("%v", c.id))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PATCH",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.campaign,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Campaign
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates an existing campaign. This method supports patch semantics.",
 	//   "httpMethod": "PATCH",
@@ -10093,17 +9778,30 @@ func (c *CampaignsPatchCall) Do() (*Campaign, error) {
 // method id "dfareporting.campaigns.update":
 
 type CampaignsUpdateCall struct {
-	s         *Service
-	profileId int64
-	campaign  *Campaign
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	campaign      *Campaign
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Update: Updates an existing campaign.
+
 func (r *CampaignsService) Update(profileId int64, campaign *Campaign) *CampaignsUpdateCall {
-	c := &CampaignsUpdateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.campaign = campaign
+	return &CampaignsUpdateCall{
+		s:             r.s,
+		profileId:     profileId,
+		campaign:      campaign,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/campaigns",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *CampaignsUpdateCall) Context(ctx context.Context) *CampaignsUpdateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -10111,43 +9809,24 @@ func (r *CampaignsService) Update(profileId int64, campaign *Campaign) *Campaign
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *CampaignsUpdateCall) Fields(s ...googleapi.Field) *CampaignsUpdateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *CampaignsUpdateCall) Do() (*Campaign, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.campaign)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/campaigns")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Campaign
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.campaign,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Campaign
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates an existing campaign.",
 	//   "httpMethod": "PUT",
@@ -10181,17 +9860,30 @@ func (c *CampaignsUpdateCall) Do() (*Campaign, error) {
 // method id "dfareporting.changeLogs.get":
 
 type ChangeLogsGetCall struct {
-	s         *Service
-	profileId int64
-	id        int64
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	id            int64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Gets one change log by ID.
+
 func (r *ChangeLogsService) Get(profileId int64, id int64) *ChangeLogsGetCall {
-	c := &ChangeLogsGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.id = id
+	return &ChangeLogsGetCall{
+		s:             r.s,
+		profileId:     profileId,
+		id:            id,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/changeLogs/{id}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *ChangeLogsGetCall) Context(ctx context.Context) *ChangeLogsGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -10199,38 +9891,24 @@ func (r *ChangeLogsService) Get(profileId int64, id int64) *ChangeLogsGetCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ChangeLogsGetCall) Fields(s ...googleapi.Field) *ChangeLogsGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ChangeLogsGetCall) Do() (*ChangeLog, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/changeLogs/{id}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *ChangeLog
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 		"id":        strconv.FormatInt(c.id, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ChangeLog
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Gets one change log by ID.",
 	//   "httpMethod": "GET",
@@ -10269,29 +9947,40 @@ func (c *ChangeLogsGetCall) Do() (*ChangeLog, error) {
 // method id "dfareporting.changeLogs.list":
 
 type ChangeLogsListCall struct {
-	s         *Service
-	profileId int64
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Retrieves a list of change logs.
+
 func (r *ChangeLogsService) List(profileId int64) *ChangeLogsListCall {
-	c := &ChangeLogsListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	return c
+	return &ChangeLogsListCall{
+		s:             r.s,
+		profileId:     profileId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/changeLogs",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Action sets the optional parameter "action": Select only change logs
 // with the specified action.
 func (c *ChangeLogsListCall) Action(action string) *ChangeLogsListCall {
-	c.opt_["action"] = action
+	c.params_.Set("action", fmt.Sprintf("%v", action))
 	return c
 }
 
 // Ids sets the optional parameter "ids": Select only change logs with
 // these IDs.
-func (c *ChangeLogsListCall) Ids(ids int64) *ChangeLogsListCall {
-	c.opt_["ids"] = ids
+func (c *ChangeLogsListCall) Ids(ids ...int64) *ChangeLogsListCall {
+	for _, v_ := range ids {
+		c.params_.Add("ids", fmt.Sprintf("%v", v_))
+	}
 	return c
 }
 
@@ -10304,14 +9993,14 @@ func (c *ChangeLogsListCall) Ids(ids int64) *ChangeLogsListCall {
 // the letter T, the hour (24-hour clock system), minute, second, and
 // then the time zone offset.
 func (c *ChangeLogsListCall) MaxChangeTime(maxChangeTime string) *ChangeLogsListCall {
-	c.opt_["maxChangeTime"] = maxChangeTime
+	c.params_.Set("maxChangeTime", fmt.Sprintf("%v", maxChangeTime))
 	return c
 }
 
 // MaxResults sets the optional parameter "maxResults": Maximum number
 // of results to return.
 func (c *ChangeLogsListCall) MaxResults(maxResults int64) *ChangeLogsListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
@@ -10324,28 +10013,30 @@ func (c *ChangeLogsListCall) MaxResults(maxResults int64) *ChangeLogsListCall {
 // the letter T, the hour (24-hour clock system), minute, second, and
 // then the time zone offset.
 func (c *ChangeLogsListCall) MinChangeTime(minChangeTime string) *ChangeLogsListCall {
-	c.opt_["minChangeTime"] = minChangeTime
+	c.params_.Set("minChangeTime", fmt.Sprintf("%v", minChangeTime))
 	return c
 }
 
 // ObjectIds sets the optional parameter "objectIds": Select only change
 // logs with these object IDs.
-func (c *ChangeLogsListCall) ObjectIds(objectIds int64) *ChangeLogsListCall {
-	c.opt_["objectIds"] = objectIds
+func (c *ChangeLogsListCall) ObjectIds(objectIds ...int64) *ChangeLogsListCall {
+	for _, v_ := range objectIds {
+		c.params_.Add("objectIds", fmt.Sprintf("%v", v_))
+	}
 	return c
 }
 
 // ObjectType sets the optional parameter "objectType": Select only
 // change logs with the specified object type.
 func (c *ChangeLogsListCall) ObjectType(objectType string) *ChangeLogsListCall {
-	c.opt_["objectType"] = objectType
+	c.params_.Set("objectType", fmt.Sprintf("%v", objectType))
 	return c
 }
 
 // PageToken sets the optional parameter "pageToken": Value of the
 // nextPageToken from the previous result page.
 func (c *ChangeLogsListCall) PageToken(pageToken string) *ChangeLogsListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
 	return c
 }
 
@@ -10353,14 +10044,20 @@ func (c *ChangeLogsListCall) PageToken(pageToken string) *ChangeLogsListCall {
 // change logs whose object ID, user name, old or new values match the
 // search string.
 func (c *ChangeLogsListCall) SearchString(searchString string) *ChangeLogsListCall {
-	c.opt_["searchString"] = searchString
+	c.params_.Set("searchString", fmt.Sprintf("%v", searchString))
 	return c
 }
 
 // UserProfileIds sets the optional parameter "userProfileIds": Select
 // only change logs with these user profile IDs.
-func (c *ChangeLogsListCall) UserProfileIds(userProfileIds int64) *ChangeLogsListCall {
-	c.opt_["userProfileIds"] = userProfileIds
+func (c *ChangeLogsListCall) UserProfileIds(userProfileIds ...int64) *ChangeLogsListCall {
+	for _, v_ := range userProfileIds {
+		c.params_.Add("userProfileIds", fmt.Sprintf("%v", v_))
+	}
+	return c
+}
+func (c *ChangeLogsListCall) Context(ctx context.Context) *ChangeLogsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -10368,67 +10065,23 @@ func (c *ChangeLogsListCall) UserProfileIds(userProfileIds int64) *ChangeLogsLis
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ChangeLogsListCall) Fields(s ...googleapi.Field) *ChangeLogsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ChangeLogsListCall) Do() (*ChangeLogsListResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["action"]; ok {
-		params.Set("action", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["ids"]; ok {
-		params.Set("ids", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["maxChangeTime"]; ok {
-		params.Set("maxChangeTime", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["minChangeTime"]; ok {
-		params.Set("minChangeTime", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["objectIds"]; ok {
-		params.Set("objectIds", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["objectType"]; ok {
-		params.Set("objectType", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["searchString"]; ok {
-		params.Set("searchString", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["userProfileIds"]; ok {
-		params.Set("userProfileIds", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/changeLogs")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *ChangeLogsListResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ChangeLogsListResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves a list of change logs.",
 	//   "httpMethod": "GET",
@@ -10628,43 +10281,62 @@ func (c *ChangeLogsListCall) Do() (*ChangeLogsListResponse, error) {
 // method id "dfareporting.cities.list":
 
 type CitiesListCall struct {
-	s         *Service
-	profileId int64
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Retrieves a list of cities, possibly filtered.
+
 func (r *CitiesService) List(profileId int64) *CitiesListCall {
-	c := &CitiesListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	return c
+	return &CitiesListCall{
+		s:             r.s,
+		profileId:     profileId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/cities",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // CountryDartIds sets the optional parameter "countryDartIds": Select
 // only cities from these countries.
-func (c *CitiesListCall) CountryDartIds(countryDartIds int64) *CitiesListCall {
-	c.opt_["countryDartIds"] = countryDartIds
+func (c *CitiesListCall) CountryDartIds(countryDartIds ...int64) *CitiesListCall {
+	for _, v_ := range countryDartIds {
+		c.params_.Add("countryDartIds", fmt.Sprintf("%v", v_))
+	}
 	return c
 }
 
 // DartIds sets the optional parameter "dartIds": Select only cities
 // with these DART IDs.
-func (c *CitiesListCall) DartIds(dartIds int64) *CitiesListCall {
-	c.opt_["dartIds"] = dartIds
+func (c *CitiesListCall) DartIds(dartIds ...int64) *CitiesListCall {
+	for _, v_ := range dartIds {
+		c.params_.Add("dartIds", fmt.Sprintf("%v", v_))
+	}
 	return c
 }
 
 // NamePrefix sets the optional parameter "namePrefix": Select only
 // cities with names starting with this prefix.
 func (c *CitiesListCall) NamePrefix(namePrefix string) *CitiesListCall {
-	c.opt_["namePrefix"] = namePrefix
+	c.params_.Set("namePrefix", fmt.Sprintf("%v", namePrefix))
 	return c
 }
 
 // RegionDartIds sets the optional parameter "regionDartIds": Select
 // only cities from these regions.
-func (c *CitiesListCall) RegionDartIds(regionDartIds int64) *CitiesListCall {
-	c.opt_["regionDartIds"] = regionDartIds
+func (c *CitiesListCall) RegionDartIds(regionDartIds ...int64) *CitiesListCall {
+	for _, v_ := range regionDartIds {
+		c.params_.Add("regionDartIds", fmt.Sprintf("%v", v_))
+	}
+	return c
+}
+func (c *CitiesListCall) Context(ctx context.Context) *CitiesListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -10672,49 +10344,23 @@ func (c *CitiesListCall) RegionDartIds(regionDartIds int64) *CitiesListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *CitiesListCall) Fields(s ...googleapi.Field) *CitiesListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *CitiesListCall) Do() (*CitiesListResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["countryDartIds"]; ok {
-		params.Set("countryDartIds", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["dartIds"]; ok {
-		params.Set("dartIds", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["namePrefix"]; ok {
-		params.Set("namePrefix", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["regionDartIds"]; ok {
-		params.Set("regionDartIds", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/cities")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *CitiesListResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *CitiesListResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves a list of cities, possibly filtered.",
 	//   "httpMethod": "GET",
@@ -10771,15 +10417,28 @@ func (c *CitiesListCall) Do() (*CitiesListResponse, error) {
 // method id "dfareporting.connectionTypes.list":
 
 type ConnectionTypesListCall struct {
-	s         *Service
-	profileId int64
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Retrieves a list of connection types.
+
 func (r *ConnectionTypesService) List(profileId int64) *ConnectionTypesListCall {
-	c := &ConnectionTypesListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
+	return &ConnectionTypesListCall{
+		s:             r.s,
+		profileId:     profileId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/connectionTypes",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *ConnectionTypesListCall) Context(ctx context.Context) *ConnectionTypesListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -10787,37 +10446,23 @@ func (r *ConnectionTypesService) List(profileId int64) *ConnectionTypesListCall 
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ConnectionTypesListCall) Fields(s ...googleapi.Field) *ConnectionTypesListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ConnectionTypesListCall) Do() (*ConnectionTypesListResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/connectionTypes")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *ConnectionTypesListResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ConnectionTypesListResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves a list of connection types.",
 	//   "httpMethod": "GET",
@@ -10848,52 +10493,45 @@ func (c *ConnectionTypesListCall) Do() (*ConnectionTypesListResponse, error) {
 // method id "dfareporting.contentCategories.delete":
 
 type ContentCategoriesDeleteCall struct {
-	s         *Service
-	profileId int64
-	id        int64
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	id            int64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Delete: Deletes an existing content category.
-func (r *ContentCategoriesService) Delete(profileId int64, id int64) *ContentCategoriesDeleteCall {
-	c := &ContentCategoriesDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.id = id
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *ContentCategoriesDeleteCall) Fields(s ...googleapi.Field) *ContentCategoriesDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *ContentCategoriesService) Delete(profileId int64, id int64) *ContentCategoriesDeleteCall {
+	return &ContentCategoriesDeleteCall{
+		s:             r.s,
+		profileId:     profileId,
+		id:            id,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/contentCategories/{id}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *ContentCategoriesDeleteCall) Context(ctx context.Context) *ContentCategoriesDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *ContentCategoriesDeleteCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/contentCategories/{id}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 		"id":        strconv.FormatInt(c.id, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Deletes an existing content category.",
 	//   "httpMethod": "DELETE",
@@ -10929,17 +10567,30 @@ func (c *ContentCategoriesDeleteCall) Do() error {
 // method id "dfareporting.contentCategories.get":
 
 type ContentCategoriesGetCall struct {
-	s         *Service
-	profileId int64
-	id        int64
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	id            int64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Gets one content category by ID.
+
 func (r *ContentCategoriesService) Get(profileId int64, id int64) *ContentCategoriesGetCall {
-	c := &ContentCategoriesGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.id = id
+	return &ContentCategoriesGetCall{
+		s:             r.s,
+		profileId:     profileId,
+		id:            id,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/contentCategories/{id}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *ContentCategoriesGetCall) Context(ctx context.Context) *ContentCategoriesGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -10947,38 +10598,24 @@ func (r *ContentCategoriesService) Get(profileId int64, id int64) *ContentCatego
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ContentCategoriesGetCall) Fields(s ...googleapi.Field) *ContentCategoriesGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ContentCategoriesGetCall) Do() (*ContentCategory, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/contentCategories/{id}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *ContentCategory
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 		"id":        strconv.FormatInt(c.id, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ContentCategory
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Gets one content category by ID.",
 	//   "httpMethod": "GET",
@@ -11020,14 +10657,27 @@ type ContentCategoriesInsertCall struct {
 	s               *Service
 	profileId       int64
 	contentcategory *ContentCategory
-	opt_            map[string]interface{}
+	caller_         googleapi.Caller
+	params_         url.Values
+	pathTemplate_   string
+	context_        context.Context
 }
 
 // Insert: Inserts a new content category.
+
 func (r *ContentCategoriesService) Insert(profileId int64, contentcategory *ContentCategory) *ContentCategoriesInsertCall {
-	c := &ContentCategoriesInsertCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.contentcategory = contentcategory
+	return &ContentCategoriesInsertCall{
+		s:               r.s,
+		profileId:       profileId,
+		contentcategory: contentcategory,
+		caller_:         googleapi.JSONCall{},
+		params_:         make(map[string][]string),
+		pathTemplate_:   "userprofiles/{profileId}/contentCategories",
+		context_:        googleapi.NoContext,
+	}
+}
+func (c *ContentCategoriesInsertCall) Context(ctx context.Context) *ContentCategoriesInsertCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -11035,43 +10685,24 @@ func (r *ContentCategoriesService) Insert(profileId int64, contentcategory *Cont
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ContentCategoriesInsertCall) Fields(s ...googleapi.Field) *ContentCategoriesInsertCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ContentCategoriesInsertCall) Do() (*ContentCategory, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.contentcategory)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/contentCategories")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *ContentCategory
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.contentcategory,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ContentCategory
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Inserts a new content category.",
 	//   "httpMethod": "POST",
@@ -11105,64 +10736,79 @@ func (c *ContentCategoriesInsertCall) Do() (*ContentCategory, error) {
 // method id "dfareporting.contentCategories.list":
 
 type ContentCategoriesListCall struct {
-	s         *Service
-	profileId int64
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Retrieves a list of content categories, possibly filtered.
+
 func (r *ContentCategoriesService) List(profileId int64) *ContentCategoriesListCall {
-	c := &ContentCategoriesListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	return c
+	return &ContentCategoriesListCall{
+		s:             r.s,
+		profileId:     profileId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/contentCategories",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Ids sets the optional parameter "ids": Select only content categories
 // with these IDs.
-func (c *ContentCategoriesListCall) Ids(ids int64) *ContentCategoriesListCall {
-	c.opt_["ids"] = ids
+func (c *ContentCategoriesListCall) Ids(ids ...int64) *ContentCategoriesListCall {
+	for _, v_ := range ids {
+		c.params_.Add("ids", fmt.Sprintf("%v", v_))
+	}
 	return c
 }
 
 // MaxResults sets the optional parameter "maxResults": Maximum number
 // of results to return.
 func (c *ContentCategoriesListCall) MaxResults(maxResults int64) *ContentCategoriesListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
 // PageToken sets the optional parameter "pageToken": Value of the
 // nextPageToken from the previous result page.
 func (c *ContentCategoriesListCall) PageToken(pageToken string) *ContentCategoriesListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
 	return c
 }
 
 // SearchString sets the optional parameter "searchString": Allows
 // searching for objects by name or ID. Wildcards (*) are allowed. For
 // example, "contentcategory*2015" will return objects with names like
-// "contentcategory June 2015", "contentcategory April 2015" or simply
+// "contentcategory June 2015", "contentcategory April 2015", or simply
 // "contentcategory 2015". Most of the searches also add wildcards
 // implicitly at the start and the end of the search string. For
 // example, a search string of "contentcategory" will match objects with
-// name "my contentcategory", "contentcategory 2015" or simply
+// name "my contentcategory", "contentcategory 2015", or simply
 // "contentcategory".
 func (c *ContentCategoriesListCall) SearchString(searchString string) *ContentCategoriesListCall {
-	c.opt_["searchString"] = searchString
+	c.params_.Set("searchString", fmt.Sprintf("%v", searchString))
 	return c
 }
 
 // SortField sets the optional parameter "sortField": Field by which to
 // sort the list.
 func (c *ContentCategoriesListCall) SortField(sortField string) *ContentCategoriesListCall {
-	c.opt_["sortField"] = sortField
+	c.params_.Set("sortField", fmt.Sprintf("%v", sortField))
 	return c
 }
 
 // SortOrder sets the optional parameter "sortOrder": Order of sorted
 // results, default is ASCENDING.
 func (c *ContentCategoriesListCall) SortOrder(sortOrder string) *ContentCategoriesListCall {
-	c.opt_["sortOrder"] = sortOrder
+	c.params_.Set("sortOrder", fmt.Sprintf("%v", sortOrder))
+	return c
+}
+func (c *ContentCategoriesListCall) Context(ctx context.Context) *ContentCategoriesListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -11170,55 +10816,23 @@ func (c *ContentCategoriesListCall) SortOrder(sortOrder string) *ContentCategori
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ContentCategoriesListCall) Fields(s ...googleapi.Field) *ContentCategoriesListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ContentCategoriesListCall) Do() (*ContentCategoriesListResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["ids"]; ok {
-		params.Set("ids", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["searchString"]; ok {
-		params.Set("searchString", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["sortField"]; ok {
-		params.Set("sortField", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["sortOrder"]; ok {
-		params.Set("sortOrder", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/contentCategories")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *ContentCategoriesListResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ContentCategoriesListResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves a list of content categories, possibly filtered.",
 	//   "httpMethod": "GET",
@@ -11253,7 +10867,7 @@ func (c *ContentCategoriesListCall) Do() (*ContentCategoriesListResponse, error)
 	//       "type": "string"
 	//     },
 	//     "searchString": {
-	//       "description": "Allows searching for objects by name or ID. Wildcards (*) are allowed. For example, \"contentcategory*2015\" will return objects with names like \"contentcategory June 2015\", \"contentcategory April 2015\" or simply \"contentcategory 2015\". Most of the searches also add wildcards implicitly at the start and the end of the search string. For example, a search string of \"contentcategory\" will match objects with name \"my contentcategory\", \"contentcategory 2015\" or simply \"contentcategory\".",
+	//       "description": "Allows searching for objects by name or ID. Wildcards (*) are allowed. For example, \"contentcategory*2015\" will return objects with names like \"contentcategory June 2015\", \"contentcategory April 2015\", or simply \"contentcategory 2015\". Most of the searches also add wildcards implicitly at the start and the end of the search string. For example, a search string of \"contentcategory\" will match objects with name \"my contentcategory\", \"contentcategory 2015\", or simply \"contentcategory\".",
 	//       "location": "query",
 	//       "type": "string"
 	//     },
@@ -11302,16 +10916,29 @@ type ContentCategoriesPatchCall struct {
 	profileId       int64
 	id              int64
 	contentcategory *ContentCategory
-	opt_            map[string]interface{}
+	caller_         googleapi.Caller
+	params_         url.Values
+	pathTemplate_   string
+	context_        context.Context
 }
 
 // Patch: Updates an existing content category. This method supports
 // patch semantics.
+
 func (r *ContentCategoriesService) Patch(profileId int64, id int64, contentcategory *ContentCategory) *ContentCategoriesPatchCall {
-	c := &ContentCategoriesPatchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.id = id
-	c.contentcategory = contentcategory
+	return &ContentCategoriesPatchCall{
+		s:               r.s,
+		profileId:       profileId,
+		id:              id,
+		contentcategory: contentcategory,
+		caller_:         googleapi.JSONCall{},
+		params_:         make(map[string][]string),
+		pathTemplate_:   "userprofiles/{profileId}/contentCategories",
+		context_:        googleapi.NoContext,
+	}
+}
+func (c *ContentCategoriesPatchCall) Context(ctx context.Context) *ContentCategoriesPatchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -11319,44 +10946,25 @@ func (r *ContentCategoriesService) Patch(profileId int64, id int64, contentcateg
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ContentCategoriesPatchCall) Fields(s ...googleapi.Field) *ContentCategoriesPatchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ContentCategoriesPatchCall) Do() (*ContentCategory, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.contentcategory)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("id", fmt.Sprintf("%v", c.id))
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/contentCategories")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PATCH", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *ContentCategory
+	c.params_.Set("id", fmt.Sprintf("%v", c.id))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PATCH",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.contentcategory,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ContentCategory
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates an existing content category. This method supports patch semantics.",
 	//   "httpMethod": "PATCH",
@@ -11401,14 +11009,27 @@ type ContentCategoriesUpdateCall struct {
 	s               *Service
 	profileId       int64
 	contentcategory *ContentCategory
-	opt_            map[string]interface{}
+	caller_         googleapi.Caller
+	params_         url.Values
+	pathTemplate_   string
+	context_        context.Context
 }
 
 // Update: Updates an existing content category.
+
 func (r *ContentCategoriesService) Update(profileId int64, contentcategory *ContentCategory) *ContentCategoriesUpdateCall {
-	c := &ContentCategoriesUpdateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.contentcategory = contentcategory
+	return &ContentCategoriesUpdateCall{
+		s:               r.s,
+		profileId:       profileId,
+		contentcategory: contentcategory,
+		caller_:         googleapi.JSONCall{},
+		params_:         make(map[string][]string),
+		pathTemplate_:   "userprofiles/{profileId}/contentCategories",
+		context_:        googleapi.NoContext,
+	}
+}
+func (c *ContentCategoriesUpdateCall) Context(ctx context.Context) *ContentCategoriesUpdateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -11416,43 +11037,24 @@ func (r *ContentCategoriesService) Update(profileId int64, contentcategory *Cont
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ContentCategoriesUpdateCall) Fields(s ...googleapi.Field) *ContentCategoriesUpdateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ContentCategoriesUpdateCall) Do() (*ContentCategory, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.contentcategory)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/contentCategories")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *ContentCategory
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.contentcategory,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ContentCategory
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates an existing content category.",
 	//   "httpMethod": "PUT",
@@ -11486,17 +11088,30 @@ func (c *ContentCategoriesUpdateCall) Do() (*ContentCategory, error) {
 // method id "dfareporting.countries.get":
 
 type CountriesGetCall struct {
-	s         *Service
-	profileId int64
-	dartId    int64
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	dartId        int64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Gets one country by ID.
+
 func (r *CountriesService) Get(profileId int64, dartId int64) *CountriesGetCall {
-	c := &CountriesGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.dartId = dartId
+	return &CountriesGetCall{
+		s:             r.s,
+		profileId:     profileId,
+		dartId:        dartId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/countries/{dartId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *CountriesGetCall) Context(ctx context.Context) *CountriesGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -11504,38 +11119,24 @@ func (r *CountriesService) Get(profileId int64, dartId int64) *CountriesGetCall 
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *CountriesGetCall) Fields(s ...googleapi.Field) *CountriesGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *CountriesGetCall) Do() (*Country, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/countries/{dartId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Country
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 		"dartId":    strconv.FormatInt(c.dartId, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Country
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Gets one country by ID.",
 	//   "httpMethod": "GET",
@@ -11574,15 +11175,28 @@ func (c *CountriesGetCall) Do() (*Country, error) {
 // method id "dfareporting.countries.list":
 
 type CountriesListCall struct {
-	s         *Service
-	profileId int64
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Retrieves a list of countries.
+
 func (r *CountriesService) List(profileId int64) *CountriesListCall {
-	c := &CountriesListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
+	return &CountriesListCall{
+		s:             r.s,
+		profileId:     profileId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/countries",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *CountriesListCall) Context(ctx context.Context) *CountriesListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -11590,37 +11204,23 @@ func (r *CountriesService) List(profileId int64) *CountriesListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *CountriesListCall) Fields(s ...googleapi.Field) *CountriesListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *CountriesListCall) Do() (*CountriesListResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/countries")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *CountriesListResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *CountriesListResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves a list of countries.",
 	//   "httpMethod": "GET",
@@ -11655,28 +11255,53 @@ type CreativeAssetsInsertCall struct {
 	profileId             int64
 	advertiserId          int64
 	creativeassetmetadata *CreativeAssetMetadata
-	opt_                  map[string]interface{}
-	media_                io.Reader
-	resumable_            googleapi.SizeReaderAt
-	mediaType_            string
-	ctx_                  context.Context
-	protocol_             string
+	caller_               googleapi.Caller
+	params_               url.Values
+	pathTemplate_         string
+	context_              context.Context
+	callback_             googleapi.ProgressUpdater
 }
 
 // Insert: Inserts a new creative asset.
+
 func (r *CreativeAssetsService) Insert(profileId int64, advertiserId int64, creativeassetmetadata *CreativeAssetMetadata) *CreativeAssetsInsertCall {
-	c := &CreativeAssetsInsertCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.advertiserId = advertiserId
-	c.creativeassetmetadata = creativeassetmetadata
+	return &CreativeAssetsInsertCall{
+		s:                     r.s,
+		profileId:             profileId,
+		advertiserId:          advertiserId,
+		creativeassetmetadata: creativeassetmetadata,
+		caller_:               googleapi.JSONCall{},
+		params_:               make(map[string][]string),
+		pathTemplate_:         "userprofiles/{profileId}/creativeAssets/{advertiserId}/creativeAssets",
+		context_:              googleapi.NoContext,
+	}
+}
+func (c *CreativeAssetsInsertCall) Context(ctx context.Context) *CreativeAssetsInsertCall {
+	c.context_ = ctx
+	return c
+}
+
+// MediaUpload takes a context and UploadCaller interface
+func (c *CreativeAssetsInsertCall) Upload(ctx context.Context, u googleapi.UploadCaller) *CreativeAssetsInsertCall {
+	c.caller_ = u
+	c.context_ = ctx
+	switch u.(type) {
+	case *googleapi.MediaUpload:
+		c.pathTemplate_ = "/upload/dfareporting/v2.0/userprofiles/{profileId}/creativeAssets/{advertiserId}/creativeAssets"
+	case *googleapi.ResumableUpload:
+		c.pathTemplate_ = "/resumable/upload/dfareporting/v2.0/userprofiles/{profileId}/creativeAssets/{advertiserId}/creativeAssets"
+	}
 	return c
 }
 
 // Media specifies the media to upload in a single chunk.
 // At most one of Media and ResumableMedia may be set.
+// The mime type type will be auto-detected unless r is a googleapi.ContentTyper as well.
 func (c *CreativeAssetsInsertCall) Media(r io.Reader) *CreativeAssetsInsertCall {
-	c.media_ = r
-	c.protocol_ = "multipart"
+	c.caller_ = &googleapi.MediaUpload{
+		Media: r,
+	}
+	c.pathTemplate_ = "/upload/dfareporting/v2.0/userprofiles/{profileId}/creativeAssets/{advertiserId}/creativeAssets"
 	return c
 }
 
@@ -11685,10 +11310,14 @@ func (c *CreativeAssetsInsertCall) Media(r io.Reader) *CreativeAssetsInsertCall 
 // mediaType identifies the MIME media type of the upload, such as "image/png".
 // If mediaType is "", it will be auto-detected.
 func (c *CreativeAssetsInsertCall) ResumableMedia(ctx context.Context, r io.ReaderAt, size int64, mediaType string) *CreativeAssetsInsertCall {
-	c.ctx_ = ctx
-	c.resumable_ = io.NewSectionReader(r, 0, size)
-	c.mediaType_ = mediaType
-	c.protocol_ = "resumable"
+	c.caller_ = &googleapi.ResumableUpload{
+		Media:         io.NewSectionReader(r, 0, size),
+		MediaType:     mediaType,
+		ContentLength: size,
+		Callback:      c.callback_,
+	}
+	c.pathTemplate_ = "/resumable/upload/dfareporting/v2.0/userprofiles/{profileId}/creativeAssets/{advertiserId}/creativeAssets"
+	c.context_ = ctx
 	return c
 }
 
@@ -11696,7 +11325,10 @@ func (c *CreativeAssetsInsertCall) ResumableMedia(ctx context.Context, r io.Read
 // It should be a low-latency function in order to not slow down the upload operation.
 // This should only be called when using ResumableMedia (as opposed to Media).
 func (c *CreativeAssetsInsertCall) ProgressUpdater(pu googleapi.ProgressUpdater) *CreativeAssetsInsertCall {
-	c.opt_["progressUpdater"] = pu
+	c.callback_ = pu
+	if rx, ok := c.caller_.(*googleapi.ResumableUpload); ok {
+		rx.Callback = pu
+	}
 	return c
 }
 
@@ -11704,87 +11336,25 @@ func (c *CreativeAssetsInsertCall) ProgressUpdater(pu googleapi.ProgressUpdater)
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *CreativeAssetsInsertCall) Fields(s ...googleapi.Field) *CreativeAssetsInsertCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *CreativeAssetsInsertCall) Do() (*CreativeAssetMetadata, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.creativeassetmetadata)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/creativeAssets/{advertiserId}/creativeAssets")
-	var progressUpdater_ googleapi.ProgressUpdater
-	if v, ok := c.opt_["progressUpdater"]; ok {
-		if pu, ok := v.(googleapi.ProgressUpdater); ok {
-			progressUpdater_ = pu
-		}
-	}
-	if c.media_ != nil || c.resumable_ != nil {
-		urls = strings.Replace(urls, "https://www.googleapis.com/", "https://www.googleapis.com/upload/", 1)
-		params.Set("uploadType", c.protocol_)
-	}
-	urls += "?" + params.Encode()
-	if c.protocol_ != "resumable" {
-		var cancel func()
-		cancel, _ = googleapi.ConditionallyIncludeMedia(c.media_, &body, &ctype)
-		if cancel != nil {
-			defer cancel()
-		}
-	}
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *CreativeAssetMetadata
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId":    strconv.FormatInt(c.profileId, 10),
 		"advertiserId": strconv.FormatInt(c.advertiserId, 10),
 	})
-	if c.protocol_ == "resumable" {
-		req.ContentLength = 0
-		if c.mediaType_ == "" {
-			c.mediaType_ = googleapi.DetectMediaType(c.resumable_)
-		}
-		req.Header.Set("X-Upload-Content-Type", c.mediaType_)
-		req.Body = nil
-	} else {
-		req.Header.Set("Content-Type", ctype)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.creativeassetmetadata,
+		Result:  &returnValue,
 	}
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	if c.protocol_ == "resumable" {
-		loc := res.Header.Get("Location")
-		rx := &googleapi.ResumableUpload{
-			Client:        c.s.client,
-			UserAgent:     c.s.userAgent(),
-			URI:           loc,
-			Media:         c.resumable_,
-			MediaType:     c.mediaType_,
-			ContentLength: c.resumable_.Size(),
-			Callback:      progressUpdater_,
-		}
-		res, err = rx.Upload(c.ctx_)
-		if err != nil {
-			return nil, err
-		}
-		defer res.Body.Close()
-	}
-	var ret *CreativeAssetMetadata
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Inserts a new creative asset.",
 	//   "httpMethod": "POST",
@@ -11847,51 +11417,44 @@ type CreativeFieldValuesDeleteCall struct {
 	profileId       int64
 	creativeFieldId int64
 	id              int64
-	opt_            map[string]interface{}
+	caller_         googleapi.Caller
+	params_         url.Values
+	pathTemplate_   string
+	context_        context.Context
 }
 
 // Delete: Deletes an existing creative field value.
-func (r *CreativeFieldValuesService) Delete(profileId int64, creativeFieldId int64, id int64) *CreativeFieldValuesDeleteCall {
-	c := &CreativeFieldValuesDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.creativeFieldId = creativeFieldId
-	c.id = id
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *CreativeFieldValuesDeleteCall) Fields(s ...googleapi.Field) *CreativeFieldValuesDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *CreativeFieldValuesService) Delete(profileId int64, creativeFieldId int64, id int64) *CreativeFieldValuesDeleteCall {
+	return &CreativeFieldValuesDeleteCall{
+		s:               r.s,
+		profileId:       profileId,
+		creativeFieldId: creativeFieldId,
+		id:              id,
+		caller_:         googleapi.JSONCall{},
+		params_:         make(map[string][]string),
+		pathTemplate_:   "userprofiles/{profileId}/creativeFields/{creativeFieldId}/creativeFieldValues/{id}",
+		context_:        googleapi.NoContext,
+	}
+}
+func (c *CreativeFieldValuesDeleteCall) Context(ctx context.Context) *CreativeFieldValuesDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *CreativeFieldValuesDeleteCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/creativeFields/{creativeFieldId}/creativeFieldValues/{id}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId":       strconv.FormatInt(c.profileId, 10),
 		"creativeFieldId": strconv.FormatInt(c.creativeFieldId, 10),
 		"id":              strconv.FormatInt(c.id, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Deletes an existing creative field value.",
 	//   "httpMethod": "DELETE",
@@ -11939,15 +11502,28 @@ type CreativeFieldValuesGetCall struct {
 	profileId       int64
 	creativeFieldId int64
 	id              int64
-	opt_            map[string]interface{}
+	caller_         googleapi.Caller
+	params_         url.Values
+	pathTemplate_   string
+	context_        context.Context
 }
 
 // Get: Gets one creative field value by ID.
+
 func (r *CreativeFieldValuesService) Get(profileId int64, creativeFieldId int64, id int64) *CreativeFieldValuesGetCall {
-	c := &CreativeFieldValuesGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.creativeFieldId = creativeFieldId
-	c.id = id
+	return &CreativeFieldValuesGetCall{
+		s:               r.s,
+		profileId:       profileId,
+		creativeFieldId: creativeFieldId,
+		id:              id,
+		caller_:         googleapi.JSONCall{},
+		params_:         make(map[string][]string),
+		pathTemplate_:   "userprofiles/{profileId}/creativeFields/{creativeFieldId}/creativeFieldValues/{id}",
+		context_:        googleapi.NoContext,
+	}
+}
+func (c *CreativeFieldValuesGetCall) Context(ctx context.Context) *CreativeFieldValuesGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -11955,39 +11531,25 @@ func (r *CreativeFieldValuesService) Get(profileId int64, creativeFieldId int64,
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *CreativeFieldValuesGetCall) Fields(s ...googleapi.Field) *CreativeFieldValuesGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *CreativeFieldValuesGetCall) Do() (*CreativeFieldValue, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/creativeFields/{creativeFieldId}/creativeFieldValues/{id}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *CreativeFieldValue
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId":       strconv.FormatInt(c.profileId, 10),
 		"creativeFieldId": strconv.FormatInt(c.creativeFieldId, 10),
 		"id":              strconv.FormatInt(c.id, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *CreativeFieldValue
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Gets one creative field value by ID.",
 	//   "httpMethod": "GET",
@@ -12038,15 +11600,28 @@ type CreativeFieldValuesInsertCall struct {
 	profileId          int64
 	creativeFieldId    int64
 	creativefieldvalue *CreativeFieldValue
-	opt_               map[string]interface{}
+	caller_            googleapi.Caller
+	params_            url.Values
+	pathTemplate_      string
+	context_           context.Context
 }
 
 // Insert: Inserts a new creative field value.
+
 func (r *CreativeFieldValuesService) Insert(profileId int64, creativeFieldId int64, creativefieldvalue *CreativeFieldValue) *CreativeFieldValuesInsertCall {
-	c := &CreativeFieldValuesInsertCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.creativeFieldId = creativeFieldId
-	c.creativefieldvalue = creativefieldvalue
+	return &CreativeFieldValuesInsertCall{
+		s:                  r.s,
+		profileId:          profileId,
+		creativeFieldId:    creativeFieldId,
+		creativefieldvalue: creativefieldvalue,
+		caller_:            googleapi.JSONCall{},
+		params_:            make(map[string][]string),
+		pathTemplate_:      "userprofiles/{profileId}/creativeFields/{creativeFieldId}/creativeFieldValues",
+		context_:           googleapi.NoContext,
+	}
+}
+func (c *CreativeFieldValuesInsertCall) Context(ctx context.Context) *CreativeFieldValuesInsertCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -12054,44 +11629,25 @@ func (r *CreativeFieldValuesService) Insert(profileId int64, creativeFieldId int
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *CreativeFieldValuesInsertCall) Fields(s ...googleapi.Field) *CreativeFieldValuesInsertCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *CreativeFieldValuesInsertCall) Do() (*CreativeFieldValue, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.creativefieldvalue)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/creativeFields/{creativeFieldId}/creativeFieldValues")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *CreativeFieldValue
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId":       strconv.FormatInt(c.profileId, 10),
 		"creativeFieldId": strconv.FormatInt(c.creativeFieldId, 10),
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.creativefieldvalue,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *CreativeFieldValue
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Inserts a new creative field value.",
 	//   "httpMethod": "POST",
@@ -12136,35 +11692,46 @@ type CreativeFieldValuesListCall struct {
 	s               *Service
 	profileId       int64
 	creativeFieldId int64
-	opt_            map[string]interface{}
+	caller_         googleapi.Caller
+	params_         url.Values
+	pathTemplate_   string
+	context_        context.Context
 }
 
 // List: Retrieves a list of creative field values, possibly filtered.
+
 func (r *CreativeFieldValuesService) List(profileId int64, creativeFieldId int64) *CreativeFieldValuesListCall {
-	c := &CreativeFieldValuesListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.creativeFieldId = creativeFieldId
-	return c
+	return &CreativeFieldValuesListCall{
+		s:               r.s,
+		profileId:       profileId,
+		creativeFieldId: creativeFieldId,
+		caller_:         googleapi.JSONCall{},
+		params_:         make(map[string][]string),
+		pathTemplate_:   "userprofiles/{profileId}/creativeFields/{creativeFieldId}/creativeFieldValues",
+		context_:        googleapi.NoContext,
+	}
 }
 
 // Ids sets the optional parameter "ids": Select only creative field
 // values with these IDs.
-func (c *CreativeFieldValuesListCall) Ids(ids int64) *CreativeFieldValuesListCall {
-	c.opt_["ids"] = ids
+func (c *CreativeFieldValuesListCall) Ids(ids ...int64) *CreativeFieldValuesListCall {
+	for _, v_ := range ids {
+		c.params_.Add("ids", fmt.Sprintf("%v", v_))
+	}
 	return c
 }
 
 // MaxResults sets the optional parameter "maxResults": Maximum number
 // of results to return.
 func (c *CreativeFieldValuesListCall) MaxResults(maxResults int64) *CreativeFieldValuesListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
 // PageToken sets the optional parameter "pageToken": Value of the
 // nextPageToken from the previous result page.
 func (c *CreativeFieldValuesListCall) PageToken(pageToken string) *CreativeFieldValuesListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
 	return c
 }
 
@@ -12172,21 +11739,25 @@ func (c *CreativeFieldValuesListCall) PageToken(pageToken string) *CreativeField
 // searching for creative field values by their values. Wildcards (e.g.
 // *) are not allowed.
 func (c *CreativeFieldValuesListCall) SearchString(searchString string) *CreativeFieldValuesListCall {
-	c.opt_["searchString"] = searchString
+	c.params_.Set("searchString", fmt.Sprintf("%v", searchString))
 	return c
 }
 
 // SortField sets the optional parameter "sortField": Field by which to
 // sort the list.
 func (c *CreativeFieldValuesListCall) SortField(sortField string) *CreativeFieldValuesListCall {
-	c.opt_["sortField"] = sortField
+	c.params_.Set("sortField", fmt.Sprintf("%v", sortField))
 	return c
 }
 
 // SortOrder sets the optional parameter "sortOrder": Order of sorted
 // results, default is ASCENDING.
 func (c *CreativeFieldValuesListCall) SortOrder(sortOrder string) *CreativeFieldValuesListCall {
-	c.opt_["sortOrder"] = sortOrder
+	c.params_.Set("sortOrder", fmt.Sprintf("%v", sortOrder))
+	return c
+}
+func (c *CreativeFieldValuesListCall) Context(ctx context.Context) *CreativeFieldValuesListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -12194,56 +11765,24 @@ func (c *CreativeFieldValuesListCall) SortOrder(sortOrder string) *CreativeField
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *CreativeFieldValuesListCall) Fields(s ...googleapi.Field) *CreativeFieldValuesListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *CreativeFieldValuesListCall) Do() (*CreativeFieldValuesListResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["ids"]; ok {
-		params.Set("ids", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["searchString"]; ok {
-		params.Set("searchString", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["sortField"]; ok {
-		params.Set("sortField", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["sortOrder"]; ok {
-		params.Set("sortOrder", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/creativeFields/{creativeFieldId}/creativeFieldValues")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *CreativeFieldValuesListResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId":       strconv.FormatInt(c.profileId, 10),
 		"creativeFieldId": strconv.FormatInt(c.creativeFieldId, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *CreativeFieldValuesListResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves a list of creative field values, possibly filtered.",
 	//   "httpMethod": "GET",
@@ -12336,17 +11875,30 @@ type CreativeFieldValuesPatchCall struct {
 	creativeFieldId    int64
 	id                 int64
 	creativefieldvalue *CreativeFieldValue
-	opt_               map[string]interface{}
+	caller_            googleapi.Caller
+	params_            url.Values
+	pathTemplate_      string
+	context_           context.Context
 }
 
 // Patch: Updates an existing creative field value. This method supports
 // patch semantics.
+
 func (r *CreativeFieldValuesService) Patch(profileId int64, creativeFieldId int64, id int64, creativefieldvalue *CreativeFieldValue) *CreativeFieldValuesPatchCall {
-	c := &CreativeFieldValuesPatchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.creativeFieldId = creativeFieldId
-	c.id = id
-	c.creativefieldvalue = creativefieldvalue
+	return &CreativeFieldValuesPatchCall{
+		s:                  r.s,
+		profileId:          profileId,
+		creativeFieldId:    creativeFieldId,
+		id:                 id,
+		creativefieldvalue: creativefieldvalue,
+		caller_:            googleapi.JSONCall{},
+		params_:            make(map[string][]string),
+		pathTemplate_:      "userprofiles/{profileId}/creativeFields/{creativeFieldId}/creativeFieldValues",
+		context_:           googleapi.NoContext,
+	}
+}
+func (c *CreativeFieldValuesPatchCall) Context(ctx context.Context) *CreativeFieldValuesPatchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -12354,45 +11906,26 @@ func (r *CreativeFieldValuesService) Patch(profileId int64, creativeFieldId int6
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *CreativeFieldValuesPatchCall) Fields(s ...googleapi.Field) *CreativeFieldValuesPatchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *CreativeFieldValuesPatchCall) Do() (*CreativeFieldValue, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.creativefieldvalue)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("id", fmt.Sprintf("%v", c.id))
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/creativeFields/{creativeFieldId}/creativeFieldValues")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PATCH", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *CreativeFieldValue
+	c.params_.Set("id", fmt.Sprintf("%v", c.id))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId":       strconv.FormatInt(c.profileId, 10),
 		"creativeFieldId": strconv.FormatInt(c.creativeFieldId, 10),
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PATCH",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.creativefieldvalue,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *CreativeFieldValue
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates an existing creative field value. This method supports patch semantics.",
 	//   "httpMethod": "PATCH",
@@ -12446,15 +11979,28 @@ type CreativeFieldValuesUpdateCall struct {
 	profileId          int64
 	creativeFieldId    int64
 	creativefieldvalue *CreativeFieldValue
-	opt_               map[string]interface{}
+	caller_            googleapi.Caller
+	params_            url.Values
+	pathTemplate_      string
+	context_           context.Context
 }
 
 // Update: Updates an existing creative field value.
+
 func (r *CreativeFieldValuesService) Update(profileId int64, creativeFieldId int64, creativefieldvalue *CreativeFieldValue) *CreativeFieldValuesUpdateCall {
-	c := &CreativeFieldValuesUpdateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.creativeFieldId = creativeFieldId
-	c.creativefieldvalue = creativefieldvalue
+	return &CreativeFieldValuesUpdateCall{
+		s:                  r.s,
+		profileId:          profileId,
+		creativeFieldId:    creativeFieldId,
+		creativefieldvalue: creativefieldvalue,
+		caller_:            googleapi.JSONCall{},
+		params_:            make(map[string][]string),
+		pathTemplate_:      "userprofiles/{profileId}/creativeFields/{creativeFieldId}/creativeFieldValues",
+		context_:           googleapi.NoContext,
+	}
+}
+func (c *CreativeFieldValuesUpdateCall) Context(ctx context.Context) *CreativeFieldValuesUpdateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -12462,44 +12008,25 @@ func (r *CreativeFieldValuesService) Update(profileId int64, creativeFieldId int
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *CreativeFieldValuesUpdateCall) Fields(s ...googleapi.Field) *CreativeFieldValuesUpdateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *CreativeFieldValuesUpdateCall) Do() (*CreativeFieldValue, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.creativefieldvalue)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/creativeFields/{creativeFieldId}/creativeFieldValues")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *CreativeFieldValue
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId":       strconv.FormatInt(c.profileId, 10),
 		"creativeFieldId": strconv.FormatInt(c.creativeFieldId, 10),
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.creativefieldvalue,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *CreativeFieldValue
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates an existing creative field value.",
 	//   "httpMethod": "PUT",
@@ -12541,52 +12068,45 @@ func (c *CreativeFieldValuesUpdateCall) Do() (*CreativeFieldValue, error) {
 // method id "dfareporting.creativeFields.delete":
 
 type CreativeFieldsDeleteCall struct {
-	s         *Service
-	profileId int64
-	id        int64
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	id            int64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Delete: Deletes an existing creative field.
-func (r *CreativeFieldsService) Delete(profileId int64, id int64) *CreativeFieldsDeleteCall {
-	c := &CreativeFieldsDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.id = id
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *CreativeFieldsDeleteCall) Fields(s ...googleapi.Field) *CreativeFieldsDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *CreativeFieldsService) Delete(profileId int64, id int64) *CreativeFieldsDeleteCall {
+	return &CreativeFieldsDeleteCall{
+		s:             r.s,
+		profileId:     profileId,
+		id:            id,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/creativeFields/{id}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *CreativeFieldsDeleteCall) Context(ctx context.Context) *CreativeFieldsDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *CreativeFieldsDeleteCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/creativeFields/{id}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 		"id":        strconv.FormatInt(c.id, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Deletes an existing creative field.",
 	//   "httpMethod": "DELETE",
@@ -12622,17 +12142,30 @@ func (c *CreativeFieldsDeleteCall) Do() error {
 // method id "dfareporting.creativeFields.get":
 
 type CreativeFieldsGetCall struct {
-	s         *Service
-	profileId int64
-	id        int64
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	id            int64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Gets one creative field by ID.
+
 func (r *CreativeFieldsService) Get(profileId int64, id int64) *CreativeFieldsGetCall {
-	c := &CreativeFieldsGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.id = id
+	return &CreativeFieldsGetCall{
+		s:             r.s,
+		profileId:     profileId,
+		id:            id,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/creativeFields/{id}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *CreativeFieldsGetCall) Context(ctx context.Context) *CreativeFieldsGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -12640,38 +12173,24 @@ func (r *CreativeFieldsService) Get(profileId int64, id int64) *CreativeFieldsGe
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *CreativeFieldsGetCall) Fields(s ...googleapi.Field) *CreativeFieldsGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *CreativeFieldsGetCall) Do() (*CreativeField, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/creativeFields/{id}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *CreativeField
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 		"id":        strconv.FormatInt(c.id, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *CreativeField
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Gets one creative field by ID.",
 	//   "httpMethod": "GET",
@@ -12713,14 +12232,27 @@ type CreativeFieldsInsertCall struct {
 	s             *Service
 	profileId     int64
 	creativefield *CreativeField
-	opt_          map[string]interface{}
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Insert: Inserts a new creative field.
+
 func (r *CreativeFieldsService) Insert(profileId int64, creativefield *CreativeField) *CreativeFieldsInsertCall {
-	c := &CreativeFieldsInsertCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.creativefield = creativefield
+	return &CreativeFieldsInsertCall{
+		s:             r.s,
+		profileId:     profileId,
+		creativefield: creativefield,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/creativeFields",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *CreativeFieldsInsertCall) Context(ctx context.Context) *CreativeFieldsInsertCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -12728,43 +12260,24 @@ func (r *CreativeFieldsService) Insert(profileId int64, creativefield *CreativeF
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *CreativeFieldsInsertCall) Fields(s ...googleapi.Field) *CreativeFieldsInsertCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *CreativeFieldsInsertCall) Do() (*CreativeField, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.creativefield)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/creativeFields")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *CreativeField
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.creativefield,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *CreativeField
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Inserts a new creative field.",
 	//   "httpMethod": "POST",
@@ -12798,43 +12311,56 @@ func (c *CreativeFieldsInsertCall) Do() (*CreativeField, error) {
 // method id "dfareporting.creativeFields.list":
 
 type CreativeFieldsListCall struct {
-	s         *Service
-	profileId int64
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Retrieves a list of creative fields, possibly filtered.
+
 func (r *CreativeFieldsService) List(profileId int64) *CreativeFieldsListCall {
-	c := &CreativeFieldsListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	return c
+	return &CreativeFieldsListCall{
+		s:             r.s,
+		profileId:     profileId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/creativeFields",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // AdvertiserIds sets the optional parameter "advertiserIds": Select
 // only creative fields that belong to these advertisers.
-func (c *CreativeFieldsListCall) AdvertiserIds(advertiserIds int64) *CreativeFieldsListCall {
-	c.opt_["advertiserIds"] = advertiserIds
+func (c *CreativeFieldsListCall) AdvertiserIds(advertiserIds ...int64) *CreativeFieldsListCall {
+	for _, v_ := range advertiserIds {
+		c.params_.Add("advertiserIds", fmt.Sprintf("%v", v_))
+	}
 	return c
 }
 
 // Ids sets the optional parameter "ids": Select only creative fields
 // with these IDs.
-func (c *CreativeFieldsListCall) Ids(ids int64) *CreativeFieldsListCall {
-	c.opt_["ids"] = ids
+func (c *CreativeFieldsListCall) Ids(ids ...int64) *CreativeFieldsListCall {
+	for _, v_ := range ids {
+		c.params_.Add("ids", fmt.Sprintf("%v", v_))
+	}
 	return c
 }
 
 // MaxResults sets the optional parameter "maxResults": Maximum number
 // of results to return.
 func (c *CreativeFieldsListCall) MaxResults(maxResults int64) *CreativeFieldsListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
 // PageToken sets the optional parameter "pageToken": Value of the
 // nextPageToken from the previous result page.
 func (c *CreativeFieldsListCall) PageToken(pageToken string) *CreativeFieldsListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
 	return c
 }
 
@@ -12842,27 +12368,31 @@ func (c *CreativeFieldsListCall) PageToken(pageToken string) *CreativeFieldsList
 // searching for creative fields by name or ID. Wildcards (*) are
 // allowed. For example, "creativefield*2015" will return creative
 // fields with names like "creativefield June 2015", "creativefield
-// April 2015" or simply "creativefield 2015". Most of the searches also
-// add wild-cards implicitly at the start and the end of the search
+// April 2015", or simply "creativefield 2015". Most of the searches
+// also add wild-cards implicitly at the start and the end of the search
 // string. For example, a search string of "creativefield" will match
 // creative fields with the name "my creativefield", "creativefield
-// 2015" or simply "creativefield".
+// 2015", or simply "creativefield".
 func (c *CreativeFieldsListCall) SearchString(searchString string) *CreativeFieldsListCall {
-	c.opt_["searchString"] = searchString
+	c.params_.Set("searchString", fmt.Sprintf("%v", searchString))
 	return c
 }
 
 // SortField sets the optional parameter "sortField": Field by which to
 // sort the list.
 func (c *CreativeFieldsListCall) SortField(sortField string) *CreativeFieldsListCall {
-	c.opt_["sortField"] = sortField
+	c.params_.Set("sortField", fmt.Sprintf("%v", sortField))
 	return c
 }
 
 // SortOrder sets the optional parameter "sortOrder": Order of sorted
 // results, default is ASCENDING.
 func (c *CreativeFieldsListCall) SortOrder(sortOrder string) *CreativeFieldsListCall {
-	c.opt_["sortOrder"] = sortOrder
+	c.params_.Set("sortOrder", fmt.Sprintf("%v", sortOrder))
+	return c
+}
+func (c *CreativeFieldsListCall) Context(ctx context.Context) *CreativeFieldsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -12870,58 +12400,23 @@ func (c *CreativeFieldsListCall) SortOrder(sortOrder string) *CreativeFieldsList
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *CreativeFieldsListCall) Fields(s ...googleapi.Field) *CreativeFieldsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *CreativeFieldsListCall) Do() (*CreativeFieldsListResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["advertiserIds"]; ok {
-		params.Set("advertiserIds", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["ids"]; ok {
-		params.Set("ids", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["searchString"]; ok {
-		params.Set("searchString", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["sortField"]; ok {
-		params.Set("sortField", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["sortOrder"]; ok {
-		params.Set("sortOrder", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/creativeFields")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *CreativeFieldsListResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *CreativeFieldsListResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves a list of creative fields, possibly filtered.",
 	//   "httpMethod": "GET",
@@ -12963,7 +12458,7 @@ func (c *CreativeFieldsListCall) Do() (*CreativeFieldsListResponse, error) {
 	//       "type": "string"
 	//     },
 	//     "searchString": {
-	//       "description": "Allows searching for creative fields by name or ID. Wildcards (*) are allowed. For example, \"creativefield*2015\" will return creative fields with names like \"creativefield June 2015\", \"creativefield April 2015\" or simply \"creativefield 2015\". Most of the searches also add wild-cards implicitly at the start and the end of the search string. For example, a search string of \"creativefield\" will match creative fields with the name \"my creativefield\", \"creativefield 2015\" or simply \"creativefield\".",
+	//       "description": "Allows searching for creative fields by name or ID. Wildcards (*) are allowed. For example, \"creativefield*2015\" will return creative fields with names like \"creativefield June 2015\", \"creativefield April 2015\", or simply \"creativefield 2015\". Most of the searches also add wild-cards implicitly at the start and the end of the search string. For example, a search string of \"creativefield\" will match creative fields with the name \"my creativefield\", \"creativefield 2015\", or simply \"creativefield\".",
 	//       "location": "query",
 	//       "type": "string"
 	//     },
@@ -13012,16 +12507,29 @@ type CreativeFieldsPatchCall struct {
 	profileId     int64
 	id            int64
 	creativefield *CreativeField
-	opt_          map[string]interface{}
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Patch: Updates an existing creative field. This method supports patch
 // semantics.
+
 func (r *CreativeFieldsService) Patch(profileId int64, id int64, creativefield *CreativeField) *CreativeFieldsPatchCall {
-	c := &CreativeFieldsPatchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.id = id
-	c.creativefield = creativefield
+	return &CreativeFieldsPatchCall{
+		s:             r.s,
+		profileId:     profileId,
+		id:            id,
+		creativefield: creativefield,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/creativeFields",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *CreativeFieldsPatchCall) Context(ctx context.Context) *CreativeFieldsPatchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -13029,44 +12537,25 @@ func (r *CreativeFieldsService) Patch(profileId int64, id int64, creativefield *
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *CreativeFieldsPatchCall) Fields(s ...googleapi.Field) *CreativeFieldsPatchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *CreativeFieldsPatchCall) Do() (*CreativeField, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.creativefield)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("id", fmt.Sprintf("%v", c.id))
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/creativeFields")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PATCH", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *CreativeField
+	c.params_.Set("id", fmt.Sprintf("%v", c.id))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PATCH",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.creativefield,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *CreativeField
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates an existing creative field. This method supports patch semantics.",
 	//   "httpMethod": "PATCH",
@@ -13111,14 +12600,27 @@ type CreativeFieldsUpdateCall struct {
 	s             *Service
 	profileId     int64
 	creativefield *CreativeField
-	opt_          map[string]interface{}
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Update: Updates an existing creative field.
+
 func (r *CreativeFieldsService) Update(profileId int64, creativefield *CreativeField) *CreativeFieldsUpdateCall {
-	c := &CreativeFieldsUpdateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.creativefield = creativefield
+	return &CreativeFieldsUpdateCall{
+		s:             r.s,
+		profileId:     profileId,
+		creativefield: creativefield,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/creativeFields",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *CreativeFieldsUpdateCall) Context(ctx context.Context) *CreativeFieldsUpdateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -13126,43 +12628,24 @@ func (r *CreativeFieldsService) Update(profileId int64, creativefield *CreativeF
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *CreativeFieldsUpdateCall) Fields(s ...googleapi.Field) *CreativeFieldsUpdateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *CreativeFieldsUpdateCall) Do() (*CreativeField, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.creativefield)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/creativeFields")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *CreativeField
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.creativefield,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *CreativeField
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates an existing creative field.",
 	//   "httpMethod": "PUT",
@@ -13196,17 +12679,30 @@ func (c *CreativeFieldsUpdateCall) Do() (*CreativeField, error) {
 // method id "dfareporting.creativeGroups.get":
 
 type CreativeGroupsGetCall struct {
-	s         *Service
-	profileId int64
-	id        int64
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	id            int64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Gets one creative group by ID.
+
 func (r *CreativeGroupsService) Get(profileId int64, id int64) *CreativeGroupsGetCall {
-	c := &CreativeGroupsGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.id = id
+	return &CreativeGroupsGetCall{
+		s:             r.s,
+		profileId:     profileId,
+		id:            id,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/creativeGroups/{id}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *CreativeGroupsGetCall) Context(ctx context.Context) *CreativeGroupsGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -13214,38 +12710,24 @@ func (r *CreativeGroupsService) Get(profileId int64, id int64) *CreativeGroupsGe
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *CreativeGroupsGetCall) Fields(s ...googleapi.Field) *CreativeGroupsGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *CreativeGroupsGetCall) Do() (*CreativeGroup, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/creativeGroups/{id}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *CreativeGroup
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 		"id":        strconv.FormatInt(c.id, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *CreativeGroup
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Gets one creative group by ID.",
 	//   "httpMethod": "GET",
@@ -13287,14 +12769,27 @@ type CreativeGroupsInsertCall struct {
 	s             *Service
 	profileId     int64
 	creativegroup *CreativeGroup
-	opt_          map[string]interface{}
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Insert: Inserts a new creative group.
+
 func (r *CreativeGroupsService) Insert(profileId int64, creativegroup *CreativeGroup) *CreativeGroupsInsertCall {
-	c := &CreativeGroupsInsertCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.creativegroup = creativegroup
+	return &CreativeGroupsInsertCall{
+		s:             r.s,
+		profileId:     profileId,
+		creativegroup: creativegroup,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/creativeGroups",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *CreativeGroupsInsertCall) Context(ctx context.Context) *CreativeGroupsInsertCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -13302,43 +12797,24 @@ func (r *CreativeGroupsService) Insert(profileId int64, creativegroup *CreativeG
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *CreativeGroupsInsertCall) Fields(s ...googleapi.Field) *CreativeGroupsInsertCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *CreativeGroupsInsertCall) Do() (*CreativeGroup, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.creativegroup)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/creativeGroups")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *CreativeGroup
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.creativegroup,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *CreativeGroup
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Inserts a new creative group.",
 	//   "httpMethod": "POST",
@@ -13372,50 +12848,63 @@ func (c *CreativeGroupsInsertCall) Do() (*CreativeGroup, error) {
 // method id "dfareporting.creativeGroups.list":
 
 type CreativeGroupsListCall struct {
-	s         *Service
-	profileId int64
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Retrieves a list of creative groups, possibly filtered.
+
 func (r *CreativeGroupsService) List(profileId int64) *CreativeGroupsListCall {
-	c := &CreativeGroupsListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	return c
+	return &CreativeGroupsListCall{
+		s:             r.s,
+		profileId:     profileId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/creativeGroups",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // AdvertiserIds sets the optional parameter "advertiserIds": Select
 // only creative groups that belong to these advertisers.
-func (c *CreativeGroupsListCall) AdvertiserIds(advertiserIds int64) *CreativeGroupsListCall {
-	c.opt_["advertiserIds"] = advertiserIds
+func (c *CreativeGroupsListCall) AdvertiserIds(advertiserIds ...int64) *CreativeGroupsListCall {
+	for _, v_ := range advertiserIds {
+		c.params_.Add("advertiserIds", fmt.Sprintf("%v", v_))
+	}
 	return c
 }
 
 // GroupNumber sets the optional parameter "groupNumber": Select only
 // creative groups that belong to this subgroup.
 func (c *CreativeGroupsListCall) GroupNumber(groupNumber int64) *CreativeGroupsListCall {
-	c.opt_["groupNumber"] = groupNumber
+	c.params_.Set("groupNumber", fmt.Sprintf("%v", groupNumber))
 	return c
 }
 
 // Ids sets the optional parameter "ids": Select only creative groups
 // with these IDs.
-func (c *CreativeGroupsListCall) Ids(ids int64) *CreativeGroupsListCall {
-	c.opt_["ids"] = ids
+func (c *CreativeGroupsListCall) Ids(ids ...int64) *CreativeGroupsListCall {
+	for _, v_ := range ids {
+		c.params_.Add("ids", fmt.Sprintf("%v", v_))
+	}
 	return c
 }
 
 // MaxResults sets the optional parameter "maxResults": Maximum number
 // of results to return.
 func (c *CreativeGroupsListCall) MaxResults(maxResults int64) *CreativeGroupsListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
 // PageToken sets the optional parameter "pageToken": Value of the
 // nextPageToken from the previous result page.
 func (c *CreativeGroupsListCall) PageToken(pageToken string) *CreativeGroupsListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
 	return c
 }
 
@@ -13423,27 +12912,31 @@ func (c *CreativeGroupsListCall) PageToken(pageToken string) *CreativeGroupsList
 // searching for creative groups by name or ID. Wildcards (*) are
 // allowed. For example, "creativegroup*2015" will return creative
 // groups with names like "creativegroup June 2015", "creativegroup
-// April 2015" or simply "creativegroup 2015". Most of the searches also
-// add wild-cards implicitly at the start and the end of the search
+// April 2015", or simply "creativegroup 2015". Most of the searches
+// also add wild-cards implicitly at the start and the end of the search
 // string. For example, a search string of "creativegroup" will match
 // creative groups with the name "my creativegroup", "creativegroup
-// 2015" or simply "creativegroup".
+// 2015", or simply "creativegroup".
 func (c *CreativeGroupsListCall) SearchString(searchString string) *CreativeGroupsListCall {
-	c.opt_["searchString"] = searchString
+	c.params_.Set("searchString", fmt.Sprintf("%v", searchString))
 	return c
 }
 
 // SortField sets the optional parameter "sortField": Field by which to
 // sort the list.
 func (c *CreativeGroupsListCall) SortField(sortField string) *CreativeGroupsListCall {
-	c.opt_["sortField"] = sortField
+	c.params_.Set("sortField", fmt.Sprintf("%v", sortField))
 	return c
 }
 
 // SortOrder sets the optional parameter "sortOrder": Order of sorted
 // results, default is ASCENDING.
 func (c *CreativeGroupsListCall) SortOrder(sortOrder string) *CreativeGroupsListCall {
-	c.opt_["sortOrder"] = sortOrder
+	c.params_.Set("sortOrder", fmt.Sprintf("%v", sortOrder))
+	return c
+}
+func (c *CreativeGroupsListCall) Context(ctx context.Context) *CreativeGroupsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -13451,61 +12944,23 @@ func (c *CreativeGroupsListCall) SortOrder(sortOrder string) *CreativeGroupsList
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *CreativeGroupsListCall) Fields(s ...googleapi.Field) *CreativeGroupsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *CreativeGroupsListCall) Do() (*CreativeGroupsListResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["advertiserIds"]; ok {
-		params.Set("advertiserIds", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["groupNumber"]; ok {
-		params.Set("groupNumber", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["ids"]; ok {
-		params.Set("ids", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["searchString"]; ok {
-		params.Set("searchString", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["sortField"]; ok {
-		params.Set("sortField", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["sortOrder"]; ok {
-		params.Set("sortOrder", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/creativeGroups")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *CreativeGroupsListResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *CreativeGroupsListResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves a list of creative groups, possibly filtered.",
 	//   "httpMethod": "GET",
@@ -13553,7 +13008,7 @@ func (c *CreativeGroupsListCall) Do() (*CreativeGroupsListResponse, error) {
 	//       "type": "string"
 	//     },
 	//     "searchString": {
-	//       "description": "Allows searching for creative groups by name or ID. Wildcards (*) are allowed. For example, \"creativegroup*2015\" will return creative groups with names like \"creativegroup June 2015\", \"creativegroup April 2015\" or simply \"creativegroup 2015\". Most of the searches also add wild-cards implicitly at the start and the end of the search string. For example, a search string of \"creativegroup\" will match creative groups with the name \"my creativegroup\", \"creativegroup 2015\" or simply \"creativegroup\".",
+	//       "description": "Allows searching for creative groups by name or ID. Wildcards (*) are allowed. For example, \"creativegroup*2015\" will return creative groups with names like \"creativegroup June 2015\", \"creativegroup April 2015\", or simply \"creativegroup 2015\". Most of the searches also add wild-cards implicitly at the start and the end of the search string. For example, a search string of \"creativegroup\" will match creative groups with the name \"my creativegroup\", \"creativegroup 2015\", or simply \"creativegroup\".",
 	//       "location": "query",
 	//       "type": "string"
 	//     },
@@ -13602,16 +13057,29 @@ type CreativeGroupsPatchCall struct {
 	profileId     int64
 	id            int64
 	creativegroup *CreativeGroup
-	opt_          map[string]interface{}
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Patch: Updates an existing creative group. This method supports patch
 // semantics.
+
 func (r *CreativeGroupsService) Patch(profileId int64, id int64, creativegroup *CreativeGroup) *CreativeGroupsPatchCall {
-	c := &CreativeGroupsPatchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.id = id
-	c.creativegroup = creativegroup
+	return &CreativeGroupsPatchCall{
+		s:             r.s,
+		profileId:     profileId,
+		id:            id,
+		creativegroup: creativegroup,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/creativeGroups",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *CreativeGroupsPatchCall) Context(ctx context.Context) *CreativeGroupsPatchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -13619,44 +13087,25 @@ func (r *CreativeGroupsService) Patch(profileId int64, id int64, creativegroup *
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *CreativeGroupsPatchCall) Fields(s ...googleapi.Field) *CreativeGroupsPatchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *CreativeGroupsPatchCall) Do() (*CreativeGroup, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.creativegroup)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("id", fmt.Sprintf("%v", c.id))
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/creativeGroups")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PATCH", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *CreativeGroup
+	c.params_.Set("id", fmt.Sprintf("%v", c.id))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PATCH",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.creativegroup,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *CreativeGroup
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates an existing creative group. This method supports patch semantics.",
 	//   "httpMethod": "PATCH",
@@ -13701,14 +13150,27 @@ type CreativeGroupsUpdateCall struct {
 	s             *Service
 	profileId     int64
 	creativegroup *CreativeGroup
-	opt_          map[string]interface{}
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Update: Updates an existing creative group.
+
 func (r *CreativeGroupsService) Update(profileId int64, creativegroup *CreativeGroup) *CreativeGroupsUpdateCall {
-	c := &CreativeGroupsUpdateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.creativegroup = creativegroup
+	return &CreativeGroupsUpdateCall{
+		s:             r.s,
+		profileId:     profileId,
+		creativegroup: creativegroup,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/creativeGroups",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *CreativeGroupsUpdateCall) Context(ctx context.Context) *CreativeGroupsUpdateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -13716,43 +13178,24 @@ func (r *CreativeGroupsService) Update(profileId int64, creativegroup *CreativeG
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *CreativeGroupsUpdateCall) Fields(s ...googleapi.Field) *CreativeGroupsUpdateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *CreativeGroupsUpdateCall) Do() (*CreativeGroup, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.creativegroup)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/creativeGroups")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *CreativeGroup
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.creativegroup,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *CreativeGroup
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates an existing creative group.",
 	//   "httpMethod": "PUT",
@@ -13786,17 +13229,30 @@ func (c *CreativeGroupsUpdateCall) Do() (*CreativeGroup, error) {
 // method id "dfareporting.creatives.get":
 
 type CreativesGetCall struct {
-	s         *Service
-	profileId int64
-	id        int64
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	id            int64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Gets one creative by ID.
+
 func (r *CreativesService) Get(profileId int64, id int64) *CreativesGetCall {
-	c := &CreativesGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.id = id
+	return &CreativesGetCall{
+		s:             r.s,
+		profileId:     profileId,
+		id:            id,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/creatives/{id}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *CreativesGetCall) Context(ctx context.Context) *CreativesGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -13804,38 +13260,24 @@ func (r *CreativesService) Get(profileId int64, id int64) *CreativesGetCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *CreativesGetCall) Fields(s ...googleapi.Field) *CreativesGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *CreativesGetCall) Do() (*Creative, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/creatives/{id}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Creative
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 		"id":        strconv.FormatInt(c.id, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Creative
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Gets one creative by ID.",
 	//   "httpMethod": "GET",
@@ -13874,17 +13316,30 @@ func (c *CreativesGetCall) Do() (*Creative, error) {
 // method id "dfareporting.creatives.insert":
 
 type CreativesInsertCall struct {
-	s         *Service
-	profileId int64
-	creative  *Creative
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	creative      *Creative
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Insert: Inserts a new creative.
+
 func (r *CreativesService) Insert(profileId int64, creative *Creative) *CreativesInsertCall {
-	c := &CreativesInsertCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.creative = creative
+	return &CreativesInsertCall{
+		s:             r.s,
+		profileId:     profileId,
+		creative:      creative,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/creatives",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *CreativesInsertCall) Context(ctx context.Context) *CreativesInsertCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -13892,43 +13347,24 @@ func (r *CreativesService) Insert(profileId int64, creative *Creative) *Creative
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *CreativesInsertCall) Fields(s ...googleapi.Field) *CreativesInsertCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *CreativesInsertCall) Do() (*Creative, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.creative)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/creatives")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Creative
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.creative,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Creative
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Inserts a new creative.",
 	//   "httpMethod": "POST",
@@ -13962,134 +13398,157 @@ func (c *CreativesInsertCall) Do() (*Creative, error) {
 // method id "dfareporting.creatives.list":
 
 type CreativesListCall struct {
-	s         *Service
-	profileId int64
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Retrieves a list of creatives, possibly filtered.
+
 func (r *CreativesService) List(profileId int64) *CreativesListCall {
-	c := &CreativesListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	return c
+	return &CreativesListCall{
+		s:             r.s,
+		profileId:     profileId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/creatives",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Active sets the optional parameter "active": Select only active
 // creatives. Leave blank to select active and inactive creatives.
 func (c *CreativesListCall) Active(active bool) *CreativesListCall {
-	c.opt_["active"] = active
+	c.params_.Set("active", fmt.Sprintf("%v", active))
 	return c
 }
 
 // AdvertiserId sets the optional parameter "advertiserId": Select only
 // creatives with this advertiser ID.
 func (c *CreativesListCall) AdvertiserId(advertiserId int64) *CreativesListCall {
-	c.opt_["advertiserId"] = advertiserId
+	c.params_.Set("advertiserId", fmt.Sprintf("%v", advertiserId))
 	return c
 }
 
 // Archived sets the optional parameter "archived": Select only archived
 // creatives. Leave blank to select archived and unarchived creatives.
 func (c *CreativesListCall) Archived(archived bool) *CreativesListCall {
-	c.opt_["archived"] = archived
+	c.params_.Set("archived", fmt.Sprintf("%v", archived))
 	return c
 }
 
 // CampaignId sets the optional parameter "campaignId": Select only
 // creatives with this campaign ID.
 func (c *CreativesListCall) CampaignId(campaignId int64) *CreativesListCall {
-	c.opt_["campaignId"] = campaignId
+	c.params_.Set("campaignId", fmt.Sprintf("%v", campaignId))
 	return c
 }
 
 // CompanionCreativeIds sets the optional parameter
 // "companionCreativeIds": Select only in-stream video creatives with
 // these companion IDs.
-func (c *CreativesListCall) CompanionCreativeIds(companionCreativeIds int64) *CreativesListCall {
-	c.opt_["companionCreativeIds"] = companionCreativeIds
+func (c *CreativesListCall) CompanionCreativeIds(companionCreativeIds ...int64) *CreativesListCall {
+	for _, v_ := range companionCreativeIds {
+		c.params_.Add("companionCreativeIds", fmt.Sprintf("%v", v_))
+	}
 	return c
 }
 
 // CreativeFieldIds sets the optional parameter "creativeFieldIds":
 // Select only creatives with these creative field IDs.
-func (c *CreativesListCall) CreativeFieldIds(creativeFieldIds int64) *CreativesListCall {
-	c.opt_["creativeFieldIds"] = creativeFieldIds
+func (c *CreativesListCall) CreativeFieldIds(creativeFieldIds ...int64) *CreativesListCall {
+	for _, v_ := range creativeFieldIds {
+		c.params_.Add("creativeFieldIds", fmt.Sprintf("%v", v_))
+	}
 	return c
 }
 
 // Ids sets the optional parameter "ids": Select only creatives with
 // these IDs.
-func (c *CreativesListCall) Ids(ids int64) *CreativesListCall {
-	c.opt_["ids"] = ids
+func (c *CreativesListCall) Ids(ids ...int64) *CreativesListCall {
+	for _, v_ := range ids {
+		c.params_.Add("ids", fmt.Sprintf("%v", v_))
+	}
 	return c
 }
 
 // MaxResults sets the optional parameter "maxResults": Maximum number
 // of results to return.
 func (c *CreativesListCall) MaxResults(maxResults int64) *CreativesListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
 // PageToken sets the optional parameter "pageToken": Value of the
 // nextPageToken from the previous result page.
 func (c *CreativesListCall) PageToken(pageToken string) *CreativesListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
 	return c
 }
 
 // RenderingIds sets the optional parameter "renderingIds": Select only
 // creatives with these rendering IDs.
-func (c *CreativesListCall) RenderingIds(renderingIds int64) *CreativesListCall {
-	c.opt_["renderingIds"] = renderingIds
+func (c *CreativesListCall) RenderingIds(renderingIds ...int64) *CreativesListCall {
+	for _, v_ := range renderingIds {
+		c.params_.Add("renderingIds", fmt.Sprintf("%v", v_))
+	}
 	return c
 }
 
 // SearchString sets the optional parameter "searchString": Allows
 // searching for objects by name or ID. Wildcards (*) are allowed. For
 // example, "creative*2015" will return objects with names like
-// "creative June 2015", "creative April 2015" or simply "creative
+// "creative June 2015", "creative April 2015", or simply "creative
 // 2015". Most of the searches also add wildcards implicitly at the
 // start and the end of the search string. For example, a search string
 // of "creative" will match objects with name "my creative", "creative
-// 2015" or simply "creative".
+// 2015", or simply "creative".
 func (c *CreativesListCall) SearchString(searchString string) *CreativesListCall {
-	c.opt_["searchString"] = searchString
+	c.params_.Set("searchString", fmt.Sprintf("%v", searchString))
 	return c
 }
 
 // SizeIds sets the optional parameter "sizeIds": Select only creatives
 // with these size IDs.
-func (c *CreativesListCall) SizeIds(sizeIds int64) *CreativesListCall {
-	c.opt_["sizeIds"] = sizeIds
+func (c *CreativesListCall) SizeIds(sizeIds ...int64) *CreativesListCall {
+	for _, v_ := range sizeIds {
+		c.params_.Add("sizeIds", fmt.Sprintf("%v", v_))
+	}
 	return c
 }
 
 // SortField sets the optional parameter "sortField": Field by which to
 // sort the list.
 func (c *CreativesListCall) SortField(sortField string) *CreativesListCall {
-	c.opt_["sortField"] = sortField
+	c.params_.Set("sortField", fmt.Sprintf("%v", sortField))
 	return c
 }
 
 // SortOrder sets the optional parameter "sortOrder": Order of sorted
 // results, default is ASCENDING.
 func (c *CreativesListCall) SortOrder(sortOrder string) *CreativesListCall {
-	c.opt_["sortOrder"] = sortOrder
+	c.params_.Set("sortOrder", fmt.Sprintf("%v", sortOrder))
 	return c
 }
 
 // StudioCreativeId sets the optional parameter "studioCreativeId":
 // Select only creatives corresponding to this Studio creative ID.
 func (c *CreativesListCall) StudioCreativeId(studioCreativeId int64) *CreativesListCall {
-	c.opt_["studioCreativeId"] = studioCreativeId
+	c.params_.Set("studioCreativeId", fmt.Sprintf("%v", studioCreativeId))
 	return c
 }
 
 // Types sets the optional parameter "types": Select only creatives with
 // these creative types.
-func (c *CreativesListCall) Types(types string) *CreativesListCall {
-	c.opt_["types"] = types
+func (c *CreativesListCall) Types(types ...string) *CreativesListCall {
+	c.params_["types"] = types
+	return c
+}
+func (c *CreativesListCall) Context(ctx context.Context) *CreativesListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -14097,85 +13556,23 @@ func (c *CreativesListCall) Types(types string) *CreativesListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *CreativesListCall) Fields(s ...googleapi.Field) *CreativesListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *CreativesListCall) Do() (*CreativesListResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["active"]; ok {
-		params.Set("active", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["advertiserId"]; ok {
-		params.Set("advertiserId", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["archived"]; ok {
-		params.Set("archived", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["campaignId"]; ok {
-		params.Set("campaignId", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["companionCreativeIds"]; ok {
-		params.Set("companionCreativeIds", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["creativeFieldIds"]; ok {
-		params.Set("creativeFieldIds", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["ids"]; ok {
-		params.Set("ids", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["renderingIds"]; ok {
-		params.Set("renderingIds", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["searchString"]; ok {
-		params.Set("searchString", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["sizeIds"]; ok {
-		params.Set("sizeIds", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["sortField"]; ok {
-		params.Set("sortField", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["sortOrder"]; ok {
-		params.Set("sortOrder", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["studioCreativeId"]; ok {
-		params.Set("studioCreativeId", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["types"]; ok {
-		params.Set("types", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/creatives")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *CreativesListResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *CreativesListResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves a list of creatives, possibly filtered.",
 	//   "httpMethod": "GET",
@@ -14253,7 +13650,7 @@ func (c *CreativesListCall) Do() (*CreativesListResponse, error) {
 	//       "type": "string"
 	//     },
 	//     "searchString": {
-	//       "description": "Allows searching for objects by name or ID. Wildcards (*) are allowed. For example, \"creative*2015\" will return objects with names like \"creative June 2015\", \"creative April 2015\" or simply \"creative 2015\". Most of the searches also add wildcards implicitly at the start and the end of the search string. For example, a search string of \"creative\" will match objects with name \"my creative\", \"creative 2015\" or simply \"creative\".",
+	//       "description": "Allows searching for objects by name or ID. Wildcards (*) are allowed. For example, \"creative*2015\" will return objects with names like \"creative June 2015\", \"creative April 2015\", or simply \"creative 2015\". Most of the searches also add wildcards implicitly at the start and the end of the search string. For example, a search string of \"creative\" will match objects with name \"my creative\", \"creative 2015\", or simply \"creative\".",
 	//       "location": "query",
 	//       "type": "string"
 	//     },
@@ -14367,20 +13764,33 @@ func (c *CreativesListCall) Do() (*CreativesListResponse, error) {
 // method id "dfareporting.creatives.patch":
 
 type CreativesPatchCall struct {
-	s         *Service
-	profileId int64
-	id        int64
-	creative  *Creative
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	id            int64
+	creative      *Creative
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Patch: Updates an existing creative. This method supports patch
 // semantics.
+
 func (r *CreativesService) Patch(profileId int64, id int64, creative *Creative) *CreativesPatchCall {
-	c := &CreativesPatchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.id = id
-	c.creative = creative
+	return &CreativesPatchCall{
+		s:             r.s,
+		profileId:     profileId,
+		id:            id,
+		creative:      creative,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/creatives",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *CreativesPatchCall) Context(ctx context.Context) *CreativesPatchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -14388,44 +13798,25 @@ func (r *CreativesService) Patch(profileId int64, id int64, creative *Creative) 
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *CreativesPatchCall) Fields(s ...googleapi.Field) *CreativesPatchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *CreativesPatchCall) Do() (*Creative, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.creative)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("id", fmt.Sprintf("%v", c.id))
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/creatives")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PATCH", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Creative
+	c.params_.Set("id", fmt.Sprintf("%v", c.id))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PATCH",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.creative,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Creative
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates an existing creative. This method supports patch semantics.",
 	//   "httpMethod": "PATCH",
@@ -14467,17 +13858,30 @@ func (c *CreativesPatchCall) Do() (*Creative, error) {
 // method id "dfareporting.creatives.update":
 
 type CreativesUpdateCall struct {
-	s         *Service
-	profileId int64
-	creative  *Creative
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	creative      *Creative
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Update: Updates an existing creative.
+
 func (r *CreativesService) Update(profileId int64, creative *Creative) *CreativesUpdateCall {
-	c := &CreativesUpdateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.creative = creative
+	return &CreativesUpdateCall{
+		s:             r.s,
+		profileId:     profileId,
+		creative:      creative,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/creatives",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *CreativesUpdateCall) Context(ctx context.Context) *CreativesUpdateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -14485,43 +13889,24 @@ func (r *CreativesService) Update(profileId int64, creative *Creative) *Creative
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *CreativesUpdateCall) Fields(s ...googleapi.Field) *CreativesUpdateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *CreativesUpdateCall) Do() (*Creative, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.creative)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/creatives")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Creative
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.creative,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Creative
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates an existing creative.",
 	//   "httpMethod": "PUT",
@@ -14558,29 +13943,42 @@ type DimensionValuesQueryCall struct {
 	s                     *Service
 	profileId             int64
 	dimensionvaluerequest *DimensionValueRequest
-	opt_                  map[string]interface{}
+	caller_               googleapi.Caller
+	params_               url.Values
+	pathTemplate_         string
+	context_              context.Context
 }
 
 // Query: Retrieves list of report dimension values for a list of
 // filters.
+
 func (r *DimensionValuesService) Query(profileId int64, dimensionvaluerequest *DimensionValueRequest) *DimensionValuesQueryCall {
-	c := &DimensionValuesQueryCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.dimensionvaluerequest = dimensionvaluerequest
-	return c
+	return &DimensionValuesQueryCall{
+		s:                     r.s,
+		profileId:             profileId,
+		dimensionvaluerequest: dimensionvaluerequest,
+		caller_:               googleapi.JSONCall{},
+		params_:               make(map[string][]string),
+		pathTemplate_:         "userprofiles/{profileId}/dimensionvalues/query",
+		context_:              googleapi.NoContext,
+	}
 }
 
 // MaxResults sets the optional parameter "maxResults": Maximum number
 // of results to return.
 func (c *DimensionValuesQueryCall) MaxResults(maxResults int64) *DimensionValuesQueryCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
 // PageToken sets the optional parameter "pageToken": The value of the
 // nextToken from the previous result page.
 func (c *DimensionValuesQueryCall) PageToken(pageToken string) *DimensionValuesQueryCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
+	return c
+}
+func (c *DimensionValuesQueryCall) Context(ctx context.Context) *DimensionValuesQueryCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -14588,49 +13986,24 @@ func (c *DimensionValuesQueryCall) PageToken(pageToken string) *DimensionValuesQ
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *DimensionValuesQueryCall) Fields(s ...googleapi.Field) *DimensionValuesQueryCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *DimensionValuesQueryCall) Do() (*DimensionValueList, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.dimensionvaluerequest)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/dimensionvalues/query")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *DimensionValueList
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.dimensionvaluerequest,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *DimensionValueList
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves list of report dimension values for a list of filters.",
 	//   "httpMethod": "POST",
@@ -14677,17 +14050,30 @@ func (c *DimensionValuesQueryCall) Do() (*DimensionValueList, error) {
 // method id "dfareporting.directorySiteContacts.get":
 
 type DirectorySiteContactsGetCall struct {
-	s         *Service
-	profileId int64
-	id        int64
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	id            int64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Gets one directory site contact by ID.
+
 func (r *DirectorySiteContactsService) Get(profileId int64, id int64) *DirectorySiteContactsGetCall {
-	c := &DirectorySiteContactsGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.id = id
+	return &DirectorySiteContactsGetCall{
+		s:             r.s,
+		profileId:     profileId,
+		id:            id,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/directorySiteContacts/{id}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *DirectorySiteContactsGetCall) Context(ctx context.Context) *DirectorySiteContactsGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -14695,38 +14081,24 @@ func (r *DirectorySiteContactsService) Get(profileId int64, id int64) *Directory
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *DirectorySiteContactsGetCall) Fields(s ...googleapi.Field) *DirectorySiteContactsGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *DirectorySiteContactsGetCall) Do() (*DirectorySiteContact, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/directorySiteContacts/{id}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *DirectorySiteContact
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 		"id":        strconv.FormatInt(c.id, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *DirectorySiteContact
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Gets one directory site contact by ID.",
 	//   "httpMethod": "GET",
@@ -14765,44 +14137,57 @@ func (c *DirectorySiteContactsGetCall) Do() (*DirectorySiteContact, error) {
 // method id "dfareporting.directorySiteContacts.list":
 
 type DirectorySiteContactsListCall struct {
-	s         *Service
-	profileId int64
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Retrieves a list of directory site contacts, possibly filtered.
+
 func (r *DirectorySiteContactsService) List(profileId int64) *DirectorySiteContactsListCall {
-	c := &DirectorySiteContactsListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	return c
+	return &DirectorySiteContactsListCall{
+		s:             r.s,
+		profileId:     profileId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/directorySiteContacts",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // DirectorySiteIds sets the optional parameter "directorySiteIds":
 // Select only directory site contacts with these directory site IDs.
 // This is a required field.
-func (c *DirectorySiteContactsListCall) DirectorySiteIds(directorySiteIds int64) *DirectorySiteContactsListCall {
-	c.opt_["directorySiteIds"] = directorySiteIds
+func (c *DirectorySiteContactsListCall) DirectorySiteIds(directorySiteIds ...int64) *DirectorySiteContactsListCall {
+	for _, v_ := range directorySiteIds {
+		c.params_.Add("directorySiteIds", fmt.Sprintf("%v", v_))
+	}
 	return c
 }
 
 // Ids sets the optional parameter "ids": Select only directory site
 // contacts with these IDs.
-func (c *DirectorySiteContactsListCall) Ids(ids int64) *DirectorySiteContactsListCall {
-	c.opt_["ids"] = ids
+func (c *DirectorySiteContactsListCall) Ids(ids ...int64) *DirectorySiteContactsListCall {
+	for _, v_ := range ids {
+		c.params_.Add("ids", fmt.Sprintf("%v", v_))
+	}
 	return c
 }
 
 // MaxResults sets the optional parameter "maxResults": Maximum number
 // of results to return.
 func (c *DirectorySiteContactsListCall) MaxResults(maxResults int64) *DirectorySiteContactsListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
 // PageToken sets the optional parameter "pageToken": Value of the
 // nextPageToken from the previous result page.
 func (c *DirectorySiteContactsListCall) PageToken(pageToken string) *DirectorySiteContactsListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
 	return c
 }
 
@@ -14810,28 +14195,32 @@ func (c *DirectorySiteContactsListCall) PageToken(pageToken string) *DirectorySi
 // searching for objects by name, ID or email. Wildcards (*) are
 // allowed. For example, "directory site contact*2015" will return
 // objects with names like "directory site contact June 2015",
-// "directory site contact April 2015" or simply "directory site contact
-// 2015". Most of the searches also add wildcards implicitly at the
-// start and the end of the search string. For example, a search string
-// of "directory site contact" will match objects with name "my
-// directory site contact", "directory site contact 2015" or simply
+// "directory site contact April 2015", or simply "directory site
+// contact 2015". Most of the searches also add wildcards implicitly at
+// the start and the end of the search string. For example, a search
+// string of "directory site contact" will match objects with name "my
+// directory site contact", "directory site contact 2015", or simply
 // "directory site contact".
 func (c *DirectorySiteContactsListCall) SearchString(searchString string) *DirectorySiteContactsListCall {
-	c.opt_["searchString"] = searchString
+	c.params_.Set("searchString", fmt.Sprintf("%v", searchString))
 	return c
 }
 
 // SortField sets the optional parameter "sortField": Field by which to
 // sort the list.
 func (c *DirectorySiteContactsListCall) SortField(sortField string) *DirectorySiteContactsListCall {
-	c.opt_["sortField"] = sortField
+	c.params_.Set("sortField", fmt.Sprintf("%v", sortField))
 	return c
 }
 
 // SortOrder sets the optional parameter "sortOrder": Order of sorted
 // results, default is ASCENDING.
 func (c *DirectorySiteContactsListCall) SortOrder(sortOrder string) *DirectorySiteContactsListCall {
-	c.opt_["sortOrder"] = sortOrder
+	c.params_.Set("sortOrder", fmt.Sprintf("%v", sortOrder))
+	return c
+}
+func (c *DirectorySiteContactsListCall) Context(ctx context.Context) *DirectorySiteContactsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -14839,58 +14228,23 @@ func (c *DirectorySiteContactsListCall) SortOrder(sortOrder string) *DirectorySi
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *DirectorySiteContactsListCall) Fields(s ...googleapi.Field) *DirectorySiteContactsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *DirectorySiteContactsListCall) Do() (*DirectorySiteContactsListResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["directorySiteIds"]; ok {
-		params.Set("directorySiteIds", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["ids"]; ok {
-		params.Set("ids", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["searchString"]; ok {
-		params.Set("searchString", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["sortField"]; ok {
-		params.Set("sortField", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["sortOrder"]; ok {
-		params.Set("sortOrder", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/directorySiteContacts")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *DirectorySiteContactsListResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *DirectorySiteContactsListResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves a list of directory site contacts, possibly filtered.",
 	//   "httpMethod": "GET",
@@ -14932,7 +14286,7 @@ func (c *DirectorySiteContactsListCall) Do() (*DirectorySiteContactsListResponse
 	//       "type": "string"
 	//     },
 	//     "searchString": {
-	//       "description": "Allows searching for objects by name, ID or email. Wildcards (*) are allowed. For example, \"directory site contact*2015\" will return objects with names like \"directory site contact June 2015\", \"directory site contact April 2015\" or simply \"directory site contact 2015\". Most of the searches also add wildcards implicitly at the start and the end of the search string. For example, a search string of \"directory site contact\" will match objects with name \"my directory site contact\", \"directory site contact 2015\" or simply \"directory site contact\".",
+	//       "description": "Allows searching for objects by name, ID or email. Wildcards (*) are allowed. For example, \"directory site contact*2015\" will return objects with names like \"directory site contact June 2015\", \"directory site contact April 2015\", or simply \"directory site contact 2015\". Most of the searches also add wildcards implicitly at the start and the end of the search string. For example, a search string of \"directory site contact\" will match objects with name \"my directory site contact\", \"directory site contact 2015\", or simply \"directory site contact\".",
 	//       "location": "query",
 	//       "type": "string"
 	//     },
@@ -14977,17 +14331,30 @@ func (c *DirectorySiteContactsListCall) Do() (*DirectorySiteContactsListResponse
 // method id "dfareporting.directorySites.get":
 
 type DirectorySitesGetCall struct {
-	s         *Service
-	profileId int64
-	id        int64
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	id            int64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Gets one directory site by ID.
+
 func (r *DirectorySitesService) Get(profileId int64, id int64) *DirectorySitesGetCall {
-	c := &DirectorySitesGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.id = id
+	return &DirectorySitesGetCall{
+		s:             r.s,
+		profileId:     profileId,
+		id:            id,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/directorySites/{id}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *DirectorySitesGetCall) Context(ctx context.Context) *DirectorySitesGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -14995,38 +14362,24 @@ func (r *DirectorySitesService) Get(profileId int64, id int64) *DirectorySitesGe
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *DirectorySitesGetCall) Fields(s ...googleapi.Field) *DirectorySitesGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *DirectorySitesGetCall) Do() (*DirectorySite, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/directorySites/{id}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *DirectorySite
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 		"id":        strconv.FormatInt(c.id, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *DirectorySite
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Gets one directory site by ID.",
 	//   "httpMethod": "GET",
@@ -15065,23 +14418,32 @@ func (c *DirectorySitesGetCall) Do() (*DirectorySite, error) {
 // method id "dfareporting.directorySites.list":
 
 type DirectorySitesListCall struct {
-	s         *Service
-	profileId int64
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Retrieves a list of directory sites, possibly filtered.
+
 func (r *DirectorySitesService) List(profileId int64) *DirectorySitesListCall {
-	c := &DirectorySitesListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	return c
+	return &DirectorySitesListCall{
+		s:             r.s,
+		profileId:     profileId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/directorySites",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // AcceptsInStreamVideoPlacements sets the optional parameter
 // "acceptsInStreamVideoPlacements": This search filter is no longer
 // supported and will have no effect on the results returned.
 func (c *DirectorySitesListCall) AcceptsInStreamVideoPlacements(acceptsInStreamVideoPlacements bool) *DirectorySitesListCall {
-	c.opt_["acceptsInStreamVideoPlacements"] = acceptsInStreamVideoPlacements
+	c.params_.Set("acceptsInStreamVideoPlacements", fmt.Sprintf("%v", acceptsInStreamVideoPlacements))
 	return c
 }
 
@@ -15089,7 +14451,7 @@ func (c *DirectorySitesListCall) AcceptsInStreamVideoPlacements(acceptsInStreamV
 // "acceptsInterstitialPlacements": This search filter is no longer
 // supported and will have no effect on the results returned.
 func (c *DirectorySitesListCall) AcceptsInterstitialPlacements(acceptsInterstitialPlacements bool) *DirectorySitesListCall {
-	c.opt_["acceptsInterstitialPlacements"] = acceptsInterstitialPlacements
+	c.params_.Set("acceptsInterstitialPlacements", fmt.Sprintf("%v", acceptsInterstitialPlacements))
 	return c
 }
 
@@ -15097,7 +14459,7 @@ func (c *DirectorySitesListCall) AcceptsInterstitialPlacements(acceptsInterstiti
 // "acceptsPublisherPaidPlacements": Select only directory sites that
 // accept publisher paid placements. This field can be left blank.
 func (c *DirectorySitesListCall) AcceptsPublisherPaidPlacements(acceptsPublisherPaidPlacements bool) *DirectorySitesListCall {
-	c.opt_["acceptsPublisherPaidPlacements"] = acceptsPublisherPaidPlacements
+	c.params_.Set("acceptsPublisherPaidPlacements", fmt.Sprintf("%v", acceptsPublisherPaidPlacements))
 	return c
 }
 
@@ -15105,77 +14467,83 @@ func (c *DirectorySitesListCall) AcceptsPublisherPaidPlacements(acceptsPublisher
 // directory sites. Leave blank to retrieve both active and inactive
 // directory sites.
 func (c *DirectorySitesListCall) Active(active bool) *DirectorySitesListCall {
-	c.opt_["active"] = active
+	c.params_.Set("active", fmt.Sprintf("%v", active))
 	return c
 }
 
 // CountryId sets the optional parameter "countryId": Select only
 // directory sites with this country ID.
 func (c *DirectorySitesListCall) CountryId(countryId int64) *DirectorySitesListCall {
-	c.opt_["countryId"] = countryId
+	c.params_.Set("countryId", fmt.Sprintf("%v", countryId))
 	return c
 }
 
 // Dfp_network_code sets the optional parameter "dfp_network_code":
 // Select only directory sites with this DFP network code.
 func (c *DirectorySitesListCall) Dfp_network_code(dfp_network_code string) *DirectorySitesListCall {
-	c.opt_["dfp_network_code"] = dfp_network_code
+	c.params_.Set("dfp_network_code", fmt.Sprintf("%v", dfp_network_code))
 	return c
 }
 
 // Ids sets the optional parameter "ids": Select only directory sites
 // with these IDs.
-func (c *DirectorySitesListCall) Ids(ids int64) *DirectorySitesListCall {
-	c.opt_["ids"] = ids
+func (c *DirectorySitesListCall) Ids(ids ...int64) *DirectorySitesListCall {
+	for _, v_ := range ids {
+		c.params_.Add("ids", fmt.Sprintf("%v", v_))
+	}
 	return c
 }
 
 // MaxResults sets the optional parameter "maxResults": Maximum number
 // of results to return.
 func (c *DirectorySitesListCall) MaxResults(maxResults int64) *DirectorySitesListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
 // PageToken sets the optional parameter "pageToken": Value of the
 // nextPageToken from the previous result page.
 func (c *DirectorySitesListCall) PageToken(pageToken string) *DirectorySitesListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
 	return c
 }
 
 // ParentId sets the optional parameter "parentId": Select only
 // directory sites with this parent ID.
 func (c *DirectorySitesListCall) ParentId(parentId int64) *DirectorySitesListCall {
-	c.opt_["parentId"] = parentId
+	c.params_.Set("parentId", fmt.Sprintf("%v", parentId))
 	return c
 }
 
 // SearchString sets the optional parameter "searchString": Allows
 // searching for objects by name, ID or URL. Wildcards (*) are allowed.
 // For example, "directory site*2015" will return objects with names
-// like "directory site June 2015", "directory site April 2015" or
+// like "directory site June 2015", "directory site April 2015", or
 // simply "directory site 2015". Most of the searches also add wildcards
 // implicitly at the start and the end of the search string. For
 // example, a search string of "directory site" will match objects with
-// name "my directory site", "directory site 2015" or simply "directory
+// name "my directory site", "directory site 2015" or simply, "directory
 // site".
 func (c *DirectorySitesListCall) SearchString(searchString string) *DirectorySitesListCall {
-	c.opt_["searchString"] = searchString
+	c.params_.Set("searchString", fmt.Sprintf("%v", searchString))
 	return c
 }
 
 // SortField sets the optional parameter "sortField": Field by which to
 // sort the list.
 func (c *DirectorySitesListCall) SortField(sortField string) *DirectorySitesListCall {
-	c.opt_["sortField"] = sortField
+	c.params_.Set("sortField", fmt.Sprintf("%v", sortField))
 	return c
 }
 
 // SortOrder sets the optional parameter "sortOrder": Order of sorted
 // results, default is ASCENDING.
 func (c *DirectorySitesListCall) SortOrder(sortOrder string) *DirectorySitesListCall {
-	c.opt_["sortOrder"] = sortOrder
+	c.params_.Set("sortOrder", fmt.Sprintf("%v", sortOrder))
+	return c
+}
+func (c *DirectorySitesListCall) Context(ctx context.Context) *DirectorySitesListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -15183,76 +14551,23 @@ func (c *DirectorySitesListCall) SortOrder(sortOrder string) *DirectorySitesList
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *DirectorySitesListCall) Fields(s ...googleapi.Field) *DirectorySitesListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *DirectorySitesListCall) Do() (*DirectorySitesListResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["acceptsInStreamVideoPlacements"]; ok {
-		params.Set("acceptsInStreamVideoPlacements", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["acceptsInterstitialPlacements"]; ok {
-		params.Set("acceptsInterstitialPlacements", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["acceptsPublisherPaidPlacements"]; ok {
-		params.Set("acceptsPublisherPaidPlacements", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["active"]; ok {
-		params.Set("active", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["countryId"]; ok {
-		params.Set("countryId", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["dfp_network_code"]; ok {
-		params.Set("dfp_network_code", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["ids"]; ok {
-		params.Set("ids", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["parentId"]; ok {
-		params.Set("parentId", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["searchString"]; ok {
-		params.Set("searchString", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["sortField"]; ok {
-		params.Set("sortField", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["sortOrder"]; ok {
-		params.Set("sortOrder", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/directorySites")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *DirectorySitesListResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *DirectorySitesListResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves a list of directory sites, possibly filtered.",
 	//   "httpMethod": "GET",
@@ -15324,7 +14639,7 @@ func (c *DirectorySitesListCall) Do() (*DirectorySitesListResponse, error) {
 	//       "type": "string"
 	//     },
 	//     "searchString": {
-	//       "description": "Allows searching for objects by name, ID or URL. Wildcards (*) are allowed. For example, \"directory site*2015\" will return objects with names like \"directory site June 2015\", \"directory site April 2015\" or simply \"directory site 2015\". Most of the searches also add wildcards implicitly at the start and the end of the search string. For example, a search string of \"directory site\" will match objects with name \"my directory site\", \"directory site 2015\" or simply \"directory site\".",
+	//       "description": "Allows searching for objects by name, ID or URL. Wildcards (*) are allowed. For example, \"directory site*2015\" will return objects with names like \"directory site June 2015\", \"directory site April 2015\", or simply \"directory site 2015\". Most of the searches also add wildcards implicitly at the start and the end of the search string. For example, a search string of \"directory site\" will match objects with name \"my directory site\", \"directory site 2015\" or simply, \"directory site\".",
 	//       "location": "query",
 	//       "type": "string"
 	//     },
@@ -15369,52 +14684,45 @@ func (c *DirectorySitesListCall) Do() (*DirectorySitesListResponse, error) {
 // method id "dfareporting.eventTags.delete":
 
 type EventTagsDeleteCall struct {
-	s         *Service
-	profileId int64
-	id        int64
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	id            int64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Delete: Deletes an existing event tag.
-func (r *EventTagsService) Delete(profileId int64, id int64) *EventTagsDeleteCall {
-	c := &EventTagsDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.id = id
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *EventTagsDeleteCall) Fields(s ...googleapi.Field) *EventTagsDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *EventTagsService) Delete(profileId int64, id int64) *EventTagsDeleteCall {
+	return &EventTagsDeleteCall{
+		s:             r.s,
+		profileId:     profileId,
+		id:            id,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/eventTags/{id}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *EventTagsDeleteCall) Context(ctx context.Context) *EventTagsDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *EventTagsDeleteCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/eventTags/{id}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 		"id":        strconv.FormatInt(c.id, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Deletes an existing event tag.",
 	//   "httpMethod": "DELETE",
@@ -15450,17 +14758,30 @@ func (c *EventTagsDeleteCall) Do() error {
 // method id "dfareporting.eventTags.get":
 
 type EventTagsGetCall struct {
-	s         *Service
-	profileId int64
-	id        int64
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	id            int64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Gets one event tag by ID.
+
 func (r *EventTagsService) Get(profileId int64, id int64) *EventTagsGetCall {
-	c := &EventTagsGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.id = id
+	return &EventTagsGetCall{
+		s:             r.s,
+		profileId:     profileId,
+		id:            id,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/eventTags/{id}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *EventTagsGetCall) Context(ctx context.Context) *EventTagsGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -15468,38 +14789,24 @@ func (r *EventTagsService) Get(profileId int64, id int64) *EventTagsGetCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *EventTagsGetCall) Fields(s ...googleapi.Field) *EventTagsGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *EventTagsGetCall) Do() (*EventTag, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/eventTags/{id}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *EventTag
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 		"id":        strconv.FormatInt(c.id, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *EventTag
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Gets one event tag by ID.",
 	//   "httpMethod": "GET",
@@ -15538,17 +14845,30 @@ func (c *EventTagsGetCall) Do() (*EventTag, error) {
 // method id "dfareporting.eventTags.insert":
 
 type EventTagsInsertCall struct {
-	s         *Service
-	profileId int64
-	eventtag  *EventTag
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	eventtag      *EventTag
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Insert: Inserts a new event tag.
+
 func (r *EventTagsService) Insert(profileId int64, eventtag *EventTag) *EventTagsInsertCall {
-	c := &EventTagsInsertCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.eventtag = eventtag
+	return &EventTagsInsertCall{
+		s:             r.s,
+		profileId:     profileId,
+		eventtag:      eventtag,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/eventTags",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *EventTagsInsertCall) Context(ctx context.Context) *EventTagsInsertCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -15556,43 +14876,24 @@ func (r *EventTagsService) Insert(profileId int64, eventtag *EventTag) *EventTag
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *EventTagsInsertCall) Fields(s ...googleapi.Field) *EventTagsInsertCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *EventTagsInsertCall) Do() (*EventTag, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.eventtag)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/eventTags")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *EventTag
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.eventtag,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *EventTag
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Inserts a new event tag.",
 	//   "httpMethod": "POST",
@@ -15626,36 +14927,45 @@ func (c *EventTagsInsertCall) Do() (*EventTag, error) {
 // method id "dfareporting.eventTags.list":
 
 type EventTagsListCall struct {
-	s         *Service
-	profileId int64
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Retrieves a list of event tags, possibly filtered.
+
 func (r *EventTagsService) List(profileId int64) *EventTagsListCall {
-	c := &EventTagsListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	return c
+	return &EventTagsListCall{
+		s:             r.s,
+		profileId:     profileId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/eventTags",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // AdId sets the optional parameter "adId": Select only event tags that
 // belong to this ad.
 func (c *EventTagsListCall) AdId(adId int64) *EventTagsListCall {
-	c.opt_["adId"] = adId
+	c.params_.Set("adId", fmt.Sprintf("%v", adId))
 	return c
 }
 
 // AdvertiserId sets the optional parameter "advertiserId": Select only
 // event tags that belong to this advertiser.
 func (c *EventTagsListCall) AdvertiserId(advertiserId int64) *EventTagsListCall {
-	c.opt_["advertiserId"] = advertiserId
+	c.params_.Set("advertiserId", fmt.Sprintf("%v", advertiserId))
 	return c
 }
 
 // CampaignId sets the optional parameter "campaignId": Select only
 // event tags that belong to this campaign.
 func (c *EventTagsListCall) CampaignId(campaignId int64) *EventTagsListCall {
-	c.opt_["campaignId"] = campaignId
+	c.params_.Set("campaignId", fmt.Sprintf("%v", campaignId))
 	return c
 }
 
@@ -15666,7 +14976,7 @@ func (c *EventTagsListCall) CampaignId(campaignId int64) *EventTagsListCall {
 // set to false, the status field is examined as well along with the
 // enabledByDefault field.
 func (c *EventTagsListCall) DefinitionsOnly(definitionsOnly bool) *EventTagsListCall {
-	c.opt_["definitionsOnly"] = definitionsOnly
+	c.params_.Set("definitionsOnly", fmt.Sprintf("%v", definitionsOnly))
 	return c
 }
 
@@ -15677,7 +14987,7 @@ func (c *EventTagsListCall) DefinitionsOnly(definitionsOnly bool) *EventTagsList
 // specified campaign's parent advertiser's or parent campaign's event
 // tags' enabledByDefault and status fields are examined as well.
 func (c *EventTagsListCall) Enabled(enabled bool) *EventTagsListCall {
-	c.opt_["enabled"] = enabled
+	c.params_.Set("enabled", fmt.Sprintf("%v", enabled))
 	return c
 }
 
@@ -15686,42 +14996,48 @@ func (c *EventTagsListCall) Enabled(enabled bool) *EventTagsListCall {
 // can be used to specify whether to use a third-party pixel, a
 // third-party JavaScript URL, or a third-party click-through URL for
 // either impression or click tracking.
-func (c *EventTagsListCall) EventTagTypes(eventTagTypes string) *EventTagsListCall {
-	c.opt_["eventTagTypes"] = eventTagTypes
+func (c *EventTagsListCall) EventTagTypes(eventTagTypes ...string) *EventTagsListCall {
+	c.params_["eventTagTypes"] = eventTagTypes
 	return c
 }
 
 // Ids sets the optional parameter "ids": Select only event tags with
 // these IDs.
-func (c *EventTagsListCall) Ids(ids int64) *EventTagsListCall {
-	c.opt_["ids"] = ids
+func (c *EventTagsListCall) Ids(ids ...int64) *EventTagsListCall {
+	for _, v_ := range ids {
+		c.params_.Add("ids", fmt.Sprintf("%v", v_))
+	}
 	return c
 }
 
 // SearchString sets the optional parameter "searchString": Allows
 // searching for objects by name or ID. Wildcards (*) are allowed. For
 // example, "eventtag*2015" will return objects with names like
-// "eventtag June 2015", "eventtag April 2015" or simply "eventtag
+// "eventtag June 2015", "eventtag April 2015", or simply "eventtag
 // 2015". Most of the searches also add wildcards implicitly at the
 // start and the end of the search string. For example, a search string
 // of "eventtag" will match objects with name "my eventtag", "eventtag
-// 2015" or simply "eventtag".
+// 2015", or simply "eventtag".
 func (c *EventTagsListCall) SearchString(searchString string) *EventTagsListCall {
-	c.opt_["searchString"] = searchString
+	c.params_.Set("searchString", fmt.Sprintf("%v", searchString))
 	return c
 }
 
 // SortField sets the optional parameter "sortField": Field by which to
 // sort the list.
 func (c *EventTagsListCall) SortField(sortField string) *EventTagsListCall {
-	c.opt_["sortField"] = sortField
+	c.params_.Set("sortField", fmt.Sprintf("%v", sortField))
 	return c
 }
 
 // SortOrder sets the optional parameter "sortOrder": Order of sorted
 // results, default is ASCENDING.
 func (c *EventTagsListCall) SortOrder(sortOrder string) *EventTagsListCall {
-	c.opt_["sortOrder"] = sortOrder
+	c.params_.Set("sortOrder", fmt.Sprintf("%v", sortOrder))
+	return c
+}
+func (c *EventTagsListCall) Context(ctx context.Context) *EventTagsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -15729,67 +15045,23 @@ func (c *EventTagsListCall) SortOrder(sortOrder string) *EventTagsListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *EventTagsListCall) Fields(s ...googleapi.Field) *EventTagsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *EventTagsListCall) Do() (*EventTagsListResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["adId"]; ok {
-		params.Set("adId", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["advertiserId"]; ok {
-		params.Set("advertiserId", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["campaignId"]; ok {
-		params.Set("campaignId", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["definitionsOnly"]; ok {
-		params.Set("definitionsOnly", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["enabled"]; ok {
-		params.Set("enabled", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["eventTagTypes"]; ok {
-		params.Set("eventTagTypes", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["ids"]; ok {
-		params.Set("ids", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["searchString"]; ok {
-		params.Set("searchString", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["sortField"]; ok {
-		params.Set("sortField", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["sortOrder"]; ok {
-		params.Set("sortOrder", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/eventTags")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *EventTagsListResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *EventTagsListResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves a list of event tags, possibly filtered.",
 	//   "httpMethod": "GET",
@@ -15857,7 +15129,7 @@ func (c *EventTagsListCall) Do() (*EventTagsListResponse, error) {
 	//       "type": "string"
 	//     },
 	//     "searchString": {
-	//       "description": "Allows searching for objects by name or ID. Wildcards (*) are allowed. For example, \"eventtag*2015\" will return objects with names like \"eventtag June 2015\", \"eventtag April 2015\" or simply \"eventtag 2015\". Most of the searches also add wildcards implicitly at the start and the end of the search string. For example, a search string of \"eventtag\" will match objects with name \"my eventtag\", \"eventtag 2015\" or simply \"eventtag\".",
+	//       "description": "Allows searching for objects by name or ID. Wildcards (*) are allowed. For example, \"eventtag*2015\" will return objects with names like \"eventtag June 2015\", \"eventtag April 2015\", or simply \"eventtag 2015\". Most of the searches also add wildcards implicitly at the start and the end of the search string. For example, a search string of \"eventtag\" will match objects with name \"my eventtag\", \"eventtag 2015\", or simply \"eventtag\".",
 	//       "location": "query",
 	//       "type": "string"
 	//     },
@@ -15902,20 +15174,33 @@ func (c *EventTagsListCall) Do() (*EventTagsListResponse, error) {
 // method id "dfareporting.eventTags.patch":
 
 type EventTagsPatchCall struct {
-	s         *Service
-	profileId int64
-	id        int64
-	eventtag  *EventTag
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	id            int64
+	eventtag      *EventTag
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Patch: Updates an existing event tag. This method supports patch
 // semantics.
+
 func (r *EventTagsService) Patch(profileId int64, id int64, eventtag *EventTag) *EventTagsPatchCall {
-	c := &EventTagsPatchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.id = id
-	c.eventtag = eventtag
+	return &EventTagsPatchCall{
+		s:             r.s,
+		profileId:     profileId,
+		id:            id,
+		eventtag:      eventtag,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/eventTags",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *EventTagsPatchCall) Context(ctx context.Context) *EventTagsPatchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -15923,44 +15208,25 @@ func (r *EventTagsService) Patch(profileId int64, id int64, eventtag *EventTag) 
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *EventTagsPatchCall) Fields(s ...googleapi.Field) *EventTagsPatchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *EventTagsPatchCall) Do() (*EventTag, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.eventtag)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("id", fmt.Sprintf("%v", c.id))
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/eventTags")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PATCH", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *EventTag
+	c.params_.Set("id", fmt.Sprintf("%v", c.id))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PATCH",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.eventtag,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *EventTag
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates an existing event tag. This method supports patch semantics.",
 	//   "httpMethod": "PATCH",
@@ -16002,17 +15268,30 @@ func (c *EventTagsPatchCall) Do() (*EventTag, error) {
 // method id "dfareporting.eventTags.update":
 
 type EventTagsUpdateCall struct {
-	s         *Service
-	profileId int64
-	eventtag  *EventTag
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	eventtag      *EventTag
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Update: Updates an existing event tag.
+
 func (r *EventTagsService) Update(profileId int64, eventtag *EventTag) *EventTagsUpdateCall {
-	c := &EventTagsUpdateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.eventtag = eventtag
+	return &EventTagsUpdateCall{
+		s:             r.s,
+		profileId:     profileId,
+		eventtag:      eventtag,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/eventTags",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *EventTagsUpdateCall) Context(ctx context.Context) *EventTagsUpdateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -16020,43 +15299,24 @@ func (r *EventTagsService) Update(profileId int64, eventtag *EventTag) *EventTag
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *EventTagsUpdateCall) Fields(s ...googleapi.Field) *EventTagsUpdateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *EventTagsUpdateCall) Do() (*EventTag, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.eventtag)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/eventTags")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *EventTag
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.eventtag,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *EventTag
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates an existing event tag.",
 	//   "httpMethod": "PUT",
@@ -16090,17 +15350,30 @@ func (c *EventTagsUpdateCall) Do() (*EventTag, error) {
 // method id "dfareporting.files.get":
 
 type FilesGetCall struct {
-	s        *Service
-	reportId int64
-	fileId   int64
-	opt_     map[string]interface{}
+	s             *Service
+	reportId      int64
+	fileId        int64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Retrieves a report file by its report ID and file ID.
+
 func (r *FilesService) Get(reportId int64, fileId int64) *FilesGetCall {
-	c := &FilesGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.reportId = reportId
-	c.fileId = fileId
+	return &FilesGetCall{
+		s:             r.s,
+		reportId:      reportId,
+		fileId:        fileId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "reports/{reportId}/files/{fileId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *FilesGetCall) Context(ctx context.Context) *FilesGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -16108,38 +15381,43 @@ func (r *FilesService) Get(reportId int64, fileId int64) *FilesGetCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *FilesGetCall) Fields(s ...googleapi.Field) *FilesGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
-func (c *FilesGetCall) Do() (*File, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "reports/{reportId}/files/{fileId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+// GetResponse sets alt=media creating a file download request. The body
+// of the *http.Response contains the media.  You should close the response
+// body when finished reading.
+
+func (c *FilesGetCall) GetResponse() (*http.Response, error) {
+	var res *http.Response
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"reportId": strconv.FormatInt(c.reportId, 10),
 		"fileId":   strconv.FormatInt(c.fileId, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &res,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
+	return res, c.caller_.Do(c.context_, c.s.client, call)
+}
+
+func (c *FilesGetCall) Do() (*File, error) {
+	var returnValue *File
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
+		"reportId": strconv.FormatInt(c.reportId, 10),
+		"fileId":   strconv.FormatInt(c.fileId, 10),
+	})
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	var ret *File
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves a report file by its report ID and file ID.",
 	//   "httpMethod": "GET",
@@ -16179,50 +15457,63 @@ func (c *FilesGetCall) Do() (*File, error) {
 // method id "dfareporting.files.list":
 
 type FilesListCall struct {
-	s         *Service
-	profileId int64
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Lists files for a user profile.
+
 func (r *FilesService) List(profileId int64) *FilesListCall {
-	c := &FilesListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	return c
+	return &FilesListCall{
+		s:             r.s,
+		profileId:     profileId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/files",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // MaxResults sets the optional parameter "maxResults": Maximum number
 // of results to return.
 func (c *FilesListCall) MaxResults(maxResults int64) *FilesListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
 // PageToken sets the optional parameter "pageToken": The value of the
 // nextToken from the previous result page.
 func (c *FilesListCall) PageToken(pageToken string) *FilesListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
 	return c
 }
 
 // Scope sets the optional parameter "scope": The scope that defines
 // which results are returned, default is 'MINE'.
 func (c *FilesListCall) Scope(scope string) *FilesListCall {
-	c.opt_["scope"] = scope
+	c.params_.Set("scope", fmt.Sprintf("%v", scope))
 	return c
 }
 
 // SortField sets the optional parameter "sortField": The field by which
 // to sort the list.
 func (c *FilesListCall) SortField(sortField string) *FilesListCall {
-	c.opt_["sortField"] = sortField
+	c.params_.Set("sortField", fmt.Sprintf("%v", sortField))
 	return c
 }
 
 // SortOrder sets the optional parameter "sortOrder": Order of sorted
 // results, default is 'DESCENDING'.
 func (c *FilesListCall) SortOrder(sortOrder string) *FilesListCall {
-	c.opt_["sortOrder"] = sortOrder
+	c.params_.Set("sortOrder", fmt.Sprintf("%v", sortOrder))
+	return c
+}
+func (c *FilesListCall) Context(ctx context.Context) *FilesListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -16230,52 +15521,23 @@ func (c *FilesListCall) SortOrder(sortOrder string) *FilesListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *FilesListCall) Fields(s ...googleapi.Field) *FilesListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *FilesListCall) Do() (*FileList, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["scope"]; ok {
-		params.Set("scope", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["sortField"]; ok {
-		params.Set("sortField", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["sortOrder"]; ok {
-		params.Set("sortOrder", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/files")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *FileList
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *FileList
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Lists files for a user profile.",
 	//   "httpMethod": "GET",
@@ -16363,52 +15625,45 @@ func (c *FilesListCall) Do() (*FileList, error) {
 // method id "dfareporting.floodlightActivities.delete":
 
 type FloodlightActivitiesDeleteCall struct {
-	s         *Service
-	profileId int64
-	id        int64
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	id            int64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Delete: Deletes an existing floodlight activity.
-func (r *FloodlightActivitiesService) Delete(profileId int64, id int64) *FloodlightActivitiesDeleteCall {
-	c := &FloodlightActivitiesDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.id = id
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *FloodlightActivitiesDeleteCall) Fields(s ...googleapi.Field) *FloodlightActivitiesDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *FloodlightActivitiesService) Delete(profileId int64, id int64) *FloodlightActivitiesDeleteCall {
+	return &FloodlightActivitiesDeleteCall{
+		s:             r.s,
+		profileId:     profileId,
+		id:            id,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/floodlightActivities/{id}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *FloodlightActivitiesDeleteCall) Context(ctx context.Context) *FloodlightActivitiesDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *FloodlightActivitiesDeleteCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/floodlightActivities/{id}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 		"id":        strconv.FormatInt(c.id, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Deletes an existing floodlight activity.",
 	//   "httpMethod": "DELETE",
@@ -16444,23 +15699,36 @@ func (c *FloodlightActivitiesDeleteCall) Do() error {
 // method id "dfareporting.floodlightActivities.generatetag":
 
 type FloodlightActivitiesGeneratetagCall struct {
-	s         *Service
-	profileId int64
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Generatetag: Generates a tag for a floodlight activity.
+
 func (r *FloodlightActivitiesService) Generatetag(profileId int64) *FloodlightActivitiesGeneratetagCall {
-	c := &FloodlightActivitiesGeneratetagCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	return c
+	return &FloodlightActivitiesGeneratetagCall{
+		s:             r.s,
+		profileId:     profileId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/floodlightActivities/generatetag",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // FloodlightActivityId sets the optional parameter
 // "floodlightActivityId": Floodlight activity ID for which we want to
 // generate a tag.
 func (c *FloodlightActivitiesGeneratetagCall) FloodlightActivityId(floodlightActivityId int64) *FloodlightActivitiesGeneratetagCall {
-	c.opt_["floodlightActivityId"] = floodlightActivityId
+	c.params_.Set("floodlightActivityId", fmt.Sprintf("%v", floodlightActivityId))
+	return c
+}
+func (c *FloodlightActivitiesGeneratetagCall) Context(ctx context.Context) *FloodlightActivitiesGeneratetagCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -16468,40 +15736,23 @@ func (c *FloodlightActivitiesGeneratetagCall) FloodlightActivityId(floodlightAct
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *FloodlightActivitiesGeneratetagCall) Fields(s ...googleapi.Field) *FloodlightActivitiesGeneratetagCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *FloodlightActivitiesGeneratetagCall) Do() (*FloodlightActivitiesGenerateTagResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["floodlightActivityId"]; ok {
-		params.Set("floodlightActivityId", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/floodlightActivities/generatetag")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *FloodlightActivitiesGenerateTagResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "POST",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *FloodlightActivitiesGenerateTagResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Generates a tag for a floodlight activity.",
 	//   "httpMethod": "POST",
@@ -16538,17 +15789,30 @@ func (c *FloodlightActivitiesGeneratetagCall) Do() (*FloodlightActivitiesGenerat
 // method id "dfareporting.floodlightActivities.get":
 
 type FloodlightActivitiesGetCall struct {
-	s         *Service
-	profileId int64
-	id        int64
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	id            int64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Gets one floodlight activity by ID.
+
 func (r *FloodlightActivitiesService) Get(profileId int64, id int64) *FloodlightActivitiesGetCall {
-	c := &FloodlightActivitiesGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.id = id
+	return &FloodlightActivitiesGetCall{
+		s:             r.s,
+		profileId:     profileId,
+		id:            id,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/floodlightActivities/{id}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *FloodlightActivitiesGetCall) Context(ctx context.Context) *FloodlightActivitiesGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -16556,38 +15820,24 @@ func (r *FloodlightActivitiesService) Get(profileId int64, id int64) *Floodlight
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *FloodlightActivitiesGetCall) Fields(s ...googleapi.Field) *FloodlightActivitiesGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *FloodlightActivitiesGetCall) Do() (*FloodlightActivity, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/floodlightActivities/{id}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *FloodlightActivity
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 		"id":        strconv.FormatInt(c.id, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *FloodlightActivity
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Gets one floodlight activity by ID.",
 	//   "httpMethod": "GET",
@@ -16629,14 +15879,27 @@ type FloodlightActivitiesInsertCall struct {
 	s                  *Service
 	profileId          int64
 	floodlightactivity *FloodlightActivity
-	opt_               map[string]interface{}
+	caller_            googleapi.Caller
+	params_            url.Values
+	pathTemplate_      string
+	context_           context.Context
 }
 
 // Insert: Inserts a new floodlight activity.
+
 func (r *FloodlightActivitiesService) Insert(profileId int64, floodlightactivity *FloodlightActivity) *FloodlightActivitiesInsertCall {
-	c := &FloodlightActivitiesInsertCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.floodlightactivity = floodlightactivity
+	return &FloodlightActivitiesInsertCall{
+		s:                  r.s,
+		profileId:          profileId,
+		floodlightactivity: floodlightactivity,
+		caller_:            googleapi.JSONCall{},
+		params_:            make(map[string][]string),
+		pathTemplate_:      "userprofiles/{profileId}/floodlightActivities",
+		context_:           googleapi.NoContext,
+	}
+}
+func (c *FloodlightActivitiesInsertCall) Context(ctx context.Context) *FloodlightActivitiesInsertCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -16644,43 +15907,24 @@ func (r *FloodlightActivitiesService) Insert(profileId int64, floodlightactivity
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *FloodlightActivitiesInsertCall) Fields(s ...googleapi.Field) *FloodlightActivitiesInsertCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *FloodlightActivitiesInsertCall) Do() (*FloodlightActivity, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.floodlightactivity)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/floodlightActivities")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *FloodlightActivity
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.floodlightactivity,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *FloodlightActivity
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Inserts a new floodlight activity.",
 	//   "httpMethod": "POST",
@@ -16714,16 +15958,25 @@ func (c *FloodlightActivitiesInsertCall) Do() (*FloodlightActivity, error) {
 // method id "dfareporting.floodlightActivities.list":
 
 type FloodlightActivitiesListCall struct {
-	s         *Service
-	profileId int64
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Retrieves a list of floodlight activities, possibly filtered.
+
 func (r *FloodlightActivitiesService) List(profileId int64) *FloodlightActivitiesListCall {
-	c := &FloodlightActivitiesListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	return c
+	return &FloodlightActivitiesListCall{
+		s:             r.s,
+		profileId:     profileId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/floodlightActivities",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // AdvertiserId sets the optional parameter "advertiserId": Select only
@@ -16731,15 +15984,17 @@ func (r *FloodlightActivitiesService) List(profileId int64) *FloodlightActivitie
 // either ids, advertiserId, or floodlightConfigurationId for a
 // non-empty result.
 func (c *FloodlightActivitiesListCall) AdvertiserId(advertiserId int64) *FloodlightActivitiesListCall {
-	c.opt_["advertiserId"] = advertiserId
+	c.params_.Set("advertiserId", fmt.Sprintf("%v", advertiserId))
 	return c
 }
 
 // FloodlightActivityGroupIds sets the optional parameter
 // "floodlightActivityGroupIds": Select only floodlight activities with
 // the specified floodlight activity group IDs.
-func (c *FloodlightActivitiesListCall) FloodlightActivityGroupIds(floodlightActivityGroupIds int64) *FloodlightActivitiesListCall {
-	c.opt_["floodlightActivityGroupIds"] = floodlightActivityGroupIds
+func (c *FloodlightActivitiesListCall) FloodlightActivityGroupIds(floodlightActivityGroupIds ...int64) *FloodlightActivitiesListCall {
+	for _, v_ := range floodlightActivityGroupIds {
+		c.params_.Add("floodlightActivityGroupIds", fmt.Sprintf("%v", v_))
+	}
 	return c
 }
 
@@ -16747,7 +16002,7 @@ func (c *FloodlightActivitiesListCall) FloodlightActivityGroupIds(floodlightActi
 // "floodlightActivityGroupName": Select only floodlight activities with
 // the specified floodlight activity group name.
 func (c *FloodlightActivitiesListCall) FloodlightActivityGroupName(floodlightActivityGroupName string) *FloodlightActivitiesListCall {
-	c.opt_["floodlightActivityGroupName"] = floodlightActivityGroupName
+	c.params_.Set("floodlightActivityGroupName", fmt.Sprintf("%v", floodlightActivityGroupName))
 	return c
 }
 
@@ -16755,7 +16010,7 @@ func (c *FloodlightActivitiesListCall) FloodlightActivityGroupName(floodlightAct
 // "floodlightActivityGroupTagString": Select only floodlight activities
 // with the specified floodlight activity group tag string.
 func (c *FloodlightActivitiesListCall) FloodlightActivityGroupTagString(floodlightActivityGroupTagString string) *FloodlightActivitiesListCall {
-	c.opt_["floodlightActivityGroupTagString"] = floodlightActivityGroupTagString
+	c.params_.Set("floodlightActivityGroupTagString", fmt.Sprintf("%v", floodlightActivityGroupTagString))
 	return c
 }
 
@@ -16763,7 +16018,7 @@ func (c *FloodlightActivitiesListCall) FloodlightActivityGroupTagString(floodlig
 // "floodlightActivityGroupType": Select only floodlight activities with
 // the specified floodlight activity group type.
 func (c *FloodlightActivitiesListCall) FloodlightActivityGroupType(floodlightActivityGroupType string) *FloodlightActivitiesListCall {
-	c.opt_["floodlightActivityGroupType"] = floodlightActivityGroupType
+	c.params_.Set("floodlightActivityGroupType", fmt.Sprintf("%v", floodlightActivityGroupType))
 	return c
 }
 
@@ -16772,64 +16027,70 @@ func (c *FloodlightActivitiesListCall) FloodlightActivityGroupType(floodlightAct
 // the specified floodlight configuration ID. Must specify either ids,
 // advertiserId, or floodlightConfigurationId for a non-empty result.
 func (c *FloodlightActivitiesListCall) FloodlightConfigurationId(floodlightConfigurationId int64) *FloodlightActivitiesListCall {
-	c.opt_["floodlightConfigurationId"] = floodlightConfigurationId
+	c.params_.Set("floodlightConfigurationId", fmt.Sprintf("%v", floodlightConfigurationId))
 	return c
 }
 
 // Ids sets the optional parameter "ids": Select only floodlight
 // activities with the specified IDs. Must specify either ids,
 // advertiserId, or floodlightConfigurationId for a non-empty result.
-func (c *FloodlightActivitiesListCall) Ids(ids int64) *FloodlightActivitiesListCall {
-	c.opt_["ids"] = ids
+func (c *FloodlightActivitiesListCall) Ids(ids ...int64) *FloodlightActivitiesListCall {
+	for _, v_ := range ids {
+		c.params_.Add("ids", fmt.Sprintf("%v", v_))
+	}
 	return c
 }
 
 // MaxResults sets the optional parameter "maxResults": Maximum number
 // of results to return.
 func (c *FloodlightActivitiesListCall) MaxResults(maxResults int64) *FloodlightActivitiesListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
 // PageToken sets the optional parameter "pageToken": Value of the
 // nextPageToken from the previous result page.
 func (c *FloodlightActivitiesListCall) PageToken(pageToken string) *FloodlightActivitiesListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
 	return c
 }
 
 // SearchString sets the optional parameter "searchString": Allows
 // searching for objects by name or ID. Wildcards (*) are allowed. For
 // example, "floodlightactivity*2015" will return objects with names
-// like "floodlightactivity June 2015", "floodlightactivity April 2015"
+// like "floodlightactivity June 2015", "floodlightactivity April 2015",
 // or simply "floodlightactivity 2015". Most of the searches also add
 // wildcards implicitly at the start and the end of the search string.
 // For example, a search string of "floodlightactivity" will match
 // objects with name "my floodlightactivity activity",
-// "floodlightactivity 2015" or simply "floodlightactivity".
+// "floodlightactivity 2015", or simply "floodlightactivity".
 func (c *FloodlightActivitiesListCall) SearchString(searchString string) *FloodlightActivitiesListCall {
-	c.opt_["searchString"] = searchString
+	c.params_.Set("searchString", fmt.Sprintf("%v", searchString))
 	return c
 }
 
 // SortField sets the optional parameter "sortField": Field by which to
 // sort the list.
 func (c *FloodlightActivitiesListCall) SortField(sortField string) *FloodlightActivitiesListCall {
-	c.opt_["sortField"] = sortField
+	c.params_.Set("sortField", fmt.Sprintf("%v", sortField))
 	return c
 }
 
 // SortOrder sets the optional parameter "sortOrder": Order of sorted
 // results, default is ASCENDING.
 func (c *FloodlightActivitiesListCall) SortOrder(sortOrder string) *FloodlightActivitiesListCall {
-	c.opt_["sortOrder"] = sortOrder
+	c.params_.Set("sortOrder", fmt.Sprintf("%v", sortOrder))
 	return c
 }
 
 // TagString sets the optional parameter "tagString": Select only
 // floodlight activities with the specified tag string.
 func (c *FloodlightActivitiesListCall) TagString(tagString string) *FloodlightActivitiesListCall {
-	c.opt_["tagString"] = tagString
+	c.params_.Set("tagString", fmt.Sprintf("%v", tagString))
+	return c
+}
+func (c *FloodlightActivitiesListCall) Context(ctx context.Context) *FloodlightActivitiesListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -16837,76 +16098,23 @@ func (c *FloodlightActivitiesListCall) TagString(tagString string) *FloodlightAc
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *FloodlightActivitiesListCall) Fields(s ...googleapi.Field) *FloodlightActivitiesListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *FloodlightActivitiesListCall) Do() (*FloodlightActivitiesListResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["advertiserId"]; ok {
-		params.Set("advertiserId", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["floodlightActivityGroupIds"]; ok {
-		params.Set("floodlightActivityGroupIds", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["floodlightActivityGroupName"]; ok {
-		params.Set("floodlightActivityGroupName", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["floodlightActivityGroupTagString"]; ok {
-		params.Set("floodlightActivityGroupTagString", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["floodlightActivityGroupType"]; ok {
-		params.Set("floodlightActivityGroupType", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["floodlightConfigurationId"]; ok {
-		params.Set("floodlightConfigurationId", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["ids"]; ok {
-		params.Set("ids", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["searchString"]; ok {
-		params.Set("searchString", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["sortField"]; ok {
-		params.Set("sortField", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["sortOrder"]; ok {
-		params.Set("sortOrder", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["tagString"]; ok {
-		params.Set("tagString", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/floodlightActivities")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *FloodlightActivitiesListResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *FloodlightActivitiesListResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves a list of floodlight activities, possibly filtered.",
 	//   "httpMethod": "GET",
@@ -16983,7 +16191,7 @@ func (c *FloodlightActivitiesListCall) Do() (*FloodlightActivitiesListResponse, 
 	//       "type": "string"
 	//     },
 	//     "searchString": {
-	//       "description": "Allows searching for objects by name or ID. Wildcards (*) are allowed. For example, \"floodlightactivity*2015\" will return objects with names like \"floodlightactivity June 2015\", \"floodlightactivity April 2015\" or simply \"floodlightactivity 2015\". Most of the searches also add wildcards implicitly at the start and the end of the search string. For example, a search string of \"floodlightactivity\" will match objects with name \"my floodlightactivity activity\", \"floodlightactivity 2015\" or simply \"floodlightactivity\".",
+	//       "description": "Allows searching for objects by name or ID. Wildcards (*) are allowed. For example, \"floodlightactivity*2015\" will return objects with names like \"floodlightactivity June 2015\", \"floodlightactivity April 2015\", or simply \"floodlightactivity 2015\". Most of the searches also add wildcards implicitly at the start and the end of the search string. For example, a search string of \"floodlightactivity\" will match objects with name \"my floodlightactivity activity\", \"floodlightactivity 2015\", or simply \"floodlightactivity\".",
 	//       "location": "query",
 	//       "type": "string"
 	//     },
@@ -17037,16 +16245,29 @@ type FloodlightActivitiesPatchCall struct {
 	profileId          int64
 	id                 int64
 	floodlightactivity *FloodlightActivity
-	opt_               map[string]interface{}
+	caller_            googleapi.Caller
+	params_            url.Values
+	pathTemplate_      string
+	context_           context.Context
 }
 
 // Patch: Updates an existing floodlight activity. This method supports
 // patch semantics.
+
 func (r *FloodlightActivitiesService) Patch(profileId int64, id int64, floodlightactivity *FloodlightActivity) *FloodlightActivitiesPatchCall {
-	c := &FloodlightActivitiesPatchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.id = id
-	c.floodlightactivity = floodlightactivity
+	return &FloodlightActivitiesPatchCall{
+		s:                  r.s,
+		profileId:          profileId,
+		id:                 id,
+		floodlightactivity: floodlightactivity,
+		caller_:            googleapi.JSONCall{},
+		params_:            make(map[string][]string),
+		pathTemplate_:      "userprofiles/{profileId}/floodlightActivities",
+		context_:           googleapi.NoContext,
+	}
+}
+func (c *FloodlightActivitiesPatchCall) Context(ctx context.Context) *FloodlightActivitiesPatchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -17054,44 +16275,25 @@ func (r *FloodlightActivitiesService) Patch(profileId int64, id int64, floodligh
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *FloodlightActivitiesPatchCall) Fields(s ...googleapi.Field) *FloodlightActivitiesPatchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *FloodlightActivitiesPatchCall) Do() (*FloodlightActivity, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.floodlightactivity)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("id", fmt.Sprintf("%v", c.id))
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/floodlightActivities")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PATCH", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *FloodlightActivity
+	c.params_.Set("id", fmt.Sprintf("%v", c.id))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PATCH",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.floodlightactivity,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *FloodlightActivity
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates an existing floodlight activity. This method supports patch semantics.",
 	//   "httpMethod": "PATCH",
@@ -17136,14 +16338,27 @@ type FloodlightActivitiesUpdateCall struct {
 	s                  *Service
 	profileId          int64
 	floodlightactivity *FloodlightActivity
-	opt_               map[string]interface{}
+	caller_            googleapi.Caller
+	params_            url.Values
+	pathTemplate_      string
+	context_           context.Context
 }
 
 // Update: Updates an existing floodlight activity.
+
 func (r *FloodlightActivitiesService) Update(profileId int64, floodlightactivity *FloodlightActivity) *FloodlightActivitiesUpdateCall {
-	c := &FloodlightActivitiesUpdateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.floodlightactivity = floodlightactivity
+	return &FloodlightActivitiesUpdateCall{
+		s:                  r.s,
+		profileId:          profileId,
+		floodlightactivity: floodlightactivity,
+		caller_:            googleapi.JSONCall{},
+		params_:            make(map[string][]string),
+		pathTemplate_:      "userprofiles/{profileId}/floodlightActivities",
+		context_:           googleapi.NoContext,
+	}
+}
+func (c *FloodlightActivitiesUpdateCall) Context(ctx context.Context) *FloodlightActivitiesUpdateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -17151,43 +16366,24 @@ func (r *FloodlightActivitiesService) Update(profileId int64, floodlightactivity
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *FloodlightActivitiesUpdateCall) Fields(s ...googleapi.Field) *FloodlightActivitiesUpdateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *FloodlightActivitiesUpdateCall) Do() (*FloodlightActivity, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.floodlightactivity)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/floodlightActivities")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *FloodlightActivity
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.floodlightactivity,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *FloodlightActivity
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates an existing floodlight activity.",
 	//   "httpMethod": "PUT",
@@ -17221,52 +16417,45 @@ func (c *FloodlightActivitiesUpdateCall) Do() (*FloodlightActivity, error) {
 // method id "dfareporting.floodlightActivityGroups.delete":
 
 type FloodlightActivityGroupsDeleteCall struct {
-	s         *Service
-	profileId int64
-	id        int64
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	id            int64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Delete: Deletes an existing floodlight activity group.
-func (r *FloodlightActivityGroupsService) Delete(profileId int64, id int64) *FloodlightActivityGroupsDeleteCall {
-	c := &FloodlightActivityGroupsDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.id = id
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *FloodlightActivityGroupsDeleteCall) Fields(s ...googleapi.Field) *FloodlightActivityGroupsDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *FloodlightActivityGroupsService) Delete(profileId int64, id int64) *FloodlightActivityGroupsDeleteCall {
+	return &FloodlightActivityGroupsDeleteCall{
+		s:             r.s,
+		profileId:     profileId,
+		id:            id,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/floodlightActivityGroups/{id}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *FloodlightActivityGroupsDeleteCall) Context(ctx context.Context) *FloodlightActivityGroupsDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *FloodlightActivityGroupsDeleteCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/floodlightActivityGroups/{id}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 		"id":        strconv.FormatInt(c.id, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Deletes an existing floodlight activity group.",
 	//   "httpMethod": "DELETE",
@@ -17302,17 +16491,30 @@ func (c *FloodlightActivityGroupsDeleteCall) Do() error {
 // method id "dfareporting.floodlightActivityGroups.get":
 
 type FloodlightActivityGroupsGetCall struct {
-	s         *Service
-	profileId int64
-	id        int64
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	id            int64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Gets one floodlight activity group by ID.
+
 func (r *FloodlightActivityGroupsService) Get(profileId int64, id int64) *FloodlightActivityGroupsGetCall {
-	c := &FloodlightActivityGroupsGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.id = id
+	return &FloodlightActivityGroupsGetCall{
+		s:             r.s,
+		profileId:     profileId,
+		id:            id,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/floodlightActivityGroups/{id}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *FloodlightActivityGroupsGetCall) Context(ctx context.Context) *FloodlightActivityGroupsGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -17320,38 +16522,24 @@ func (r *FloodlightActivityGroupsService) Get(profileId int64, id int64) *Floodl
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *FloodlightActivityGroupsGetCall) Fields(s ...googleapi.Field) *FloodlightActivityGroupsGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *FloodlightActivityGroupsGetCall) Do() (*FloodlightActivityGroup, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/floodlightActivityGroups/{id}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *FloodlightActivityGroup
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 		"id":        strconv.FormatInt(c.id, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *FloodlightActivityGroup
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Gets one floodlight activity group by ID.",
 	//   "httpMethod": "GET",
@@ -17393,14 +16581,27 @@ type FloodlightActivityGroupsInsertCall struct {
 	s                       *Service
 	profileId               int64
 	floodlightactivitygroup *FloodlightActivityGroup
-	opt_                    map[string]interface{}
+	caller_                 googleapi.Caller
+	params_                 url.Values
+	pathTemplate_           string
+	context_                context.Context
 }
 
 // Insert: Inserts a new floodlight activity group.
+
 func (r *FloodlightActivityGroupsService) Insert(profileId int64, floodlightactivitygroup *FloodlightActivityGroup) *FloodlightActivityGroupsInsertCall {
-	c := &FloodlightActivityGroupsInsertCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.floodlightactivitygroup = floodlightactivitygroup
+	return &FloodlightActivityGroupsInsertCall{
+		s:                       r.s,
+		profileId:               profileId,
+		floodlightactivitygroup: floodlightactivitygroup,
+		caller_:                 googleapi.JSONCall{},
+		params_:                 make(map[string][]string),
+		pathTemplate_:           "userprofiles/{profileId}/floodlightActivityGroups",
+		context_:                googleapi.NoContext,
+	}
+}
+func (c *FloodlightActivityGroupsInsertCall) Context(ctx context.Context) *FloodlightActivityGroupsInsertCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -17408,43 +16609,24 @@ func (r *FloodlightActivityGroupsService) Insert(profileId int64, floodlightacti
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *FloodlightActivityGroupsInsertCall) Fields(s ...googleapi.Field) *FloodlightActivityGroupsInsertCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *FloodlightActivityGroupsInsertCall) Do() (*FloodlightActivityGroup, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.floodlightactivitygroup)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/floodlightActivityGroups")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *FloodlightActivityGroup
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.floodlightactivitygroup,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *FloodlightActivityGroup
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Inserts a new floodlight activity group.",
 	//   "httpMethod": "POST",
@@ -17478,57 +16660,67 @@ func (c *FloodlightActivityGroupsInsertCall) Do() (*FloodlightActivityGroup, err
 // method id "dfareporting.floodlightActivityGroups.list":
 
 type FloodlightActivityGroupsListCall struct {
-	s         *Service
-	profileId int64
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Retrieves a list of floodlight activity groups, possibly
 // filtered.
+
 func (r *FloodlightActivityGroupsService) List(profileId int64) *FloodlightActivityGroupsListCall {
-	c := &FloodlightActivityGroupsListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	return c
+	return &FloodlightActivityGroupsListCall{
+		s:             r.s,
+		profileId:     profileId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/floodlightActivityGroups",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // AdvertiserId sets the optional parameter "advertiserId": Select only
 // floodlight activity groups with the specified advertiser ID. Must
-// specify either ids, advertiserId, or floodlightConfigurationId for a
+// specify either advertiserId or floodlightConfigurationId for a
 // non-empty result.
 func (c *FloodlightActivityGroupsListCall) AdvertiserId(advertiserId int64) *FloodlightActivityGroupsListCall {
-	c.opt_["advertiserId"] = advertiserId
+	c.params_.Set("advertiserId", fmt.Sprintf("%v", advertiserId))
 	return c
 }
 
 // FloodlightConfigurationId sets the optional parameter
 // "floodlightConfigurationId": Select only floodlight activity groups
 // with the specified floodlight configuration ID. Must specify either
-// ids, advertiserId, or floodlightConfigurationId for a non-empty
-// result.
+// advertiserId, or floodlightConfigurationId for a non-empty result.
 func (c *FloodlightActivityGroupsListCall) FloodlightConfigurationId(floodlightConfigurationId int64) *FloodlightActivityGroupsListCall {
-	c.opt_["floodlightConfigurationId"] = floodlightConfigurationId
+	c.params_.Set("floodlightConfigurationId", fmt.Sprintf("%v", floodlightConfigurationId))
 	return c
 }
 
 // Ids sets the optional parameter "ids": Select only floodlight
-// activity groups with the specified IDs. Must specify either ids,
-// advertiserId, or floodlightConfigurationId for a non-empty result.
-func (c *FloodlightActivityGroupsListCall) Ids(ids int64) *FloodlightActivityGroupsListCall {
-	c.opt_["ids"] = ids
+// activity groups with the specified IDs. Must specify either
+// advertiserId or floodlightConfigurationId for a non-empty result.
+func (c *FloodlightActivityGroupsListCall) Ids(ids ...int64) *FloodlightActivityGroupsListCall {
+	for _, v_ := range ids {
+		c.params_.Add("ids", fmt.Sprintf("%v", v_))
+	}
 	return c
 }
 
 // MaxResults sets the optional parameter "maxResults": Maximum number
 // of results to return.
 func (c *FloodlightActivityGroupsListCall) MaxResults(maxResults int64) *FloodlightActivityGroupsListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
 // PageToken sets the optional parameter "pageToken": Value of the
 // nextPageToken from the previous result page.
 func (c *FloodlightActivityGroupsListCall) PageToken(pageToken string) *FloodlightActivityGroupsListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
 	return c
 }
 
@@ -17536,35 +16728,39 @@ func (c *FloodlightActivityGroupsListCall) PageToken(pageToken string) *Floodlig
 // searching for objects by name or ID. Wildcards (*) are allowed. For
 // example, "floodlightactivitygroup*2015" will return objects with
 // names like "floodlightactivitygroup June 2015",
-// "floodlightactivitygroup April 2015" or simply
+// "floodlightactivitygroup April 2015", or simply
 // "floodlightactivitygroup 2015". Most of the searches also add
 // wildcards implicitly at the start and the end of the search string.
 // For example, a search string of "floodlightactivitygroup" will match
 // objects with name "my floodlightactivitygroup activity",
-// "floodlightactivitygroup 2015" or simply "floodlightactivitygroup".
+// "floodlightactivitygroup 2015", or simply "floodlightactivitygroup".
 func (c *FloodlightActivityGroupsListCall) SearchString(searchString string) *FloodlightActivityGroupsListCall {
-	c.opt_["searchString"] = searchString
+	c.params_.Set("searchString", fmt.Sprintf("%v", searchString))
 	return c
 }
 
 // SortField sets the optional parameter "sortField": Field by which to
 // sort the list.
 func (c *FloodlightActivityGroupsListCall) SortField(sortField string) *FloodlightActivityGroupsListCall {
-	c.opt_["sortField"] = sortField
+	c.params_.Set("sortField", fmt.Sprintf("%v", sortField))
 	return c
 }
 
 // SortOrder sets the optional parameter "sortOrder": Order of sorted
 // results, default is ASCENDING.
 func (c *FloodlightActivityGroupsListCall) SortOrder(sortOrder string) *FloodlightActivityGroupsListCall {
-	c.opt_["sortOrder"] = sortOrder
+	c.params_.Set("sortOrder", fmt.Sprintf("%v", sortOrder))
 	return c
 }
 
 // Type sets the optional parameter "type": Select only floodlight
 // activity groups with the specified floodlight activity group type.
 func (c *FloodlightActivityGroupsListCall) Type(type_ string) *FloodlightActivityGroupsListCall {
-	c.opt_["type"] = type_
+	c.params_.Set("type", fmt.Sprintf("%v", type_))
+	return c
+}
+func (c *FloodlightActivityGroupsListCall) Context(ctx context.Context) *FloodlightActivityGroupsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -17572,64 +16768,23 @@ func (c *FloodlightActivityGroupsListCall) Type(type_ string) *FloodlightActivit
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *FloodlightActivityGroupsListCall) Fields(s ...googleapi.Field) *FloodlightActivityGroupsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *FloodlightActivityGroupsListCall) Do() (*FloodlightActivityGroupsListResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["advertiserId"]; ok {
-		params.Set("advertiserId", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["floodlightConfigurationId"]; ok {
-		params.Set("floodlightConfigurationId", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["ids"]; ok {
-		params.Set("ids", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["searchString"]; ok {
-		params.Set("searchString", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["sortField"]; ok {
-		params.Set("sortField", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["sortOrder"]; ok {
-		params.Set("sortOrder", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["type"]; ok {
-		params.Set("type", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/floodlightActivityGroups")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *FloodlightActivityGroupsListResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *FloodlightActivityGroupsListResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves a list of floodlight activity groups, possibly filtered.",
 	//   "httpMethod": "GET",
@@ -17639,19 +16794,19 @@ func (c *FloodlightActivityGroupsListCall) Do() (*FloodlightActivityGroupsListRe
 	//   ],
 	//   "parameters": {
 	//     "advertiserId": {
-	//       "description": "Select only floodlight activity groups with the specified advertiser ID. Must specify either ids, advertiserId, or floodlightConfigurationId for a non-empty result.",
+	//       "description": "Select only floodlight activity groups with the specified advertiser ID. Must specify either advertiserId or floodlightConfigurationId for a non-empty result.",
 	//       "format": "int64",
 	//       "location": "query",
 	//       "type": "string"
 	//     },
 	//     "floodlightConfigurationId": {
-	//       "description": "Select only floodlight activity groups with the specified floodlight configuration ID. Must specify either ids, advertiserId, or floodlightConfigurationId for a non-empty result.",
+	//       "description": "Select only floodlight activity groups with the specified floodlight configuration ID. Must specify either advertiserId, or floodlightConfigurationId for a non-empty result.",
 	//       "format": "int64",
 	//       "location": "query",
 	//       "type": "string"
 	//     },
 	//     "ids": {
-	//       "description": "Select only floodlight activity groups with the specified IDs. Must specify either ids, advertiserId, or floodlightConfigurationId for a non-empty result.",
+	//       "description": "Select only floodlight activity groups with the specified IDs. Must specify either advertiserId or floodlightConfigurationId for a non-empty result.",
 	//       "format": "int64",
 	//       "location": "query",
 	//       "repeated": true,
@@ -17676,7 +16831,7 @@ func (c *FloodlightActivityGroupsListCall) Do() (*FloodlightActivityGroupsListRe
 	//       "type": "string"
 	//     },
 	//     "searchString": {
-	//       "description": "Allows searching for objects by name or ID. Wildcards (*) are allowed. For example, \"floodlightactivitygroup*2015\" will return objects with names like \"floodlightactivitygroup June 2015\", \"floodlightactivitygroup April 2015\" or simply \"floodlightactivitygroup 2015\". Most of the searches also add wildcards implicitly at the start and the end of the search string. For example, a search string of \"floodlightactivitygroup\" will match objects with name \"my floodlightactivitygroup activity\", \"floodlightactivitygroup 2015\" or simply \"floodlightactivitygroup\".",
+	//       "description": "Allows searching for objects by name or ID. Wildcards (*) are allowed. For example, \"floodlightactivitygroup*2015\" will return objects with names like \"floodlightactivitygroup June 2015\", \"floodlightactivitygroup April 2015\", or simply \"floodlightactivitygroup 2015\". Most of the searches also add wildcards implicitly at the start and the end of the search string. For example, a search string of \"floodlightactivitygroup\" will match objects with name \"my floodlightactivitygroup activity\", \"floodlightactivitygroup 2015\", or simply \"floodlightactivitygroup\".",
 	//       "location": "query",
 	//       "type": "string"
 	//     },
@@ -17738,16 +16893,29 @@ type FloodlightActivityGroupsPatchCall struct {
 	profileId               int64
 	id                      int64
 	floodlightactivitygroup *FloodlightActivityGroup
-	opt_                    map[string]interface{}
+	caller_                 googleapi.Caller
+	params_                 url.Values
+	pathTemplate_           string
+	context_                context.Context
 }
 
 // Patch: Updates an existing floodlight activity group. This method
 // supports patch semantics.
+
 func (r *FloodlightActivityGroupsService) Patch(profileId int64, id int64, floodlightactivitygroup *FloodlightActivityGroup) *FloodlightActivityGroupsPatchCall {
-	c := &FloodlightActivityGroupsPatchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.id = id
-	c.floodlightactivitygroup = floodlightactivitygroup
+	return &FloodlightActivityGroupsPatchCall{
+		s:         r.s,
+		profileId: profileId,
+		id:        id,
+		floodlightactivitygroup: floodlightactivitygroup,
+		caller_:                 googleapi.JSONCall{},
+		params_:                 make(map[string][]string),
+		pathTemplate_:           "userprofiles/{profileId}/floodlightActivityGroups",
+		context_:                googleapi.NoContext,
+	}
+}
+func (c *FloodlightActivityGroupsPatchCall) Context(ctx context.Context) *FloodlightActivityGroupsPatchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -17755,44 +16923,25 @@ func (r *FloodlightActivityGroupsService) Patch(profileId int64, id int64, flood
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *FloodlightActivityGroupsPatchCall) Fields(s ...googleapi.Field) *FloodlightActivityGroupsPatchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *FloodlightActivityGroupsPatchCall) Do() (*FloodlightActivityGroup, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.floodlightactivitygroup)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("id", fmt.Sprintf("%v", c.id))
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/floodlightActivityGroups")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PATCH", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *FloodlightActivityGroup
+	c.params_.Set("id", fmt.Sprintf("%v", c.id))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PATCH",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.floodlightactivitygroup,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *FloodlightActivityGroup
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates an existing floodlight activity group. This method supports patch semantics.",
 	//   "httpMethod": "PATCH",
@@ -17837,14 +16986,27 @@ type FloodlightActivityGroupsUpdateCall struct {
 	s                       *Service
 	profileId               int64
 	floodlightactivitygroup *FloodlightActivityGroup
-	opt_                    map[string]interface{}
+	caller_                 googleapi.Caller
+	params_                 url.Values
+	pathTemplate_           string
+	context_                context.Context
 }
 
 // Update: Updates an existing floodlight activity group.
+
 func (r *FloodlightActivityGroupsService) Update(profileId int64, floodlightactivitygroup *FloodlightActivityGroup) *FloodlightActivityGroupsUpdateCall {
-	c := &FloodlightActivityGroupsUpdateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.floodlightactivitygroup = floodlightactivitygroup
+	return &FloodlightActivityGroupsUpdateCall{
+		s:                       r.s,
+		profileId:               profileId,
+		floodlightactivitygroup: floodlightactivitygroup,
+		caller_:                 googleapi.JSONCall{},
+		params_:                 make(map[string][]string),
+		pathTemplate_:           "userprofiles/{profileId}/floodlightActivityGroups",
+		context_:                googleapi.NoContext,
+	}
+}
+func (c *FloodlightActivityGroupsUpdateCall) Context(ctx context.Context) *FloodlightActivityGroupsUpdateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -17852,43 +17014,24 @@ func (r *FloodlightActivityGroupsService) Update(profileId int64, floodlightacti
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *FloodlightActivityGroupsUpdateCall) Fields(s ...googleapi.Field) *FloodlightActivityGroupsUpdateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *FloodlightActivityGroupsUpdateCall) Do() (*FloodlightActivityGroup, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.floodlightactivitygroup)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/floodlightActivityGroups")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *FloodlightActivityGroup
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.floodlightactivitygroup,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *FloodlightActivityGroup
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates an existing floodlight activity group.",
 	//   "httpMethod": "PUT",
@@ -17922,17 +17065,30 @@ func (c *FloodlightActivityGroupsUpdateCall) Do() (*FloodlightActivityGroup, err
 // method id "dfareporting.floodlightConfigurations.get":
 
 type FloodlightConfigurationsGetCall struct {
-	s         *Service
-	profileId int64
-	id        int64
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	id            int64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Gets one floodlight configuration by ID.
+
 func (r *FloodlightConfigurationsService) Get(profileId int64, id int64) *FloodlightConfigurationsGetCall {
-	c := &FloodlightConfigurationsGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.id = id
+	return &FloodlightConfigurationsGetCall{
+		s:             r.s,
+		profileId:     profileId,
+		id:            id,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/floodlightConfigurations/{id}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *FloodlightConfigurationsGetCall) Context(ctx context.Context) *FloodlightConfigurationsGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -17940,38 +17096,24 @@ func (r *FloodlightConfigurationsService) Get(profileId int64, id int64) *Floodl
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *FloodlightConfigurationsGetCall) Fields(s ...googleapi.Field) *FloodlightConfigurationsGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *FloodlightConfigurationsGetCall) Do() (*FloodlightConfiguration, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/floodlightConfigurations/{id}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *FloodlightConfiguration
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 		"id":        strconv.FormatInt(c.id, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *FloodlightConfiguration
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Gets one floodlight configuration by ID.",
 	//   "httpMethod": "GET",
@@ -18010,24 +17152,39 @@ func (c *FloodlightConfigurationsGetCall) Do() (*FloodlightConfiguration, error)
 // method id "dfareporting.floodlightConfigurations.list":
 
 type FloodlightConfigurationsListCall struct {
-	s         *Service
-	profileId int64
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Retrieves a list of floodlight configurations, possibly
 // filtered.
+
 func (r *FloodlightConfigurationsService) List(profileId int64) *FloodlightConfigurationsListCall {
-	c := &FloodlightConfigurationsListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	return c
+	return &FloodlightConfigurationsListCall{
+		s:             r.s,
+		profileId:     profileId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/floodlightConfigurations",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Ids sets the optional parameter "ids": Set of IDs of floodlight
 // configurations to retrieve. Required field; otherwise an empty list
 // will be returned.
-func (c *FloodlightConfigurationsListCall) Ids(ids int64) *FloodlightConfigurationsListCall {
-	c.opt_["ids"] = ids
+func (c *FloodlightConfigurationsListCall) Ids(ids ...int64) *FloodlightConfigurationsListCall {
+	for _, v_ := range ids {
+		c.params_.Add("ids", fmt.Sprintf("%v", v_))
+	}
+	return c
+}
+func (c *FloodlightConfigurationsListCall) Context(ctx context.Context) *FloodlightConfigurationsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -18035,40 +17192,23 @@ func (c *FloodlightConfigurationsListCall) Ids(ids int64) *FloodlightConfigurati
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *FloodlightConfigurationsListCall) Fields(s ...googleapi.Field) *FloodlightConfigurationsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *FloodlightConfigurationsListCall) Do() (*FloodlightConfigurationsListResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["ids"]; ok {
-		params.Set("ids", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/floodlightConfigurations")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *FloodlightConfigurationsListResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *FloodlightConfigurationsListResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves a list of floodlight configurations, possibly filtered.",
 	//   "httpMethod": "GET",
@@ -18110,16 +17250,29 @@ type FloodlightConfigurationsPatchCall struct {
 	profileId               int64
 	id                      int64
 	floodlightconfiguration *FloodlightConfiguration
-	opt_                    map[string]interface{}
+	caller_                 googleapi.Caller
+	params_                 url.Values
+	pathTemplate_           string
+	context_                context.Context
 }
 
 // Patch: Updates an existing floodlight configuration. This method
 // supports patch semantics.
+
 func (r *FloodlightConfigurationsService) Patch(profileId int64, id int64, floodlightconfiguration *FloodlightConfiguration) *FloodlightConfigurationsPatchCall {
-	c := &FloodlightConfigurationsPatchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.id = id
-	c.floodlightconfiguration = floodlightconfiguration
+	return &FloodlightConfigurationsPatchCall{
+		s:         r.s,
+		profileId: profileId,
+		id:        id,
+		floodlightconfiguration: floodlightconfiguration,
+		caller_:                 googleapi.JSONCall{},
+		params_:                 make(map[string][]string),
+		pathTemplate_:           "userprofiles/{profileId}/floodlightConfigurations",
+		context_:                googleapi.NoContext,
+	}
+}
+func (c *FloodlightConfigurationsPatchCall) Context(ctx context.Context) *FloodlightConfigurationsPatchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -18127,44 +17280,25 @@ func (r *FloodlightConfigurationsService) Patch(profileId int64, id int64, flood
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *FloodlightConfigurationsPatchCall) Fields(s ...googleapi.Field) *FloodlightConfigurationsPatchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *FloodlightConfigurationsPatchCall) Do() (*FloodlightConfiguration, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.floodlightconfiguration)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("id", fmt.Sprintf("%v", c.id))
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/floodlightConfigurations")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PATCH", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *FloodlightConfiguration
+	c.params_.Set("id", fmt.Sprintf("%v", c.id))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PATCH",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.floodlightconfiguration,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *FloodlightConfiguration
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates an existing floodlight configuration. This method supports patch semantics.",
 	//   "httpMethod": "PATCH",
@@ -18209,14 +17343,27 @@ type FloodlightConfigurationsUpdateCall struct {
 	s                       *Service
 	profileId               int64
 	floodlightconfiguration *FloodlightConfiguration
-	opt_                    map[string]interface{}
+	caller_                 googleapi.Caller
+	params_                 url.Values
+	pathTemplate_           string
+	context_                context.Context
 }
 
 // Update: Updates an existing floodlight configuration.
+
 func (r *FloodlightConfigurationsService) Update(profileId int64, floodlightconfiguration *FloodlightConfiguration) *FloodlightConfigurationsUpdateCall {
-	c := &FloodlightConfigurationsUpdateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.floodlightconfiguration = floodlightconfiguration
+	return &FloodlightConfigurationsUpdateCall{
+		s:                       r.s,
+		profileId:               profileId,
+		floodlightconfiguration: floodlightconfiguration,
+		caller_:                 googleapi.JSONCall{},
+		params_:                 make(map[string][]string),
+		pathTemplate_:           "userprofiles/{profileId}/floodlightConfigurations",
+		context_:                googleapi.NoContext,
+	}
+}
+func (c *FloodlightConfigurationsUpdateCall) Context(ctx context.Context) *FloodlightConfigurationsUpdateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -18224,43 +17371,24 @@ func (r *FloodlightConfigurationsService) Update(profileId int64, floodlightconf
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *FloodlightConfigurationsUpdateCall) Fields(s ...googleapi.Field) *FloodlightConfigurationsUpdateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *FloodlightConfigurationsUpdateCall) Do() (*FloodlightConfiguration, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.floodlightconfiguration)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/floodlightConfigurations")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *FloodlightConfiguration
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.floodlightconfiguration,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *FloodlightConfiguration
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates an existing floodlight configuration.",
 	//   "httpMethod": "PUT",
@@ -18294,55 +17422,48 @@ func (c *FloodlightConfigurationsUpdateCall) Do() (*FloodlightConfiguration, err
 // method id "dfareporting.landingPages.delete":
 
 type LandingPagesDeleteCall struct {
-	s          *Service
-	profileId  int64
-	campaignId int64
-	id         int64
-	opt_       map[string]interface{}
+	s             *Service
+	profileId     int64
+	campaignId    int64
+	id            int64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Delete: Deletes an existing campaign landing page.
-func (r *LandingPagesService) Delete(profileId int64, campaignId int64, id int64) *LandingPagesDeleteCall {
-	c := &LandingPagesDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.campaignId = campaignId
-	c.id = id
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *LandingPagesDeleteCall) Fields(s ...googleapi.Field) *LandingPagesDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *LandingPagesService) Delete(profileId int64, campaignId int64, id int64) *LandingPagesDeleteCall {
+	return &LandingPagesDeleteCall{
+		s:             r.s,
+		profileId:     profileId,
+		campaignId:    campaignId,
+		id:            id,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/campaigns/{campaignId}/landingPages/{id}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *LandingPagesDeleteCall) Context(ctx context.Context) *LandingPagesDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *LandingPagesDeleteCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/campaigns/{campaignId}/landingPages/{id}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId":  strconv.FormatInt(c.profileId, 10),
 		"campaignId": strconv.FormatInt(c.campaignId, 10),
 		"id":         strconv.FormatInt(c.id, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Deletes an existing campaign landing page.",
 	//   "httpMethod": "DELETE",
@@ -18386,19 +17507,32 @@ func (c *LandingPagesDeleteCall) Do() error {
 // method id "dfareporting.landingPages.get":
 
 type LandingPagesGetCall struct {
-	s          *Service
-	profileId  int64
-	campaignId int64
-	id         int64
-	opt_       map[string]interface{}
+	s             *Service
+	profileId     int64
+	campaignId    int64
+	id            int64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Gets one campaign landing page by ID.
+
 func (r *LandingPagesService) Get(profileId int64, campaignId int64, id int64) *LandingPagesGetCall {
-	c := &LandingPagesGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.campaignId = campaignId
-	c.id = id
+	return &LandingPagesGetCall{
+		s:             r.s,
+		profileId:     profileId,
+		campaignId:    campaignId,
+		id:            id,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/campaigns/{campaignId}/landingPages/{id}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *LandingPagesGetCall) Context(ctx context.Context) *LandingPagesGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -18406,39 +17540,25 @@ func (r *LandingPagesService) Get(profileId int64, campaignId int64, id int64) *
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *LandingPagesGetCall) Fields(s ...googleapi.Field) *LandingPagesGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *LandingPagesGetCall) Do() (*LandingPage, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/campaigns/{campaignId}/landingPages/{id}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *LandingPage
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId":  strconv.FormatInt(c.profileId, 10),
 		"campaignId": strconv.FormatInt(c.campaignId, 10),
 		"id":         strconv.FormatInt(c.id, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *LandingPage
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Gets one campaign landing page by ID.",
 	//   "httpMethod": "GET",
@@ -18485,19 +17605,32 @@ func (c *LandingPagesGetCall) Do() (*LandingPage, error) {
 // method id "dfareporting.landingPages.insert":
 
 type LandingPagesInsertCall struct {
-	s           *Service
-	profileId   int64
-	campaignId  int64
-	landingpage *LandingPage
-	opt_        map[string]interface{}
+	s             *Service
+	profileId     int64
+	campaignId    int64
+	landingpage   *LandingPage
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Insert: Inserts a new landing page for the specified campaign.
+
 func (r *LandingPagesService) Insert(profileId int64, campaignId int64, landingpage *LandingPage) *LandingPagesInsertCall {
-	c := &LandingPagesInsertCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.campaignId = campaignId
-	c.landingpage = landingpage
+	return &LandingPagesInsertCall{
+		s:             r.s,
+		profileId:     profileId,
+		campaignId:    campaignId,
+		landingpage:   landingpage,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/campaigns/{campaignId}/landingPages",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *LandingPagesInsertCall) Context(ctx context.Context) *LandingPagesInsertCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -18505,44 +17638,25 @@ func (r *LandingPagesService) Insert(profileId int64, campaignId int64, landingp
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *LandingPagesInsertCall) Fields(s ...googleapi.Field) *LandingPagesInsertCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *LandingPagesInsertCall) Do() (*LandingPage, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.landingpage)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/campaigns/{campaignId}/landingPages")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *LandingPage
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId":  strconv.FormatInt(c.profileId, 10),
 		"campaignId": strconv.FormatInt(c.campaignId, 10),
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.landingpage,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *LandingPage
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Inserts a new landing page for the specified campaign.",
 	//   "httpMethod": "POST",
@@ -18584,17 +17698,30 @@ func (c *LandingPagesInsertCall) Do() (*LandingPage, error) {
 // method id "dfareporting.landingPages.list":
 
 type LandingPagesListCall struct {
-	s          *Service
-	profileId  int64
-	campaignId int64
-	opt_       map[string]interface{}
+	s             *Service
+	profileId     int64
+	campaignId    int64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Retrieves the list of landing pages for the specified campaign.
+
 func (r *LandingPagesService) List(profileId int64, campaignId int64) *LandingPagesListCall {
-	c := &LandingPagesListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.campaignId = campaignId
+	return &LandingPagesListCall{
+		s:             r.s,
+		profileId:     profileId,
+		campaignId:    campaignId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/campaigns/{campaignId}/landingPages",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *LandingPagesListCall) Context(ctx context.Context) *LandingPagesListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -18602,38 +17729,24 @@ func (r *LandingPagesService) List(profileId int64, campaignId int64) *LandingPa
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *LandingPagesListCall) Fields(s ...googleapi.Field) *LandingPagesListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *LandingPagesListCall) Do() (*LandingPagesListResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/campaigns/{campaignId}/landingPages")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *LandingPagesListResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId":  strconv.FormatInt(c.profileId, 10),
 		"campaignId": strconv.FormatInt(c.campaignId, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *LandingPagesListResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves the list of landing pages for the specified campaign.",
 	//   "httpMethod": "GET",
@@ -18672,22 +17785,35 @@ func (c *LandingPagesListCall) Do() (*LandingPagesListResponse, error) {
 // method id "dfareporting.landingPages.patch":
 
 type LandingPagesPatchCall struct {
-	s           *Service
-	profileId   int64
-	campaignId  int64
-	id          int64
-	landingpage *LandingPage
-	opt_        map[string]interface{}
+	s             *Service
+	profileId     int64
+	campaignId    int64
+	id            int64
+	landingpage   *LandingPage
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Patch: Updates an existing campaign landing page. This method
 // supports patch semantics.
+
 func (r *LandingPagesService) Patch(profileId int64, campaignId int64, id int64, landingpage *LandingPage) *LandingPagesPatchCall {
-	c := &LandingPagesPatchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.campaignId = campaignId
-	c.id = id
-	c.landingpage = landingpage
+	return &LandingPagesPatchCall{
+		s:             r.s,
+		profileId:     profileId,
+		campaignId:    campaignId,
+		id:            id,
+		landingpage:   landingpage,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/campaigns/{campaignId}/landingPages",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *LandingPagesPatchCall) Context(ctx context.Context) *LandingPagesPatchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -18695,45 +17821,26 @@ func (r *LandingPagesService) Patch(profileId int64, campaignId int64, id int64,
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *LandingPagesPatchCall) Fields(s ...googleapi.Field) *LandingPagesPatchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *LandingPagesPatchCall) Do() (*LandingPage, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.landingpage)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("id", fmt.Sprintf("%v", c.id))
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/campaigns/{campaignId}/landingPages")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PATCH", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *LandingPage
+	c.params_.Set("id", fmt.Sprintf("%v", c.id))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId":  strconv.FormatInt(c.profileId, 10),
 		"campaignId": strconv.FormatInt(c.campaignId, 10),
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PATCH",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.landingpage,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *LandingPage
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates an existing campaign landing page. This method supports patch semantics.",
 	//   "httpMethod": "PATCH",
@@ -18783,19 +17890,32 @@ func (c *LandingPagesPatchCall) Do() (*LandingPage, error) {
 // method id "dfareporting.landingPages.update":
 
 type LandingPagesUpdateCall struct {
-	s           *Service
-	profileId   int64
-	campaignId  int64
-	landingpage *LandingPage
-	opt_        map[string]interface{}
+	s             *Service
+	profileId     int64
+	campaignId    int64
+	landingpage   *LandingPage
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Update: Updates an existing campaign landing page.
+
 func (r *LandingPagesService) Update(profileId int64, campaignId int64, landingpage *LandingPage) *LandingPagesUpdateCall {
-	c := &LandingPagesUpdateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.campaignId = campaignId
-	c.landingpage = landingpage
+	return &LandingPagesUpdateCall{
+		s:             r.s,
+		profileId:     profileId,
+		campaignId:    campaignId,
+		landingpage:   landingpage,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/campaigns/{campaignId}/landingPages",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *LandingPagesUpdateCall) Context(ctx context.Context) *LandingPagesUpdateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -18803,44 +17923,25 @@ func (r *LandingPagesService) Update(profileId int64, campaignId int64, landingp
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *LandingPagesUpdateCall) Fields(s ...googleapi.Field) *LandingPagesUpdateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *LandingPagesUpdateCall) Do() (*LandingPage, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.landingpage)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/campaigns/{campaignId}/landingPages")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *LandingPage
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId":  strconv.FormatInt(c.profileId, 10),
 		"campaignId": strconv.FormatInt(c.campaignId, 10),
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.landingpage,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *LandingPage
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates an existing campaign landing page.",
 	//   "httpMethod": "PUT",
@@ -18882,15 +17983,28 @@ func (c *LandingPagesUpdateCall) Do() (*LandingPage, error) {
 // method id "dfareporting.metros.list":
 
 type MetrosListCall struct {
-	s         *Service
-	profileId int64
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Retrieves a list of metros.
+
 func (r *MetrosService) List(profileId int64) *MetrosListCall {
-	c := &MetrosListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
+	return &MetrosListCall{
+		s:             r.s,
+		profileId:     profileId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/metros",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *MetrosListCall) Context(ctx context.Context) *MetrosListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -18898,37 +18012,23 @@ func (r *MetrosService) List(profileId int64) *MetrosListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *MetrosListCall) Fields(s ...googleapi.Field) *MetrosListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *MetrosListCall) Do() (*MetrosListResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/metros")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *MetrosListResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *MetrosListResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves a list of metros.",
 	//   "httpMethod": "GET",
@@ -18959,15 +18059,28 @@ func (c *MetrosListCall) Do() (*MetrosListResponse, error) {
 // method id "dfareporting.mobileCarriers.list":
 
 type MobileCarriersListCall struct {
-	s         *Service
-	profileId int64
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Retrieves a list of mobile carriers.
+
 func (r *MobileCarriersService) List(profileId int64) *MobileCarriersListCall {
-	c := &MobileCarriersListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
+	return &MobileCarriersListCall{
+		s:             r.s,
+		profileId:     profileId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/mobileCarriers",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *MobileCarriersListCall) Context(ctx context.Context) *MobileCarriersListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -18975,37 +18088,23 @@ func (r *MobileCarriersService) List(profileId int64) *MobileCarriersListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *MobileCarriersListCall) Fields(s ...googleapi.Field) *MobileCarriersListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *MobileCarriersListCall) Do() (*MobileCarriersListResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/mobileCarriers")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *MobileCarriersListResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *MobileCarriersListResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves a list of mobile carriers.",
 	//   "httpMethod": "GET",
@@ -19036,15 +18135,28 @@ func (c *MobileCarriersListCall) Do() (*MobileCarriersListResponse, error) {
 // method id "dfareporting.operatingSystemVersions.list":
 
 type OperatingSystemVersionsListCall struct {
-	s         *Service
-	profileId int64
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Retrieves a list of operating system versions.
+
 func (r *OperatingSystemVersionsService) List(profileId int64) *OperatingSystemVersionsListCall {
-	c := &OperatingSystemVersionsListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
+	return &OperatingSystemVersionsListCall{
+		s:             r.s,
+		profileId:     profileId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/operatingSystemVersions",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *OperatingSystemVersionsListCall) Context(ctx context.Context) *OperatingSystemVersionsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -19052,37 +18164,23 @@ func (r *OperatingSystemVersionsService) List(profileId int64) *OperatingSystemV
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *OperatingSystemVersionsListCall) Fields(s ...googleapi.Field) *OperatingSystemVersionsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *OperatingSystemVersionsListCall) Do() (*OperatingSystemVersionsListResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/operatingSystemVersions")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *OperatingSystemVersionsListResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *OperatingSystemVersionsListResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves a list of operating system versions.",
 	//   "httpMethod": "GET",
@@ -19113,15 +18211,28 @@ func (c *OperatingSystemVersionsListCall) Do() (*OperatingSystemVersionsListResp
 // method id "dfareporting.operatingSystems.list":
 
 type OperatingSystemsListCall struct {
-	s         *Service
-	profileId int64
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Retrieves a list of operating systems.
+
 func (r *OperatingSystemsService) List(profileId int64) *OperatingSystemsListCall {
-	c := &OperatingSystemsListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
+	return &OperatingSystemsListCall{
+		s:             r.s,
+		profileId:     profileId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/operatingSystems",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *OperatingSystemsListCall) Context(ctx context.Context) *OperatingSystemsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -19129,37 +18240,23 @@ func (r *OperatingSystemsService) List(profileId int64) *OperatingSystemsListCal
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *OperatingSystemsListCall) Fields(s ...googleapi.Field) *OperatingSystemsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *OperatingSystemsListCall) Do() (*OperatingSystemsListResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/operatingSystems")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *OperatingSystemsListResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *OperatingSystemsListResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves a list of operating systems.",
 	//   "httpMethod": "GET",
@@ -19190,17 +18287,30 @@ func (c *OperatingSystemsListCall) Do() (*OperatingSystemsListResponse, error) {
 // method id "dfareporting.placementGroups.get":
 
 type PlacementGroupsGetCall struct {
-	s         *Service
-	profileId int64
-	id        int64
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	id            int64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Gets one placement group by ID.
+
 func (r *PlacementGroupsService) Get(profileId int64, id int64) *PlacementGroupsGetCall {
-	c := &PlacementGroupsGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.id = id
+	return &PlacementGroupsGetCall{
+		s:             r.s,
+		profileId:     profileId,
+		id:            id,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/placementGroups/{id}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *PlacementGroupsGetCall) Context(ctx context.Context) *PlacementGroupsGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -19208,38 +18318,24 @@ func (r *PlacementGroupsService) Get(profileId int64, id int64) *PlacementGroups
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *PlacementGroupsGetCall) Fields(s ...googleapi.Field) *PlacementGroupsGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *PlacementGroupsGetCall) Do() (*PlacementGroup, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/placementGroups/{id}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *PlacementGroup
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 		"id":        strconv.FormatInt(c.id, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *PlacementGroup
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Gets one placement group by ID.",
 	//   "httpMethod": "GET",
@@ -19281,14 +18377,27 @@ type PlacementGroupsInsertCall struct {
 	s              *Service
 	profileId      int64
 	placementgroup *PlacementGroup
-	opt_           map[string]interface{}
+	caller_        googleapi.Caller
+	params_        url.Values
+	pathTemplate_  string
+	context_       context.Context
 }
 
 // Insert: Inserts a new placement group.
+
 func (r *PlacementGroupsService) Insert(profileId int64, placementgroup *PlacementGroup) *PlacementGroupsInsertCall {
-	c := &PlacementGroupsInsertCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.placementgroup = placementgroup
+	return &PlacementGroupsInsertCall{
+		s:              r.s,
+		profileId:      profileId,
+		placementgroup: placementgroup,
+		caller_:        googleapi.JSONCall{},
+		params_:        make(map[string][]string),
+		pathTemplate_:  "userprofiles/{profileId}/placementGroups",
+		context_:       googleapi.NoContext,
+	}
+}
+func (c *PlacementGroupsInsertCall) Context(ctx context.Context) *PlacementGroupsInsertCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -19296,43 +18405,24 @@ func (r *PlacementGroupsService) Insert(profileId int64, placementgroup *Placeme
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *PlacementGroupsInsertCall) Fields(s ...googleapi.Field) *PlacementGroupsInsertCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *PlacementGroupsInsertCall) Do() (*PlacementGroup, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.placementgroup)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/placementGroups")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *PlacementGroup
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.placementgroup,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *PlacementGroup
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Inserts a new placement group.",
 	//   "httpMethod": "POST",
@@ -19366,22 +18456,33 @@ func (c *PlacementGroupsInsertCall) Do() (*PlacementGroup, error) {
 // method id "dfareporting.placementGroups.list":
 
 type PlacementGroupsListCall struct {
-	s         *Service
-	profileId int64
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Retrieves a list of placement groups, possibly filtered.
+
 func (r *PlacementGroupsService) List(profileId int64) *PlacementGroupsListCall {
-	c := &PlacementGroupsListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	return c
+	return &PlacementGroupsListCall{
+		s:             r.s,
+		profileId:     profileId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/placementGroups",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // AdvertiserIds sets the optional parameter "advertiserIds": Select
 // only placement groups that belong to these advertisers.
-func (c *PlacementGroupsListCall) AdvertiserIds(advertiserIds int64) *PlacementGroupsListCall {
-	c.opt_["advertiserIds"] = advertiserIds
+func (c *PlacementGroupsListCall) AdvertiserIds(advertiserIds ...int64) *PlacementGroupsListCall {
+	for _, v_ := range advertiserIds {
+		c.params_.Add("advertiserIds", fmt.Sprintf("%v", v_))
+	}
 	return c
 }
 
@@ -19389,51 +18490,59 @@ func (c *PlacementGroupsListCall) AdvertiserIds(advertiserIds int64) *PlacementG
 // placements. Don't set this field to select both archived and
 // non-archived placements.
 func (c *PlacementGroupsListCall) Archived(archived bool) *PlacementGroupsListCall {
-	c.opt_["archived"] = archived
+	c.params_.Set("archived", fmt.Sprintf("%v", archived))
 	return c
 }
 
 // CampaignIds sets the optional parameter "campaignIds": Select only
 // placement groups that belong to these campaigns.
-func (c *PlacementGroupsListCall) CampaignIds(campaignIds int64) *PlacementGroupsListCall {
-	c.opt_["campaignIds"] = campaignIds
+func (c *PlacementGroupsListCall) CampaignIds(campaignIds ...int64) *PlacementGroupsListCall {
+	for _, v_ := range campaignIds {
+		c.params_.Add("campaignIds", fmt.Sprintf("%v", v_))
+	}
 	return c
 }
 
 // ContentCategoryIds sets the optional parameter "contentCategoryIds":
 // Select only placement groups that are associated with these content
 // categories.
-func (c *PlacementGroupsListCall) ContentCategoryIds(contentCategoryIds int64) *PlacementGroupsListCall {
-	c.opt_["contentCategoryIds"] = contentCategoryIds
+func (c *PlacementGroupsListCall) ContentCategoryIds(contentCategoryIds ...int64) *PlacementGroupsListCall {
+	for _, v_ := range contentCategoryIds {
+		c.params_.Add("contentCategoryIds", fmt.Sprintf("%v", v_))
+	}
 	return c
 }
 
 // DirectorySiteIds sets the optional parameter "directorySiteIds":
 // Select only placement groups that are associated with these directory
 // sites.
-func (c *PlacementGroupsListCall) DirectorySiteIds(directorySiteIds int64) *PlacementGroupsListCall {
-	c.opt_["directorySiteIds"] = directorySiteIds
+func (c *PlacementGroupsListCall) DirectorySiteIds(directorySiteIds ...int64) *PlacementGroupsListCall {
+	for _, v_ := range directorySiteIds {
+		c.params_.Add("directorySiteIds", fmt.Sprintf("%v", v_))
+	}
 	return c
 }
 
 // Ids sets the optional parameter "ids": Select only placement groups
 // with these IDs.
-func (c *PlacementGroupsListCall) Ids(ids int64) *PlacementGroupsListCall {
-	c.opt_["ids"] = ids
+func (c *PlacementGroupsListCall) Ids(ids ...int64) *PlacementGroupsListCall {
+	for _, v_ := range ids {
+		c.params_.Add("ids", fmt.Sprintf("%v", v_))
+	}
 	return c
 }
 
 // MaxResults sets the optional parameter "maxResults": Maximum number
 // of results to return.
 func (c *PlacementGroupsListCall) MaxResults(maxResults int64) *PlacementGroupsListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
 // PageToken sets the optional parameter "pageToken": Value of the
 // nextPageToken from the previous result page.
 func (c *PlacementGroupsListCall) PageToken(pageToken string) *PlacementGroupsListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
 	return c
 }
 
@@ -19445,22 +18554,24 @@ func (c *PlacementGroupsListCall) PageToken(pageToken string) *PlacementGroupsLi
 // tags in it will be served at the same time. A roadblock requires one
 // of its assigned placements to be marked as primary for reporting.
 func (c *PlacementGroupsListCall) PlacementGroupType(placementGroupType string) *PlacementGroupsListCall {
-	c.opt_["placementGroupType"] = placementGroupType
+	c.params_.Set("placementGroupType", fmt.Sprintf("%v", placementGroupType))
 	return c
 }
 
 // PlacementStrategyIds sets the optional parameter
 // "placementStrategyIds": Select only placement groups that are
 // associated with these placement strategies.
-func (c *PlacementGroupsListCall) PlacementStrategyIds(placementStrategyIds int64) *PlacementGroupsListCall {
-	c.opt_["placementStrategyIds"] = placementStrategyIds
+func (c *PlacementGroupsListCall) PlacementStrategyIds(placementStrategyIds ...int64) *PlacementGroupsListCall {
+	for _, v_ := range placementStrategyIds {
+		c.params_.Add("placementStrategyIds", fmt.Sprintf("%v", v_))
+	}
 	return c
 }
 
 // PricingTypes sets the optional parameter "pricingTypes": Select only
 // placement groups with these pricing types.
-func (c *PlacementGroupsListCall) PricingTypes(pricingTypes string) *PlacementGroupsListCall {
-	c.opt_["pricingTypes"] = pricingTypes
+func (c *PlacementGroupsListCall) PricingTypes(pricingTypes ...string) *PlacementGroupsListCall {
+	c.params_["pricingTypes"] = pricingTypes
 	return c
 }
 
@@ -19468,34 +18579,40 @@ func (c *PlacementGroupsListCall) PricingTypes(pricingTypes string) *PlacementGr
 // searching for placement groups by name or ID. Wildcards (*) are
 // allowed. For example, "placement*2015" will return placement groups
 // with names like "placement group June 2015", "placement group May
-// 2015" or simply "placements 2015". Most of the searches also add
+// 2015", or simply "placements 2015". Most of the searches also add
 // wildcards implicitly at the start and the end of the search string.
 // For example, a search string of "placementgroup" will match placement
-// groups with name "my placementgroup", "placementgroup 2015" or simply
-// "placementgroup".
+// groups with name "my placementgroup", "placementgroup 2015", or
+// simply "placementgroup".
 func (c *PlacementGroupsListCall) SearchString(searchString string) *PlacementGroupsListCall {
-	c.opt_["searchString"] = searchString
+	c.params_.Set("searchString", fmt.Sprintf("%v", searchString))
 	return c
 }
 
 // SiteIds sets the optional parameter "siteIds": Select only placement
 // groups that are associated with these sites.
-func (c *PlacementGroupsListCall) SiteIds(siteIds int64) *PlacementGroupsListCall {
-	c.opt_["siteIds"] = siteIds
+func (c *PlacementGroupsListCall) SiteIds(siteIds ...int64) *PlacementGroupsListCall {
+	for _, v_ := range siteIds {
+		c.params_.Add("siteIds", fmt.Sprintf("%v", v_))
+	}
 	return c
 }
 
 // SortField sets the optional parameter "sortField": Field by which to
 // sort the list.
 func (c *PlacementGroupsListCall) SortField(sortField string) *PlacementGroupsListCall {
-	c.opt_["sortField"] = sortField
+	c.params_.Set("sortField", fmt.Sprintf("%v", sortField))
 	return c
 }
 
 // SortOrder sets the optional parameter "sortOrder": Order of sorted
 // results, default is ASCENDING.
 func (c *PlacementGroupsListCall) SortOrder(sortOrder string) *PlacementGroupsListCall {
-	c.opt_["sortOrder"] = sortOrder
+	c.params_.Set("sortOrder", fmt.Sprintf("%v", sortOrder))
+	return c
+}
+func (c *PlacementGroupsListCall) Context(ctx context.Context) *PlacementGroupsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -19503,82 +18620,23 @@ func (c *PlacementGroupsListCall) SortOrder(sortOrder string) *PlacementGroupsLi
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *PlacementGroupsListCall) Fields(s ...googleapi.Field) *PlacementGroupsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *PlacementGroupsListCall) Do() (*PlacementGroupsListResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["advertiserIds"]; ok {
-		params.Set("advertiserIds", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["archived"]; ok {
-		params.Set("archived", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["campaignIds"]; ok {
-		params.Set("campaignIds", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["contentCategoryIds"]; ok {
-		params.Set("contentCategoryIds", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["directorySiteIds"]; ok {
-		params.Set("directorySiteIds", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["ids"]; ok {
-		params.Set("ids", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["placementGroupType"]; ok {
-		params.Set("placementGroupType", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["placementStrategyIds"]; ok {
-		params.Set("placementStrategyIds", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pricingTypes"]; ok {
-		params.Set("pricingTypes", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["searchString"]; ok {
-		params.Set("searchString", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["siteIds"]; ok {
-		params.Set("siteIds", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["sortField"]; ok {
-		params.Set("sortField", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["sortOrder"]; ok {
-		params.Set("sortOrder", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/placementGroups")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *PlacementGroupsListResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *PlacementGroupsListResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves a list of placement groups, possibly filtered.",
 	//   "httpMethod": "GET",
@@ -19686,7 +18744,7 @@ func (c *PlacementGroupsListCall) Do() (*PlacementGroupsListResponse, error) {
 	//       "type": "string"
 	//     },
 	//     "searchString": {
-	//       "description": "Allows searching for placement groups by name or ID. Wildcards (*) are allowed. For example, \"placement*2015\" will return placement groups with names like \"placement group June 2015\", \"placement group May 2015\" or simply \"placements 2015\". Most of the searches also add wildcards implicitly at the start and the end of the search string. For example, a search string of \"placementgroup\" will match placement groups with name \"my placementgroup\", \"placementgroup 2015\" or simply \"placementgroup\".",
+	//       "description": "Allows searching for placement groups by name or ID. Wildcards (*) are allowed. For example, \"placement*2015\" will return placement groups with names like \"placement group June 2015\", \"placement group May 2015\", or simply \"placements 2015\". Most of the searches also add wildcards implicitly at the start and the end of the search string. For example, a search string of \"placementgroup\" will match placement groups with name \"my placementgroup\", \"placementgroup 2015\", or simply \"placementgroup\".",
 	//       "location": "query",
 	//       "type": "string"
 	//     },
@@ -19742,16 +18800,29 @@ type PlacementGroupsPatchCall struct {
 	profileId      int64
 	id             int64
 	placementgroup *PlacementGroup
-	opt_           map[string]interface{}
+	caller_        googleapi.Caller
+	params_        url.Values
+	pathTemplate_  string
+	context_       context.Context
 }
 
 // Patch: Updates an existing placement group. This method supports
 // patch semantics.
+
 func (r *PlacementGroupsService) Patch(profileId int64, id int64, placementgroup *PlacementGroup) *PlacementGroupsPatchCall {
-	c := &PlacementGroupsPatchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.id = id
-	c.placementgroup = placementgroup
+	return &PlacementGroupsPatchCall{
+		s:              r.s,
+		profileId:      profileId,
+		id:             id,
+		placementgroup: placementgroup,
+		caller_:        googleapi.JSONCall{},
+		params_:        make(map[string][]string),
+		pathTemplate_:  "userprofiles/{profileId}/placementGroups",
+		context_:       googleapi.NoContext,
+	}
+}
+func (c *PlacementGroupsPatchCall) Context(ctx context.Context) *PlacementGroupsPatchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -19759,44 +18830,25 @@ func (r *PlacementGroupsService) Patch(profileId int64, id int64, placementgroup
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *PlacementGroupsPatchCall) Fields(s ...googleapi.Field) *PlacementGroupsPatchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *PlacementGroupsPatchCall) Do() (*PlacementGroup, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.placementgroup)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("id", fmt.Sprintf("%v", c.id))
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/placementGroups")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PATCH", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *PlacementGroup
+	c.params_.Set("id", fmt.Sprintf("%v", c.id))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PATCH",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.placementgroup,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *PlacementGroup
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates an existing placement group. This method supports patch semantics.",
 	//   "httpMethod": "PATCH",
@@ -19841,14 +18893,27 @@ type PlacementGroupsUpdateCall struct {
 	s              *Service
 	profileId      int64
 	placementgroup *PlacementGroup
-	opt_           map[string]interface{}
+	caller_        googleapi.Caller
+	params_        url.Values
+	pathTemplate_  string
+	context_       context.Context
 }
 
 // Update: Updates an existing placement group.
+
 func (r *PlacementGroupsService) Update(profileId int64, placementgroup *PlacementGroup) *PlacementGroupsUpdateCall {
-	c := &PlacementGroupsUpdateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.placementgroup = placementgroup
+	return &PlacementGroupsUpdateCall{
+		s:              r.s,
+		profileId:      profileId,
+		placementgroup: placementgroup,
+		caller_:        googleapi.JSONCall{},
+		params_:        make(map[string][]string),
+		pathTemplate_:  "userprofiles/{profileId}/placementGroups",
+		context_:       googleapi.NoContext,
+	}
+}
+func (c *PlacementGroupsUpdateCall) Context(ctx context.Context) *PlacementGroupsUpdateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -19856,43 +18921,24 @@ func (r *PlacementGroupsService) Update(profileId int64, placementgroup *Placeme
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *PlacementGroupsUpdateCall) Fields(s ...googleapi.Field) *PlacementGroupsUpdateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *PlacementGroupsUpdateCall) Do() (*PlacementGroup, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.placementgroup)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/placementGroups")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *PlacementGroup
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.placementgroup,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *PlacementGroup
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates an existing placement group.",
 	//   "httpMethod": "PUT",
@@ -19926,52 +18972,45 @@ func (c *PlacementGroupsUpdateCall) Do() (*PlacementGroup, error) {
 // method id "dfareporting.placementStrategies.delete":
 
 type PlacementStrategiesDeleteCall struct {
-	s         *Service
-	profileId int64
-	id        int64
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	id            int64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Delete: Deletes an existing placement strategy.
-func (r *PlacementStrategiesService) Delete(profileId int64, id int64) *PlacementStrategiesDeleteCall {
-	c := &PlacementStrategiesDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.id = id
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *PlacementStrategiesDeleteCall) Fields(s ...googleapi.Field) *PlacementStrategiesDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *PlacementStrategiesService) Delete(profileId int64, id int64) *PlacementStrategiesDeleteCall {
+	return &PlacementStrategiesDeleteCall{
+		s:             r.s,
+		profileId:     profileId,
+		id:            id,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/placementStrategies/{id}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *PlacementStrategiesDeleteCall) Context(ctx context.Context) *PlacementStrategiesDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *PlacementStrategiesDeleteCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/placementStrategies/{id}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 		"id":        strconv.FormatInt(c.id, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Deletes an existing placement strategy.",
 	//   "httpMethod": "DELETE",
@@ -20007,17 +19046,30 @@ func (c *PlacementStrategiesDeleteCall) Do() error {
 // method id "dfareporting.placementStrategies.get":
 
 type PlacementStrategiesGetCall struct {
-	s         *Service
-	profileId int64
-	id        int64
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	id            int64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Gets one placement strategy by ID.
+
 func (r *PlacementStrategiesService) Get(profileId int64, id int64) *PlacementStrategiesGetCall {
-	c := &PlacementStrategiesGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.id = id
+	return &PlacementStrategiesGetCall{
+		s:             r.s,
+		profileId:     profileId,
+		id:            id,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/placementStrategies/{id}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *PlacementStrategiesGetCall) Context(ctx context.Context) *PlacementStrategiesGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -20025,38 +19077,24 @@ func (r *PlacementStrategiesService) Get(profileId int64, id int64) *PlacementSt
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *PlacementStrategiesGetCall) Fields(s ...googleapi.Field) *PlacementStrategiesGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *PlacementStrategiesGetCall) Do() (*PlacementStrategy, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/placementStrategies/{id}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *PlacementStrategy
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 		"id":        strconv.FormatInt(c.id, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *PlacementStrategy
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Gets one placement strategy by ID.",
 	//   "httpMethod": "GET",
@@ -20098,14 +19136,27 @@ type PlacementStrategiesInsertCall struct {
 	s                 *Service
 	profileId         int64
 	placementstrategy *PlacementStrategy
-	opt_              map[string]interface{}
+	caller_           googleapi.Caller
+	params_           url.Values
+	pathTemplate_     string
+	context_          context.Context
 }
 
 // Insert: Inserts a new placement strategy.
+
 func (r *PlacementStrategiesService) Insert(profileId int64, placementstrategy *PlacementStrategy) *PlacementStrategiesInsertCall {
-	c := &PlacementStrategiesInsertCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.placementstrategy = placementstrategy
+	return &PlacementStrategiesInsertCall{
+		s:                 r.s,
+		profileId:         profileId,
+		placementstrategy: placementstrategy,
+		caller_:           googleapi.JSONCall{},
+		params_:           make(map[string][]string),
+		pathTemplate_:     "userprofiles/{profileId}/placementStrategies",
+		context_:          googleapi.NoContext,
+	}
+}
+func (c *PlacementStrategiesInsertCall) Context(ctx context.Context) *PlacementStrategiesInsertCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -20113,43 +19164,24 @@ func (r *PlacementStrategiesService) Insert(profileId int64, placementstrategy *
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *PlacementStrategiesInsertCall) Fields(s ...googleapi.Field) *PlacementStrategiesInsertCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *PlacementStrategiesInsertCall) Do() (*PlacementStrategy, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.placementstrategy)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/placementStrategies")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *PlacementStrategy
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.placementstrategy,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *PlacementStrategy
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Inserts a new placement strategy.",
 	//   "httpMethod": "POST",
@@ -20183,64 +19215,79 @@ func (c *PlacementStrategiesInsertCall) Do() (*PlacementStrategy, error) {
 // method id "dfareporting.placementStrategies.list":
 
 type PlacementStrategiesListCall struct {
-	s         *Service
-	profileId int64
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Retrieves a list of placement strategies, possibly filtered.
+
 func (r *PlacementStrategiesService) List(profileId int64) *PlacementStrategiesListCall {
-	c := &PlacementStrategiesListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	return c
+	return &PlacementStrategiesListCall{
+		s:             r.s,
+		profileId:     profileId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/placementStrategies",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Ids sets the optional parameter "ids": Select only placement
 // strategies with these IDs.
-func (c *PlacementStrategiesListCall) Ids(ids int64) *PlacementStrategiesListCall {
-	c.opt_["ids"] = ids
+func (c *PlacementStrategiesListCall) Ids(ids ...int64) *PlacementStrategiesListCall {
+	for _, v_ := range ids {
+		c.params_.Add("ids", fmt.Sprintf("%v", v_))
+	}
 	return c
 }
 
 // MaxResults sets the optional parameter "maxResults": Maximum number
 // of results to return.
 func (c *PlacementStrategiesListCall) MaxResults(maxResults int64) *PlacementStrategiesListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
 // PageToken sets the optional parameter "pageToken": Value of the
 // nextPageToken from the previous result page.
 func (c *PlacementStrategiesListCall) PageToken(pageToken string) *PlacementStrategiesListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
 	return c
 }
 
 // SearchString sets the optional parameter "searchString": Allows
 // searching for objects by name or ID. Wildcards (*) are allowed. For
 // example, "placementstrategy*2015" will return objects with names like
-// "placementstrategy June 2015", "placementstrategy April 2015" or
+// "placementstrategy June 2015", "placementstrategy April 2015", or
 // simply "placementstrategy 2015". Most of the searches also add
 // wildcards implicitly at the start and the end of the search string.
 // For example, a search string of "placementstrategy" will match
-// objects with name "my placementstrategy", "placementstrategy 2015" or
-// simply "placementstrategy".
+// objects with name "my placementstrategy", "placementstrategy 2015",
+// or simply "placementstrategy".
 func (c *PlacementStrategiesListCall) SearchString(searchString string) *PlacementStrategiesListCall {
-	c.opt_["searchString"] = searchString
+	c.params_.Set("searchString", fmt.Sprintf("%v", searchString))
 	return c
 }
 
 // SortField sets the optional parameter "sortField": Field by which to
 // sort the list.
 func (c *PlacementStrategiesListCall) SortField(sortField string) *PlacementStrategiesListCall {
-	c.opt_["sortField"] = sortField
+	c.params_.Set("sortField", fmt.Sprintf("%v", sortField))
 	return c
 }
 
 // SortOrder sets the optional parameter "sortOrder": Order of sorted
 // results, default is ASCENDING.
 func (c *PlacementStrategiesListCall) SortOrder(sortOrder string) *PlacementStrategiesListCall {
-	c.opt_["sortOrder"] = sortOrder
+	c.params_.Set("sortOrder", fmt.Sprintf("%v", sortOrder))
+	return c
+}
+func (c *PlacementStrategiesListCall) Context(ctx context.Context) *PlacementStrategiesListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -20248,55 +19295,23 @@ func (c *PlacementStrategiesListCall) SortOrder(sortOrder string) *PlacementStra
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *PlacementStrategiesListCall) Fields(s ...googleapi.Field) *PlacementStrategiesListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *PlacementStrategiesListCall) Do() (*PlacementStrategiesListResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["ids"]; ok {
-		params.Set("ids", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["searchString"]; ok {
-		params.Set("searchString", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["sortField"]; ok {
-		params.Set("sortField", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["sortOrder"]; ok {
-		params.Set("sortOrder", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/placementStrategies")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *PlacementStrategiesListResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *PlacementStrategiesListResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves a list of placement strategies, possibly filtered.",
 	//   "httpMethod": "GET",
@@ -20331,7 +19346,7 @@ func (c *PlacementStrategiesListCall) Do() (*PlacementStrategiesListResponse, er
 	//       "type": "string"
 	//     },
 	//     "searchString": {
-	//       "description": "Allows searching for objects by name or ID. Wildcards (*) are allowed. For example, \"placementstrategy*2015\" will return objects with names like \"placementstrategy June 2015\", \"placementstrategy April 2015\" or simply \"placementstrategy 2015\". Most of the searches also add wildcards implicitly at the start and the end of the search string. For example, a search string of \"placementstrategy\" will match objects with name \"my placementstrategy\", \"placementstrategy 2015\" or simply \"placementstrategy\".",
+	//       "description": "Allows searching for objects by name or ID. Wildcards (*) are allowed. For example, \"placementstrategy*2015\" will return objects with names like \"placementstrategy June 2015\", \"placementstrategy April 2015\", or simply \"placementstrategy 2015\". Most of the searches also add wildcards implicitly at the start and the end of the search string. For example, a search string of \"placementstrategy\" will match objects with name \"my placementstrategy\", \"placementstrategy 2015\", or simply \"placementstrategy\".",
 	//       "location": "query",
 	//       "type": "string"
 	//     },
@@ -20380,16 +19395,29 @@ type PlacementStrategiesPatchCall struct {
 	profileId         int64
 	id                int64
 	placementstrategy *PlacementStrategy
-	opt_              map[string]interface{}
+	caller_           googleapi.Caller
+	params_           url.Values
+	pathTemplate_     string
+	context_          context.Context
 }
 
 // Patch: Updates an existing placement strategy. This method supports
 // patch semantics.
+
 func (r *PlacementStrategiesService) Patch(profileId int64, id int64, placementstrategy *PlacementStrategy) *PlacementStrategiesPatchCall {
-	c := &PlacementStrategiesPatchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.id = id
-	c.placementstrategy = placementstrategy
+	return &PlacementStrategiesPatchCall{
+		s:                 r.s,
+		profileId:         profileId,
+		id:                id,
+		placementstrategy: placementstrategy,
+		caller_:           googleapi.JSONCall{},
+		params_:           make(map[string][]string),
+		pathTemplate_:     "userprofiles/{profileId}/placementStrategies",
+		context_:          googleapi.NoContext,
+	}
+}
+func (c *PlacementStrategiesPatchCall) Context(ctx context.Context) *PlacementStrategiesPatchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -20397,44 +19425,25 @@ func (r *PlacementStrategiesService) Patch(profileId int64, id int64, placements
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *PlacementStrategiesPatchCall) Fields(s ...googleapi.Field) *PlacementStrategiesPatchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *PlacementStrategiesPatchCall) Do() (*PlacementStrategy, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.placementstrategy)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("id", fmt.Sprintf("%v", c.id))
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/placementStrategies")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PATCH", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *PlacementStrategy
+	c.params_.Set("id", fmt.Sprintf("%v", c.id))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PATCH",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.placementstrategy,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *PlacementStrategy
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates an existing placement strategy. This method supports patch semantics.",
 	//   "httpMethod": "PATCH",
@@ -20479,14 +19488,27 @@ type PlacementStrategiesUpdateCall struct {
 	s                 *Service
 	profileId         int64
 	placementstrategy *PlacementStrategy
-	opt_              map[string]interface{}
+	caller_           googleapi.Caller
+	params_           url.Values
+	pathTemplate_     string
+	context_          context.Context
 }
 
 // Update: Updates an existing placement strategy.
+
 func (r *PlacementStrategiesService) Update(profileId int64, placementstrategy *PlacementStrategy) *PlacementStrategiesUpdateCall {
-	c := &PlacementStrategiesUpdateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.placementstrategy = placementstrategy
+	return &PlacementStrategiesUpdateCall{
+		s:                 r.s,
+		profileId:         profileId,
+		placementstrategy: placementstrategy,
+		caller_:           googleapi.JSONCall{},
+		params_:           make(map[string][]string),
+		pathTemplate_:     "userprofiles/{profileId}/placementStrategies",
+		context_:          googleapi.NoContext,
+	}
+}
+func (c *PlacementStrategiesUpdateCall) Context(ctx context.Context) *PlacementStrategiesUpdateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -20494,43 +19516,24 @@ func (r *PlacementStrategiesService) Update(profileId int64, placementstrategy *
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *PlacementStrategiesUpdateCall) Fields(s ...googleapi.Field) *PlacementStrategiesUpdateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *PlacementStrategiesUpdateCall) Do() (*PlacementStrategy, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.placementstrategy)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/placementStrategies")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *PlacementStrategy
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.placementstrategy,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *PlacementStrategy
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates an existing placement strategy.",
 	//   "httpMethod": "PUT",
@@ -20564,36 +19567,51 @@ func (c *PlacementStrategiesUpdateCall) Do() (*PlacementStrategy, error) {
 // method id "dfareporting.placements.generatetags":
 
 type PlacementsGeneratetagsCall struct {
-	s         *Service
-	profileId int64
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Generatetags: Generates tags for a placement.
+
 func (r *PlacementsService) Generatetags(profileId int64) *PlacementsGeneratetagsCall {
-	c := &PlacementsGeneratetagsCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	return c
+	return &PlacementsGeneratetagsCall{
+		s:             r.s,
+		profileId:     profileId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/placements/generatetags",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // CampaignId sets the optional parameter "campaignId": Generate
 // placements belonging to this campaign. This is a required field.
 func (c *PlacementsGeneratetagsCall) CampaignId(campaignId int64) *PlacementsGeneratetagsCall {
-	c.opt_["campaignId"] = campaignId
+	c.params_.Set("campaignId", fmt.Sprintf("%v", campaignId))
 	return c
 }
 
 // PlacementIds sets the optional parameter "placementIds": Generate
 // tags for these placements.
-func (c *PlacementsGeneratetagsCall) PlacementIds(placementIds int64) *PlacementsGeneratetagsCall {
-	c.opt_["placementIds"] = placementIds
+func (c *PlacementsGeneratetagsCall) PlacementIds(placementIds ...int64) *PlacementsGeneratetagsCall {
+	for _, v_ := range placementIds {
+		c.params_.Add("placementIds", fmt.Sprintf("%v", v_))
+	}
 	return c
 }
 
 // TagFormats sets the optional parameter "tagFormats": Tag formats to
 // generate for these placements.
-func (c *PlacementsGeneratetagsCall) TagFormats(tagFormats string) *PlacementsGeneratetagsCall {
-	c.opt_["tagFormats"] = tagFormats
+func (c *PlacementsGeneratetagsCall) TagFormats(tagFormats ...string) *PlacementsGeneratetagsCall {
+	c.params_["tagFormats"] = tagFormats
+	return c
+}
+func (c *PlacementsGeneratetagsCall) Context(ctx context.Context) *PlacementsGeneratetagsCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -20601,46 +19619,23 @@ func (c *PlacementsGeneratetagsCall) TagFormats(tagFormats string) *PlacementsGe
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *PlacementsGeneratetagsCall) Fields(s ...googleapi.Field) *PlacementsGeneratetagsCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *PlacementsGeneratetagsCall) Do() (*PlacementsGenerateTagsResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["campaignId"]; ok {
-		params.Set("campaignId", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["placementIds"]; ok {
-		params.Set("placementIds", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["tagFormats"]; ok {
-		params.Set("tagFormats", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/placements/generatetags")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *PlacementsGenerateTagsResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "POST",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *PlacementsGenerateTagsResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Generates tags for a placement.",
 	//   "httpMethod": "POST",
@@ -20720,17 +19715,30 @@ func (c *PlacementsGeneratetagsCall) Do() (*PlacementsGenerateTagsResponse, erro
 // method id "dfareporting.placements.get":
 
 type PlacementsGetCall struct {
-	s         *Service
-	profileId int64
-	id        int64
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	id            int64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Gets one placement by ID.
+
 func (r *PlacementsService) Get(profileId int64, id int64) *PlacementsGetCall {
-	c := &PlacementsGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.id = id
+	return &PlacementsGetCall{
+		s:             r.s,
+		profileId:     profileId,
+		id:            id,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/placements/{id}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *PlacementsGetCall) Context(ctx context.Context) *PlacementsGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -20738,38 +19746,24 @@ func (r *PlacementsService) Get(profileId int64, id int64) *PlacementsGetCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *PlacementsGetCall) Fields(s ...googleapi.Field) *PlacementsGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *PlacementsGetCall) Do() (*Placement, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/placements/{id}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Placement
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 		"id":        strconv.FormatInt(c.id, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Placement
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Gets one placement by ID.",
 	//   "httpMethod": "GET",
@@ -20808,17 +19802,30 @@ func (c *PlacementsGetCall) Do() (*Placement, error) {
 // method id "dfareporting.placements.insert":
 
 type PlacementsInsertCall struct {
-	s         *Service
-	profileId int64
-	placement *Placement
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	placement     *Placement
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Insert: Inserts a new placement.
+
 func (r *PlacementsService) Insert(profileId int64, placement *Placement) *PlacementsInsertCall {
-	c := &PlacementsInsertCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.placement = placement
+	return &PlacementsInsertCall{
+		s:             r.s,
+		profileId:     profileId,
+		placement:     placement,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/placements",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *PlacementsInsertCall) Context(ctx context.Context) *PlacementsInsertCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -20826,43 +19833,24 @@ func (r *PlacementsService) Insert(profileId int64, placement *Placement) *Place
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *PlacementsInsertCall) Fields(s ...googleapi.Field) *PlacementsInsertCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *PlacementsInsertCall) Do() (*Placement, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.placement)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/placements")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Placement
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.placement,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Placement
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Inserts a new placement.",
 	//   "httpMethod": "POST",
@@ -20896,22 +19884,33 @@ func (c *PlacementsInsertCall) Do() (*Placement, error) {
 // method id "dfareporting.placements.list":
 
 type PlacementsListCall struct {
-	s         *Service
-	profileId int64
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Retrieves a list of placements, possibly filtered.
+
 func (r *PlacementsService) List(profileId int64) *PlacementsListCall {
-	c := &PlacementsListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	return c
+	return &PlacementsListCall{
+		s:             r.s,
+		profileId:     profileId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/placements",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // AdvertiserIds sets the optional parameter "advertiserIds": Select
 // only placements that belong to these advertisers.
-func (c *PlacementsListCall) AdvertiserIds(advertiserIds int64) *PlacementsListCall {
-	c.opt_["advertiserIds"] = advertiserIds
+func (c *PlacementsListCall) AdvertiserIds(advertiserIds ...int64) *PlacementsListCall {
+	for _, v_ := range advertiserIds {
+		c.params_.Add("advertiserIds", fmt.Sprintf("%v", v_))
+	}
 	return c
 }
 
@@ -20919,14 +19918,16 @@ func (c *PlacementsListCall) AdvertiserIds(advertiserIds int64) *PlacementsListC
 // placements. Don't set this field to select both archived and
 // non-archived placements.
 func (c *PlacementsListCall) Archived(archived bool) *PlacementsListCall {
-	c.opt_["archived"] = archived
+	c.params_.Set("archived", fmt.Sprintf("%v", archived))
 	return c
 }
 
 // CampaignIds sets the optional parameter "campaignIds": Select only
 // placements that belong to these campaigns.
-func (c *PlacementsListCall) CampaignIds(campaignIds int64) *PlacementsListCall {
-	c.opt_["campaignIds"] = campaignIds
+func (c *PlacementsListCall) CampaignIds(campaignIds ...int64) *PlacementsListCall {
+	for _, v_ := range campaignIds {
+		c.params_.Add("campaignIds", fmt.Sprintf("%v", v_))
+	}
 	return c
 }
 
@@ -20937,115 +19938,133 @@ func (c *PlacementsListCall) CampaignIds(campaignIds int64) *PlacementsListCall 
 // APP_INTERSTITIAL are for rendering in mobile apps.IN_STREAM_VIDEO
 // refers to rendering in in-stream video ads developed with the VAST
 // standard.
-func (c *PlacementsListCall) Compatibilities(compatibilities string) *PlacementsListCall {
-	c.opt_["compatibilities"] = compatibilities
+func (c *PlacementsListCall) Compatibilities(compatibilities ...string) *PlacementsListCall {
+	c.params_["compatibilities"] = compatibilities
 	return c
 }
 
 // ContentCategoryIds sets the optional parameter "contentCategoryIds":
 // Select only placements that are associated with these content
 // categories.
-func (c *PlacementsListCall) ContentCategoryIds(contentCategoryIds int64) *PlacementsListCall {
-	c.opt_["contentCategoryIds"] = contentCategoryIds
+func (c *PlacementsListCall) ContentCategoryIds(contentCategoryIds ...int64) *PlacementsListCall {
+	for _, v_ := range contentCategoryIds {
+		c.params_.Add("contentCategoryIds", fmt.Sprintf("%v", v_))
+	}
 	return c
 }
 
 // DirectorySiteIds sets the optional parameter "directorySiteIds":
 // Select only placements that are associated with these directory
 // sites.
-func (c *PlacementsListCall) DirectorySiteIds(directorySiteIds int64) *PlacementsListCall {
-	c.opt_["directorySiteIds"] = directorySiteIds
+func (c *PlacementsListCall) DirectorySiteIds(directorySiteIds ...int64) *PlacementsListCall {
+	for _, v_ := range directorySiteIds {
+		c.params_.Add("directorySiteIds", fmt.Sprintf("%v", v_))
+	}
 	return c
 }
 
 // GroupIds sets the optional parameter "groupIds": Select only
 // placements that belong to these placement groups.
-func (c *PlacementsListCall) GroupIds(groupIds int64) *PlacementsListCall {
-	c.opt_["groupIds"] = groupIds
+func (c *PlacementsListCall) GroupIds(groupIds ...int64) *PlacementsListCall {
+	for _, v_ := range groupIds {
+		c.params_.Add("groupIds", fmt.Sprintf("%v", v_))
+	}
 	return c
 }
 
 // Ids sets the optional parameter "ids": Select only placements with
 // these IDs.
-func (c *PlacementsListCall) Ids(ids int64) *PlacementsListCall {
-	c.opt_["ids"] = ids
+func (c *PlacementsListCall) Ids(ids ...int64) *PlacementsListCall {
+	for _, v_ := range ids {
+		c.params_.Add("ids", fmt.Sprintf("%v", v_))
+	}
 	return c
 }
 
 // MaxResults sets the optional parameter "maxResults": Maximum number
 // of results to return.
 func (c *PlacementsListCall) MaxResults(maxResults int64) *PlacementsListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
 // PageToken sets the optional parameter "pageToken": Value of the
 // nextPageToken from the previous result page.
 func (c *PlacementsListCall) PageToken(pageToken string) *PlacementsListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
 	return c
 }
 
 // PaymentSource sets the optional parameter "paymentSource": Select
 // only placements with this payment source.
 func (c *PlacementsListCall) PaymentSource(paymentSource string) *PlacementsListCall {
-	c.opt_["paymentSource"] = paymentSource
+	c.params_.Set("paymentSource", fmt.Sprintf("%v", paymentSource))
 	return c
 }
 
 // PlacementStrategyIds sets the optional parameter
 // "placementStrategyIds": Select only placements that are associated
 // with these placement strategies.
-func (c *PlacementsListCall) PlacementStrategyIds(placementStrategyIds int64) *PlacementsListCall {
-	c.opt_["placementStrategyIds"] = placementStrategyIds
+func (c *PlacementsListCall) PlacementStrategyIds(placementStrategyIds ...int64) *PlacementsListCall {
+	for _, v_ := range placementStrategyIds {
+		c.params_.Add("placementStrategyIds", fmt.Sprintf("%v", v_))
+	}
 	return c
 }
 
 // PricingTypes sets the optional parameter "pricingTypes": Select only
 // placements with these pricing types.
-func (c *PlacementsListCall) PricingTypes(pricingTypes string) *PlacementsListCall {
-	c.opt_["pricingTypes"] = pricingTypes
+func (c *PlacementsListCall) PricingTypes(pricingTypes ...string) *PlacementsListCall {
+	c.params_["pricingTypes"] = pricingTypes
 	return c
 }
 
 // SearchString sets the optional parameter "searchString": Allows
 // searching for placements by name or ID. Wildcards (*) are allowed.
 // For example, "placement*2015" will return placements with names like
-// "placement June 2015", "placement May 2015" or simply "placements
+// "placement June 2015", "placement May 2015", or simply "placements
 // 2015". Most of the searches also add wildcards implicitly at the
 // start and the end of the search string. For example, a search string
 // of "placement" will match placements with name "my placement",
-// "placement 2015" or simply "placement".
+// "placement 2015", or simply "placement".
 func (c *PlacementsListCall) SearchString(searchString string) *PlacementsListCall {
-	c.opt_["searchString"] = searchString
+	c.params_.Set("searchString", fmt.Sprintf("%v", searchString))
 	return c
 }
 
 // SiteIds sets the optional parameter "siteIds": Select only placements
 // that are associated with these sites.
-func (c *PlacementsListCall) SiteIds(siteIds int64) *PlacementsListCall {
-	c.opt_["siteIds"] = siteIds
+func (c *PlacementsListCall) SiteIds(siteIds ...int64) *PlacementsListCall {
+	for _, v_ := range siteIds {
+		c.params_.Add("siteIds", fmt.Sprintf("%v", v_))
+	}
 	return c
 }
 
 // SizeIds sets the optional parameter "sizeIds": Select only placements
 // that are associated with these sizes.
-func (c *PlacementsListCall) SizeIds(sizeIds int64) *PlacementsListCall {
-	c.opt_["sizeIds"] = sizeIds
+func (c *PlacementsListCall) SizeIds(sizeIds ...int64) *PlacementsListCall {
+	for _, v_ := range sizeIds {
+		c.params_.Add("sizeIds", fmt.Sprintf("%v", v_))
+	}
 	return c
 }
 
 // SortField sets the optional parameter "sortField": Field by which to
 // sort the list.
 func (c *PlacementsListCall) SortField(sortField string) *PlacementsListCall {
-	c.opt_["sortField"] = sortField
+	c.params_.Set("sortField", fmt.Sprintf("%v", sortField))
 	return c
 }
 
 // SortOrder sets the optional parameter "sortOrder": Order of sorted
 // results, default is ASCENDING.
 func (c *PlacementsListCall) SortOrder(sortOrder string) *PlacementsListCall {
-	c.opt_["sortOrder"] = sortOrder
+	c.params_.Set("sortOrder", fmt.Sprintf("%v", sortOrder))
+	return c
+}
+func (c *PlacementsListCall) Context(ctx context.Context) *PlacementsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -21053,91 +20072,23 @@ func (c *PlacementsListCall) SortOrder(sortOrder string) *PlacementsListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *PlacementsListCall) Fields(s ...googleapi.Field) *PlacementsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *PlacementsListCall) Do() (*PlacementsListResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["advertiserIds"]; ok {
-		params.Set("advertiserIds", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["archived"]; ok {
-		params.Set("archived", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["campaignIds"]; ok {
-		params.Set("campaignIds", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["compatibilities"]; ok {
-		params.Set("compatibilities", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["contentCategoryIds"]; ok {
-		params.Set("contentCategoryIds", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["directorySiteIds"]; ok {
-		params.Set("directorySiteIds", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["groupIds"]; ok {
-		params.Set("groupIds", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["ids"]; ok {
-		params.Set("ids", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["paymentSource"]; ok {
-		params.Set("paymentSource", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["placementStrategyIds"]; ok {
-		params.Set("placementStrategyIds", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pricingTypes"]; ok {
-		params.Set("pricingTypes", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["searchString"]; ok {
-		params.Set("searchString", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["siteIds"]; ok {
-		params.Set("siteIds", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["sizeIds"]; ok {
-		params.Set("sizeIds", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["sortField"]; ok {
-		params.Set("sortField", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["sortOrder"]; ok {
-		params.Set("sortOrder", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/placements")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *PlacementsListResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *PlacementsListResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves a list of placements, possibly filtered.",
 	//   "httpMethod": "GET",
@@ -21272,7 +20223,7 @@ func (c *PlacementsListCall) Do() (*PlacementsListResponse, error) {
 	//       "type": "string"
 	//     },
 	//     "searchString": {
-	//       "description": "Allows searching for placements by name or ID. Wildcards (*) are allowed. For example, \"placement*2015\" will return placements with names like \"placement June 2015\", \"placement May 2015\" or simply \"placements 2015\". Most of the searches also add wildcards implicitly at the start and the end of the search string. For example, a search string of \"placement\" will match placements with name \"my placement\", \"placement 2015\" or simply \"placement\".",
+	//       "description": "Allows searching for placements by name or ID. Wildcards (*) are allowed. For example, \"placement*2015\" will return placements with names like \"placement June 2015\", \"placement May 2015\", or simply \"placements 2015\". Most of the searches also add wildcards implicitly at the start and the end of the search string. For example, a search string of \"placement\" will match placements with name \"my placement\", \"placement 2015\", or simply \"placement\".",
 	//       "location": "query",
 	//       "type": "string"
 	//     },
@@ -21331,20 +20282,33 @@ func (c *PlacementsListCall) Do() (*PlacementsListResponse, error) {
 // method id "dfareporting.placements.patch":
 
 type PlacementsPatchCall struct {
-	s         *Service
-	profileId int64
-	id        int64
-	placement *Placement
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	id            int64
+	placement     *Placement
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Patch: Updates an existing placement. This method supports patch
 // semantics.
+
 func (r *PlacementsService) Patch(profileId int64, id int64, placement *Placement) *PlacementsPatchCall {
-	c := &PlacementsPatchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.id = id
-	c.placement = placement
+	return &PlacementsPatchCall{
+		s:             r.s,
+		profileId:     profileId,
+		id:            id,
+		placement:     placement,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/placements",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *PlacementsPatchCall) Context(ctx context.Context) *PlacementsPatchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -21352,44 +20316,25 @@ func (r *PlacementsService) Patch(profileId int64, id int64, placement *Placemen
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *PlacementsPatchCall) Fields(s ...googleapi.Field) *PlacementsPatchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *PlacementsPatchCall) Do() (*Placement, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.placement)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("id", fmt.Sprintf("%v", c.id))
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/placements")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PATCH", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Placement
+	c.params_.Set("id", fmt.Sprintf("%v", c.id))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PATCH",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.placement,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Placement
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates an existing placement. This method supports patch semantics.",
 	//   "httpMethod": "PATCH",
@@ -21431,17 +20376,30 @@ func (c *PlacementsPatchCall) Do() (*Placement, error) {
 // method id "dfareporting.placements.update":
 
 type PlacementsUpdateCall struct {
-	s         *Service
-	profileId int64
-	placement *Placement
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	placement     *Placement
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Update: Updates an existing placement.
+
 func (r *PlacementsService) Update(profileId int64, placement *Placement) *PlacementsUpdateCall {
-	c := &PlacementsUpdateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.placement = placement
+	return &PlacementsUpdateCall{
+		s:             r.s,
+		profileId:     profileId,
+		placement:     placement,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/placements",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *PlacementsUpdateCall) Context(ctx context.Context) *PlacementsUpdateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -21449,43 +20407,24 @@ func (r *PlacementsService) Update(profileId int64, placement *Placement) *Place
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *PlacementsUpdateCall) Fields(s ...googleapi.Field) *PlacementsUpdateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *PlacementsUpdateCall) Do() (*Placement, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.placement)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/placements")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Placement
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.placement,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Placement
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates an existing placement.",
 	//   "httpMethod": "PUT",
@@ -21519,15 +20458,28 @@ func (c *PlacementsUpdateCall) Do() (*Placement, error) {
 // method id "dfareporting.platformTypes.list":
 
 type PlatformTypesListCall struct {
-	s         *Service
-	profileId int64
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Retrieves a list of platform types.
+
 func (r *PlatformTypesService) List(profileId int64) *PlatformTypesListCall {
-	c := &PlatformTypesListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
+	return &PlatformTypesListCall{
+		s:             r.s,
+		profileId:     profileId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/platformTypes",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *PlatformTypesListCall) Context(ctx context.Context) *PlatformTypesListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -21535,37 +20487,23 @@ func (r *PlatformTypesService) List(profileId int64) *PlatformTypesListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *PlatformTypesListCall) Fields(s ...googleapi.Field) *PlatformTypesListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *PlatformTypesListCall) Do() (*PlatformTypesListResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/platformTypes")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *PlatformTypesListResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *PlatformTypesListResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves a list of platform types.",
 	//   "httpMethod": "GET",
@@ -21596,15 +20534,28 @@ func (c *PlatformTypesListCall) Do() (*PlatformTypesListResponse, error) {
 // method id "dfareporting.postalCodes.list":
 
 type PostalCodesListCall struct {
-	s         *Service
-	profileId int64
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Retrieves a list of postal codes.
+
 func (r *PostalCodesService) List(profileId int64) *PostalCodesListCall {
-	c := &PostalCodesListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
+	return &PostalCodesListCall{
+		s:             r.s,
+		profileId:     profileId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/postalCodes",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *PostalCodesListCall) Context(ctx context.Context) *PostalCodesListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -21612,37 +20563,23 @@ func (r *PostalCodesService) List(profileId int64) *PostalCodesListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *PostalCodesListCall) Fields(s ...googleapi.Field) *PostalCodesListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *PostalCodesListCall) Do() (*PostalCodesListResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/postalCodes")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *PostalCodesListResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *PostalCodesListResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves a list of postal codes.",
 	//   "httpMethod": "GET",
@@ -21673,15 +20610,28 @@ func (c *PostalCodesListCall) Do() (*PostalCodesListResponse, error) {
 // method id "dfareporting.regions.list":
 
 type RegionsListCall struct {
-	s         *Service
-	profileId int64
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Retrieves a list of regions.
+
 func (r *RegionsService) List(profileId int64) *RegionsListCall {
-	c := &RegionsListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
+	return &RegionsListCall{
+		s:             r.s,
+		profileId:     profileId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/regions",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *RegionsListCall) Context(ctx context.Context) *RegionsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -21689,37 +20639,23 @@ func (r *RegionsService) List(profileId int64) *RegionsListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *RegionsListCall) Fields(s ...googleapi.Field) *RegionsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *RegionsListCall) Do() (*RegionsListResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/regions")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *RegionsListResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *RegionsListResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves a list of regions.",
 	//   "httpMethod": "GET",
@@ -21750,52 +20686,45 @@ func (c *RegionsListCall) Do() (*RegionsListResponse, error) {
 // method id "dfareporting.reports.delete":
 
 type ReportsDeleteCall struct {
-	s         *Service
-	profileId int64
-	reportId  int64
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	reportId      int64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Delete: Deletes a report by its ID.
-func (r *ReportsService) Delete(profileId int64, reportId int64) *ReportsDeleteCall {
-	c := &ReportsDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.reportId = reportId
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *ReportsDeleteCall) Fields(s ...googleapi.Field) *ReportsDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *ReportsService) Delete(profileId int64, reportId int64) *ReportsDeleteCall {
+	return &ReportsDeleteCall{
+		s:             r.s,
+		profileId:     profileId,
+		reportId:      reportId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/reports/{reportId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *ReportsDeleteCall) Context(ctx context.Context) *ReportsDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *ReportsDeleteCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/reports/{reportId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 		"reportId":  strconv.FormatInt(c.reportId, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Deletes a report by its ID.",
 	//   "httpMethod": "DELETE",
@@ -21831,17 +20760,30 @@ func (c *ReportsDeleteCall) Do() error {
 // method id "dfareporting.reports.get":
 
 type ReportsGetCall struct {
-	s         *Service
-	profileId int64
-	reportId  int64
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	reportId      int64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Retrieves a report by its ID.
+
 func (r *ReportsService) Get(profileId int64, reportId int64) *ReportsGetCall {
-	c := &ReportsGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.reportId = reportId
+	return &ReportsGetCall{
+		s:             r.s,
+		profileId:     profileId,
+		reportId:      reportId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/reports/{reportId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *ReportsGetCall) Context(ctx context.Context) *ReportsGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -21849,38 +20791,24 @@ func (r *ReportsService) Get(profileId int64, reportId int64) *ReportsGetCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ReportsGetCall) Fields(s ...googleapi.Field) *ReportsGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ReportsGetCall) Do() (*Report, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/reports/{reportId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Report
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 		"reportId":  strconv.FormatInt(c.reportId, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Report
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves a report by its ID.",
 	//   "httpMethod": "GET",
@@ -21919,17 +20847,30 @@ func (c *ReportsGetCall) Do() (*Report, error) {
 // method id "dfareporting.reports.insert":
 
 type ReportsInsertCall struct {
-	s         *Service
-	profileId int64
-	report    *Report
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	report        *Report
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Insert: Creates a report.
+
 func (r *ReportsService) Insert(profileId int64, report *Report) *ReportsInsertCall {
-	c := &ReportsInsertCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.report = report
+	return &ReportsInsertCall{
+		s:             r.s,
+		profileId:     profileId,
+		report:        report,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/reports",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *ReportsInsertCall) Context(ctx context.Context) *ReportsInsertCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -21937,43 +20878,24 @@ func (r *ReportsService) Insert(profileId int64, report *Report) *ReportsInsertC
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ReportsInsertCall) Fields(s ...googleapi.Field) *ReportsInsertCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ReportsInsertCall) Do() (*Report, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.report)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/reports")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Report
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.report,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Report
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Creates a report.",
 	//   "httpMethod": "POST",
@@ -22007,50 +20929,63 @@ func (c *ReportsInsertCall) Do() (*Report, error) {
 // method id "dfareporting.reports.list":
 
 type ReportsListCall struct {
-	s         *Service
-	profileId int64
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Retrieves list of reports.
+
 func (r *ReportsService) List(profileId int64) *ReportsListCall {
-	c := &ReportsListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	return c
+	return &ReportsListCall{
+		s:             r.s,
+		profileId:     profileId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/reports",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // MaxResults sets the optional parameter "maxResults": Maximum number
 // of results to return.
 func (c *ReportsListCall) MaxResults(maxResults int64) *ReportsListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
 // PageToken sets the optional parameter "pageToken": The value of the
 // nextToken from the previous result page.
 func (c *ReportsListCall) PageToken(pageToken string) *ReportsListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
 	return c
 }
 
 // Scope sets the optional parameter "scope": The scope that defines
 // which results are returned, default is 'MINE'.
 func (c *ReportsListCall) Scope(scope string) *ReportsListCall {
-	c.opt_["scope"] = scope
+	c.params_.Set("scope", fmt.Sprintf("%v", scope))
 	return c
 }
 
 // SortField sets the optional parameter "sortField": The field by which
 // to sort the list.
 func (c *ReportsListCall) SortField(sortField string) *ReportsListCall {
-	c.opt_["sortField"] = sortField
+	c.params_.Set("sortField", fmt.Sprintf("%v", sortField))
 	return c
 }
 
 // SortOrder sets the optional parameter "sortOrder": Order of sorted
 // results, default is 'DESCENDING'.
 func (c *ReportsListCall) SortOrder(sortOrder string) *ReportsListCall {
-	c.opt_["sortOrder"] = sortOrder
+	c.params_.Set("sortOrder", fmt.Sprintf("%v", sortOrder))
+	return c
+}
+func (c *ReportsListCall) Context(ctx context.Context) *ReportsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -22058,52 +20993,23 @@ func (c *ReportsListCall) SortOrder(sortOrder string) *ReportsListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ReportsListCall) Fields(s ...googleapi.Field) *ReportsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ReportsListCall) Do() (*ReportList, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["scope"]; ok {
-		params.Set("scope", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["sortField"]; ok {
-		params.Set("sortField", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["sortOrder"]; ok {
-		params.Set("sortOrder", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/reports")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *ReportList
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ReportList
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves list of reports.",
 	//   "httpMethod": "GET",
@@ -22191,19 +21097,32 @@ func (c *ReportsListCall) Do() (*ReportList, error) {
 // method id "dfareporting.reports.patch":
 
 type ReportsPatchCall struct {
-	s         *Service
-	profileId int64
-	reportId  int64
-	report    *Report
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	reportId      int64
+	report        *Report
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Patch: Updates a report. This method supports patch semantics.
+
 func (r *ReportsService) Patch(profileId int64, reportId int64, report *Report) *ReportsPatchCall {
-	c := &ReportsPatchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.reportId = reportId
-	c.report = report
+	return &ReportsPatchCall{
+		s:             r.s,
+		profileId:     profileId,
+		reportId:      reportId,
+		report:        report,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/reports/{reportId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *ReportsPatchCall) Context(ctx context.Context) *ReportsPatchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -22211,44 +21130,25 @@ func (r *ReportsService) Patch(profileId int64, reportId int64, report *Report) 
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ReportsPatchCall) Fields(s ...googleapi.Field) *ReportsPatchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ReportsPatchCall) Do() (*Report, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.report)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/reports/{reportId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PATCH", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Report
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 		"reportId":  strconv.FormatInt(c.reportId, 10),
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PATCH",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.report,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Report
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates a report. This method supports patch semantics.",
 	//   "httpMethod": "PATCH",
@@ -22290,24 +21190,37 @@ func (c *ReportsPatchCall) Do() (*Report, error) {
 // method id "dfareporting.reports.run":
 
 type ReportsRunCall struct {
-	s         *Service
-	profileId int64
-	reportId  int64
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	reportId      int64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Run: Runs a report.
+
 func (r *ReportsService) Run(profileId int64, reportId int64) *ReportsRunCall {
-	c := &ReportsRunCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.reportId = reportId
-	return c
+	return &ReportsRunCall{
+		s:             r.s,
+		profileId:     profileId,
+		reportId:      reportId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/reports/{reportId}/run",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Synchronous sets the optional parameter "synchronous": If set and
 // true, tries to run the report synchronously.
 func (c *ReportsRunCall) Synchronous(synchronous bool) *ReportsRunCall {
-	c.opt_["synchronous"] = synchronous
+	c.params_.Set("synchronous", fmt.Sprintf("%v", synchronous))
+	return c
+}
+func (c *ReportsRunCall) Context(ctx context.Context) *ReportsRunCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -22315,41 +21228,24 @@ func (c *ReportsRunCall) Synchronous(synchronous bool) *ReportsRunCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ReportsRunCall) Fields(s ...googleapi.Field) *ReportsRunCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ReportsRunCall) Do() (*File, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["synchronous"]; ok {
-		params.Set("synchronous", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/reports/{reportId}/run")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *File
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 		"reportId":  strconv.FormatInt(c.reportId, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "POST",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *File
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Runs a report.",
 	//   "httpMethod": "POST",
@@ -22393,19 +21289,32 @@ func (c *ReportsRunCall) Do() (*File, error) {
 // method id "dfareporting.reports.update":
 
 type ReportsUpdateCall struct {
-	s         *Service
-	profileId int64
-	reportId  int64
-	report    *Report
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	reportId      int64
+	report        *Report
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Update: Updates a report.
+
 func (r *ReportsService) Update(profileId int64, reportId int64, report *Report) *ReportsUpdateCall {
-	c := &ReportsUpdateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.reportId = reportId
-	c.report = report
+	return &ReportsUpdateCall{
+		s:             r.s,
+		profileId:     profileId,
+		reportId:      reportId,
+		report:        report,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/reports/{reportId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *ReportsUpdateCall) Context(ctx context.Context) *ReportsUpdateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -22413,44 +21322,25 @@ func (r *ReportsService) Update(profileId int64, reportId int64, report *Report)
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ReportsUpdateCall) Fields(s ...googleapi.Field) *ReportsUpdateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ReportsUpdateCall) Do() (*Report, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.report)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/reports/{reportId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Report
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 		"reportId":  strconv.FormatInt(c.reportId, 10),
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.report,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Report
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates a report.",
 	//   "httpMethod": "PUT",
@@ -22492,19 +21382,32 @@ func (c *ReportsUpdateCall) Do() (*Report, error) {
 // method id "dfareporting.reports.compatibleFields.query":
 
 type ReportsCompatibleFieldsQueryCall struct {
-	s         *Service
-	profileId int64
-	report    *Report
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	report        *Report
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Query: Returns the fields that are compatible to be selected in the
 // respective sections of a report criteria, given the fields already
 // selected in the input report and user permissions.
+
 func (r *ReportsCompatibleFieldsService) Query(profileId int64, report *Report) *ReportsCompatibleFieldsQueryCall {
-	c := &ReportsCompatibleFieldsQueryCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.report = report
+	return &ReportsCompatibleFieldsQueryCall{
+		s:             r.s,
+		profileId:     profileId,
+		report:        report,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/reports/compatiblefields/query",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *ReportsCompatibleFieldsQueryCall) Context(ctx context.Context) *ReportsCompatibleFieldsQueryCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -22512,43 +21415,24 @@ func (r *ReportsCompatibleFieldsService) Query(profileId int64, report *Report) 
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ReportsCompatibleFieldsQueryCall) Fields(s ...googleapi.Field) *ReportsCompatibleFieldsQueryCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ReportsCompatibleFieldsQueryCall) Do() (*CompatibleFields, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.report)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/reports/compatiblefields/query")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *CompatibleFields
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.report,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *CompatibleFields
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Returns the fields that are compatible to be selected in the respective sections of a report criteria, given the fields already selected in the input report and user permissions.",
 	//   "httpMethod": "POST",
@@ -22582,19 +21466,32 @@ func (c *ReportsCompatibleFieldsQueryCall) Do() (*CompatibleFields, error) {
 // method id "dfareporting.reports.files.get":
 
 type ReportsFilesGetCall struct {
-	s         *Service
-	profileId int64
-	reportId  int64
-	fileId    int64
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	reportId      int64
+	fileId        int64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Retrieves a report file.
+
 func (r *ReportsFilesService) Get(profileId int64, reportId int64, fileId int64) *ReportsFilesGetCall {
-	c := &ReportsFilesGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.reportId = reportId
-	c.fileId = fileId
+	return &ReportsFilesGetCall{
+		s:             r.s,
+		profileId:     profileId,
+		reportId:      reportId,
+		fileId:        fileId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/reports/{reportId}/files/{fileId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *ReportsFilesGetCall) Context(ctx context.Context) *ReportsFilesGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -22602,39 +21499,45 @@ func (r *ReportsFilesService) Get(profileId int64, reportId int64, fileId int64)
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ReportsFilesGetCall) Fields(s ...googleapi.Field) *ReportsFilesGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
-func (c *ReportsFilesGetCall) Do() (*File, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/reports/{reportId}/files/{fileId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+// GetResponse sets alt=media creating a file download request. The body
+// of the *http.Response contains the media.  You should close the response
+// body when finished reading.
+
+func (c *ReportsFilesGetCall) GetResponse() (*http.Response, error) {
+	var res *http.Response
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 		"reportId":  strconv.FormatInt(c.reportId, 10),
 		"fileId":    strconv.FormatInt(c.fileId, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &res,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
+	return res, c.caller_.Do(c.context_, c.s.client, call)
+}
+
+func (c *ReportsFilesGetCall) Do() (*File, error) {
+	var returnValue *File
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
+		"profileId": strconv.FormatInt(c.profileId, 10),
+		"reportId":  strconv.FormatInt(c.reportId, 10),
+		"fileId":    strconv.FormatInt(c.fileId, 10),
+	})
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	var ret *File
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves a report file.",
 	//   "httpMethod": "GET",
@@ -22682,45 +21585,58 @@ func (c *ReportsFilesGetCall) Do() (*File, error) {
 // method id "dfareporting.reports.files.list":
 
 type ReportsFilesListCall struct {
-	s         *Service
-	profileId int64
-	reportId  int64
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	reportId      int64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Lists files for a report.
+
 func (r *ReportsFilesService) List(profileId int64, reportId int64) *ReportsFilesListCall {
-	c := &ReportsFilesListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.reportId = reportId
-	return c
+	return &ReportsFilesListCall{
+		s:             r.s,
+		profileId:     profileId,
+		reportId:      reportId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/reports/{reportId}/files",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // MaxResults sets the optional parameter "maxResults": Maximum number
 // of results to return.
 func (c *ReportsFilesListCall) MaxResults(maxResults int64) *ReportsFilesListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
 // PageToken sets the optional parameter "pageToken": The value of the
 // nextToken from the previous result page.
 func (c *ReportsFilesListCall) PageToken(pageToken string) *ReportsFilesListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
 	return c
 }
 
 // SortField sets the optional parameter "sortField": The field by which
 // to sort the list.
 func (c *ReportsFilesListCall) SortField(sortField string) *ReportsFilesListCall {
-	c.opt_["sortField"] = sortField
+	c.params_.Set("sortField", fmt.Sprintf("%v", sortField))
 	return c
 }
 
 // SortOrder sets the optional parameter "sortOrder": Order of sorted
 // results, default is 'DESCENDING'.
 func (c *ReportsFilesListCall) SortOrder(sortOrder string) *ReportsFilesListCall {
-	c.opt_["sortOrder"] = sortOrder
+	c.params_.Set("sortOrder", fmt.Sprintf("%v", sortOrder))
+	return c
+}
+func (c *ReportsFilesListCall) Context(ctx context.Context) *ReportsFilesListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -22728,50 +21644,24 @@ func (c *ReportsFilesListCall) SortOrder(sortOrder string) *ReportsFilesListCall
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ReportsFilesListCall) Fields(s ...googleapi.Field) *ReportsFilesListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ReportsFilesListCall) Do() (*FileList, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["sortField"]; ok {
-		params.Set("sortField", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["sortOrder"]; ok {
-		params.Set("sortOrder", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/reports/{reportId}/files")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *FileList
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 		"reportId":  strconv.FormatInt(c.reportId, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *FileList
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Lists files for a report.",
 	//   "httpMethod": "GET",
@@ -22851,17 +21741,30 @@ func (c *ReportsFilesListCall) Do() (*FileList, error) {
 // method id "dfareporting.sites.get":
 
 type SitesGetCall struct {
-	s         *Service
-	profileId int64
-	id        int64
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	id            int64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Gets one site by ID.
+
 func (r *SitesService) Get(profileId int64, id int64) *SitesGetCall {
-	c := &SitesGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.id = id
+	return &SitesGetCall{
+		s:             r.s,
+		profileId:     profileId,
+		id:            id,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/sites/{id}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *SitesGetCall) Context(ctx context.Context) *SitesGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -22869,38 +21772,24 @@ func (r *SitesService) Get(profileId int64, id int64) *SitesGetCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *SitesGetCall) Fields(s ...googleapi.Field) *SitesGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *SitesGetCall) Do() (*Site, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/sites/{id}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Site
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 		"id":        strconv.FormatInt(c.id, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Site
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Gets one site by ID.",
 	//   "httpMethod": "GET",
@@ -22939,17 +21828,30 @@ func (c *SitesGetCall) Do() (*Site, error) {
 // method id "dfareporting.sites.insert":
 
 type SitesInsertCall struct {
-	s         *Service
-	profileId int64
-	site      *Site
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	site          *Site
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Insert: Inserts a new site.
+
 func (r *SitesService) Insert(profileId int64, site *Site) *SitesInsertCall {
-	c := &SitesInsertCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.site = site
+	return &SitesInsertCall{
+		s:             r.s,
+		profileId:     profileId,
+		site:          site,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/sites",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *SitesInsertCall) Context(ctx context.Context) *SitesInsertCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -22957,43 +21859,24 @@ func (r *SitesService) Insert(profileId int64, site *Site) *SitesInsertCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *SitesInsertCall) Fields(s ...googleapi.Field) *SitesInsertCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *SitesInsertCall) Do() (*Site, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.site)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/sites")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Site
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.site,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Site
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Inserts a new site.",
 	//   "httpMethod": "POST",
@@ -23027,23 +21910,32 @@ func (c *SitesInsertCall) Do() (*Site, error) {
 // method id "dfareporting.sites.list":
 
 type SitesListCall struct {
-	s         *Service
-	profileId int64
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Retrieves a list of sites, possibly filtered.
+
 func (r *SitesService) List(profileId int64) *SitesListCall {
-	c := &SitesListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	return c
+	return &SitesListCall{
+		s:             r.s,
+		profileId:     profileId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/sites",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // AcceptsInStreamVideoPlacements sets the optional parameter
 // "acceptsInStreamVideoPlacements": This search filter is no longer
 // supported and will have no effect on the results returned.
 func (c *SitesListCall) AcceptsInStreamVideoPlacements(acceptsInStreamVideoPlacements bool) *SitesListCall {
-	c.opt_["acceptsInStreamVideoPlacements"] = acceptsInStreamVideoPlacements
+	c.params_.Set("acceptsInStreamVideoPlacements", fmt.Sprintf("%v", acceptsInStreamVideoPlacements))
 	return c
 }
 
@@ -23051,7 +21943,7 @@ func (c *SitesListCall) AcceptsInStreamVideoPlacements(acceptsInStreamVideoPlace
 // "acceptsInterstitialPlacements": This search filter is no longer
 // supported and will have no effect on the results returned.
 func (c *SitesListCall) AcceptsInterstitialPlacements(acceptsInterstitialPlacements bool) *SitesListCall {
-	c.opt_["acceptsInterstitialPlacements"] = acceptsInterstitialPlacements
+	c.params_.Set("acceptsInterstitialPlacements", fmt.Sprintf("%v", acceptsInterstitialPlacements))
 	return c
 }
 
@@ -23059,96 +21951,106 @@ func (c *SitesListCall) AcceptsInterstitialPlacements(acceptsInterstitialPlaceme
 // "acceptsPublisherPaidPlacements": Select only sites that accept
 // publisher paid placements.
 func (c *SitesListCall) AcceptsPublisherPaidPlacements(acceptsPublisherPaidPlacements bool) *SitesListCall {
-	c.opt_["acceptsPublisherPaidPlacements"] = acceptsPublisherPaidPlacements
+	c.params_.Set("acceptsPublisherPaidPlacements", fmt.Sprintf("%v", acceptsPublisherPaidPlacements))
 	return c
 }
 
 // AdWordsSite sets the optional parameter "adWordsSite": Select only
 // AdWords sites.
 func (c *SitesListCall) AdWordsSite(adWordsSite bool) *SitesListCall {
-	c.opt_["adWordsSite"] = adWordsSite
+	c.params_.Set("adWordsSite", fmt.Sprintf("%v", adWordsSite))
 	return c
 }
 
 // Approved sets the optional parameter "approved": Select only approved
 // sites.
 func (c *SitesListCall) Approved(approved bool) *SitesListCall {
-	c.opt_["approved"] = approved
+	c.params_.Set("approved", fmt.Sprintf("%v", approved))
 	return c
 }
 
 // CampaignIds sets the optional parameter "campaignIds": Select only
 // sites with these campaign IDs.
-func (c *SitesListCall) CampaignIds(campaignIds int64) *SitesListCall {
-	c.opt_["campaignIds"] = campaignIds
+func (c *SitesListCall) CampaignIds(campaignIds ...int64) *SitesListCall {
+	for _, v_ := range campaignIds {
+		c.params_.Add("campaignIds", fmt.Sprintf("%v", v_))
+	}
 	return c
 }
 
 // DirectorySiteIds sets the optional parameter "directorySiteIds":
 // Select only sites with these directory site IDs.
-func (c *SitesListCall) DirectorySiteIds(directorySiteIds int64) *SitesListCall {
-	c.opt_["directorySiteIds"] = directorySiteIds
+func (c *SitesListCall) DirectorySiteIds(directorySiteIds ...int64) *SitesListCall {
+	for _, v_ := range directorySiteIds {
+		c.params_.Add("directorySiteIds", fmt.Sprintf("%v", v_))
+	}
 	return c
 }
 
 // Ids sets the optional parameter "ids": Select only sites with these
 // IDs.
-func (c *SitesListCall) Ids(ids int64) *SitesListCall {
-	c.opt_["ids"] = ids
+func (c *SitesListCall) Ids(ids ...int64) *SitesListCall {
+	for _, v_ := range ids {
+		c.params_.Add("ids", fmt.Sprintf("%v", v_))
+	}
 	return c
 }
 
 // MaxResults sets the optional parameter "maxResults": Maximum number
 // of results to return.
 func (c *SitesListCall) MaxResults(maxResults int64) *SitesListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
 // PageToken sets the optional parameter "pageToken": Value of the
 // nextPageToken from the previous result page.
 func (c *SitesListCall) PageToken(pageToken string) *SitesListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
 	return c
 }
 
 // SearchString sets the optional parameter "searchString": Allows
 // searching for objects by name, ID or keyName. Wildcards (*) are
 // allowed. For example, "site*2015" will return objects with names like
-// "site June 2015", "site April 2015" or simply "site 2015". Most of
+// "site June 2015", "site April 2015", or simply "site 2015". Most of
 // the searches also add wildcards implicitly at the start and the end
 // of the search string. For example, a search string of "site" will
-// match objects with name "my site", "site 2015" or simply "site".
+// match objects with name "my site", "site 2015", or simply "site".
 func (c *SitesListCall) SearchString(searchString string) *SitesListCall {
-	c.opt_["searchString"] = searchString
+	c.params_.Set("searchString", fmt.Sprintf("%v", searchString))
 	return c
 }
 
 // SortField sets the optional parameter "sortField": Field by which to
 // sort the list.
 func (c *SitesListCall) SortField(sortField string) *SitesListCall {
-	c.opt_["sortField"] = sortField
+	c.params_.Set("sortField", fmt.Sprintf("%v", sortField))
 	return c
 }
 
 // SortOrder sets the optional parameter "sortOrder": Order of sorted
 // results, default is ASCENDING.
 func (c *SitesListCall) SortOrder(sortOrder string) *SitesListCall {
-	c.opt_["sortOrder"] = sortOrder
+	c.params_.Set("sortOrder", fmt.Sprintf("%v", sortOrder))
 	return c
 }
 
 // SubaccountId sets the optional parameter "subaccountId": Select only
 // sites with this subaccount ID.
 func (c *SitesListCall) SubaccountId(subaccountId int64) *SitesListCall {
-	c.opt_["subaccountId"] = subaccountId
+	c.params_.Set("subaccountId", fmt.Sprintf("%v", subaccountId))
 	return c
 }
 
 // UnmappedSite sets the optional parameter "unmappedSite": Select only
 // sites that have not been mapped to a directory site.
 func (c *SitesListCall) UnmappedSite(unmappedSite bool) *SitesListCall {
-	c.opt_["unmappedSite"] = unmappedSite
+	c.params_.Set("unmappedSite", fmt.Sprintf("%v", unmappedSite))
+	return c
+}
+func (c *SitesListCall) Context(ctx context.Context) *SitesListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -23156,82 +22058,23 @@ func (c *SitesListCall) UnmappedSite(unmappedSite bool) *SitesListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *SitesListCall) Fields(s ...googleapi.Field) *SitesListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *SitesListCall) Do() (*SitesListResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["acceptsInStreamVideoPlacements"]; ok {
-		params.Set("acceptsInStreamVideoPlacements", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["acceptsInterstitialPlacements"]; ok {
-		params.Set("acceptsInterstitialPlacements", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["acceptsPublisherPaidPlacements"]; ok {
-		params.Set("acceptsPublisherPaidPlacements", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["adWordsSite"]; ok {
-		params.Set("adWordsSite", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["approved"]; ok {
-		params.Set("approved", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["campaignIds"]; ok {
-		params.Set("campaignIds", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["directorySiteIds"]; ok {
-		params.Set("directorySiteIds", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["ids"]; ok {
-		params.Set("ids", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["searchString"]; ok {
-		params.Set("searchString", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["sortField"]; ok {
-		params.Set("sortField", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["sortOrder"]; ok {
-		params.Set("sortOrder", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["subaccountId"]; ok {
-		params.Set("subaccountId", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["unmappedSite"]; ok {
-		params.Set("unmappedSite", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/sites")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *SitesListResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *SitesListResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves a list of sites, possibly filtered.",
 	//   "httpMethod": "GET",
@@ -23305,7 +22148,7 @@ func (c *SitesListCall) Do() (*SitesListResponse, error) {
 	//       "type": "string"
 	//     },
 	//     "searchString": {
-	//       "description": "Allows searching for objects by name, ID or keyName. Wildcards (*) are allowed. For example, \"site*2015\" will return objects with names like \"site June 2015\", \"site April 2015\" or simply \"site 2015\". Most of the searches also add wildcards implicitly at the start and the end of the search string. For example, a search string of \"site\" will match objects with name \"my site\", \"site 2015\" or simply \"site\".",
+	//       "description": "Allows searching for objects by name, ID or keyName. Wildcards (*) are allowed. For example, \"site*2015\" will return objects with names like \"site June 2015\", \"site April 2015\", or simply \"site 2015\". Most of the searches also add wildcards implicitly at the start and the end of the search string. For example, a search string of \"site\" will match objects with name \"my site\", \"site 2015\", or simply \"site\".",
 	//       "location": "query",
 	//       "type": "string"
 	//     },
@@ -23361,20 +22204,33 @@ func (c *SitesListCall) Do() (*SitesListResponse, error) {
 // method id "dfareporting.sites.patch":
 
 type SitesPatchCall struct {
-	s         *Service
-	profileId int64
-	id        int64
-	site      *Site
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	id            int64
+	site          *Site
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Patch: Updates an existing site. This method supports patch
 // semantics.
+
 func (r *SitesService) Patch(profileId int64, id int64, site *Site) *SitesPatchCall {
-	c := &SitesPatchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.id = id
-	c.site = site
+	return &SitesPatchCall{
+		s:             r.s,
+		profileId:     profileId,
+		id:            id,
+		site:          site,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/sites",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *SitesPatchCall) Context(ctx context.Context) *SitesPatchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -23382,44 +22238,25 @@ func (r *SitesService) Patch(profileId int64, id int64, site *Site) *SitesPatchC
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *SitesPatchCall) Fields(s ...googleapi.Field) *SitesPatchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *SitesPatchCall) Do() (*Site, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.site)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("id", fmt.Sprintf("%v", c.id))
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/sites")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PATCH", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Site
+	c.params_.Set("id", fmt.Sprintf("%v", c.id))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PATCH",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.site,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Site
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates an existing site. This method supports patch semantics.",
 	//   "httpMethod": "PATCH",
@@ -23461,17 +22298,30 @@ func (c *SitesPatchCall) Do() (*Site, error) {
 // method id "dfareporting.sites.update":
 
 type SitesUpdateCall struct {
-	s         *Service
-	profileId int64
-	site      *Site
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	site          *Site
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Update: Updates an existing site.
+
 func (r *SitesService) Update(profileId int64, site *Site) *SitesUpdateCall {
-	c := &SitesUpdateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.site = site
+	return &SitesUpdateCall{
+		s:             r.s,
+		profileId:     profileId,
+		site:          site,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/sites",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *SitesUpdateCall) Context(ctx context.Context) *SitesUpdateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -23479,43 +22329,24 @@ func (r *SitesService) Update(profileId int64, site *Site) *SitesUpdateCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *SitesUpdateCall) Fields(s ...googleapi.Field) *SitesUpdateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *SitesUpdateCall) Do() (*Site, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.site)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/sites")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Site
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.site,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Site
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates an existing site.",
 	//   "httpMethod": "PUT",
@@ -23549,17 +22380,30 @@ func (c *SitesUpdateCall) Do() (*Site, error) {
 // method id "dfareporting.sizes.get":
 
 type SizesGetCall struct {
-	s         *Service
-	profileId int64
-	id        int64
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	id            int64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Gets one size by ID.
+
 func (r *SizesService) Get(profileId int64, id int64) *SizesGetCall {
-	c := &SizesGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.id = id
+	return &SizesGetCall{
+		s:             r.s,
+		profileId:     profileId,
+		id:            id,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/sizes/{id}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *SizesGetCall) Context(ctx context.Context) *SizesGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -23567,38 +22411,24 @@ func (r *SizesService) Get(profileId int64, id int64) *SizesGetCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *SizesGetCall) Fields(s ...googleapi.Field) *SizesGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *SizesGetCall) Do() (*Size, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/sizes/{id}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Size
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 		"id":        strconv.FormatInt(c.id, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Size
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Gets one size by ID.",
 	//   "httpMethod": "GET",
@@ -23637,17 +22467,30 @@ func (c *SizesGetCall) Do() (*Size, error) {
 // method id "dfareporting.sizes.insert":
 
 type SizesInsertCall struct {
-	s         *Service
-	profileId int64
-	size      *Size
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	size          *Size
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Insert: Inserts a new size.
+
 func (r *SizesService) Insert(profileId int64, size *Size) *SizesInsertCall {
-	c := &SizesInsertCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.size = size
+	return &SizesInsertCall{
+		s:             r.s,
+		profileId:     profileId,
+		size:          size,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/sizes",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *SizesInsertCall) Context(ctx context.Context) *SizesInsertCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -23655,43 +22498,24 @@ func (r *SizesService) Insert(profileId int64, size *Size) *SizesInsertCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *SizesInsertCall) Fields(s ...googleapi.Field) *SizesInsertCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *SizesInsertCall) Do() (*Size, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.size)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/sizes")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Size
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.size,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Size
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Inserts a new size.",
 	//   "httpMethod": "POST",
@@ -23725,43 +22549,58 @@ func (c *SizesInsertCall) Do() (*Size, error) {
 // method id "dfareporting.sizes.list":
 
 type SizesListCall struct {
-	s         *Service
-	profileId int64
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Retrieves a list of sizes, possibly filtered.
+
 func (r *SizesService) List(profileId int64) *SizesListCall {
-	c := &SizesListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	return c
+	return &SizesListCall{
+		s:             r.s,
+		profileId:     profileId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/sizes",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Height sets the optional parameter "height": Select only sizes with
 // this height.
 func (c *SizesListCall) Height(height int64) *SizesListCall {
-	c.opt_["height"] = height
+	c.params_.Set("height", fmt.Sprintf("%v", height))
 	return c
 }
 
 // IabStandard sets the optional parameter "iabStandard": Select only
 // IAB standard sizes.
 func (c *SizesListCall) IabStandard(iabStandard bool) *SizesListCall {
-	c.opt_["iabStandard"] = iabStandard
+	c.params_.Set("iabStandard", fmt.Sprintf("%v", iabStandard))
 	return c
 }
 
 // Ids sets the optional parameter "ids": Select only sizes with these
 // IDs.
-func (c *SizesListCall) Ids(ids int64) *SizesListCall {
-	c.opt_["ids"] = ids
+func (c *SizesListCall) Ids(ids ...int64) *SizesListCall {
+	for _, v_ := range ids {
+		c.params_.Add("ids", fmt.Sprintf("%v", v_))
+	}
 	return c
 }
 
 // Width sets the optional parameter "width": Select only sizes with
 // this width.
 func (c *SizesListCall) Width(width int64) *SizesListCall {
-	c.opt_["width"] = width
+	c.params_.Set("width", fmt.Sprintf("%v", width))
+	return c
+}
+func (c *SizesListCall) Context(ctx context.Context) *SizesListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -23769,49 +22608,23 @@ func (c *SizesListCall) Width(width int64) *SizesListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *SizesListCall) Fields(s ...googleapi.Field) *SizesListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *SizesListCall) Do() (*SizesListResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["height"]; ok {
-		params.Set("height", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["iabStandard"]; ok {
-		params.Set("iabStandard", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["ids"]; ok {
-		params.Set("ids", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["width"]; ok {
-		params.Set("width", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/sizes")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *SizesListResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *SizesListResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves a list of sizes, possibly filtered.",
 	//   "httpMethod": "GET",
@@ -23866,17 +22679,30 @@ func (c *SizesListCall) Do() (*SizesListResponse, error) {
 // method id "dfareporting.subaccounts.get":
 
 type SubaccountsGetCall struct {
-	s         *Service
-	profileId int64
-	id        int64
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	id            int64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Gets one subaccount by ID.
+
 func (r *SubaccountsService) Get(profileId int64, id int64) *SubaccountsGetCall {
-	c := &SubaccountsGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.id = id
+	return &SubaccountsGetCall{
+		s:             r.s,
+		profileId:     profileId,
+		id:            id,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/subaccounts/{id}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *SubaccountsGetCall) Context(ctx context.Context) *SubaccountsGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -23884,38 +22710,24 @@ func (r *SubaccountsService) Get(profileId int64, id int64) *SubaccountsGetCall 
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *SubaccountsGetCall) Fields(s ...googleapi.Field) *SubaccountsGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *SubaccountsGetCall) Do() (*Subaccount, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/subaccounts/{id}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Subaccount
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 		"id":        strconv.FormatInt(c.id, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Subaccount
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Gets one subaccount by ID.",
 	//   "httpMethod": "GET",
@@ -23954,17 +22766,30 @@ func (c *SubaccountsGetCall) Do() (*Subaccount, error) {
 // method id "dfareporting.subaccounts.insert":
 
 type SubaccountsInsertCall struct {
-	s          *Service
-	profileId  int64
-	subaccount *Subaccount
-	opt_       map[string]interface{}
+	s             *Service
+	profileId     int64
+	subaccount    *Subaccount
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Insert: Inserts a new subaccount.
+
 func (r *SubaccountsService) Insert(profileId int64, subaccount *Subaccount) *SubaccountsInsertCall {
-	c := &SubaccountsInsertCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.subaccount = subaccount
+	return &SubaccountsInsertCall{
+		s:             r.s,
+		profileId:     profileId,
+		subaccount:    subaccount,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/subaccounts",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *SubaccountsInsertCall) Context(ctx context.Context) *SubaccountsInsertCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -23972,43 +22797,24 @@ func (r *SubaccountsService) Insert(profileId int64, subaccount *Subaccount) *Su
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *SubaccountsInsertCall) Fields(s ...googleapi.Field) *SubaccountsInsertCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *SubaccountsInsertCall) Do() (*Subaccount, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.subaccount)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/subaccounts")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Subaccount
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.subaccount,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Subaccount
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Inserts a new subaccount.",
 	//   "httpMethod": "POST",
@@ -24042,63 +22848,78 @@ func (c *SubaccountsInsertCall) Do() (*Subaccount, error) {
 // method id "dfareporting.subaccounts.list":
 
 type SubaccountsListCall struct {
-	s         *Service
-	profileId int64
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Gets a list of subaccounts, possibly filtered.
+
 func (r *SubaccountsService) List(profileId int64) *SubaccountsListCall {
-	c := &SubaccountsListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	return c
+	return &SubaccountsListCall{
+		s:             r.s,
+		profileId:     profileId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/subaccounts",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Ids sets the optional parameter "ids": Select only subaccounts with
 // these IDs.
-func (c *SubaccountsListCall) Ids(ids int64) *SubaccountsListCall {
-	c.opt_["ids"] = ids
+func (c *SubaccountsListCall) Ids(ids ...int64) *SubaccountsListCall {
+	for _, v_ := range ids {
+		c.params_.Add("ids", fmt.Sprintf("%v", v_))
+	}
 	return c
 }
 
 // MaxResults sets the optional parameter "maxResults": Maximum number
 // of results to return.
 func (c *SubaccountsListCall) MaxResults(maxResults int64) *SubaccountsListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
 // PageToken sets the optional parameter "pageToken": Value of the
 // nextPageToken from the previous result page.
 func (c *SubaccountsListCall) PageToken(pageToken string) *SubaccountsListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
 	return c
 }
 
 // SearchString sets the optional parameter "searchString": Allows
 // searching for objects by name or ID. Wildcards (*) are allowed. For
 // example, "subaccount*2015" will return objects with names like
-// "subaccount June 2015", "subaccount April 2015" or simply "subaccount
-// 2015". Most of the searches also add wildcards implicitly at the
-// start and the end of the search string. For example, a search string
-// of "subaccount" will match objects with name "my subaccount",
-// "subaccount 2015" or simply "subaccount".
+// "subaccount June 2015", "subaccount April 2015", or simply
+// "subaccount 2015". Most of the searches also add wildcards implicitly
+// at the start and the end of the search string. For example, a search
+// string of "subaccount" will match objects with name "my subaccount",
+// "subaccount 2015", or simply "subaccount".
 func (c *SubaccountsListCall) SearchString(searchString string) *SubaccountsListCall {
-	c.opt_["searchString"] = searchString
+	c.params_.Set("searchString", fmt.Sprintf("%v", searchString))
 	return c
 }
 
 // SortField sets the optional parameter "sortField": Field by which to
 // sort the list.
 func (c *SubaccountsListCall) SortField(sortField string) *SubaccountsListCall {
-	c.opt_["sortField"] = sortField
+	c.params_.Set("sortField", fmt.Sprintf("%v", sortField))
 	return c
 }
 
 // SortOrder sets the optional parameter "sortOrder": Order of sorted
 // results, default is ASCENDING.
 func (c *SubaccountsListCall) SortOrder(sortOrder string) *SubaccountsListCall {
-	c.opt_["sortOrder"] = sortOrder
+	c.params_.Set("sortOrder", fmt.Sprintf("%v", sortOrder))
+	return c
+}
+func (c *SubaccountsListCall) Context(ctx context.Context) *SubaccountsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -24106,55 +22927,23 @@ func (c *SubaccountsListCall) SortOrder(sortOrder string) *SubaccountsListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *SubaccountsListCall) Fields(s ...googleapi.Field) *SubaccountsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *SubaccountsListCall) Do() (*SubaccountsListResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["ids"]; ok {
-		params.Set("ids", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["searchString"]; ok {
-		params.Set("searchString", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["sortField"]; ok {
-		params.Set("sortField", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["sortOrder"]; ok {
-		params.Set("sortOrder", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/subaccounts")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *SubaccountsListResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *SubaccountsListResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Gets a list of subaccounts, possibly filtered.",
 	//   "httpMethod": "GET",
@@ -24189,7 +22978,7 @@ func (c *SubaccountsListCall) Do() (*SubaccountsListResponse, error) {
 	//       "type": "string"
 	//     },
 	//     "searchString": {
-	//       "description": "Allows searching for objects by name or ID. Wildcards (*) are allowed. For example, \"subaccount*2015\" will return objects with names like \"subaccount June 2015\", \"subaccount April 2015\" or simply \"subaccount 2015\". Most of the searches also add wildcards implicitly at the start and the end of the search string. For example, a search string of \"subaccount\" will match objects with name \"my subaccount\", \"subaccount 2015\" or simply \"subaccount\".",
+	//       "description": "Allows searching for objects by name or ID. Wildcards (*) are allowed. For example, \"subaccount*2015\" will return objects with names like \"subaccount June 2015\", \"subaccount April 2015\", or simply \"subaccount 2015\". Most of the searches also add wildcards implicitly at the start and the end of the search string. For example, a search string of \"subaccount\" will match objects with name \"my subaccount\", \"subaccount 2015\", or simply \"subaccount\".",
 	//       "location": "query",
 	//       "type": "string"
 	//     },
@@ -24234,20 +23023,33 @@ func (c *SubaccountsListCall) Do() (*SubaccountsListResponse, error) {
 // method id "dfareporting.subaccounts.patch":
 
 type SubaccountsPatchCall struct {
-	s          *Service
-	profileId  int64
-	id         int64
-	subaccount *Subaccount
-	opt_       map[string]interface{}
+	s             *Service
+	profileId     int64
+	id            int64
+	subaccount    *Subaccount
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Patch: Updates an existing subaccount. This method supports patch
 // semantics.
+
 func (r *SubaccountsService) Patch(profileId int64, id int64, subaccount *Subaccount) *SubaccountsPatchCall {
-	c := &SubaccountsPatchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.id = id
-	c.subaccount = subaccount
+	return &SubaccountsPatchCall{
+		s:             r.s,
+		profileId:     profileId,
+		id:            id,
+		subaccount:    subaccount,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/subaccounts",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *SubaccountsPatchCall) Context(ctx context.Context) *SubaccountsPatchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -24255,44 +23057,25 @@ func (r *SubaccountsService) Patch(profileId int64, id int64, subaccount *Subacc
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *SubaccountsPatchCall) Fields(s ...googleapi.Field) *SubaccountsPatchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *SubaccountsPatchCall) Do() (*Subaccount, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.subaccount)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("id", fmt.Sprintf("%v", c.id))
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/subaccounts")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PATCH", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Subaccount
+	c.params_.Set("id", fmt.Sprintf("%v", c.id))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PATCH",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.subaccount,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Subaccount
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates an existing subaccount. This method supports patch semantics.",
 	//   "httpMethod": "PATCH",
@@ -24334,17 +23117,30 @@ func (c *SubaccountsPatchCall) Do() (*Subaccount, error) {
 // method id "dfareporting.subaccounts.update":
 
 type SubaccountsUpdateCall struct {
-	s          *Service
-	profileId  int64
-	subaccount *Subaccount
-	opt_       map[string]interface{}
+	s             *Service
+	profileId     int64
+	subaccount    *Subaccount
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Update: Updates an existing subaccount.
+
 func (r *SubaccountsService) Update(profileId int64, subaccount *Subaccount) *SubaccountsUpdateCall {
-	c := &SubaccountsUpdateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.subaccount = subaccount
+	return &SubaccountsUpdateCall{
+		s:             r.s,
+		profileId:     profileId,
+		subaccount:    subaccount,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/subaccounts",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *SubaccountsUpdateCall) Context(ctx context.Context) *SubaccountsUpdateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -24352,43 +23148,24 @@ func (r *SubaccountsService) Update(profileId int64, subaccount *Subaccount) *Su
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *SubaccountsUpdateCall) Fields(s ...googleapi.Field) *SubaccountsUpdateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *SubaccountsUpdateCall) Do() (*Subaccount, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.subaccount)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/subaccounts")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Subaccount
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.subaccount,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Subaccount
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates an existing subaccount.",
 	//   "httpMethod": "PUT",
@@ -24422,15 +23199,28 @@ func (c *SubaccountsUpdateCall) Do() (*Subaccount, error) {
 // method id "dfareporting.userProfiles.get":
 
 type UserProfilesGetCall struct {
-	s         *Service
-	profileId int64
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Gets one user profile by ID.
+
 func (r *UserProfilesService) Get(profileId int64) *UserProfilesGetCall {
-	c := &UserProfilesGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
+	return &UserProfilesGetCall{
+		s:             r.s,
+		profileId:     profileId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *UserProfilesGetCall) Context(ctx context.Context) *UserProfilesGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -24438,37 +23228,23 @@ func (r *UserProfilesService) Get(profileId int64) *UserProfilesGetCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *UserProfilesGetCall) Fields(s ...googleapi.Field) *UserProfilesGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *UserProfilesGetCall) Do() (*UserProfile, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *UserProfile
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *UserProfile
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Gets one user profile by ID.",
 	//   "httpMethod": "GET",
@@ -24500,13 +23276,26 @@ func (c *UserProfilesGetCall) Do() (*UserProfile, error) {
 // method id "dfareporting.userProfiles.list":
 
 type UserProfilesListCall struct {
-	s    *Service
-	opt_ map[string]interface{}
+	s             *Service
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Retrieves list of user profiles for a user.
+
 func (r *UserProfilesService) List() *UserProfilesListCall {
-	c := &UserProfilesListCall{s: r.s, opt_: make(map[string]interface{})}
+	return &UserProfilesListCall{
+		s:             r.s,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *UserProfilesListCall) Context(ctx context.Context) *UserProfilesListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -24514,35 +23303,21 @@ func (r *UserProfilesService) List() *UserProfilesListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *UserProfilesListCall) Fields(s ...googleapi.Field) *UserProfilesListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *UserProfilesListCall) Do() (*UserProfileList, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
+	var returnValue *UserProfileList
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *UserProfileList
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves list of user profiles for a user.",
 	//   "httpMethod": "GET",
@@ -24562,17 +23337,30 @@ func (c *UserProfilesListCall) Do() (*UserProfileList, error) {
 // method id "dfareporting.userRolePermissionGroups.get":
 
 type UserRolePermissionGroupsGetCall struct {
-	s         *Service
-	profileId int64
-	id        int64
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	id            int64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Gets one user role permission group by ID.
+
 func (r *UserRolePermissionGroupsService) Get(profileId int64, id int64) *UserRolePermissionGroupsGetCall {
-	c := &UserRolePermissionGroupsGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.id = id
+	return &UserRolePermissionGroupsGetCall{
+		s:             r.s,
+		profileId:     profileId,
+		id:            id,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/userRolePermissionGroups/{id}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *UserRolePermissionGroupsGetCall) Context(ctx context.Context) *UserRolePermissionGroupsGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -24580,38 +23368,24 @@ func (r *UserRolePermissionGroupsService) Get(profileId int64, id int64) *UserRo
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *UserRolePermissionGroupsGetCall) Fields(s ...googleapi.Field) *UserRolePermissionGroupsGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *UserRolePermissionGroupsGetCall) Do() (*UserRolePermissionGroup, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/userRolePermissionGroups/{id}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *UserRolePermissionGroup
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 		"id":        strconv.FormatInt(c.id, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *UserRolePermissionGroup
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Gets one user role permission group by ID.",
 	//   "httpMethod": "GET",
@@ -24650,15 +23424,28 @@ func (c *UserRolePermissionGroupsGetCall) Do() (*UserRolePermissionGroup, error)
 // method id "dfareporting.userRolePermissionGroups.list":
 
 type UserRolePermissionGroupsListCall struct {
-	s         *Service
-	profileId int64
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Gets a list of all supported user role permission groups.
+
 func (r *UserRolePermissionGroupsService) List(profileId int64) *UserRolePermissionGroupsListCall {
-	c := &UserRolePermissionGroupsListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
+	return &UserRolePermissionGroupsListCall{
+		s:             r.s,
+		profileId:     profileId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/userRolePermissionGroups",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *UserRolePermissionGroupsListCall) Context(ctx context.Context) *UserRolePermissionGroupsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -24666,37 +23453,23 @@ func (r *UserRolePermissionGroupsService) List(profileId int64) *UserRolePermiss
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *UserRolePermissionGroupsListCall) Fields(s ...googleapi.Field) *UserRolePermissionGroupsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *UserRolePermissionGroupsListCall) Do() (*UserRolePermissionGroupsListResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/userRolePermissionGroups")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *UserRolePermissionGroupsListResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *UserRolePermissionGroupsListResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Gets a list of all supported user role permission groups.",
 	//   "httpMethod": "GET",
@@ -24727,17 +23500,30 @@ func (c *UserRolePermissionGroupsListCall) Do() (*UserRolePermissionGroupsListRe
 // method id "dfareporting.userRolePermissions.get":
 
 type UserRolePermissionsGetCall struct {
-	s         *Service
-	profileId int64
-	id        int64
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	id            int64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Gets one user role permission by ID.
+
 func (r *UserRolePermissionsService) Get(profileId int64, id int64) *UserRolePermissionsGetCall {
-	c := &UserRolePermissionsGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.id = id
+	return &UserRolePermissionsGetCall{
+		s:             r.s,
+		profileId:     profileId,
+		id:            id,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/userRolePermissions/{id}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *UserRolePermissionsGetCall) Context(ctx context.Context) *UserRolePermissionsGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -24745,38 +23531,24 @@ func (r *UserRolePermissionsService) Get(profileId int64, id int64) *UserRolePer
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *UserRolePermissionsGetCall) Fields(s ...googleapi.Field) *UserRolePermissionsGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *UserRolePermissionsGetCall) Do() (*UserRolePermission, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/userRolePermissions/{id}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *UserRolePermission
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 		"id":        strconv.FormatInt(c.id, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *UserRolePermission
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Gets one user role permission by ID.",
 	//   "httpMethod": "GET",
@@ -24815,22 +23587,37 @@ func (c *UserRolePermissionsGetCall) Do() (*UserRolePermission, error) {
 // method id "dfareporting.userRolePermissions.list":
 
 type UserRolePermissionsListCall struct {
-	s         *Service
-	profileId int64
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Gets a list of user role permissions, possibly filtered.
+
 func (r *UserRolePermissionsService) List(profileId int64) *UserRolePermissionsListCall {
-	c := &UserRolePermissionsListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	return c
+	return &UserRolePermissionsListCall{
+		s:             r.s,
+		profileId:     profileId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/userRolePermissions",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Ids sets the optional parameter "ids": Select only user role
 // permissions with these IDs.
-func (c *UserRolePermissionsListCall) Ids(ids int64) *UserRolePermissionsListCall {
-	c.opt_["ids"] = ids
+func (c *UserRolePermissionsListCall) Ids(ids ...int64) *UserRolePermissionsListCall {
+	for _, v_ := range ids {
+		c.params_.Add("ids", fmt.Sprintf("%v", v_))
+	}
+	return c
+}
+func (c *UserRolePermissionsListCall) Context(ctx context.Context) *UserRolePermissionsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -24838,40 +23625,23 @@ func (c *UserRolePermissionsListCall) Ids(ids int64) *UserRolePermissionsListCal
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *UserRolePermissionsListCall) Fields(s ...googleapi.Field) *UserRolePermissionsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *UserRolePermissionsListCall) Do() (*UserRolePermissionsListResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["ids"]; ok {
-		params.Set("ids", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/userRolePermissions")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *UserRolePermissionsListResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *UserRolePermissionsListResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Gets a list of user role permissions, possibly filtered.",
 	//   "httpMethod": "GET",
@@ -24909,52 +23679,45 @@ func (c *UserRolePermissionsListCall) Do() (*UserRolePermissionsListResponse, er
 // method id "dfareporting.userRoles.delete":
 
 type UserRolesDeleteCall struct {
-	s         *Service
-	profileId int64
-	id        int64
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	id            int64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Delete: Deletes an existing user role.
-func (r *UserRolesService) Delete(profileId int64, id int64) *UserRolesDeleteCall {
-	c := &UserRolesDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.id = id
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *UserRolesDeleteCall) Fields(s ...googleapi.Field) *UserRolesDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *UserRolesService) Delete(profileId int64, id int64) *UserRolesDeleteCall {
+	return &UserRolesDeleteCall{
+		s:             r.s,
+		profileId:     profileId,
+		id:            id,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/userRoles/{id}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *UserRolesDeleteCall) Context(ctx context.Context) *UserRolesDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *UserRolesDeleteCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/userRoles/{id}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 		"id":        strconv.FormatInt(c.id, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Deletes an existing user role.",
 	//   "httpMethod": "DELETE",
@@ -24990,17 +23753,30 @@ func (c *UserRolesDeleteCall) Do() error {
 // method id "dfareporting.userRoles.get":
 
 type UserRolesGetCall struct {
-	s         *Service
-	profileId int64
-	id        int64
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	id            int64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Gets one user role by ID.
+
 func (r *UserRolesService) Get(profileId int64, id int64) *UserRolesGetCall {
-	c := &UserRolesGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.id = id
+	return &UserRolesGetCall{
+		s:             r.s,
+		profileId:     profileId,
+		id:            id,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/userRoles/{id}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *UserRolesGetCall) Context(ctx context.Context) *UserRolesGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -25008,38 +23784,24 @@ func (r *UserRolesService) Get(profileId int64, id int64) *UserRolesGetCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *UserRolesGetCall) Fields(s ...googleapi.Field) *UserRolesGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *UserRolesGetCall) Do() (*UserRole, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/userRoles/{id}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *UserRole
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 		"id":        strconv.FormatInt(c.id, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *UserRole
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Gets one user role by ID.",
 	//   "httpMethod": "GET",
@@ -25078,17 +23840,30 @@ func (c *UserRolesGetCall) Do() (*UserRole, error) {
 // method id "dfareporting.userRoles.insert":
 
 type UserRolesInsertCall struct {
-	s         *Service
-	profileId int64
-	userrole  *UserRole
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	userrole      *UserRole
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Insert: Inserts a new user role.
+
 func (r *UserRolesService) Insert(profileId int64, userrole *UserRole) *UserRolesInsertCall {
-	c := &UserRolesInsertCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.userrole = userrole
+	return &UserRolesInsertCall{
+		s:             r.s,
+		profileId:     profileId,
+		userrole:      userrole,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/userRoles",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *UserRolesInsertCall) Context(ctx context.Context) *UserRolesInsertCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -25096,43 +23871,24 @@ func (r *UserRolesService) Insert(profileId int64, userrole *UserRole) *UserRole
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *UserRolesInsertCall) Fields(s ...googleapi.Field) *UserRolesInsertCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *UserRolesInsertCall) Do() (*UserRole, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.userrole)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/userRoles")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *UserRole
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.userrole,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *UserRole
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Inserts a new user role.",
 	//   "httpMethod": "POST",
@@ -25166,78 +23922,93 @@ func (c *UserRolesInsertCall) Do() (*UserRole, error) {
 // method id "dfareporting.userRoles.list":
 
 type UserRolesListCall struct {
-	s         *Service
-	profileId int64
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Retrieves a list of user roles, possibly filtered.
+
 func (r *UserRolesService) List(profileId int64) *UserRolesListCall {
-	c := &UserRolesListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	return c
+	return &UserRolesListCall{
+		s:             r.s,
+		profileId:     profileId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/userRoles",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // AccountUserRoleOnly sets the optional parameter
 // "accountUserRoleOnly": Select only account level user roles not
 // associated with any specific subaccount.
 func (c *UserRolesListCall) AccountUserRoleOnly(accountUserRoleOnly bool) *UserRolesListCall {
-	c.opt_["accountUserRoleOnly"] = accountUserRoleOnly
+	c.params_.Set("accountUserRoleOnly", fmt.Sprintf("%v", accountUserRoleOnly))
 	return c
 }
 
 // Ids sets the optional parameter "ids": Select only user roles with
 // the specified IDs.
-func (c *UserRolesListCall) Ids(ids int64) *UserRolesListCall {
-	c.opt_["ids"] = ids
+func (c *UserRolesListCall) Ids(ids ...int64) *UserRolesListCall {
+	for _, v_ := range ids {
+		c.params_.Add("ids", fmt.Sprintf("%v", v_))
+	}
 	return c
 }
 
 // MaxResults sets the optional parameter "maxResults": Maximum number
 // of results to return.
 func (c *UserRolesListCall) MaxResults(maxResults int64) *UserRolesListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
 // PageToken sets the optional parameter "pageToken": Value of the
 // nextPageToken from the previous result page.
 func (c *UserRolesListCall) PageToken(pageToken string) *UserRolesListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
 	return c
 }
 
 // SearchString sets the optional parameter "searchString": Allows
 // searching for objects by name or ID. Wildcards (*) are allowed. For
 // example, "userrole*2015" will return objects with names like
-// "userrole June 2015", "userrole April 2015" or simply "userrole
+// "userrole June 2015", "userrole April 2015", or simply "userrole
 // 2015". Most of the searches also add wildcards implicitly at the
 // start and the end of the search string. For example, a search string
 // of "userrole" will match objects with name "my userrole", "userrole
-// 2015" or simply "userrole".
+// 2015", or simply "userrole".
 func (c *UserRolesListCall) SearchString(searchString string) *UserRolesListCall {
-	c.opt_["searchString"] = searchString
+	c.params_.Set("searchString", fmt.Sprintf("%v", searchString))
 	return c
 }
 
 // SortField sets the optional parameter "sortField": Field by which to
 // sort the list.
 func (c *UserRolesListCall) SortField(sortField string) *UserRolesListCall {
-	c.opt_["sortField"] = sortField
+	c.params_.Set("sortField", fmt.Sprintf("%v", sortField))
 	return c
 }
 
 // SortOrder sets the optional parameter "sortOrder": Order of sorted
 // results, default is ASCENDING.
 func (c *UserRolesListCall) SortOrder(sortOrder string) *UserRolesListCall {
-	c.opt_["sortOrder"] = sortOrder
+	c.params_.Set("sortOrder", fmt.Sprintf("%v", sortOrder))
 	return c
 }
 
 // SubaccountId sets the optional parameter "subaccountId": Select only
 // user roles that belong to this subaccount.
 func (c *UserRolesListCall) SubaccountId(subaccountId int64) *UserRolesListCall {
-	c.opt_["subaccountId"] = subaccountId
+	c.params_.Set("subaccountId", fmt.Sprintf("%v", subaccountId))
+	return c
+}
+func (c *UserRolesListCall) Context(ctx context.Context) *UserRolesListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -25245,61 +24016,23 @@ func (c *UserRolesListCall) SubaccountId(subaccountId int64) *UserRolesListCall 
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *UserRolesListCall) Fields(s ...googleapi.Field) *UserRolesListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *UserRolesListCall) Do() (*UserRolesListResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["accountUserRoleOnly"]; ok {
-		params.Set("accountUserRoleOnly", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["ids"]; ok {
-		params.Set("ids", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["searchString"]; ok {
-		params.Set("searchString", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["sortField"]; ok {
-		params.Set("sortField", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["sortOrder"]; ok {
-		params.Set("sortOrder", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["subaccountId"]; ok {
-		params.Set("subaccountId", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/userRoles")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *UserRolesListResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *UserRolesListResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves a list of user roles, possibly filtered.",
 	//   "httpMethod": "GET",
@@ -25339,7 +24072,7 @@ func (c *UserRolesListCall) Do() (*UserRolesListResponse, error) {
 	//       "type": "string"
 	//     },
 	//     "searchString": {
-	//       "description": "Allows searching for objects by name or ID. Wildcards (*) are allowed. For example, \"userrole*2015\" will return objects with names like \"userrole June 2015\", \"userrole April 2015\" or simply \"userrole 2015\". Most of the searches also add wildcards implicitly at the start and the end of the search string. For example, a search string of \"userrole\" will match objects with name \"my userrole\", \"userrole 2015\" or simply \"userrole\".",
+	//       "description": "Allows searching for objects by name or ID. Wildcards (*) are allowed. For example, \"userrole*2015\" will return objects with names like \"userrole June 2015\", \"userrole April 2015\", or simply \"userrole 2015\". Most of the searches also add wildcards implicitly at the start and the end of the search string. For example, a search string of \"userrole\" will match objects with name \"my userrole\", \"userrole 2015\", or simply \"userrole\".",
 	//       "location": "query",
 	//       "type": "string"
 	//     },
@@ -25390,20 +24123,33 @@ func (c *UserRolesListCall) Do() (*UserRolesListResponse, error) {
 // method id "dfareporting.userRoles.patch":
 
 type UserRolesPatchCall struct {
-	s         *Service
-	profileId int64
-	id        int64
-	userrole  *UserRole
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	id            int64
+	userrole      *UserRole
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Patch: Updates an existing user role. This method supports patch
 // semantics.
+
 func (r *UserRolesService) Patch(profileId int64, id int64, userrole *UserRole) *UserRolesPatchCall {
-	c := &UserRolesPatchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.id = id
-	c.userrole = userrole
+	return &UserRolesPatchCall{
+		s:             r.s,
+		profileId:     profileId,
+		id:            id,
+		userrole:      userrole,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/userRoles",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *UserRolesPatchCall) Context(ctx context.Context) *UserRolesPatchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -25411,44 +24157,25 @@ func (r *UserRolesService) Patch(profileId int64, id int64, userrole *UserRole) 
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *UserRolesPatchCall) Fields(s ...googleapi.Field) *UserRolesPatchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *UserRolesPatchCall) Do() (*UserRole, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.userrole)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("id", fmt.Sprintf("%v", c.id))
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/userRoles")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PATCH", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *UserRole
+	c.params_.Set("id", fmt.Sprintf("%v", c.id))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PATCH",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.userrole,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *UserRole
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates an existing user role. This method supports patch semantics.",
 	//   "httpMethod": "PATCH",
@@ -25490,17 +24217,30 @@ func (c *UserRolesPatchCall) Do() (*UserRole, error) {
 // method id "dfareporting.userRoles.update":
 
 type UserRolesUpdateCall struct {
-	s         *Service
-	profileId int64
-	userrole  *UserRole
-	opt_      map[string]interface{}
+	s             *Service
+	profileId     int64
+	userrole      *UserRole
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Update: Updates an existing user role.
+
 func (r *UserRolesService) Update(profileId int64, userrole *UserRole) *UserRolesUpdateCall {
-	c := &UserRolesUpdateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.profileId = profileId
-	c.userrole = userrole
+	return &UserRolesUpdateCall{
+		s:             r.s,
+		profileId:     profileId,
+		userrole:      userrole,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "userprofiles/{profileId}/userRoles",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *UserRolesUpdateCall) Context(ctx context.Context) *UserRolesUpdateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -25508,43 +24248,24 @@ func (r *UserRolesService) Update(profileId int64, userrole *UserRole) *UserRole
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *UserRolesUpdateCall) Fields(s ...googleapi.Field) *UserRolesUpdateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *UserRolesUpdateCall) Do() (*UserRole, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.userrole)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "userprofiles/{profileId}/userRoles")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *UserRole
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"profileId": strconv.FormatInt(c.profileId, 10),
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.userrole,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *UserRole
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates an existing user role.",
 	//   "httpMethod": "PUT",

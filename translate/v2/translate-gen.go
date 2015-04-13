@@ -4,18 +4,16 @@
 //
 // Usage example:
 //
-//   import "google.golang.org/api/translate/v2"
+//   import "github.com/jfcote87/api2/translate/v2"
 //   ...
 //   translateService, err := translate.New(oauthHttpClient)
 package translate
 
 import (
-	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/jfcote87/api2/googleapi"
 	"golang.org/x/net/context"
-	"google.golang.org/api/googleapi"
 	"io"
 	"net/http"
 	"net/url"
@@ -25,10 +23,8 @@ import (
 
 // Always reference these packages, just in case the auto-generated code
 // below doesn't.
-var _ = bytes.NewBuffer
 var _ = strconv.Itoa
 var _ = fmt.Sprintf
-var _ = json.NewDecoder
 var _ = io.Copy
 var _ = url.Parse
 var _ = googleapi.Version
@@ -39,13 +35,14 @@ var _ = context.Background
 const apiId = "translate:v2"
 const apiName = "translate"
 const apiVersion = "v2"
-const basePath = "https://www.googleapis.com/language/translate/"
+
+var baseURL *url.URL = &url.URL{Scheme: "https", Host: "www.googleapis.com", Path: "/language/translate/"}
 
 func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
+	s := &Service{client: client}
 	s.Detections = NewDetectionsService(s)
 	s.Languages = NewLanguagesService(s)
 	s.Translations = NewTranslationsService(s)
@@ -53,22 +50,13 @@ func New(client *http.Client) (*Service, error) {
 }
 
 type Service struct {
-	client    *http.Client
-	BasePath  string // API endpoint base URL
-	UserAgent string // optional additional User-Agent fragment
+	client *http.Client
 
 	Detections *DetectionsService
 
 	Languages *LanguagesService
 
 	Translations *TranslationsService
-}
-
-func (s *Service) userAgent() string {
-	if s.UserAgent == "" {
-		return googleapi.UserAgent
-	}
-	return googleapi.UserAgent + " " + s.UserAgent
 }
 
 func NewDetectionsService(s *Service) *DetectionsService {
@@ -151,15 +139,28 @@ type TranslationsResource struct {
 // method id "language.detections.list":
 
 type DetectionsListCall struct {
-	s    *Service
-	q    []string
-	opt_ map[string]interface{}
+	s             *Service
+	q             []string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Detect the language of text.
+
 func (r *DetectionsService) List(q []string) *DetectionsListCall {
-	c := &DetectionsListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.q = q
+	return &DetectionsListCall{
+		s:             r.s,
+		q:             q,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "v2/detect",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *DetectionsListCall) Context(ctx context.Context) *DetectionsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -167,38 +168,25 @@ func (r *DetectionsService) List(q []string) *DetectionsListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *DetectionsListCall) Fields(s ...googleapi.Field) *DetectionsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *DetectionsListCall) Do() (*DetectionsListResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
+	var returnValue *DetectionsListResponse
+	c.params_.Del("q")
 	for _, v := range c.q {
-		params.Add("q", fmt.Sprintf("%v", v))
+		c.params_.Add("q", fmt.Sprintf("%v", v))
 	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/detect")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *DetectionsListResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Detect the language of text.",
 	//   "httpMethod": "GET",
@@ -226,20 +214,33 @@ func (c *DetectionsListCall) Do() (*DetectionsListResponse, error) {
 // method id "language.languages.list":
 
 type LanguagesListCall struct {
-	s    *Service
-	opt_ map[string]interface{}
+	s             *Service
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: List the source/target languages supported by the API
+
 func (r *LanguagesService) List() *LanguagesListCall {
-	c := &LanguagesListCall{s: r.s, opt_: make(map[string]interface{})}
-	return c
+	return &LanguagesListCall{
+		s:             r.s,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "v2/languages",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Target sets the optional parameter "target": the language and
 // collation in which the localized results should be returned
 func (c *LanguagesListCall) Target(target string) *LanguagesListCall {
-	c.opt_["target"] = target
+	c.params_.Set("target", fmt.Sprintf("%v", target))
+	return c
+}
+func (c *LanguagesListCall) Context(ctx context.Context) *LanguagesListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -247,38 +248,21 @@ func (c *LanguagesListCall) Target(target string) *LanguagesListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *LanguagesListCall) Fields(s ...googleapi.Field) *LanguagesListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *LanguagesListCall) Do() (*LanguagesListResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["target"]; ok {
-		params.Set("target", fmt.Sprintf("%v", v))
+	var returnValue *LanguagesListResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/languages")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *LanguagesListResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "List the source/target languages supported by the API",
 	//   "httpMethod": "GET",
@@ -301,37 +285,50 @@ func (c *LanguagesListCall) Do() (*LanguagesListResponse, error) {
 // method id "language.translations.list":
 
 type TranslationsListCall struct {
-	s      *Service
-	q      []string
-	target string
-	opt_   map[string]interface{}
+	s             *Service
+	q             []string
+	target        string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Returns text translations from one language to another.
+
 func (r *TranslationsService) List(q []string, target string) *TranslationsListCall {
-	c := &TranslationsListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.q = q
-	c.target = target
-	return c
+	return &TranslationsListCall{
+		s:             r.s,
+		q:             q,
+		target:        target,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "v2",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Cid sets the optional parameter "cid": The customization id for
 // translate
-func (c *TranslationsListCall) Cid(cid string) *TranslationsListCall {
-	c.opt_["cid"] = cid
+func (c *TranslationsListCall) Cid(cid ...string) *TranslationsListCall {
+	c.params_["cid"] = cid
 	return c
 }
 
 // Format sets the optional parameter "format": The format of the text
 func (c *TranslationsListCall) Format(format string) *TranslationsListCall {
-	c.opt_["format"] = format
+	c.params_.Set("format", fmt.Sprintf("%v", format))
 	return c
 }
 
 // Source sets the optional parameter "source": The source language of
 // the text
 func (c *TranslationsListCall) Source(source string) *TranslationsListCall {
-	c.opt_["source"] = source
+	c.params_.Set("source", fmt.Sprintf("%v", source))
+	return c
+}
+func (c *TranslationsListCall) Context(ctx context.Context) *TranslationsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -339,48 +336,26 @@ func (c *TranslationsListCall) Source(source string) *TranslationsListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *TranslationsListCall) Fields(s ...googleapi.Field) *TranslationsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *TranslationsListCall) Do() (*TranslationsListResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("target", fmt.Sprintf("%v", c.target))
+	var returnValue *TranslationsListResponse
+	c.params_.Set("target", fmt.Sprintf("%v", c.target))
+	c.params_.Del("q")
 	for _, v := range c.q {
-		params.Add("q", fmt.Sprintf("%v", v))
+		c.params_.Add("q", fmt.Sprintf("%v", v))
 	}
-	if v, ok := c.opt_["cid"]; ok {
-		params.Set("cid", fmt.Sprintf("%v", v))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	if v, ok := c.opt_["format"]; ok {
-		params.Set("format", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["source"]; ok {
-		params.Set("source", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "v2")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *TranslationsListResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Returns text translations from one language to another.",
 	//   "httpMethod": "GET",

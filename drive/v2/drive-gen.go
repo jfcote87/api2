@@ -4,18 +4,16 @@
 //
 // Usage example:
 //
-//   import "google.golang.org/api/drive/v2"
+//   import "github.com/jfcote87/api2/drive/v2"
 //   ...
 //   driveService, err := drive.New(oauthHttpClient)
 package drive
 
 import (
-	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/jfcote87/api2/googleapi"
 	"golang.org/x/net/context"
-	"google.golang.org/api/googleapi"
 	"io"
 	"net/http"
 	"net/url"
@@ -25,10 +23,8 @@ import (
 
 // Always reference these packages, just in case the auto-generated code
 // below doesn't.
-var _ = bytes.NewBuffer
 var _ = strconv.Itoa
 var _ = fmt.Sprintf
-var _ = json.NewDecoder
 var _ = io.Copy
 var _ = url.Parse
 var _ = googleapi.Version
@@ -39,7 +35,8 @@ var _ = context.Background
 const apiId = "drive:v2"
 const apiName = "drive"
 const apiVersion = "v2"
-const basePath = "https://www.googleapis.com/drive/v2/"
+
+var baseURL *url.URL = &url.URL{Scheme: "https", Host: "www.googleapis.com", Path: "/drive/v2/"}
 
 // OAuth2 scopes used by this API.
 const (
@@ -70,7 +67,7 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
+	s := &Service{client: client}
 	s.About = NewAboutService(s)
 	s.Apps = NewAppsService(s)
 	s.Changes = NewChangesService(s)
@@ -88,9 +85,7 @@ func New(client *http.Client) (*Service, error) {
 }
 
 type Service struct {
-	client    *http.Client
-	BasePath  string // API endpoint base URL
-	UserAgent string // optional additional User-Agent fragment
+	client *http.Client
 
 	About *AboutService
 
@@ -117,13 +112,6 @@ type Service struct {
 	Replies *RepliesService
 
 	Revisions *RevisionsService
-}
-
-func (s *Service) userAgent() string {
-	if s.UserAgent == "" {
-		return googleapi.UserAgent
-	}
-	return googleapi.UserAgent + " " + s.UserAgent
 }
 
 func NewAboutService(s *Service) *AboutService {
@@ -429,7 +417,7 @@ type App struct {
 
 	// OpenUrlTemplate: The template url for opening files with this app.
 	// The template will contain {ids} and/or {exportIds} to be replaced by
-	// the actual file ids.
+	// the actual file ids. See  Open Files  for the full documentation.
 	OpenUrlTemplate string `json:"openUrlTemplate,omitempty"`
 
 	// PrimaryFileExtensions: The list of primary file extensions.
@@ -1386,15 +1374,24 @@ type UserPicture struct {
 // method id "drive.about.get":
 
 type AboutGetCall struct {
-	s    *Service
-	opt_ map[string]interface{}
+	s             *Service
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Gets the information about the current user along with Drive API
 // settings
+
 func (r *AboutService) Get() *AboutGetCall {
-	c := &AboutGetCall{s: r.s, opt_: make(map[string]interface{})}
-	return c
+	return &AboutGetCall{
+		s:             r.s,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "about",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // IncludeSubscribed sets the optional parameter "includeSubscribed":
@@ -1404,14 +1401,14 @@ func (r *AboutService) Get() *AboutGetCall {
 // or public files that the user has explicitly added to a folder they
 // own.
 func (c *AboutGetCall) IncludeSubscribed(includeSubscribed bool) *AboutGetCall {
-	c.opt_["includeSubscribed"] = includeSubscribed
+	c.params_.Set("includeSubscribed", fmt.Sprintf("%v", includeSubscribed))
 	return c
 }
 
 // MaxChangeIdCount sets the optional parameter "maxChangeIdCount":
 // Maximum number of remaining change IDs to count
 func (c *AboutGetCall) MaxChangeIdCount(maxChangeIdCount int64) *AboutGetCall {
-	c.opt_["maxChangeIdCount"] = maxChangeIdCount
+	c.params_.Set("maxChangeIdCount", fmt.Sprintf("%v", maxChangeIdCount))
 	return c
 }
 
@@ -1419,7 +1416,11 @@ func (c *AboutGetCall) MaxChangeIdCount(maxChangeIdCount int64) *AboutGetCall {
 // to start counting from when calculating number of remaining change
 // IDs
 func (c *AboutGetCall) StartChangeId(startChangeId int64) *AboutGetCall {
-	c.opt_["startChangeId"] = startChangeId
+	c.params_.Set("startChangeId", fmt.Sprintf("%v", startChangeId))
+	return c
+}
+func (c *AboutGetCall) Context(ctx context.Context) *AboutGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1427,44 +1428,21 @@ func (c *AboutGetCall) StartChangeId(startChangeId int64) *AboutGetCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AboutGetCall) Fields(s ...googleapi.Field) *AboutGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AboutGetCall) Do() (*About, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["includeSubscribed"]; ok {
-		params.Set("includeSubscribed", fmt.Sprintf("%v", v))
+	var returnValue *About
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	if v, ok := c.opt_["maxChangeIdCount"]; ok {
-		params.Set("maxChangeIdCount", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["startChangeId"]; ok {
-		params.Set("startChangeId", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "about")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *About
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Gets the information about the current user along with Drive API settings",
 	//   "httpMethod": "GET",
@@ -1508,15 +1486,28 @@ func (c *AboutGetCall) Do() (*About, error) {
 // method id "drive.apps.get":
 
 type AppsGetCall struct {
-	s     *Service
-	appId string
-	opt_  map[string]interface{}
+	s             *Service
+	appId         string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Gets a specific app.
+
 func (r *AppsService) Get(appId string) *AppsGetCall {
-	c := &AppsGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.appId = appId
+	return &AppsGetCall{
+		s:             r.s,
+		appId:         appId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "apps/{appId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *AppsGetCall) Context(ctx context.Context) *AppsGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1524,37 +1515,23 @@ func (r *AppsService) Get(appId string) *AppsGetCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AppsGetCall) Fields(s ...googleapi.Field) *AppsGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AppsGetCall) Do() (*App, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "apps/{appId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *App
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"appId": c.appId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *App
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Gets a specific app.",
 	//   "httpMethod": "GET",
@@ -1589,14 +1566,23 @@ func (c *AppsGetCall) Do() (*App, error) {
 // method id "drive.apps.list":
 
 type AppsListCall struct {
-	s    *Service
-	opt_ map[string]interface{}
+	s             *Service
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Lists a user's installed apps.
+
 func (r *AppsService) List() *AppsListCall {
-	c := &AppsListCall{s: r.s, opt_: make(map[string]interface{})}
-	return c
+	return &AppsListCall{
+		s:             r.s,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "apps",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // AppFilterExtensions sets the optional parameter
@@ -1606,7 +1592,7 @@ func (r *AppsService) List() *AppsListCall {
 // response. If appFilterMimeTypes are provided as well, the result is a
 // union of the two resulting app lists.
 func (c *AppsListCall) AppFilterExtensions(appFilterExtensions string) *AppsListCall {
-	c.opt_["appFilterExtensions"] = appFilterExtensions
+	c.params_.Set("appFilterExtensions", fmt.Sprintf("%v", appFilterExtensions))
 	return c
 }
 
@@ -1617,7 +1603,7 @@ func (c *AppsListCall) AppFilterExtensions(appFilterExtensions string) *AppsList
 // are provided as well, the result is a union of the two resulting app
 // lists.
 func (c *AppsListCall) AppFilterMimeTypes(appFilterMimeTypes string) *AppsListCall {
-	c.opt_["appFilterMimeTypes"] = appFilterMimeTypes
+	c.params_.Set("appFilterMimeTypes", fmt.Sprintf("%v", appFilterMimeTypes))
 	return c
 }
 
@@ -1625,7 +1611,11 @@ func (c *AppsListCall) AppFilterMimeTypes(appFilterMimeTypes string) *AppsListCa
 // or locale code, as defined by BCP 47, with some extensions from
 // Unicode's LDML format (http://www.unicode.org/reports/tr35/).
 func (c *AppsListCall) LanguageCode(languageCode string) *AppsListCall {
-	c.opt_["languageCode"] = languageCode
+	c.params_.Set("languageCode", fmt.Sprintf("%v", languageCode))
+	return c
+}
+func (c *AppsListCall) Context(ctx context.Context) *AppsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1633,44 +1623,21 @@ func (c *AppsListCall) LanguageCode(languageCode string) *AppsListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AppsListCall) Fields(s ...googleapi.Field) *AppsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AppsListCall) Do() (*AppList, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["appFilterExtensions"]; ok {
-		params.Set("appFilterExtensions", fmt.Sprintf("%v", v))
+	var returnValue *AppList
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	if v, ok := c.opt_["appFilterMimeTypes"]; ok {
-		params.Set("appFilterMimeTypes", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["languageCode"]; ok {
-		params.Set("languageCode", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "apps")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *AppList
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Lists a user's installed apps.",
 	//   "httpMethod": "GET",
@@ -1708,15 +1675,28 @@ func (c *AppsListCall) Do() (*AppList, error) {
 // method id "drive.changes.get":
 
 type ChangesGetCall struct {
-	s        *Service
-	changeId string
-	opt_     map[string]interface{}
+	s             *Service
+	changeId      string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Gets a specific change.
+
 func (r *ChangesService) Get(changeId string) *ChangesGetCall {
-	c := &ChangesGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.changeId = changeId
+	return &ChangesGetCall{
+		s:             r.s,
+		changeId:      changeId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "changes/{changeId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *ChangesGetCall) Context(ctx context.Context) *ChangesGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1724,37 +1704,23 @@ func (r *ChangesService) Get(changeId string) *ChangesGetCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ChangesGetCall) Fields(s ...googleapi.Field) *ChangesGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ChangesGetCall) Do() (*Change, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "changes/{changeId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Change
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"changeId": c.changeId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Change
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Gets a specific change.",
 	//   "httpMethod": "GET",
@@ -1789,20 +1755,29 @@ func (c *ChangesGetCall) Do() (*Change, error) {
 // method id "drive.changes.list":
 
 type ChangesListCall struct {
-	s    *Service
-	opt_ map[string]interface{}
+	s             *Service
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Lists the changes for a user.
+
 func (r *ChangesService) List() *ChangesListCall {
-	c := &ChangesListCall{s: r.s, opt_: make(map[string]interface{})}
-	return c
+	return &ChangesListCall{
+		s:             r.s,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "changes",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // IncludeDeleted sets the optional parameter "includeDeleted": Whether
 // to include deleted items.
 func (c *ChangesListCall) IncludeDeleted(includeDeleted bool) *ChangesListCall {
-	c.opt_["includeDeleted"] = includeDeleted
+	c.params_.Set("includeDeleted", fmt.Sprintf("%v", includeDeleted))
 	return c
 }
 
@@ -1811,28 +1786,32 @@ func (c *ChangesListCall) IncludeDeleted(includeDeleted bool) *ChangesListCall {
 // When set to false, the list only includes owned files plus any shared
 // or public files the user has explicitly added to a folder they own.
 func (c *ChangesListCall) IncludeSubscribed(includeSubscribed bool) *ChangesListCall {
-	c.opt_["includeSubscribed"] = includeSubscribed
+	c.params_.Set("includeSubscribed", fmt.Sprintf("%v", includeSubscribed))
 	return c
 }
 
 // MaxResults sets the optional parameter "maxResults": Maximum number
 // of changes to return.
 func (c *ChangesListCall) MaxResults(maxResults int64) *ChangesListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
 // PageToken sets the optional parameter "pageToken": Page token for
 // changes.
 func (c *ChangesListCall) PageToken(pageToken string) *ChangesListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
 	return c
 }
 
 // StartChangeId sets the optional parameter "startChangeId": Change ID
 // to start listing changes from.
 func (c *ChangesListCall) StartChangeId(startChangeId int64) *ChangesListCall {
-	c.opt_["startChangeId"] = startChangeId
+	c.params_.Set("startChangeId", fmt.Sprintf("%v", startChangeId))
+	return c
+}
+func (c *ChangesListCall) Context(ctx context.Context) *ChangesListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1840,50 +1819,21 @@ func (c *ChangesListCall) StartChangeId(startChangeId int64) *ChangesListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ChangesListCall) Fields(s ...googleapi.Field) *ChangesListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ChangesListCall) Do() (*ChangeList, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["includeDeleted"]; ok {
-		params.Set("includeDeleted", fmt.Sprintf("%v", v))
+	var returnValue *ChangeList
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	if v, ok := c.opt_["includeSubscribed"]; ok {
-		params.Set("includeSubscribed", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["startChangeId"]; ok {
-		params.Set("startChangeId", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "changes")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ChangeList
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Lists the changes for a user.",
 	//   "httpMethod": "GET",
@@ -1941,22 +1891,31 @@ func (c *ChangesListCall) Do() (*ChangeList, error) {
 // method id "drive.changes.watch":
 
 type ChangesWatchCall struct {
-	s       *Service
-	channel *Channel
-	opt_    map[string]interface{}
+	s             *Service
+	channel       *Channel
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Watch: Subscribe to changes for a user.
+
 func (r *ChangesService) Watch(channel *Channel) *ChangesWatchCall {
-	c := &ChangesWatchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.channel = channel
-	return c
+	return &ChangesWatchCall{
+		s:             r.s,
+		channel:       channel,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "changes/watch",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // IncludeDeleted sets the optional parameter "includeDeleted": Whether
 // to include deleted items.
 func (c *ChangesWatchCall) IncludeDeleted(includeDeleted bool) *ChangesWatchCall {
-	c.opt_["includeDeleted"] = includeDeleted
+	c.params_.Set("includeDeleted", fmt.Sprintf("%v", includeDeleted))
 	return c
 }
 
@@ -1965,28 +1924,32 @@ func (c *ChangesWatchCall) IncludeDeleted(includeDeleted bool) *ChangesWatchCall
 // When set to false, the list only includes owned files plus any shared
 // or public files the user has explicitly added to a folder they own.
 func (c *ChangesWatchCall) IncludeSubscribed(includeSubscribed bool) *ChangesWatchCall {
-	c.opt_["includeSubscribed"] = includeSubscribed
+	c.params_.Set("includeSubscribed", fmt.Sprintf("%v", includeSubscribed))
 	return c
 }
 
 // MaxResults sets the optional parameter "maxResults": Maximum number
 // of changes to return.
 func (c *ChangesWatchCall) MaxResults(maxResults int64) *ChangesWatchCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
 // PageToken sets the optional parameter "pageToken": Page token for
 // changes.
 func (c *ChangesWatchCall) PageToken(pageToken string) *ChangesWatchCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
 	return c
 }
 
 // StartChangeId sets the optional parameter "startChangeId": Change ID
 // to start listing changes from.
 func (c *ChangesWatchCall) StartChangeId(startChangeId int64) *ChangesWatchCall {
-	c.opt_["startChangeId"] = startChangeId
+	c.params_.Set("startChangeId", fmt.Sprintf("%v", startChangeId))
+	return c
+}
+func (c *ChangesWatchCall) Context(ctx context.Context) *ChangesWatchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1994,56 +1957,22 @@ func (c *ChangesWatchCall) StartChangeId(startChangeId int64) *ChangesWatchCall 
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ChangesWatchCall) Fields(s ...googleapi.Field) *ChangesWatchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ChangesWatchCall) Do() (*Channel, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.channel)
-	if err != nil {
-		return nil, err
+	var returnValue *Channel
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.channel,
+		Result:  &returnValue,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["includeDeleted"]; ok {
-		params.Set("includeDeleted", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["includeSubscribed"]; ok {
-		params.Set("includeSubscribed", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["startChangeId"]; ok {
-		params.Set("startChangeId", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "changes/watch")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Channel
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Subscribe to changes for a user.",
 	//   "httpMethod": "POST",
@@ -2105,53 +2034,41 @@ func (c *ChangesWatchCall) Do() (*Channel, error) {
 // method id "drive.channels.stop":
 
 type ChannelsStopCall struct {
-	s       *Service
-	channel *Channel
-	opt_    map[string]interface{}
+	s             *Service
+	channel       *Channel
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Stop: Stop watching resources through this channel
-func (r *ChannelsService) Stop(channel *Channel) *ChannelsStopCall {
-	c := &ChannelsStopCall{s: r.s, opt_: make(map[string]interface{})}
-	c.channel = channel
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *ChannelsStopCall) Fields(s ...googleapi.Field) *ChannelsStopCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *ChannelsService) Stop(channel *Channel) *ChannelsStopCall {
+	return &ChannelsStopCall{
+		s:             r.s,
+		channel:       channel,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "channels/stop",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *ChannelsStopCall) Context(ctx context.Context) *ChannelsStopCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *ChannelsStopCall) Do() error {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.channel)
-	if err != nil {
-		return err
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.channel,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "channels/stop")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Stop watching resources through this channel",
 	//   "httpMethod": "POST",
@@ -2176,52 +2093,45 @@ func (c *ChannelsStopCall) Do() error {
 // method id "drive.children.delete":
 
 type ChildrenDeleteCall struct {
-	s        *Service
-	folderId string
-	childId  string
-	opt_     map[string]interface{}
+	s             *Service
+	folderId      string
+	childId       string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Delete: Removes a child from a folder.
-func (r *ChildrenService) Delete(folderId string, childId string) *ChildrenDeleteCall {
-	c := &ChildrenDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.folderId = folderId
-	c.childId = childId
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *ChildrenDeleteCall) Fields(s ...googleapi.Field) *ChildrenDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *ChildrenService) Delete(folderId string, childId string) *ChildrenDeleteCall {
+	return &ChildrenDeleteCall{
+		s:             r.s,
+		folderId:      folderId,
+		childId:       childId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "files/{folderId}/children/{childId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *ChildrenDeleteCall) Context(ctx context.Context) *ChildrenDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *ChildrenDeleteCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "files/{folderId}/children/{childId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"folderId": c.folderId,
 		"childId":  c.childId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Removes a child from a folder.",
 	//   "httpMethod": "DELETE",
@@ -2256,17 +2166,30 @@ func (c *ChildrenDeleteCall) Do() error {
 // method id "drive.children.get":
 
 type ChildrenGetCall struct {
-	s        *Service
-	folderId string
-	childId  string
-	opt_     map[string]interface{}
+	s             *Service
+	folderId      string
+	childId       string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Gets a specific child reference.
+
 func (r *ChildrenService) Get(folderId string, childId string) *ChildrenGetCall {
-	c := &ChildrenGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.folderId = folderId
-	c.childId = childId
+	return &ChildrenGetCall{
+		s:             r.s,
+		folderId:      folderId,
+		childId:       childId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "files/{folderId}/children/{childId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *ChildrenGetCall) Context(ctx context.Context) *ChildrenGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2274,38 +2197,24 @@ func (r *ChildrenService) Get(folderId string, childId string) *ChildrenGetCall 
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ChildrenGetCall) Fields(s ...googleapi.Field) *ChildrenGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ChildrenGetCall) Do() (*ChildReference, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "files/{folderId}/children/{childId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *ChildReference
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"folderId": c.folderId,
 		"childId":  c.childId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ChildReference
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Gets a specific child reference.",
 	//   "httpMethod": "GET",
@@ -2349,14 +2258,27 @@ type ChildrenInsertCall struct {
 	s              *Service
 	folderId       string
 	childreference *ChildReference
-	opt_           map[string]interface{}
+	caller_        googleapi.Caller
+	params_        url.Values
+	pathTemplate_  string
+	context_       context.Context
 }
 
 // Insert: Inserts a file into a folder.
+
 func (r *ChildrenService) Insert(folderId string, childreference *ChildReference) *ChildrenInsertCall {
-	c := &ChildrenInsertCall{s: r.s, opt_: make(map[string]interface{})}
-	c.folderId = folderId
-	c.childreference = childreference
+	return &ChildrenInsertCall{
+		s:              r.s,
+		folderId:       folderId,
+		childreference: childreference,
+		caller_:        googleapi.JSONCall{},
+		params_:        make(map[string][]string),
+		pathTemplate_:  "files/{folderId}/children",
+		context_:       googleapi.NoContext,
+	}
+}
+func (c *ChildrenInsertCall) Context(ctx context.Context) *ChildrenInsertCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2364,43 +2286,24 @@ func (r *ChildrenService) Insert(folderId string, childreference *ChildReference
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ChildrenInsertCall) Fields(s ...googleapi.Field) *ChildrenInsertCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ChildrenInsertCall) Do() (*ChildReference, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.childreference)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "files/{folderId}/children")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *ChildReference
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"folderId": c.folderId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.childreference,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ChildReference
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Inserts a file into a folder.",
 	//   "httpMethod": "POST",
@@ -2435,36 +2338,49 @@ func (c *ChildrenInsertCall) Do() (*ChildReference, error) {
 // method id "drive.children.list":
 
 type ChildrenListCall struct {
-	s        *Service
-	folderId string
-	opt_     map[string]interface{}
+	s             *Service
+	folderId      string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Lists a folder's children.
+
 func (r *ChildrenService) List(folderId string) *ChildrenListCall {
-	c := &ChildrenListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.folderId = folderId
-	return c
+	return &ChildrenListCall{
+		s:             r.s,
+		folderId:      folderId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "files/{folderId}/children",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // MaxResults sets the optional parameter "maxResults": Maximum number
 // of children to return.
 func (c *ChildrenListCall) MaxResults(maxResults int64) *ChildrenListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
 // PageToken sets the optional parameter "pageToken": Page token for
 // children.
 func (c *ChildrenListCall) PageToken(pageToken string) *ChildrenListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
 	return c
 }
 
 // Q sets the optional parameter "q": Query string for searching
 // children.
 func (c *ChildrenListCall) Q(q string) *ChildrenListCall {
-	c.opt_["q"] = q
+	c.params_.Set("q", fmt.Sprintf("%v", q))
+	return c
+}
+func (c *ChildrenListCall) Context(ctx context.Context) *ChildrenListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2472,46 +2388,23 @@ func (c *ChildrenListCall) Q(q string) *ChildrenListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ChildrenListCall) Fields(s ...googleapi.Field) *ChildrenListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ChildrenListCall) Do() (*ChildList, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["q"]; ok {
-		params.Set("q", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "files/{folderId}/children")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *ChildList
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"folderId": c.folderId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ChildList
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Lists a folder's children.",
 	//   "httpMethod": "GET",
@@ -2563,52 +2456,45 @@ func (c *ChildrenListCall) Do() (*ChildList, error) {
 // method id "drive.comments.delete":
 
 type CommentsDeleteCall struct {
-	s         *Service
-	fileId    string
-	commentId string
-	opt_      map[string]interface{}
+	s             *Service
+	fileId        string
+	commentId     string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Delete: Deletes a comment.
-func (r *CommentsService) Delete(fileId string, commentId string) *CommentsDeleteCall {
-	c := &CommentsDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.fileId = fileId
-	c.commentId = commentId
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *CommentsDeleteCall) Fields(s ...googleapi.Field) *CommentsDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *CommentsService) Delete(fileId string, commentId string) *CommentsDeleteCall {
+	return &CommentsDeleteCall{
+		s:             r.s,
+		fileId:        fileId,
+		commentId:     commentId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "files/{fileId}/comments/{commentId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *CommentsDeleteCall) Context(ctx context.Context) *CommentsDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *CommentsDeleteCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "files/{fileId}/comments/{commentId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"fileId":    c.fileId,
 		"commentId": c.commentId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Deletes a comment.",
 	//   "httpMethod": "DELETE",
@@ -2644,25 +2530,38 @@ func (c *CommentsDeleteCall) Do() error {
 // method id "drive.comments.get":
 
 type CommentsGetCall struct {
-	s         *Service
-	fileId    string
-	commentId string
-	opt_      map[string]interface{}
+	s             *Service
+	fileId        string
+	commentId     string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Gets a comment by ID.
+
 func (r *CommentsService) Get(fileId string, commentId string) *CommentsGetCall {
-	c := &CommentsGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.fileId = fileId
-	c.commentId = commentId
-	return c
+	return &CommentsGetCall{
+		s:             r.s,
+		fileId:        fileId,
+		commentId:     commentId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "files/{fileId}/comments/{commentId}",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // IncludeDeleted sets the optional parameter "includeDeleted": If set,
 // this will succeed when retrieving a deleted comment, and will include
 // any deleted replies.
 func (c *CommentsGetCall) IncludeDeleted(includeDeleted bool) *CommentsGetCall {
-	c.opt_["includeDeleted"] = includeDeleted
+	c.params_.Set("includeDeleted", fmt.Sprintf("%v", includeDeleted))
+	return c
+}
+func (c *CommentsGetCall) Context(ctx context.Context) *CommentsGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2670,41 +2569,24 @@ func (c *CommentsGetCall) IncludeDeleted(includeDeleted bool) *CommentsGetCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *CommentsGetCall) Fields(s ...googleapi.Field) *CommentsGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *CommentsGetCall) Do() (*Comment, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["includeDeleted"]; ok {
-		params.Set("includeDeleted", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "files/{fileId}/comments/{commentId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Comment
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"fileId":    c.fileId,
 		"commentId": c.commentId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Comment
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Gets a comment by ID.",
 	//   "httpMethod": "GET",
@@ -2749,17 +2631,30 @@ func (c *CommentsGetCall) Do() (*Comment, error) {
 // method id "drive.comments.insert":
 
 type CommentsInsertCall struct {
-	s       *Service
-	fileId  string
-	comment *Comment
-	opt_    map[string]interface{}
+	s             *Service
+	fileId        string
+	comment       *Comment
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Insert: Creates a new comment on the given file.
+
 func (r *CommentsService) Insert(fileId string, comment *Comment) *CommentsInsertCall {
-	c := &CommentsInsertCall{s: r.s, opt_: make(map[string]interface{})}
-	c.fileId = fileId
-	c.comment = comment
+	return &CommentsInsertCall{
+		s:             r.s,
+		fileId:        fileId,
+		comment:       comment,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "files/{fileId}/comments",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *CommentsInsertCall) Context(ctx context.Context) *CommentsInsertCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2767,43 +2662,24 @@ func (r *CommentsService) Insert(fileId string, comment *Comment) *CommentsInser
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *CommentsInsertCall) Fields(s ...googleapi.Field) *CommentsInsertCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *CommentsInsertCall) Do() (*Comment, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.comment)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "files/{fileId}/comments")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Comment
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"fileId": c.fileId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.comment,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Comment
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Creates a new comment on the given file.",
 	//   "httpMethod": "POST",
@@ -2837,30 +2713,39 @@ func (c *CommentsInsertCall) Do() (*Comment, error) {
 // method id "drive.comments.list":
 
 type CommentsListCall struct {
-	s      *Service
-	fileId string
-	opt_   map[string]interface{}
+	s             *Service
+	fileId        string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Lists a file's comments.
+
 func (r *CommentsService) List(fileId string) *CommentsListCall {
-	c := &CommentsListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.fileId = fileId
-	return c
+	return &CommentsListCall{
+		s:             r.s,
+		fileId:        fileId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "files/{fileId}/comments",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // IncludeDeleted sets the optional parameter "includeDeleted": If set,
 // all comments and replies, including deleted comments and replies
 // (with content stripped) will be returned.
 func (c *CommentsListCall) IncludeDeleted(includeDeleted bool) *CommentsListCall {
-	c.opt_["includeDeleted"] = includeDeleted
+	c.params_.Set("includeDeleted", fmt.Sprintf("%v", includeDeleted))
 	return c
 }
 
 // MaxResults sets the optional parameter "maxResults": The maximum
 // number of discussions to include in the response, used for paging.
 func (c *CommentsListCall) MaxResults(maxResults int64) *CommentsListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
@@ -2869,7 +2754,7 @@ func (c *CommentsListCall) MaxResults(maxResults int64) *CommentsListCall {
 // of results, set this parameter to the value of "nextPageToken" from
 // the previous response.
 func (c *CommentsListCall) PageToken(pageToken string) *CommentsListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
 	return c
 }
 
@@ -2877,7 +2762,11 @@ func (c *CommentsListCall) PageToken(pageToken string) *CommentsListCall {
 // that were updated after this timestamp will be returned. Formatted as
 // an RFC 3339 timestamp.
 func (c *CommentsListCall) UpdatedMin(updatedMin string) *CommentsListCall {
-	c.opt_["updatedMin"] = updatedMin
+	c.params_.Set("updatedMin", fmt.Sprintf("%v", updatedMin))
+	return c
+}
+func (c *CommentsListCall) Context(ctx context.Context) *CommentsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -2885,49 +2774,23 @@ func (c *CommentsListCall) UpdatedMin(updatedMin string) *CommentsListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *CommentsListCall) Fields(s ...googleapi.Field) *CommentsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *CommentsListCall) Do() (*CommentList, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["includeDeleted"]; ok {
-		params.Set("includeDeleted", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["updatedMin"]; ok {
-		params.Set("updatedMin", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "files/{fileId}/comments")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *CommentList
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"fileId": c.fileId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *CommentList
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Lists a file's comments.",
 	//   "httpMethod": "GET",
@@ -2984,20 +2847,33 @@ func (c *CommentsListCall) Do() (*CommentList, error) {
 // method id "drive.comments.patch":
 
 type CommentsPatchCall struct {
-	s         *Service
-	fileId    string
-	commentId string
-	comment   *Comment
-	opt_      map[string]interface{}
+	s             *Service
+	fileId        string
+	commentId     string
+	comment       *Comment
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Patch: Updates an existing comment. This method supports patch
 // semantics.
+
 func (r *CommentsService) Patch(fileId string, commentId string, comment *Comment) *CommentsPatchCall {
-	c := &CommentsPatchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.fileId = fileId
-	c.commentId = commentId
-	c.comment = comment
+	return &CommentsPatchCall{
+		s:             r.s,
+		fileId:        fileId,
+		commentId:     commentId,
+		comment:       comment,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "files/{fileId}/comments/{commentId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *CommentsPatchCall) Context(ctx context.Context) *CommentsPatchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -3005,44 +2881,25 @@ func (r *CommentsService) Patch(fileId string, commentId string, comment *Commen
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *CommentsPatchCall) Fields(s ...googleapi.Field) *CommentsPatchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *CommentsPatchCall) Do() (*Comment, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.comment)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "files/{fileId}/comments/{commentId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PATCH", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Comment
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"fileId":    c.fileId,
 		"commentId": c.commentId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PATCH",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.comment,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Comment
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates an existing comment. This method supports patch semantics.",
 	//   "httpMethod": "PATCH",
@@ -3083,19 +2940,32 @@ func (c *CommentsPatchCall) Do() (*Comment, error) {
 // method id "drive.comments.update":
 
 type CommentsUpdateCall struct {
-	s         *Service
-	fileId    string
-	commentId string
-	comment   *Comment
-	opt_      map[string]interface{}
+	s             *Service
+	fileId        string
+	commentId     string
+	comment       *Comment
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Update: Updates an existing comment.
+
 func (r *CommentsService) Update(fileId string, commentId string, comment *Comment) *CommentsUpdateCall {
-	c := &CommentsUpdateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.fileId = fileId
-	c.commentId = commentId
-	c.comment = comment
+	return &CommentsUpdateCall{
+		s:             r.s,
+		fileId:        fileId,
+		commentId:     commentId,
+		comment:       comment,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "files/{fileId}/comments/{commentId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *CommentsUpdateCall) Context(ctx context.Context) *CommentsUpdateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -3103,44 +2973,25 @@ func (r *CommentsService) Update(fileId string, commentId string, comment *Comme
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *CommentsUpdateCall) Fields(s ...googleapi.Field) *CommentsUpdateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *CommentsUpdateCall) Do() (*Comment, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.comment)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "files/{fileId}/comments/{commentId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Comment
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"fileId":    c.fileId,
 		"commentId": c.commentId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.comment,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Comment
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates an existing comment.",
 	//   "httpMethod": "PUT",
@@ -3181,38 +3032,47 @@ func (c *CommentsUpdateCall) Do() (*Comment, error) {
 // method id "drive.files.copy":
 
 type FilesCopyCall struct {
-	s      *Service
-	fileId string
-	file   *File
-	opt_   map[string]interface{}
+	s             *Service
+	fileId        string
+	file          *File
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Copy: Creates a copy of the specified file.
+
 func (r *FilesService) Copy(fileId string, file *File) *FilesCopyCall {
-	c := &FilesCopyCall{s: r.s, opt_: make(map[string]interface{})}
-	c.fileId = fileId
-	c.file = file
-	return c
+	return &FilesCopyCall{
+		s:             r.s,
+		fileId:        fileId,
+		file:          file,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "files/{fileId}/copy",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Convert sets the optional parameter "convert": Whether to convert
 // this file to the corresponding Google Docs format.
 func (c *FilesCopyCall) Convert(convert bool) *FilesCopyCall {
-	c.opt_["convert"] = convert
+	c.params_.Set("convert", fmt.Sprintf("%v", convert))
 	return c
 }
 
 // Ocr sets the optional parameter "ocr": Whether to attempt OCR on
 // .jpg, .png, .gif, or .pdf uploads.
 func (c *FilesCopyCall) Ocr(ocr bool) *FilesCopyCall {
-	c.opt_["ocr"] = ocr
+	c.params_.Set("ocr", fmt.Sprintf("%v", ocr))
 	return c
 }
 
 // OcrLanguage sets the optional parameter "ocrLanguage": If ocr is
 // true, hints at the language to use. Valid values are ISO 639-1 codes.
 func (c *FilesCopyCall) OcrLanguage(ocrLanguage string) *FilesCopyCall {
-	c.opt_["ocrLanguage"] = ocrLanguage
+	c.params_.Set("ocrLanguage", fmt.Sprintf("%v", ocrLanguage))
 	return c
 }
 
@@ -3220,21 +3080,21 @@ func (c *FilesCopyCall) OcrLanguage(ocrLanguage string) *FilesCopyCall {
 // revision of the new copy. A file can have a maximum of 200 pinned
 // revisions.
 func (c *FilesCopyCall) Pinned(pinned bool) *FilesCopyCall {
-	c.opt_["pinned"] = pinned
+	c.params_.Set("pinned", fmt.Sprintf("%v", pinned))
 	return c
 }
 
 // TimedTextLanguage sets the optional parameter "timedTextLanguage":
 // The language of the timed text.
 func (c *FilesCopyCall) TimedTextLanguage(timedTextLanguage string) *FilesCopyCall {
-	c.opt_["timedTextLanguage"] = timedTextLanguage
+	c.params_.Set("timedTextLanguage", fmt.Sprintf("%v", timedTextLanguage))
 	return c
 }
 
 // TimedTextTrackName sets the optional parameter "timedTextTrackName":
 // The timed text track name.
 func (c *FilesCopyCall) TimedTextTrackName(timedTextTrackName string) *FilesCopyCall {
-	c.opt_["timedTextTrackName"] = timedTextTrackName
+	c.params_.Set("timedTextTrackName", fmt.Sprintf("%v", timedTextTrackName))
 	return c
 }
 
@@ -3242,7 +3102,11 @@ func (c *FilesCopyCall) TimedTextTrackName(timedTextTrackName string) *FilesCopy
 // of the new file. This parameter is only relevant when the source is
 // not a native Google Doc and convert=false.
 func (c *FilesCopyCall) Visibility(visibility string) *FilesCopyCall {
-	c.opt_["visibility"] = visibility
+	c.params_.Set("visibility", fmt.Sprintf("%v", visibility))
+	return c
+}
+func (c *FilesCopyCall) Context(ctx context.Context) *FilesCopyCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -3250,64 +3114,24 @@ func (c *FilesCopyCall) Visibility(visibility string) *FilesCopyCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *FilesCopyCall) Fields(s ...googleapi.Field) *FilesCopyCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *FilesCopyCall) Do() (*File, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.file)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["convert"]; ok {
-		params.Set("convert", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["ocr"]; ok {
-		params.Set("ocr", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["ocrLanguage"]; ok {
-		params.Set("ocrLanguage", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pinned"]; ok {
-		params.Set("pinned", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["timedTextLanguage"]; ok {
-		params.Set("timedTextLanguage", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["timedTextTrackName"]; ok {
-		params.Set("timedTextTrackName", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["visibility"]; ok {
-		params.Set("visibility", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "files/{fileId}/copy")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *File
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"fileId": c.fileId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.file,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *File
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Creates a copy of the specified file.",
 	//   "httpMethod": "POST",
@@ -3390,50 +3214,43 @@ func (c *FilesCopyCall) Do() (*File, error) {
 // method id "drive.files.delete":
 
 type FilesDeleteCall struct {
-	s      *Service
-	fileId string
-	opt_   map[string]interface{}
+	s             *Service
+	fileId        string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Delete: Permanently deletes a file by ID. Skips the trash. The
 // currently authenticated user must own the file.
-func (r *FilesService) Delete(fileId string) *FilesDeleteCall {
-	c := &FilesDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.fileId = fileId
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *FilesDeleteCall) Fields(s ...googleapi.Field) *FilesDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *FilesService) Delete(fileId string) *FilesDeleteCall {
+	return &FilesDeleteCall{
+		s:             r.s,
+		fileId:        fileId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "files/{fileId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *FilesDeleteCall) Context(ctx context.Context) *FilesDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *FilesDeleteCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "files/{fileId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"fileId": c.fileId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Permanently deletes a file by ID. Skips the trash. The currently authenticated user must own the file.",
 	//   "httpMethod": "DELETE",
@@ -3462,45 +3279,38 @@ func (c *FilesDeleteCall) Do() error {
 // method id "drive.files.emptyTrash":
 
 type FilesEmptyTrashCall struct {
-	s    *Service
-	opt_ map[string]interface{}
+	s             *Service
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // EmptyTrash: Permanently deletes all of the user's trashed files.
-func (r *FilesService) EmptyTrash() *FilesEmptyTrashCall {
-	c := &FilesEmptyTrashCall{s: r.s, opt_: make(map[string]interface{})}
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *FilesEmptyTrashCall) Fields(s ...googleapi.Field) *FilesEmptyTrashCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *FilesService) EmptyTrash() *FilesEmptyTrashCall {
+	return &FilesEmptyTrashCall{
+		s:             r.s,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "files/trash",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *FilesEmptyTrashCall) Context(ctx context.Context) *FilesEmptyTrashCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *FilesEmptyTrashCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
 	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "files/trash")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Permanently deletes all of the user's trashed files.",
 	//   "httpMethod": "DELETE",
@@ -3516,30 +3326,57 @@ func (c *FilesEmptyTrashCall) Do() error {
 // method id "drive.files.get":
 
 type FilesGetCall struct {
-	s      *Service
-	fileId string
-	opt_   map[string]interface{}
+	s             *Service
+	fileId        string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Gets a file's metadata by ID.
+
 func (r *FilesService) Get(fileId string) *FilesGetCall {
-	c := &FilesGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.fileId = fileId
-	return c
+	return &FilesGetCall{
+		s:             r.s,
+		fileId:        fileId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "files/{fileId}",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // AcknowledgeAbuse sets the optional parameter "acknowledgeAbuse":
 // Whether the user is acknowledging the risk of downloading known
-// malware or other abusive files.
+// malware or other abusive files. Ignored unless alt=media is
+// specified.
 func (c *FilesGetCall) AcknowledgeAbuse(acknowledgeAbuse bool) *FilesGetCall {
-	c.opt_["acknowledgeAbuse"] = acknowledgeAbuse
+	c.params_.Set("acknowledgeAbuse", fmt.Sprintf("%v", acknowledgeAbuse))
+	return c
+}
+
+// Alt sets the optional parameter "alt": Specifies the type of resource
+// representation to return. The default is 'json' to return file
+// metadata. Specifying 'media' will cause the file content to be
+// returned.
+func (c *FilesGetCall) Alt(alt string) *FilesGetCall {
+	c.params_.Set("alt", fmt.Sprintf("%v", alt))
 	return c
 }
 
 // Projection sets the optional parameter "projection": This parameter
 // is deprecated and has no function.
 func (c *FilesGetCall) Projection(projection string) *FilesGetCall {
-	c.opt_["projection"] = projection
+	c.params_.Set("projection", fmt.Sprintf("%v", projection))
+	return c
+}
+
+// RevisionId sets the optional parameter "revisionId": Specifies the
+// Revision ID that should be downloaded. Ignored unless alt=media is
+// specified.
+func (c *FilesGetCall) RevisionId(revisionId string) *FilesGetCall {
+	c.params_.Set("revisionId", fmt.Sprintf("%v", revisionId))
 	return c
 }
 
@@ -3547,7 +3384,11 @@ func (c *FilesGetCall) Projection(projection string) *FilesGetCall {
 // Whether to update the view date after successfully retrieving the
 // file.
 func (c *FilesGetCall) UpdateViewedDate(updateViewedDate bool) *FilesGetCall {
-	c.opt_["updateViewedDate"] = updateViewedDate
+	c.params_.Set("updateViewedDate", fmt.Sprintf("%v", updateViewedDate))
+	return c
+}
+func (c *FilesGetCall) Context(ctx context.Context) *FilesGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -3555,46 +3396,41 @@ func (c *FilesGetCall) UpdateViewedDate(updateViewedDate bool) *FilesGetCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *FilesGetCall) Fields(s ...googleapi.Field) *FilesGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
-func (c *FilesGetCall) Do() (*File, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["acknowledgeAbuse"]; ok {
-		params.Set("acknowledgeAbuse", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["projection"]; ok {
-		params.Set("projection", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["updateViewedDate"]; ok {
-		params.Set("updateViewedDate", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "files/{fileId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+// GetResponse sets alt=media creating a file download request. The body
+// of the *http.Response contains the media.  You should close the response
+// body when finished reading.
+
+func (c *FilesGetCall) GetResponse() (*http.Response, error) {
+	var res *http.Response
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"fileId": c.fileId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &res,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
+	return res, c.caller_.Do(c.context_, c.s.client, call)
+}
+
+func (c *FilesGetCall) Do() (*File, error) {
+	var returnValue *File
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
+		"fileId": c.fileId,
+	})
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	var ret *File
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Gets a file's metadata by ID.",
 	//   "httpMethod": "GET",
@@ -3605,9 +3441,14 @@ func (c *FilesGetCall) Do() (*File, error) {
 	//   "parameters": {
 	//     "acknowledgeAbuse": {
 	//       "default": "false",
-	//       "description": "Whether the user is acknowledging the risk of downloading known malware or other abusive files.",
+	//       "description": "Whether the user is acknowledging the risk of downloading known malware or other abusive files. Ignored unless alt=media is specified.",
 	//       "location": "query",
 	//       "type": "boolean"
+	//     },
+	//     "alt": {
+	//       "description": "Specifies the type of resource representation to return. The default is 'json' to return file metadata. Specifying 'media' will cause the file content to be returned.",
+	//       "location": "query",
+	//       "type": "string"
 	//     },
 	//     "fileId": {
 	//       "description": "The ID for the file in question.",
@@ -3625,6 +3466,11 @@ func (c *FilesGetCall) Do() (*File, error) {
 	//         "Deprecated",
 	//         "Deprecated"
 	//       ],
+	//       "location": "query",
+	//       "type": "string"
+	//     },
+	//     "revisionId": {
+	//       "description": "Specifies the Revision ID that should be downloaded. Ignored unless alt=media is specified.",
 	//       "location": "query",
 	//       "type": "string"
 	//     },
@@ -3656,41 +3502,46 @@ func (c *FilesGetCall) Do() (*File, error) {
 // method id "drive.files.insert":
 
 type FilesInsertCall struct {
-	s          *Service
-	file       *File
-	opt_       map[string]interface{}
-	media_     io.Reader
-	resumable_ googleapi.SizeReaderAt
-	mediaType_ string
-	ctx_       context.Context
-	protocol_  string
+	s             *Service
+	file          *File
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
+	callback_     googleapi.ProgressUpdater
 }
 
 // Insert: Insert a new file.
+
 func (r *FilesService) Insert(file *File) *FilesInsertCall {
-	c := &FilesInsertCall{s: r.s, opt_: make(map[string]interface{})}
-	c.file = file
-	return c
+	return &FilesInsertCall{
+		s:             r.s,
+		file:          file,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "files",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Convert sets the optional parameter "convert": Whether to convert
 // this file to the corresponding Google Docs format.
 func (c *FilesInsertCall) Convert(convert bool) *FilesInsertCall {
-	c.opt_["convert"] = convert
+	c.params_.Set("convert", fmt.Sprintf("%v", convert))
 	return c
 }
 
 // Ocr sets the optional parameter "ocr": Whether to attempt OCR on
 // .jpg, .png, .gif, or .pdf uploads.
 func (c *FilesInsertCall) Ocr(ocr bool) *FilesInsertCall {
-	c.opt_["ocr"] = ocr
+	c.params_.Set("ocr", fmt.Sprintf("%v", ocr))
 	return c
 }
 
 // OcrLanguage sets the optional parameter "ocrLanguage": If ocr is
 // true, hints at the language to use. Valid values are ISO 639-1 codes.
 func (c *FilesInsertCall) OcrLanguage(ocrLanguage string) *FilesInsertCall {
-	c.opt_["ocrLanguage"] = ocrLanguage
+	c.params_.Set("ocrLanguage", fmt.Sprintf("%v", ocrLanguage))
 	return c
 }
 
@@ -3698,21 +3549,21 @@ func (c *FilesInsertCall) OcrLanguage(ocrLanguage string) *FilesInsertCall {
 // revision of the uploaded file. A file can have a maximum of 200
 // pinned revisions.
 func (c *FilesInsertCall) Pinned(pinned bool) *FilesInsertCall {
-	c.opt_["pinned"] = pinned
+	c.params_.Set("pinned", fmt.Sprintf("%v", pinned))
 	return c
 }
 
 // TimedTextLanguage sets the optional parameter "timedTextLanguage":
 // The language of the timed text.
 func (c *FilesInsertCall) TimedTextLanguage(timedTextLanguage string) *FilesInsertCall {
-	c.opt_["timedTextLanguage"] = timedTextLanguage
+	c.params_.Set("timedTextLanguage", fmt.Sprintf("%v", timedTextLanguage))
 	return c
 }
 
 // TimedTextTrackName sets the optional parameter "timedTextTrackName":
 // The timed text track name.
 func (c *FilesInsertCall) TimedTextTrackName(timedTextTrackName string) *FilesInsertCall {
-	c.opt_["timedTextTrackName"] = timedTextTrackName
+	c.params_.Set("timedTextTrackName", fmt.Sprintf("%v", timedTextTrackName))
 	return c
 }
 
@@ -3720,22 +3571,42 @@ func (c *FilesInsertCall) TimedTextTrackName(timedTextTrackName string) *FilesIn
 // "useContentAsIndexableText": Whether to use the content as indexable
 // text.
 func (c *FilesInsertCall) UseContentAsIndexableText(useContentAsIndexableText bool) *FilesInsertCall {
-	c.opt_["useContentAsIndexableText"] = useContentAsIndexableText
+	c.params_.Set("useContentAsIndexableText", fmt.Sprintf("%v", useContentAsIndexableText))
 	return c
 }
 
 // Visibility sets the optional parameter "visibility": The visibility
 // of the new file. This parameter is only relevant when convert=false.
 func (c *FilesInsertCall) Visibility(visibility string) *FilesInsertCall {
-	c.opt_["visibility"] = visibility
+	c.params_.Set("visibility", fmt.Sprintf("%v", visibility))
+	return c
+}
+func (c *FilesInsertCall) Context(ctx context.Context) *FilesInsertCall {
+	c.context_ = ctx
+	return c
+}
+
+// MediaUpload takes a context and UploadCaller interface
+func (c *FilesInsertCall) Upload(ctx context.Context, u googleapi.UploadCaller) *FilesInsertCall {
+	c.caller_ = u
+	c.context_ = ctx
+	switch u.(type) {
+	case *googleapi.MediaUpload:
+		c.pathTemplate_ = "/upload/drive/v2/files"
+	case *googleapi.ResumableUpload:
+		c.pathTemplate_ = "/resumable/upload/drive/v2/files"
+	}
 	return c
 }
 
 // Media specifies the media to upload in a single chunk.
 // At most one of Media and ResumableMedia may be set.
+// The mime type type will be auto-detected unless r is a googleapi.ContentTyper as well.
 func (c *FilesInsertCall) Media(r io.Reader) *FilesInsertCall {
-	c.media_ = r
-	c.protocol_ = "multipart"
+	c.caller_ = &googleapi.MediaUpload{
+		Media: r,
+	}
+	c.pathTemplate_ = "/upload/drive/v2/files"
 	return c
 }
 
@@ -3744,10 +3615,14 @@ func (c *FilesInsertCall) Media(r io.Reader) *FilesInsertCall {
 // mediaType identifies the MIME media type of the upload, such as "image/png".
 // If mediaType is "", it will be auto-detected.
 func (c *FilesInsertCall) ResumableMedia(ctx context.Context, r io.ReaderAt, size int64, mediaType string) *FilesInsertCall {
-	c.ctx_ = ctx
-	c.resumable_ = io.NewSectionReader(r, 0, size)
-	c.mediaType_ = mediaType
-	c.protocol_ = "resumable"
+	c.caller_ = &googleapi.ResumableUpload{
+		Media:         io.NewSectionReader(r, 0, size),
+		MediaType:     mediaType,
+		ContentLength: size,
+		Callback:      c.callback_,
+	}
+	c.pathTemplate_ = "/resumable/upload/drive/v2/files"
+	c.context_ = ctx
 	return c
 }
 
@@ -3755,7 +3630,10 @@ func (c *FilesInsertCall) ResumableMedia(ctx context.Context, r io.ReaderAt, siz
 // It should be a low-latency function in order to not slow down the upload operation.
 // This should only be called when using ResumableMedia (as opposed to Media).
 func (c *FilesInsertCall) ProgressUpdater(pu googleapi.ProgressUpdater) *FilesInsertCall {
-	c.opt_["progressUpdater"] = pu
+	c.callback_ = pu
+	if rx, ok := c.caller_.(*googleapi.ResumableUpload); ok {
+		rx.Callback = pu
+	}
 	return c
 }
 
@@ -3763,108 +3641,22 @@ func (c *FilesInsertCall) ProgressUpdater(pu googleapi.ProgressUpdater) *FilesIn
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *FilesInsertCall) Fields(s ...googleapi.Field) *FilesInsertCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *FilesInsertCall) Do() (*File, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.file)
-	if err != nil {
-		return nil, err
+	var returnValue *File
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.file,
+		Result:  &returnValue,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["convert"]; ok {
-		params.Set("convert", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["ocr"]; ok {
-		params.Set("ocr", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["ocrLanguage"]; ok {
-		params.Set("ocrLanguage", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pinned"]; ok {
-		params.Set("pinned", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["timedTextLanguage"]; ok {
-		params.Set("timedTextLanguage", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["timedTextTrackName"]; ok {
-		params.Set("timedTextTrackName", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["useContentAsIndexableText"]; ok {
-		params.Set("useContentAsIndexableText", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["visibility"]; ok {
-		params.Set("visibility", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "files")
-	var progressUpdater_ googleapi.ProgressUpdater
-	if v, ok := c.opt_["progressUpdater"]; ok {
-		if pu, ok := v.(googleapi.ProgressUpdater); ok {
-			progressUpdater_ = pu
-		}
-	}
-	if c.media_ != nil || c.resumable_ != nil {
-		urls = strings.Replace(urls, "https://www.googleapis.com/", "https://www.googleapis.com/upload/", 1)
-		params.Set("uploadType", c.protocol_)
-	}
-	urls += "?" + params.Encode()
-	if c.protocol_ != "resumable" {
-		var cancel func()
-		cancel, _ = googleapi.ConditionallyIncludeMedia(c.media_, &body, &ctype)
-		if cancel != nil {
-			defer cancel()
-		}
-	}
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	if c.protocol_ == "resumable" {
-		req.ContentLength = 0
-		if c.mediaType_ == "" {
-			c.mediaType_ = googleapi.DetectMediaType(c.resumable_)
-		}
-		req.Header.Set("X-Upload-Content-Type", c.mediaType_)
-		req.Body = nil
-	} else {
-		req.Header.Set("Content-Type", ctype)
-	}
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	if c.protocol_ == "resumable" {
-		loc := res.Header.Get("Location")
-		rx := &googleapi.ResumableUpload{
-			Client:        c.s.client,
-			UserAgent:     c.s.userAgent(),
-			URI:           loc,
-			Media:         c.resumable_,
-			MediaType:     c.mediaType_,
-			ContentLength: c.resumable_.Size(),
-			Callback:      progressUpdater_,
-		}
-		res, err = rx.Upload(c.ctx_)
-		if err != nil {
-			return nil, err
-		}
-		defer res.Body.Close()
-	}
-	var ret *File
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Insert a new file.",
 	//   "httpMethod": "POST",
@@ -3962,47 +3754,60 @@ func (c *FilesInsertCall) Do() (*File, error) {
 // method id "drive.files.list":
 
 type FilesListCall struct {
-	s    *Service
-	opt_ map[string]interface{}
+	s             *Service
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Lists the user's files.
+
 func (r *FilesService) List() *FilesListCall {
-	c := &FilesListCall{s: r.s, opt_: make(map[string]interface{})}
-	return c
+	return &FilesListCall{
+		s:             r.s,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "files",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Corpus sets the optional parameter "corpus": The body of items
 // (files/documents) to which the query applies.
 func (c *FilesListCall) Corpus(corpus string) *FilesListCall {
-	c.opt_["corpus"] = corpus
+	c.params_.Set("corpus", fmt.Sprintf("%v", corpus))
 	return c
 }
 
 // MaxResults sets the optional parameter "maxResults": Maximum number
 // of files to return.
 func (c *FilesListCall) MaxResults(maxResults int64) *FilesListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
 // PageToken sets the optional parameter "pageToken": Page token for
 // files.
 func (c *FilesListCall) PageToken(pageToken string) *FilesListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
 	return c
 }
 
 // Projection sets the optional parameter "projection": This parameter
 // is deprecated and has no function.
 func (c *FilesListCall) Projection(projection string) *FilesListCall {
-	c.opt_["projection"] = projection
+	c.params_.Set("projection", fmt.Sprintf("%v", projection))
 	return c
 }
 
 // Q sets the optional parameter "q": Query string for searching files.
 func (c *FilesListCall) Q(q string) *FilesListCall {
-	c.opt_["q"] = q
+	c.params_.Set("q", fmt.Sprintf("%v", q))
+	return c
+}
+func (c *FilesListCall) Context(ctx context.Context) *FilesListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -4010,50 +3815,21 @@ func (c *FilesListCall) Q(q string) *FilesListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *FilesListCall) Fields(s ...googleapi.Field) *FilesListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *FilesListCall) Do() (*FileList, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["corpus"]; ok {
-		params.Set("corpus", fmt.Sprintf("%v", v))
+	var returnValue *FileList
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["projection"]; ok {
-		params.Set("projection", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["q"]; ok {
-		params.Set("q", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "files")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *FileList
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Lists the user's files.",
 	//   "httpMethod": "GET",
@@ -4123,32 +3899,41 @@ func (c *FilesListCall) Do() (*FileList, error) {
 // method id "drive.files.patch":
 
 type FilesPatchCall struct {
-	s      *Service
-	fileId string
-	file   *File
-	opt_   map[string]interface{}
+	s             *Service
+	fileId        string
+	file          *File
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Patch: Updates file metadata and/or content. This method supports
 // patch semantics.
+
 func (r *FilesService) Patch(fileId string, file *File) *FilesPatchCall {
-	c := &FilesPatchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.fileId = fileId
-	c.file = file
-	return c
+	return &FilesPatchCall{
+		s:             r.s,
+		fileId:        fileId,
+		file:          file,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "files/{fileId}",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // AddParents sets the optional parameter "addParents": Comma-separated
 // list of parent IDs to add.
 func (c *FilesPatchCall) AddParents(addParents string) *FilesPatchCall {
-	c.opt_["addParents"] = addParents
+	c.params_.Set("addParents", fmt.Sprintf("%v", addParents))
 	return c
 }
 
 // Convert sets the optional parameter "convert": Whether to convert
 // this file to the corresponding Google Docs format.
 func (c *FilesPatchCall) Convert(convert bool) *FilesPatchCall {
-	c.opt_["convert"] = convert
+	c.params_.Set("convert", fmt.Sprintf("%v", convert))
 	return c
 }
 
@@ -4158,63 +3943,63 @@ func (c *FilesPatchCall) Convert(convert bool) *FilesPatchCall {
 // created as head revision, and previous revisions are preserved
 // (causing increased use of the user's data storage quota).
 func (c *FilesPatchCall) NewRevision(newRevision bool) *FilesPatchCall {
-	c.opt_["newRevision"] = newRevision
+	c.params_.Set("newRevision", fmt.Sprintf("%v", newRevision))
 	return c
 }
 
 // Ocr sets the optional parameter "ocr": Whether to attempt OCR on
 // .jpg, .png, .gif, or .pdf uploads.
 func (c *FilesPatchCall) Ocr(ocr bool) *FilesPatchCall {
-	c.opt_["ocr"] = ocr
+	c.params_.Set("ocr", fmt.Sprintf("%v", ocr))
 	return c
 }
 
 // OcrLanguage sets the optional parameter "ocrLanguage": If ocr is
 // true, hints at the language to use. Valid values are ISO 639-1 codes.
 func (c *FilesPatchCall) OcrLanguage(ocrLanguage string) *FilesPatchCall {
-	c.opt_["ocrLanguage"] = ocrLanguage
+	c.params_.Set("ocrLanguage", fmt.Sprintf("%v", ocrLanguage))
 	return c
 }
 
 // Pinned sets the optional parameter "pinned": Whether to pin the new
 // revision. A file can have a maximum of 200 pinned revisions.
 func (c *FilesPatchCall) Pinned(pinned bool) *FilesPatchCall {
-	c.opt_["pinned"] = pinned
+	c.params_.Set("pinned", fmt.Sprintf("%v", pinned))
 	return c
 }
 
 // RemoveParents sets the optional parameter "removeParents":
 // Comma-separated list of parent IDs to remove.
 func (c *FilesPatchCall) RemoveParents(removeParents string) *FilesPatchCall {
-	c.opt_["removeParents"] = removeParents
+	c.params_.Set("removeParents", fmt.Sprintf("%v", removeParents))
 	return c
 }
 
 // SetModifiedDate sets the optional parameter "setModifiedDate":
 // Whether to set the modified date with the supplied modified date.
 func (c *FilesPatchCall) SetModifiedDate(setModifiedDate bool) *FilesPatchCall {
-	c.opt_["setModifiedDate"] = setModifiedDate
+	c.params_.Set("setModifiedDate", fmt.Sprintf("%v", setModifiedDate))
 	return c
 }
 
 // TimedTextLanguage sets the optional parameter "timedTextLanguage":
 // The language of the timed text.
 func (c *FilesPatchCall) TimedTextLanguage(timedTextLanguage string) *FilesPatchCall {
-	c.opt_["timedTextLanguage"] = timedTextLanguage
+	c.params_.Set("timedTextLanguage", fmt.Sprintf("%v", timedTextLanguage))
 	return c
 }
 
 // TimedTextTrackName sets the optional parameter "timedTextTrackName":
 // The timed text track name.
 func (c *FilesPatchCall) TimedTextTrackName(timedTextTrackName string) *FilesPatchCall {
-	c.opt_["timedTextTrackName"] = timedTextTrackName
+	c.params_.Set("timedTextTrackName", fmt.Sprintf("%v", timedTextTrackName))
 	return c
 }
 
 // UpdateViewedDate sets the optional parameter "updateViewedDate":
 // Whether to update the view date after successfully updating the file.
 func (c *FilesPatchCall) UpdateViewedDate(updateViewedDate bool) *FilesPatchCall {
-	c.opt_["updateViewedDate"] = updateViewedDate
+	c.params_.Set("updateViewedDate", fmt.Sprintf("%v", updateViewedDate))
 	return c
 }
 
@@ -4222,7 +4007,11 @@ func (c *FilesPatchCall) UpdateViewedDate(updateViewedDate bool) *FilesPatchCall
 // "useContentAsIndexableText": Whether to use the content as indexable
 // text.
 func (c *FilesPatchCall) UseContentAsIndexableText(useContentAsIndexableText bool) *FilesPatchCall {
-	c.opt_["useContentAsIndexableText"] = useContentAsIndexableText
+	c.params_.Set("useContentAsIndexableText", fmt.Sprintf("%v", useContentAsIndexableText))
+	return c
+}
+func (c *FilesPatchCall) Context(ctx context.Context) *FilesPatchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -4230,79 +4019,24 @@ func (c *FilesPatchCall) UseContentAsIndexableText(useContentAsIndexableText boo
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *FilesPatchCall) Fields(s ...googleapi.Field) *FilesPatchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *FilesPatchCall) Do() (*File, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.file)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["addParents"]; ok {
-		params.Set("addParents", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["convert"]; ok {
-		params.Set("convert", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["newRevision"]; ok {
-		params.Set("newRevision", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["ocr"]; ok {
-		params.Set("ocr", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["ocrLanguage"]; ok {
-		params.Set("ocrLanguage", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pinned"]; ok {
-		params.Set("pinned", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["removeParents"]; ok {
-		params.Set("removeParents", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["setModifiedDate"]; ok {
-		params.Set("setModifiedDate", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["timedTextLanguage"]; ok {
-		params.Set("timedTextLanguage", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["timedTextTrackName"]; ok {
-		params.Set("timedTextTrackName", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["updateViewedDate"]; ok {
-		params.Set("updateViewedDate", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["useContentAsIndexableText"]; ok {
-		params.Set("useContentAsIndexableText", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "files/{fileId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PATCH", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *File
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"fileId": c.fileId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PATCH",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.file,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *File
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates file metadata and/or content. This method supports patch semantics.",
 	//   "httpMethod": "PATCH",
@@ -4406,15 +4140,28 @@ func (c *FilesPatchCall) Do() (*File, error) {
 // method id "drive.files.touch":
 
 type FilesTouchCall struct {
-	s      *Service
-	fileId string
-	opt_   map[string]interface{}
+	s             *Service
+	fileId        string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Touch: Set the file's updated time to the current server time.
+
 func (r *FilesService) Touch(fileId string) *FilesTouchCall {
-	c := &FilesTouchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.fileId = fileId
+	return &FilesTouchCall{
+		s:             r.s,
+		fileId:        fileId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "files/{fileId}/touch",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *FilesTouchCall) Context(ctx context.Context) *FilesTouchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -4422,37 +4169,23 @@ func (r *FilesService) Touch(fileId string) *FilesTouchCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *FilesTouchCall) Fields(s ...googleapi.Field) *FilesTouchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *FilesTouchCall) Do() (*File, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "files/{fileId}/touch")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *File
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"fileId": c.fileId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "POST",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *File
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Set the file's updated time to the current server time.",
 	//   "httpMethod": "POST",
@@ -4485,15 +4218,28 @@ func (c *FilesTouchCall) Do() (*File, error) {
 // method id "drive.files.trash":
 
 type FilesTrashCall struct {
-	s      *Service
-	fileId string
-	opt_   map[string]interface{}
+	s             *Service
+	fileId        string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Trash: Moves a file to the trash.
+
 func (r *FilesService) Trash(fileId string) *FilesTrashCall {
-	c := &FilesTrashCall{s: r.s, opt_: make(map[string]interface{})}
-	c.fileId = fileId
+	return &FilesTrashCall{
+		s:             r.s,
+		fileId:        fileId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "files/{fileId}/trash",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *FilesTrashCall) Context(ctx context.Context) *FilesTrashCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -4501,37 +4247,23 @@ func (r *FilesService) Trash(fileId string) *FilesTrashCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *FilesTrashCall) Fields(s ...googleapi.Field) *FilesTrashCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *FilesTrashCall) Do() (*File, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "files/{fileId}/trash")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *File
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"fileId": c.fileId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "POST",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *File
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Moves a file to the trash.",
 	//   "httpMethod": "POST",
@@ -4564,15 +4296,28 @@ func (c *FilesTrashCall) Do() (*File, error) {
 // method id "drive.files.untrash":
 
 type FilesUntrashCall struct {
-	s      *Service
-	fileId string
-	opt_   map[string]interface{}
+	s             *Service
+	fileId        string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Untrash: Restores a file from the trash.
+
 func (r *FilesService) Untrash(fileId string) *FilesUntrashCall {
-	c := &FilesUntrashCall{s: r.s, opt_: make(map[string]interface{})}
-	c.fileId = fileId
+	return &FilesUntrashCall{
+		s:             r.s,
+		fileId:        fileId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "files/{fileId}/untrash",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *FilesUntrashCall) Context(ctx context.Context) *FilesUntrashCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -4580,37 +4325,23 @@ func (r *FilesService) Untrash(fileId string) *FilesUntrashCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *FilesUntrashCall) Fields(s ...googleapi.Field) *FilesUntrashCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *FilesUntrashCall) Do() (*File, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "files/{fileId}/untrash")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *File
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"fileId": c.fileId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "POST",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *File
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Restores a file from the trash.",
 	//   "httpMethod": "POST",
@@ -4643,36 +4374,41 @@ func (c *FilesUntrashCall) Do() (*File, error) {
 // method id "drive.files.update":
 
 type FilesUpdateCall struct {
-	s          *Service
-	fileId     string
-	file       *File
-	opt_       map[string]interface{}
-	media_     io.Reader
-	resumable_ googleapi.SizeReaderAt
-	mediaType_ string
-	ctx_       context.Context
-	protocol_  string
+	s             *Service
+	fileId        string
+	file          *File
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
+	callback_     googleapi.ProgressUpdater
 }
 
 // Update: Updates file metadata and/or content.
+
 func (r *FilesService) Update(fileId string, file *File) *FilesUpdateCall {
-	c := &FilesUpdateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.fileId = fileId
-	c.file = file
-	return c
+	return &FilesUpdateCall{
+		s:             r.s,
+		fileId:        fileId,
+		file:          file,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "files/{fileId}",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // AddParents sets the optional parameter "addParents": Comma-separated
 // list of parent IDs to add.
 func (c *FilesUpdateCall) AddParents(addParents string) *FilesUpdateCall {
-	c.opt_["addParents"] = addParents
+	c.params_.Set("addParents", fmt.Sprintf("%v", addParents))
 	return c
 }
 
 // Convert sets the optional parameter "convert": Whether to convert
 // this file to the corresponding Google Docs format.
 func (c *FilesUpdateCall) Convert(convert bool) *FilesUpdateCall {
-	c.opt_["convert"] = convert
+	c.params_.Set("convert", fmt.Sprintf("%v", convert))
 	return c
 }
 
@@ -4682,63 +4418,63 @@ func (c *FilesUpdateCall) Convert(convert bool) *FilesUpdateCall {
 // created as head revision, and previous revisions are preserved
 // (causing increased use of the user's data storage quota).
 func (c *FilesUpdateCall) NewRevision(newRevision bool) *FilesUpdateCall {
-	c.opt_["newRevision"] = newRevision
+	c.params_.Set("newRevision", fmt.Sprintf("%v", newRevision))
 	return c
 }
 
 // Ocr sets the optional parameter "ocr": Whether to attempt OCR on
 // .jpg, .png, .gif, or .pdf uploads.
 func (c *FilesUpdateCall) Ocr(ocr bool) *FilesUpdateCall {
-	c.opt_["ocr"] = ocr
+	c.params_.Set("ocr", fmt.Sprintf("%v", ocr))
 	return c
 }
 
 // OcrLanguage sets the optional parameter "ocrLanguage": If ocr is
 // true, hints at the language to use. Valid values are ISO 639-1 codes.
 func (c *FilesUpdateCall) OcrLanguage(ocrLanguage string) *FilesUpdateCall {
-	c.opt_["ocrLanguage"] = ocrLanguage
+	c.params_.Set("ocrLanguage", fmt.Sprintf("%v", ocrLanguage))
 	return c
 }
 
 // Pinned sets the optional parameter "pinned": Whether to pin the new
 // revision. A file can have a maximum of 200 pinned revisions.
 func (c *FilesUpdateCall) Pinned(pinned bool) *FilesUpdateCall {
-	c.opt_["pinned"] = pinned
+	c.params_.Set("pinned", fmt.Sprintf("%v", pinned))
 	return c
 }
 
 // RemoveParents sets the optional parameter "removeParents":
 // Comma-separated list of parent IDs to remove.
 func (c *FilesUpdateCall) RemoveParents(removeParents string) *FilesUpdateCall {
-	c.opt_["removeParents"] = removeParents
+	c.params_.Set("removeParents", fmt.Sprintf("%v", removeParents))
 	return c
 }
 
 // SetModifiedDate sets the optional parameter "setModifiedDate":
 // Whether to set the modified date with the supplied modified date.
 func (c *FilesUpdateCall) SetModifiedDate(setModifiedDate bool) *FilesUpdateCall {
-	c.opt_["setModifiedDate"] = setModifiedDate
+	c.params_.Set("setModifiedDate", fmt.Sprintf("%v", setModifiedDate))
 	return c
 }
 
 // TimedTextLanguage sets the optional parameter "timedTextLanguage":
 // The language of the timed text.
 func (c *FilesUpdateCall) TimedTextLanguage(timedTextLanguage string) *FilesUpdateCall {
-	c.opt_["timedTextLanguage"] = timedTextLanguage
+	c.params_.Set("timedTextLanguage", fmt.Sprintf("%v", timedTextLanguage))
 	return c
 }
 
 // TimedTextTrackName sets the optional parameter "timedTextTrackName":
 // The timed text track name.
 func (c *FilesUpdateCall) TimedTextTrackName(timedTextTrackName string) *FilesUpdateCall {
-	c.opt_["timedTextTrackName"] = timedTextTrackName
+	c.params_.Set("timedTextTrackName", fmt.Sprintf("%v", timedTextTrackName))
 	return c
 }
 
 // UpdateViewedDate sets the optional parameter "updateViewedDate":
 // Whether to update the view date after successfully updating the file.
 func (c *FilesUpdateCall) UpdateViewedDate(updateViewedDate bool) *FilesUpdateCall {
-	c.opt_["updateViewedDate"] = updateViewedDate
+	c.params_.Set("updateViewedDate", fmt.Sprintf("%v", updateViewedDate))
 	return c
 }
 
@@ -4746,15 +4482,35 @@ func (c *FilesUpdateCall) UpdateViewedDate(updateViewedDate bool) *FilesUpdateCa
 // "useContentAsIndexableText": Whether to use the content as indexable
 // text.
 func (c *FilesUpdateCall) UseContentAsIndexableText(useContentAsIndexableText bool) *FilesUpdateCall {
-	c.opt_["useContentAsIndexableText"] = useContentAsIndexableText
+	c.params_.Set("useContentAsIndexableText", fmt.Sprintf("%v", useContentAsIndexableText))
+	return c
+}
+func (c *FilesUpdateCall) Context(ctx context.Context) *FilesUpdateCall {
+	c.context_ = ctx
+	return c
+}
+
+// MediaUpload takes a context and UploadCaller interface
+func (c *FilesUpdateCall) Upload(ctx context.Context, u googleapi.UploadCaller) *FilesUpdateCall {
+	c.caller_ = u
+	c.context_ = ctx
+	switch u.(type) {
+	case *googleapi.MediaUpload:
+		c.pathTemplate_ = "/upload/drive/v2/files/{fileId}"
+	case *googleapi.ResumableUpload:
+		c.pathTemplate_ = "/resumable/upload/drive/v2/files/{fileId}"
+	}
 	return c
 }
 
 // Media specifies the media to upload in a single chunk.
 // At most one of Media and ResumableMedia may be set.
+// The mime type type will be auto-detected unless r is a googleapi.ContentTyper as well.
 func (c *FilesUpdateCall) Media(r io.Reader) *FilesUpdateCall {
-	c.media_ = r
-	c.protocol_ = "multipart"
+	c.caller_ = &googleapi.MediaUpload{
+		Media: r,
+	}
+	c.pathTemplate_ = "/upload/drive/v2/files/{fileId}"
 	return c
 }
 
@@ -4763,10 +4519,14 @@ func (c *FilesUpdateCall) Media(r io.Reader) *FilesUpdateCall {
 // mediaType identifies the MIME media type of the upload, such as "image/png".
 // If mediaType is "", it will be auto-detected.
 func (c *FilesUpdateCall) ResumableMedia(ctx context.Context, r io.ReaderAt, size int64, mediaType string) *FilesUpdateCall {
-	c.ctx_ = ctx
-	c.resumable_ = io.NewSectionReader(r, 0, size)
-	c.mediaType_ = mediaType
-	c.protocol_ = "resumable"
+	c.caller_ = &googleapi.ResumableUpload{
+		Media:         io.NewSectionReader(r, 0, size),
+		MediaType:     mediaType,
+		ContentLength: size,
+		Callback:      c.callback_,
+	}
+	c.pathTemplate_ = "/resumable/upload/drive/v2/files/{fileId}"
+	c.context_ = ctx
 	return c
 }
 
@@ -4774,7 +4534,10 @@ func (c *FilesUpdateCall) ResumableMedia(ctx context.Context, r io.ReaderAt, siz
 // It should be a low-latency function in order to not slow down the upload operation.
 // This should only be called when using ResumableMedia (as opposed to Media).
 func (c *FilesUpdateCall) ProgressUpdater(pu googleapi.ProgressUpdater) *FilesUpdateCall {
-	c.opt_["progressUpdater"] = pu
+	c.callback_ = pu
+	if rx, ok := c.caller_.(*googleapi.ResumableUpload); ok {
+		rx.Callback = pu
+	}
 	return c
 }
 
@@ -4782,122 +4545,24 @@ func (c *FilesUpdateCall) ProgressUpdater(pu googleapi.ProgressUpdater) *FilesUp
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *FilesUpdateCall) Fields(s ...googleapi.Field) *FilesUpdateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *FilesUpdateCall) Do() (*File, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.file)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["addParents"]; ok {
-		params.Set("addParents", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["convert"]; ok {
-		params.Set("convert", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["newRevision"]; ok {
-		params.Set("newRevision", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["ocr"]; ok {
-		params.Set("ocr", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["ocrLanguage"]; ok {
-		params.Set("ocrLanguage", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pinned"]; ok {
-		params.Set("pinned", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["removeParents"]; ok {
-		params.Set("removeParents", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["setModifiedDate"]; ok {
-		params.Set("setModifiedDate", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["timedTextLanguage"]; ok {
-		params.Set("timedTextLanguage", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["timedTextTrackName"]; ok {
-		params.Set("timedTextTrackName", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["updateViewedDate"]; ok {
-		params.Set("updateViewedDate", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["useContentAsIndexableText"]; ok {
-		params.Set("useContentAsIndexableText", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "files/{fileId}")
-	var progressUpdater_ googleapi.ProgressUpdater
-	if v, ok := c.opt_["progressUpdater"]; ok {
-		if pu, ok := v.(googleapi.ProgressUpdater); ok {
-			progressUpdater_ = pu
-		}
-	}
-	if c.media_ != nil || c.resumable_ != nil {
-		urls = strings.Replace(urls, "https://www.googleapis.com/", "https://www.googleapis.com/upload/", 1)
-		params.Set("uploadType", c.protocol_)
-	}
-	urls += "?" + params.Encode()
-	if c.protocol_ != "resumable" {
-		var cancel func()
-		cancel, _ = googleapi.ConditionallyIncludeMedia(c.media_, &body, &ctype)
-		if cancel != nil {
-			defer cancel()
-		}
-	}
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *File
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"fileId": c.fileId,
 	})
-	if c.protocol_ == "resumable" {
-		req.ContentLength = 0
-		if c.mediaType_ == "" {
-			c.mediaType_ = googleapi.DetectMediaType(c.resumable_)
-		}
-		req.Header.Set("X-Upload-Content-Type", c.mediaType_)
-		req.Body = nil
-	} else {
-		req.Header.Set("Content-Type", ctype)
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.file,
+		Result:  &returnValue,
 	}
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	if c.protocol_ == "resumable" {
-		loc := res.Header.Get("Location")
-		rx := &googleapi.ResumableUpload{
-			Client:        c.s.client,
-			UserAgent:     c.s.userAgent(),
-			URI:           loc,
-			Media:         c.resumable_,
-			MediaType:     c.mediaType_,
-			ContentLength: c.resumable_.Size(),
-			Callback:      progressUpdater_,
-		}
-		res, err = rx.Upload(c.ctx_)
-		if err != nil {
-			return nil, err
-		}
-		defer res.Body.Close()
-	}
-	var ret *File
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates file metadata and/or content.",
 	//   "httpMethod": "PUT",
@@ -5018,32 +4683,59 @@ func (c *FilesUpdateCall) Do() (*File, error) {
 // method id "drive.files.watch":
 
 type FilesWatchCall struct {
-	s       *Service
-	fileId  string
-	channel *Channel
-	opt_    map[string]interface{}
+	s             *Service
+	fileId        string
+	channel       *Channel
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Watch: Subscribe to changes on a file
+
 func (r *FilesService) Watch(fileId string, channel *Channel) *FilesWatchCall {
-	c := &FilesWatchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.fileId = fileId
-	c.channel = channel
-	return c
+	return &FilesWatchCall{
+		s:             r.s,
+		fileId:        fileId,
+		channel:       channel,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "files/{fileId}/watch",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // AcknowledgeAbuse sets the optional parameter "acknowledgeAbuse":
 // Whether the user is acknowledging the risk of downloading known
-// malware or other abusive files.
+// malware or other abusive files. Ignored unless alt=media is
+// specified.
 func (c *FilesWatchCall) AcknowledgeAbuse(acknowledgeAbuse bool) *FilesWatchCall {
-	c.opt_["acknowledgeAbuse"] = acknowledgeAbuse
+	c.params_.Set("acknowledgeAbuse", fmt.Sprintf("%v", acknowledgeAbuse))
+	return c
+}
+
+// Alt sets the optional parameter "alt": Specifies the type of resource
+// representation to return. The default is 'json' to return file
+// metadata. Specifying 'media' will cause the file content to be
+// returned.
+func (c *FilesWatchCall) Alt(alt string) *FilesWatchCall {
+	c.params_.Set("alt", fmt.Sprintf("%v", alt))
 	return c
 }
 
 // Projection sets the optional parameter "projection": This parameter
 // is deprecated and has no function.
 func (c *FilesWatchCall) Projection(projection string) *FilesWatchCall {
-	c.opt_["projection"] = projection
+	c.params_.Set("projection", fmt.Sprintf("%v", projection))
+	return c
+}
+
+// RevisionId sets the optional parameter "revisionId": Specifies the
+// Revision ID that should be downloaded. Ignored unless alt=media is
+// specified.
+func (c *FilesWatchCall) RevisionId(revisionId string) *FilesWatchCall {
+	c.params_.Set("revisionId", fmt.Sprintf("%v", revisionId))
 	return c
 }
 
@@ -5051,7 +4743,11 @@ func (c *FilesWatchCall) Projection(projection string) *FilesWatchCall {
 // Whether to update the view date after successfully retrieving the
 // file.
 func (c *FilesWatchCall) UpdateViewedDate(updateViewedDate bool) *FilesWatchCall {
-	c.opt_["updateViewedDate"] = updateViewedDate
+	c.params_.Set("updateViewedDate", fmt.Sprintf("%v", updateViewedDate))
+	return c
+}
+func (c *FilesWatchCall) Context(ctx context.Context) *FilesWatchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -5059,52 +4755,43 @@ func (c *FilesWatchCall) UpdateViewedDate(updateViewedDate bool) *FilesWatchCall
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *FilesWatchCall) Fields(s ...googleapi.Field) *FilesWatchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
-func (c *FilesWatchCall) Do() (*Channel, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.channel)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["acknowledgeAbuse"]; ok {
-		params.Set("acknowledgeAbuse", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["projection"]; ok {
-		params.Set("projection", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["updateViewedDate"]; ok {
-		params.Set("updateViewedDate", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "files/{fileId}/watch")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+// GetResponse sets alt=media creating a file download request. The body
+// of the *http.Response contains the media.  You should close the response
+// body when finished reading.
+
+func (c *FilesWatchCall) GetResponse() (*http.Response, error) {
+	var res *http.Response
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"fileId": c.fileId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.channel,
+		Result:  &res,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
+	return res, c.caller_.Do(c.context_, c.s.client, call)
+}
+
+func (c *FilesWatchCall) Do() (*Channel, error) {
+	var returnValue *Channel
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
+		"fileId": c.fileId,
+	})
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.channel,
+		Result:  &returnValue,
 	}
-	var ret *Channel
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Subscribe to changes on a file",
 	//   "httpMethod": "POST",
@@ -5115,9 +4802,14 @@ func (c *FilesWatchCall) Do() (*Channel, error) {
 	//   "parameters": {
 	//     "acknowledgeAbuse": {
 	//       "default": "false",
-	//       "description": "Whether the user is acknowledging the risk of downloading known malware or other abusive files.",
+	//       "description": "Whether the user is acknowledging the risk of downloading known malware or other abusive files. Ignored unless alt=media is specified.",
 	//       "location": "query",
 	//       "type": "boolean"
+	//     },
+	//     "alt": {
+	//       "description": "Specifies the type of resource representation to return. The default is 'json' to return file metadata. Specifying 'media' will cause the file content to be returned.",
+	//       "location": "query",
+	//       "type": "string"
 	//     },
 	//     "fileId": {
 	//       "description": "The ID for the file in question.",
@@ -5135,6 +4827,11 @@ func (c *FilesWatchCall) Do() (*Channel, error) {
 	//         "Deprecated",
 	//         "Deprecated"
 	//       ],
+	//       "location": "query",
+	//       "type": "string"
+	//     },
+	//     "revisionId": {
+	//       "description": "Specifies the Revision ID that should be downloaded. Ignored unless alt=media is specified.",
 	//       "location": "query",
 	//       "type": "string"
 	//     },
@@ -5170,52 +4867,45 @@ func (c *FilesWatchCall) Do() (*Channel, error) {
 // method id "drive.parents.delete":
 
 type ParentsDeleteCall struct {
-	s        *Service
-	fileId   string
-	parentId string
-	opt_     map[string]interface{}
+	s             *Service
+	fileId        string
+	parentId      string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Delete: Removes a parent from a file.
-func (r *ParentsService) Delete(fileId string, parentId string) *ParentsDeleteCall {
-	c := &ParentsDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.fileId = fileId
-	c.parentId = parentId
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *ParentsDeleteCall) Fields(s ...googleapi.Field) *ParentsDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *ParentsService) Delete(fileId string, parentId string) *ParentsDeleteCall {
+	return &ParentsDeleteCall{
+		s:             r.s,
+		fileId:        fileId,
+		parentId:      parentId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "files/{fileId}/parents/{parentId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *ParentsDeleteCall) Context(ctx context.Context) *ParentsDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *ParentsDeleteCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "files/{fileId}/parents/{parentId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"fileId":   c.fileId,
 		"parentId": c.parentId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Removes a parent from a file.",
 	//   "httpMethod": "DELETE",
@@ -5250,17 +4940,30 @@ func (c *ParentsDeleteCall) Do() error {
 // method id "drive.parents.get":
 
 type ParentsGetCall struct {
-	s        *Service
-	fileId   string
-	parentId string
-	opt_     map[string]interface{}
+	s             *Service
+	fileId        string
+	parentId      string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Gets a specific parent reference.
+
 func (r *ParentsService) Get(fileId string, parentId string) *ParentsGetCall {
-	c := &ParentsGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.fileId = fileId
-	c.parentId = parentId
+	return &ParentsGetCall{
+		s:             r.s,
+		fileId:        fileId,
+		parentId:      parentId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "files/{fileId}/parents/{parentId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *ParentsGetCall) Context(ctx context.Context) *ParentsGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -5268,38 +4971,24 @@ func (r *ParentsService) Get(fileId string, parentId string) *ParentsGetCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ParentsGetCall) Fields(s ...googleapi.Field) *ParentsGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ParentsGetCall) Do() (*ParentReference, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "files/{fileId}/parents/{parentId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *ParentReference
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"fileId":   c.fileId,
 		"parentId": c.parentId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ParentReference
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Gets a specific parent reference.",
 	//   "httpMethod": "GET",
@@ -5343,14 +5032,27 @@ type ParentsInsertCall struct {
 	s               *Service
 	fileId          string
 	parentreference *ParentReference
-	opt_            map[string]interface{}
+	caller_         googleapi.Caller
+	params_         url.Values
+	pathTemplate_   string
+	context_        context.Context
 }
 
 // Insert: Adds a parent folder for a file.
+
 func (r *ParentsService) Insert(fileId string, parentreference *ParentReference) *ParentsInsertCall {
-	c := &ParentsInsertCall{s: r.s, opt_: make(map[string]interface{})}
-	c.fileId = fileId
-	c.parentreference = parentreference
+	return &ParentsInsertCall{
+		s:               r.s,
+		fileId:          fileId,
+		parentreference: parentreference,
+		caller_:         googleapi.JSONCall{},
+		params_:         make(map[string][]string),
+		pathTemplate_:   "files/{fileId}/parents",
+		context_:        googleapi.NoContext,
+	}
+}
+func (c *ParentsInsertCall) Context(ctx context.Context) *ParentsInsertCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -5358,43 +5060,24 @@ func (r *ParentsService) Insert(fileId string, parentreference *ParentReference)
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ParentsInsertCall) Fields(s ...googleapi.Field) *ParentsInsertCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ParentsInsertCall) Do() (*ParentReference, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.parentreference)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "files/{fileId}/parents")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *ParentReference
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"fileId": c.fileId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.parentreference,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ParentReference
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Adds a parent folder for a file.",
 	//   "httpMethod": "POST",
@@ -5429,15 +5112,28 @@ func (c *ParentsInsertCall) Do() (*ParentReference, error) {
 // method id "drive.parents.list":
 
 type ParentsListCall struct {
-	s      *Service
-	fileId string
-	opt_   map[string]interface{}
+	s             *Service
+	fileId        string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Lists a file's parents.
+
 func (r *ParentsService) List(fileId string) *ParentsListCall {
-	c := &ParentsListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.fileId = fileId
+	return &ParentsListCall{
+		s:             r.s,
+		fileId:        fileId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "files/{fileId}/parents",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *ParentsListCall) Context(ctx context.Context) *ParentsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -5445,37 +5141,23 @@ func (r *ParentsService) List(fileId string) *ParentsListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ParentsListCall) Fields(s ...googleapi.Field) *ParentsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ParentsListCall) Do() (*ParentList, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "files/{fileId}/parents")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *ParentList
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"fileId": c.fileId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ParentList
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Lists a file's parents.",
 	//   "httpMethod": "GET",
@@ -5509,52 +5191,45 @@ func (c *ParentsListCall) Do() (*ParentList, error) {
 // method id "drive.permissions.delete":
 
 type PermissionsDeleteCall struct {
-	s            *Service
-	fileId       string
-	permissionId string
-	opt_         map[string]interface{}
+	s             *Service
+	fileId        string
+	permissionId  string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Delete: Deletes a permission from a file.
-func (r *PermissionsService) Delete(fileId string, permissionId string) *PermissionsDeleteCall {
-	c := &PermissionsDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.fileId = fileId
-	c.permissionId = permissionId
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *PermissionsDeleteCall) Fields(s ...googleapi.Field) *PermissionsDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *PermissionsService) Delete(fileId string, permissionId string) *PermissionsDeleteCall {
+	return &PermissionsDeleteCall{
+		s:             r.s,
+		fileId:        fileId,
+		permissionId:  permissionId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "files/{fileId}/permissions/{permissionId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *PermissionsDeleteCall) Context(ctx context.Context) *PermissionsDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *PermissionsDeleteCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "files/{fileId}/permissions/{permissionId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"fileId":       c.fileId,
 		"permissionId": c.permissionId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Deletes a permission from a file.",
 	//   "httpMethod": "DELETE",
@@ -5589,17 +5264,30 @@ func (c *PermissionsDeleteCall) Do() error {
 // method id "drive.permissions.get":
 
 type PermissionsGetCall struct {
-	s            *Service
-	fileId       string
-	permissionId string
-	opt_         map[string]interface{}
+	s             *Service
+	fileId        string
+	permissionId  string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Gets a permission by ID.
+
 func (r *PermissionsService) Get(fileId string, permissionId string) *PermissionsGetCall {
-	c := &PermissionsGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.fileId = fileId
-	c.permissionId = permissionId
+	return &PermissionsGetCall{
+		s:             r.s,
+		fileId:        fileId,
+		permissionId:  permissionId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "files/{fileId}/permissions/{permissionId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *PermissionsGetCall) Context(ctx context.Context) *PermissionsGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -5607,38 +5295,24 @@ func (r *PermissionsService) Get(fileId string, permissionId string) *Permission
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *PermissionsGetCall) Fields(s ...googleapi.Field) *PermissionsGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *PermissionsGetCall) Do() (*Permission, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "files/{fileId}/permissions/{permissionId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Permission
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"fileId":       c.fileId,
 		"permissionId": c.permissionId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Permission
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Gets a permission by ID.",
 	//   "httpMethod": "GET",
@@ -5678,15 +5352,28 @@ func (c *PermissionsGetCall) Do() (*Permission, error) {
 // method id "drive.permissions.getIdForEmail":
 
 type PermissionsGetIdForEmailCall struct {
-	s     *Service
-	email string
-	opt_  map[string]interface{}
+	s             *Service
+	email         string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // GetIdForEmail: Returns the permission ID for an email address.
+
 func (r *PermissionsService) GetIdForEmail(email string) *PermissionsGetIdForEmailCall {
-	c := &PermissionsGetIdForEmailCall{s: r.s, opt_: make(map[string]interface{})}
-	c.email = email
+	return &PermissionsGetIdForEmailCall{
+		s:             r.s,
+		email:         email,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "permissionIds/{email}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *PermissionsGetIdForEmailCall) Context(ctx context.Context) *PermissionsGetIdForEmailCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -5694,37 +5381,23 @@ func (r *PermissionsService) GetIdForEmail(email string) *PermissionsGetIdForEma
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *PermissionsGetIdForEmailCall) Fields(s ...googleapi.Field) *PermissionsGetIdForEmailCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *PermissionsGetIdForEmailCall) Do() (*PermissionId, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "permissionIds/{email}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *PermissionId
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"email": c.email,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *PermissionId
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Returns the permission ID for an email address.",
 	//   "httpMethod": "GET",
@@ -5759,24 +5432,33 @@ func (c *PermissionsGetIdForEmailCall) Do() (*PermissionId, error) {
 // method id "drive.permissions.insert":
 
 type PermissionsInsertCall struct {
-	s          *Service
-	fileId     string
-	permission *Permission
-	opt_       map[string]interface{}
+	s             *Service
+	fileId        string
+	permission    *Permission
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Insert: Inserts a permission for a file.
+
 func (r *PermissionsService) Insert(fileId string, permission *Permission) *PermissionsInsertCall {
-	c := &PermissionsInsertCall{s: r.s, opt_: make(map[string]interface{})}
-	c.fileId = fileId
-	c.permission = permission
-	return c
+	return &PermissionsInsertCall{
+		s:             r.s,
+		fileId:        fileId,
+		permission:    permission,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "files/{fileId}/permissions",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // EmailMessage sets the optional parameter "emailMessage": A custom
 // message to include in notification emails.
 func (c *PermissionsInsertCall) EmailMessage(emailMessage string) *PermissionsInsertCall {
-	c.opt_["emailMessage"] = emailMessage
+	c.params_.Set("emailMessage", fmt.Sprintf("%v", emailMessage))
 	return c
 }
 
@@ -5785,7 +5467,11 @@ func (c *PermissionsInsertCall) EmailMessage(emailMessage string) *PermissionsIn
 // sharing to users or groups. This parameter is ignored and an email is
 // sent if the role is owner.
 func (c *PermissionsInsertCall) SendNotificationEmails(sendNotificationEmails bool) *PermissionsInsertCall {
-	c.opt_["sendNotificationEmails"] = sendNotificationEmails
+	c.params_.Set("sendNotificationEmails", fmt.Sprintf("%v", sendNotificationEmails))
+	return c
+}
+func (c *PermissionsInsertCall) Context(ctx context.Context) *PermissionsInsertCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -5793,49 +5479,24 @@ func (c *PermissionsInsertCall) SendNotificationEmails(sendNotificationEmails bo
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *PermissionsInsertCall) Fields(s ...googleapi.Field) *PermissionsInsertCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *PermissionsInsertCall) Do() (*Permission, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.permission)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["emailMessage"]; ok {
-		params.Set("emailMessage", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["sendNotificationEmails"]; ok {
-		params.Set("sendNotificationEmails", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "files/{fileId}/permissions")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Permission
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"fileId": c.fileId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.permission,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Permission
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Inserts a permission for a file.",
 	//   "httpMethod": "POST",
@@ -5880,15 +5541,28 @@ func (c *PermissionsInsertCall) Do() (*Permission, error) {
 // method id "drive.permissions.list":
 
 type PermissionsListCall struct {
-	s      *Service
-	fileId string
-	opt_   map[string]interface{}
+	s             *Service
+	fileId        string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Lists a file's permissions.
+
 func (r *PermissionsService) List(fileId string) *PermissionsListCall {
-	c := &PermissionsListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.fileId = fileId
+	return &PermissionsListCall{
+		s:             r.s,
+		fileId:        fileId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "files/{fileId}/permissions",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *PermissionsListCall) Context(ctx context.Context) *PermissionsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -5896,37 +5570,23 @@ func (r *PermissionsService) List(fileId string) *PermissionsListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *PermissionsListCall) Fields(s ...googleapi.Field) *PermissionsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *PermissionsListCall) Do() (*PermissionList, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "files/{fileId}/permissions")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *PermissionList
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"fileId": c.fileId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *PermissionList
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Lists a file's permissions.",
 	//   "httpMethod": "GET",
@@ -5959,27 +5619,40 @@ func (c *PermissionsListCall) Do() (*PermissionList, error) {
 // method id "drive.permissions.patch":
 
 type PermissionsPatchCall struct {
-	s            *Service
-	fileId       string
-	permissionId string
-	permission   *Permission
-	opt_         map[string]interface{}
+	s             *Service
+	fileId        string
+	permissionId  string
+	permission    *Permission
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Patch: Updates a permission. This method supports patch semantics.
+
 func (r *PermissionsService) Patch(fileId string, permissionId string, permission *Permission) *PermissionsPatchCall {
-	c := &PermissionsPatchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.fileId = fileId
-	c.permissionId = permissionId
-	c.permission = permission
-	return c
+	return &PermissionsPatchCall{
+		s:             r.s,
+		fileId:        fileId,
+		permissionId:  permissionId,
+		permission:    permission,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "files/{fileId}/permissions/{permissionId}",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // TransferOwnership sets the optional parameter "transferOwnership":
 // Whether changing a role to 'owner' downgrades the current owners to
 // writers. Does nothing if the specified role is not 'owner'.
 func (c *PermissionsPatchCall) TransferOwnership(transferOwnership bool) *PermissionsPatchCall {
-	c.opt_["transferOwnership"] = transferOwnership
+	c.params_.Set("transferOwnership", fmt.Sprintf("%v", transferOwnership))
+	return c
+}
+func (c *PermissionsPatchCall) Context(ctx context.Context) *PermissionsPatchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -5987,47 +5660,25 @@ func (c *PermissionsPatchCall) TransferOwnership(transferOwnership bool) *Permis
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *PermissionsPatchCall) Fields(s ...googleapi.Field) *PermissionsPatchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *PermissionsPatchCall) Do() (*Permission, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.permission)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["transferOwnership"]; ok {
-		params.Set("transferOwnership", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "files/{fileId}/permissions/{permissionId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PATCH", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Permission
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"fileId":       c.fileId,
 		"permissionId": c.permissionId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PATCH",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.permission,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Permission
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates a permission. This method supports patch semantics.",
 	//   "httpMethod": "PATCH",
@@ -6074,27 +5725,40 @@ func (c *PermissionsPatchCall) Do() (*Permission, error) {
 // method id "drive.permissions.update":
 
 type PermissionsUpdateCall struct {
-	s            *Service
-	fileId       string
-	permissionId string
-	permission   *Permission
-	opt_         map[string]interface{}
+	s             *Service
+	fileId        string
+	permissionId  string
+	permission    *Permission
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Update: Updates a permission.
+
 func (r *PermissionsService) Update(fileId string, permissionId string, permission *Permission) *PermissionsUpdateCall {
-	c := &PermissionsUpdateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.fileId = fileId
-	c.permissionId = permissionId
-	c.permission = permission
-	return c
+	return &PermissionsUpdateCall{
+		s:             r.s,
+		fileId:        fileId,
+		permissionId:  permissionId,
+		permission:    permission,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "files/{fileId}/permissions/{permissionId}",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // TransferOwnership sets the optional parameter "transferOwnership":
 // Whether changing a role to 'owner' downgrades the current owners to
 // writers. Does nothing if the specified role is not 'owner'.
 func (c *PermissionsUpdateCall) TransferOwnership(transferOwnership bool) *PermissionsUpdateCall {
-	c.opt_["transferOwnership"] = transferOwnership
+	c.params_.Set("transferOwnership", fmt.Sprintf("%v", transferOwnership))
+	return c
+}
+func (c *PermissionsUpdateCall) Context(ctx context.Context) *PermissionsUpdateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -6102,47 +5766,25 @@ func (c *PermissionsUpdateCall) TransferOwnership(transferOwnership bool) *Permi
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *PermissionsUpdateCall) Fields(s ...googleapi.Field) *PermissionsUpdateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *PermissionsUpdateCall) Do() (*Permission, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.permission)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["transferOwnership"]; ok {
-		params.Set("transferOwnership", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "files/{fileId}/permissions/{permissionId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Permission
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"fileId":       c.fileId,
 		"permissionId": c.permissionId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.permission,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Permission
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates a permission.",
 	//   "httpMethod": "PUT",
@@ -6189,62 +5831,52 @@ func (c *PermissionsUpdateCall) Do() (*Permission, error) {
 // method id "drive.properties.delete":
 
 type PropertiesDeleteCall struct {
-	s           *Service
-	fileId      string
-	propertyKey string
-	opt_        map[string]interface{}
+	s             *Service
+	fileId        string
+	propertyKey   string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Delete: Deletes a property.
+
 func (r *PropertiesService) Delete(fileId string, propertyKey string) *PropertiesDeleteCall {
-	c := &PropertiesDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.fileId = fileId
-	c.propertyKey = propertyKey
-	return c
+	return &PropertiesDeleteCall{
+		s:             r.s,
+		fileId:        fileId,
+		propertyKey:   propertyKey,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "files/{fileId}/properties/{propertyKey}",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Visibility sets the optional parameter "visibility": The visibility
 // of the property.
 func (c *PropertiesDeleteCall) Visibility(visibility string) *PropertiesDeleteCall {
-	c.opt_["visibility"] = visibility
+	c.params_.Set("visibility", fmt.Sprintf("%v", visibility))
 	return c
 }
-
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *PropertiesDeleteCall) Fields(s ...googleapi.Field) *PropertiesDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (c *PropertiesDeleteCall) Context(ctx context.Context) *PropertiesDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *PropertiesDeleteCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["visibility"]; ok {
-		params.Set("visibility", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "files/{fileId}/properties/{propertyKey}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"fileId":      c.fileId,
 		"propertyKey": c.propertyKey,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Deletes a property.",
 	//   "httpMethod": "DELETE",
@@ -6286,24 +5918,37 @@ func (c *PropertiesDeleteCall) Do() error {
 // method id "drive.properties.get":
 
 type PropertiesGetCall struct {
-	s           *Service
-	fileId      string
-	propertyKey string
-	opt_        map[string]interface{}
+	s             *Service
+	fileId        string
+	propertyKey   string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Gets a property by its key.
+
 func (r *PropertiesService) Get(fileId string, propertyKey string) *PropertiesGetCall {
-	c := &PropertiesGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.fileId = fileId
-	c.propertyKey = propertyKey
-	return c
+	return &PropertiesGetCall{
+		s:             r.s,
+		fileId:        fileId,
+		propertyKey:   propertyKey,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "files/{fileId}/properties/{propertyKey}",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Visibility sets the optional parameter "visibility": The visibility
 // of the property.
 func (c *PropertiesGetCall) Visibility(visibility string) *PropertiesGetCall {
-	c.opt_["visibility"] = visibility
+	c.params_.Set("visibility", fmt.Sprintf("%v", visibility))
+	return c
+}
+func (c *PropertiesGetCall) Context(ctx context.Context) *PropertiesGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -6311,41 +5956,24 @@ func (c *PropertiesGetCall) Visibility(visibility string) *PropertiesGetCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *PropertiesGetCall) Fields(s ...googleapi.Field) *PropertiesGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *PropertiesGetCall) Do() (*Property, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["visibility"]; ok {
-		params.Set("visibility", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "files/{fileId}/properties/{propertyKey}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Property
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"fileId":      c.fileId,
 		"propertyKey": c.propertyKey,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Property
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Gets a property by its key.",
 	//   "httpMethod": "GET",
@@ -6392,17 +6020,30 @@ func (c *PropertiesGetCall) Do() (*Property, error) {
 // method id "drive.properties.insert":
 
 type PropertiesInsertCall struct {
-	s        *Service
-	fileId   string
-	property *Property
-	opt_     map[string]interface{}
+	s             *Service
+	fileId        string
+	property      *Property
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Insert: Adds a property to a file.
+
 func (r *PropertiesService) Insert(fileId string, property *Property) *PropertiesInsertCall {
-	c := &PropertiesInsertCall{s: r.s, opt_: make(map[string]interface{})}
-	c.fileId = fileId
-	c.property = property
+	return &PropertiesInsertCall{
+		s:             r.s,
+		fileId:        fileId,
+		property:      property,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "files/{fileId}/properties",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *PropertiesInsertCall) Context(ctx context.Context) *PropertiesInsertCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -6410,43 +6051,24 @@ func (r *PropertiesService) Insert(fileId string, property *Property) *Propertie
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *PropertiesInsertCall) Fields(s ...googleapi.Field) *PropertiesInsertCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *PropertiesInsertCall) Do() (*Property, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.property)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "files/{fileId}/properties")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Property
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"fileId": c.fileId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.property,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Property
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Adds a property to a file.",
 	//   "httpMethod": "POST",
@@ -6481,15 +6103,28 @@ func (c *PropertiesInsertCall) Do() (*Property, error) {
 // method id "drive.properties.list":
 
 type PropertiesListCall struct {
-	s      *Service
-	fileId string
-	opt_   map[string]interface{}
+	s             *Service
+	fileId        string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Lists a file's properties.
+
 func (r *PropertiesService) List(fileId string) *PropertiesListCall {
-	c := &PropertiesListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.fileId = fileId
+	return &PropertiesListCall{
+		s:             r.s,
+		fileId:        fileId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "files/{fileId}/properties",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *PropertiesListCall) Context(ctx context.Context) *PropertiesListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -6497,37 +6132,23 @@ func (r *PropertiesService) List(fileId string) *PropertiesListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *PropertiesListCall) Fields(s ...googleapi.Field) *PropertiesListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *PropertiesListCall) Do() (*PropertyList, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "files/{fileId}/properties")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *PropertyList
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"fileId": c.fileId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *PropertyList
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Lists a file's properties.",
 	//   "httpMethod": "GET",
@@ -6561,26 +6182,39 @@ func (c *PropertiesListCall) Do() (*PropertyList, error) {
 // method id "drive.properties.patch":
 
 type PropertiesPatchCall struct {
-	s           *Service
-	fileId      string
-	propertyKey string
-	property    *Property
-	opt_        map[string]interface{}
+	s             *Service
+	fileId        string
+	propertyKey   string
+	property      *Property
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Patch: Updates a property. This method supports patch semantics.
+
 func (r *PropertiesService) Patch(fileId string, propertyKey string, property *Property) *PropertiesPatchCall {
-	c := &PropertiesPatchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.fileId = fileId
-	c.propertyKey = propertyKey
-	c.property = property
-	return c
+	return &PropertiesPatchCall{
+		s:             r.s,
+		fileId:        fileId,
+		propertyKey:   propertyKey,
+		property:      property,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "files/{fileId}/properties/{propertyKey}",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Visibility sets the optional parameter "visibility": The visibility
 // of the property.
 func (c *PropertiesPatchCall) Visibility(visibility string) *PropertiesPatchCall {
-	c.opt_["visibility"] = visibility
+	c.params_.Set("visibility", fmt.Sprintf("%v", visibility))
+	return c
+}
+func (c *PropertiesPatchCall) Context(ctx context.Context) *PropertiesPatchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -6588,47 +6222,25 @@ func (c *PropertiesPatchCall) Visibility(visibility string) *PropertiesPatchCall
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *PropertiesPatchCall) Fields(s ...googleapi.Field) *PropertiesPatchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *PropertiesPatchCall) Do() (*Property, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.property)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["visibility"]; ok {
-		params.Set("visibility", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "files/{fileId}/properties/{propertyKey}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PATCH", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Property
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"fileId":      c.fileId,
 		"propertyKey": c.propertyKey,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PATCH",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.property,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Property
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates a property. This method supports patch semantics.",
 	//   "httpMethod": "PATCH",
@@ -6676,26 +6288,39 @@ func (c *PropertiesPatchCall) Do() (*Property, error) {
 // method id "drive.properties.update":
 
 type PropertiesUpdateCall struct {
-	s           *Service
-	fileId      string
-	propertyKey string
-	property    *Property
-	opt_        map[string]interface{}
+	s             *Service
+	fileId        string
+	propertyKey   string
+	property      *Property
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Update: Updates a property.
+
 func (r *PropertiesService) Update(fileId string, propertyKey string, property *Property) *PropertiesUpdateCall {
-	c := &PropertiesUpdateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.fileId = fileId
-	c.propertyKey = propertyKey
-	c.property = property
-	return c
+	return &PropertiesUpdateCall{
+		s:             r.s,
+		fileId:        fileId,
+		propertyKey:   propertyKey,
+		property:      property,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "files/{fileId}/properties/{propertyKey}",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Visibility sets the optional parameter "visibility": The visibility
 // of the property.
 func (c *PropertiesUpdateCall) Visibility(visibility string) *PropertiesUpdateCall {
-	c.opt_["visibility"] = visibility
+	c.params_.Set("visibility", fmt.Sprintf("%v", visibility))
+	return c
+}
+func (c *PropertiesUpdateCall) Context(ctx context.Context) *PropertiesUpdateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -6703,47 +6328,25 @@ func (c *PropertiesUpdateCall) Visibility(visibility string) *PropertiesUpdateCa
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *PropertiesUpdateCall) Fields(s ...googleapi.Field) *PropertiesUpdateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *PropertiesUpdateCall) Do() (*Property, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.property)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["visibility"]; ok {
-		params.Set("visibility", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "files/{fileId}/properties/{propertyKey}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Property
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"fileId":      c.fileId,
 		"propertyKey": c.propertyKey,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.property,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Property
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates a property.",
 	//   "httpMethod": "PUT",
@@ -6791,17 +6394,26 @@ func (c *PropertiesUpdateCall) Do() (*Property, error) {
 // method id "drive.realtime.get":
 
 type RealtimeGetCall struct {
-	s      *Service
-	fileId string
-	opt_   map[string]interface{}
+	s             *Service
+	fileId        string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Exports the contents of the Realtime API data model associated
 // with this file as JSON.
+
 func (r *RealtimeService) Get(fileId string) *RealtimeGetCall {
-	c := &RealtimeGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.fileId = fileId
-	return c
+	return &RealtimeGetCall{
+		s:             r.s,
+		fileId:        fileId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "files/{fileId}/realtime",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Revision sets the optional parameter "revision": The revision of the
@@ -6809,44 +6421,43 @@ func (r *RealtimeService) Get(fileId string) *RealtimeGetCall {
 // empty data model) and are incremented with each change. If this
 // parameter is excluded, the most recent data model will be returned.
 func (c *RealtimeGetCall) Revision(revision int64) *RealtimeGetCall {
-	c.opt_["revision"] = revision
+	c.params_.Set("revision", fmt.Sprintf("%v", revision))
+	return c
+}
+func (c *RealtimeGetCall) Context(ctx context.Context) *RealtimeGetCall {
+	c.context_ = ctx
 	return c
 }
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *RealtimeGetCall) Fields(s ...googleapi.Field) *RealtimeGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
-	return c
+// GetResponse sets alt=media creating a file download request. The body
+// of the *http.Response contains the media.  You should close the response
+// body when finished reading.
+
+func (c *RealtimeGetCall) GetResponse() (*http.Response, error) {
+	var res *http.Response
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
+		"fileId": c.fileId,
+	})
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &res,
+	}
+	return res, c.caller_.Do(c.context_, c.s.client, call)
 }
 
 func (c *RealtimeGetCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["revision"]; ok {
-		params.Set("revision", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "files/{fileId}/realtime")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"fileId": c.fileId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Exports the contents of the Realtime API data model associated with this file as JSON.",
 	//   "httpMethod": "GET",
@@ -6883,22 +6494,27 @@ func (c *RealtimeGetCall) Do() error {
 // method id "drive.realtime.update":
 
 type RealtimeUpdateCall struct {
-	s          *Service
-	fileId     string
-	opt_       map[string]interface{}
-	media_     io.Reader
-	resumable_ googleapi.SizeReaderAt
-	mediaType_ string
-	ctx_       context.Context
-	protocol_  string
+	s             *Service
+	fileId        string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
+	callback_     googleapi.ProgressUpdater
 }
 
 // Update: Overwrites the Realtime API data model associated with this
 // file with the provided JSON data model.
+
 func (r *RealtimeService) Update(fileId string) *RealtimeUpdateCall {
-	c := &RealtimeUpdateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.fileId = fileId
-	return c
+	return &RealtimeUpdateCall{
+		s:             r.s,
+		fileId:        fileId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "files/{fileId}/realtime",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // BaseRevision sets the optional parameter "baseRevision": The revision
@@ -6908,15 +6524,35 @@ func (r *RealtimeService) Update(fileId string) *RealtimeUpdateCall {
 // revision. If not set, the uploaded model replaces the current model
 // on the server.
 func (c *RealtimeUpdateCall) BaseRevision(baseRevision string) *RealtimeUpdateCall {
-	c.opt_["baseRevision"] = baseRevision
+	c.params_.Set("baseRevision", fmt.Sprintf("%v", baseRevision))
+	return c
+}
+func (c *RealtimeUpdateCall) Context(ctx context.Context) *RealtimeUpdateCall {
+	c.context_ = ctx
+	return c
+}
+
+// MediaUpload takes a context and UploadCaller interface
+func (c *RealtimeUpdateCall) Upload(ctx context.Context, u googleapi.UploadCaller) *RealtimeUpdateCall {
+	c.caller_ = u
+	c.context_ = ctx
+	switch u.(type) {
+	case *googleapi.MediaUpload:
+		c.pathTemplate_ = "/upload/drive/v2/files/{fileId}/realtime"
+	case *googleapi.ResumableUpload:
+		c.pathTemplate_ = "/resumable/upload/drive/v2/files/{fileId}/realtime"
+	}
 	return c
 }
 
 // Media specifies the media to upload in a single chunk.
 // At most one of Media and ResumableMedia may be set.
+// The mime type type will be auto-detected unless r is a googleapi.ContentTyper as well.
 func (c *RealtimeUpdateCall) Media(r io.Reader) *RealtimeUpdateCall {
-	c.media_ = r
-	c.protocol_ = "multipart"
+	c.caller_ = &googleapi.MediaUpload{
+		Media: r,
+	}
+	c.pathTemplate_ = "/upload/drive/v2/files/{fileId}/realtime"
 	return c
 }
 
@@ -6925,10 +6561,14 @@ func (c *RealtimeUpdateCall) Media(r io.Reader) *RealtimeUpdateCall {
 // mediaType identifies the MIME media type of the upload, such as "image/png".
 // If mediaType is "", it will be auto-detected.
 func (c *RealtimeUpdateCall) ResumableMedia(ctx context.Context, r io.ReaderAt, size int64, mediaType string) *RealtimeUpdateCall {
-	c.ctx_ = ctx
-	c.resumable_ = io.NewSectionReader(r, 0, size)
-	c.mediaType_ = mediaType
-	c.protocol_ = "resumable"
+	c.caller_ = &googleapi.ResumableUpload{
+		Media:         io.NewSectionReader(r, 0, size),
+		MediaType:     mediaType,
+		ContentLength: size,
+		Callback:      c.callback_,
+	}
+	c.pathTemplate_ = "/resumable/upload/drive/v2/files/{fileId}/realtime"
+	c.context_ = ctx
 	return c
 }
 
@@ -6936,90 +6576,24 @@ func (c *RealtimeUpdateCall) ResumableMedia(ctx context.Context, r io.ReaderAt, 
 // It should be a low-latency function in order to not slow down the upload operation.
 // This should only be called when using ResumableMedia (as opposed to Media).
 func (c *RealtimeUpdateCall) ProgressUpdater(pu googleapi.ProgressUpdater) *RealtimeUpdateCall {
-	c.opt_["progressUpdater"] = pu
-	return c
-}
-
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *RealtimeUpdateCall) Fields(s ...googleapi.Field) *RealtimeUpdateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.callback_ = pu
+	if rx, ok := c.caller_.(*googleapi.ResumableUpload); ok {
+		rx.Callback = pu
+	}
 	return c
 }
 
 func (c *RealtimeUpdateCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["baseRevision"]; ok {
-		params.Set("baseRevision", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "files/{fileId}/realtime")
-	var progressUpdater_ googleapi.ProgressUpdater
-	if v, ok := c.opt_["progressUpdater"]; ok {
-		if pu, ok := v.(googleapi.ProgressUpdater); ok {
-			progressUpdater_ = pu
-		}
-	}
-	if c.media_ != nil || c.resumable_ != nil {
-		urls = strings.Replace(urls, "https://www.googleapis.com/", "https://www.googleapis.com/upload/", 1)
-		params.Set("uploadType", c.protocol_)
-	}
-	urls += "?" + params.Encode()
-	body = new(bytes.Buffer)
-	ctype := "application/json"
-	if c.protocol_ != "resumable" {
-		var cancel func()
-		cancel, _ = googleapi.ConditionallyIncludeMedia(c.media_, &body, &ctype)
-		if cancel != nil {
-			defer cancel()
-		}
-	}
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"fileId": c.fileId,
 	})
-	if c.protocol_ == "resumable" {
-		req.ContentLength = 0
-		if c.mediaType_ == "" {
-			c.mediaType_ = googleapi.DetectMediaType(c.resumable_)
-		}
-		req.Header.Set("X-Upload-Content-Type", c.mediaType_)
-		req.Body = nil
-	} else {
-		req.Header.Set("Content-Type", ctype)
+	call := &googleapi.Call{
+		Method: "PUT",
+		URL:    u,
+		Params: c.params_,
 	}
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	if c.protocol_ == "resumable" {
-		loc := res.Header.Get("Location")
-		rx := &googleapi.ResumableUpload{
-			Client:        c.s.client,
-			UserAgent:     c.s.userAgent(),
-			URI:           loc,
-			Media:         c.resumable_,
-			MediaType:     c.mediaType_,
-			ContentLength: c.resumable_.Size(),
-			Callback:      progressUpdater_,
-		}
-		res, err = rx.Upload(c.ctx_)
-		if err != nil {
-			return err
-		}
-		defer res.Body.Close()
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Overwrites the Realtime API data model associated with this file with the provided JSON data model.",
 	//   "httpMethod": "PUT",
@@ -7069,55 +6643,48 @@ func (c *RealtimeUpdateCall) Do() error {
 // method id "drive.replies.delete":
 
 type RepliesDeleteCall struct {
-	s         *Service
-	fileId    string
-	commentId string
-	replyId   string
-	opt_      map[string]interface{}
+	s             *Service
+	fileId        string
+	commentId     string
+	replyId       string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Delete: Deletes a reply.
-func (r *RepliesService) Delete(fileId string, commentId string, replyId string) *RepliesDeleteCall {
-	c := &RepliesDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.fileId = fileId
-	c.commentId = commentId
-	c.replyId = replyId
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *RepliesDeleteCall) Fields(s ...googleapi.Field) *RepliesDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *RepliesService) Delete(fileId string, commentId string, replyId string) *RepliesDeleteCall {
+	return &RepliesDeleteCall{
+		s:             r.s,
+		fileId:        fileId,
+		commentId:     commentId,
+		replyId:       replyId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "files/{fileId}/comments/{commentId}/replies/{replyId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *RepliesDeleteCall) Context(ctx context.Context) *RepliesDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *RepliesDeleteCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "files/{fileId}/comments/{commentId}/replies/{replyId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"fileId":    c.fileId,
 		"commentId": c.commentId,
 		"replyId":   c.replyId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Deletes a reply.",
 	//   "httpMethod": "DELETE",
@@ -7159,26 +6726,39 @@ func (c *RepliesDeleteCall) Do() error {
 // method id "drive.replies.get":
 
 type RepliesGetCall struct {
-	s         *Service
-	fileId    string
-	commentId string
-	replyId   string
-	opt_      map[string]interface{}
+	s             *Service
+	fileId        string
+	commentId     string
+	replyId       string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Gets a reply.
+
 func (r *RepliesService) Get(fileId string, commentId string, replyId string) *RepliesGetCall {
-	c := &RepliesGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.fileId = fileId
-	c.commentId = commentId
-	c.replyId = replyId
-	return c
+	return &RepliesGetCall{
+		s:             r.s,
+		fileId:        fileId,
+		commentId:     commentId,
+		replyId:       replyId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "files/{fileId}/comments/{commentId}/replies/{replyId}",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // IncludeDeleted sets the optional parameter "includeDeleted": If set,
 // this will succeed when retrieving a deleted reply.
 func (c *RepliesGetCall) IncludeDeleted(includeDeleted bool) *RepliesGetCall {
-	c.opt_["includeDeleted"] = includeDeleted
+	c.params_.Set("includeDeleted", fmt.Sprintf("%v", includeDeleted))
+	return c
+}
+func (c *RepliesGetCall) Context(ctx context.Context) *RepliesGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -7186,42 +6766,25 @@ func (c *RepliesGetCall) IncludeDeleted(includeDeleted bool) *RepliesGetCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *RepliesGetCall) Fields(s ...googleapi.Field) *RepliesGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *RepliesGetCall) Do() (*CommentReply, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["includeDeleted"]; ok {
-		params.Set("includeDeleted", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "files/{fileId}/comments/{commentId}/replies/{replyId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *CommentReply
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"fileId":    c.fileId,
 		"commentId": c.commentId,
 		"replyId":   c.replyId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *CommentReply
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Gets a reply.",
 	//   "httpMethod": "GET",
@@ -7273,19 +6836,32 @@ func (c *RepliesGetCall) Do() (*CommentReply, error) {
 // method id "drive.replies.insert":
 
 type RepliesInsertCall struct {
-	s            *Service
-	fileId       string
-	commentId    string
-	commentreply *CommentReply
-	opt_         map[string]interface{}
+	s             *Service
+	fileId        string
+	commentId     string
+	commentreply  *CommentReply
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Insert: Creates a new reply to the given comment.
+
 func (r *RepliesService) Insert(fileId string, commentId string, commentreply *CommentReply) *RepliesInsertCall {
-	c := &RepliesInsertCall{s: r.s, opt_: make(map[string]interface{})}
-	c.fileId = fileId
-	c.commentId = commentId
-	c.commentreply = commentreply
+	return &RepliesInsertCall{
+		s:             r.s,
+		fileId:        fileId,
+		commentId:     commentId,
+		commentreply:  commentreply,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "files/{fileId}/comments/{commentId}/replies",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *RepliesInsertCall) Context(ctx context.Context) *RepliesInsertCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -7293,44 +6869,25 @@ func (r *RepliesService) Insert(fileId string, commentId string, commentreply *C
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *RepliesInsertCall) Fields(s ...googleapi.Field) *RepliesInsertCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *RepliesInsertCall) Do() (*CommentReply, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.commentreply)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "files/{fileId}/comments/{commentId}/replies")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *CommentReply
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"fileId":    c.fileId,
 		"commentId": c.commentId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.commentreply,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *CommentReply
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Creates a new reply to the given comment.",
 	//   "httpMethod": "POST",
@@ -7371,32 +6928,41 @@ func (c *RepliesInsertCall) Do() (*CommentReply, error) {
 // method id "drive.replies.list":
 
 type RepliesListCall struct {
-	s         *Service
-	fileId    string
-	commentId string
-	opt_      map[string]interface{}
+	s             *Service
+	fileId        string
+	commentId     string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Lists all of the replies to a comment.
+
 func (r *RepliesService) List(fileId string, commentId string) *RepliesListCall {
-	c := &RepliesListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.fileId = fileId
-	c.commentId = commentId
-	return c
+	return &RepliesListCall{
+		s:             r.s,
+		fileId:        fileId,
+		commentId:     commentId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "files/{fileId}/comments/{commentId}/replies",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // IncludeDeleted sets the optional parameter "includeDeleted": If set,
 // all replies, including deleted replies (with content stripped) will
 // be returned.
 func (c *RepliesListCall) IncludeDeleted(includeDeleted bool) *RepliesListCall {
-	c.opt_["includeDeleted"] = includeDeleted
+	c.params_.Set("includeDeleted", fmt.Sprintf("%v", includeDeleted))
 	return c
 }
 
 // MaxResults sets the optional parameter "maxResults": The maximum
 // number of replies to include in the response, used for paging.
 func (c *RepliesListCall) MaxResults(maxResults int64) *RepliesListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
@@ -7405,7 +6971,11 @@ func (c *RepliesListCall) MaxResults(maxResults int64) *RepliesListCall {
 // of results, set this parameter to the value of "nextPageToken" from
 // the previous response.
 func (c *RepliesListCall) PageToken(pageToken string) *RepliesListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
+	return c
+}
+func (c *RepliesListCall) Context(ctx context.Context) *RepliesListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -7413,47 +6983,24 @@ func (c *RepliesListCall) PageToken(pageToken string) *RepliesListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *RepliesListCall) Fields(s ...googleapi.Field) *RepliesListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *RepliesListCall) Do() (*CommentReplyList, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["includeDeleted"]; ok {
-		params.Set("includeDeleted", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "files/{fileId}/comments/{commentId}/replies")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *CommentReplyList
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"fileId":    c.fileId,
 		"commentId": c.commentId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *CommentReplyList
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Lists all of the replies to a comment.",
 	//   "httpMethod": "GET",
@@ -7512,22 +7059,35 @@ func (c *RepliesListCall) Do() (*CommentReplyList, error) {
 // method id "drive.replies.patch":
 
 type RepliesPatchCall struct {
-	s            *Service
-	fileId       string
-	commentId    string
-	replyId      string
-	commentreply *CommentReply
-	opt_         map[string]interface{}
+	s             *Service
+	fileId        string
+	commentId     string
+	replyId       string
+	commentreply  *CommentReply
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Patch: Updates an existing reply. This method supports patch
 // semantics.
+
 func (r *RepliesService) Patch(fileId string, commentId string, replyId string, commentreply *CommentReply) *RepliesPatchCall {
-	c := &RepliesPatchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.fileId = fileId
-	c.commentId = commentId
-	c.replyId = replyId
-	c.commentreply = commentreply
+	return &RepliesPatchCall{
+		s:             r.s,
+		fileId:        fileId,
+		commentId:     commentId,
+		replyId:       replyId,
+		commentreply:  commentreply,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "files/{fileId}/comments/{commentId}/replies/{replyId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *RepliesPatchCall) Context(ctx context.Context) *RepliesPatchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -7535,45 +7095,26 @@ func (r *RepliesService) Patch(fileId string, commentId string, replyId string, 
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *RepliesPatchCall) Fields(s ...googleapi.Field) *RepliesPatchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *RepliesPatchCall) Do() (*CommentReply, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.commentreply)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "files/{fileId}/comments/{commentId}/replies/{replyId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PATCH", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *CommentReply
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"fileId":    c.fileId,
 		"commentId": c.commentId,
 		"replyId":   c.replyId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PATCH",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.commentreply,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *CommentReply
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates an existing reply. This method supports patch semantics.",
 	//   "httpMethod": "PATCH",
@@ -7621,21 +7162,34 @@ func (c *RepliesPatchCall) Do() (*CommentReply, error) {
 // method id "drive.replies.update":
 
 type RepliesUpdateCall struct {
-	s            *Service
-	fileId       string
-	commentId    string
-	replyId      string
-	commentreply *CommentReply
-	opt_         map[string]interface{}
+	s             *Service
+	fileId        string
+	commentId     string
+	replyId       string
+	commentreply  *CommentReply
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Update: Updates an existing reply.
+
 func (r *RepliesService) Update(fileId string, commentId string, replyId string, commentreply *CommentReply) *RepliesUpdateCall {
-	c := &RepliesUpdateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.fileId = fileId
-	c.commentId = commentId
-	c.replyId = replyId
-	c.commentreply = commentreply
+	return &RepliesUpdateCall{
+		s:             r.s,
+		fileId:        fileId,
+		commentId:     commentId,
+		replyId:       replyId,
+		commentreply:  commentreply,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "files/{fileId}/comments/{commentId}/replies/{replyId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *RepliesUpdateCall) Context(ctx context.Context) *RepliesUpdateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -7643,45 +7197,26 @@ func (r *RepliesService) Update(fileId string, commentId string, replyId string,
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *RepliesUpdateCall) Fields(s ...googleapi.Field) *RepliesUpdateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *RepliesUpdateCall) Do() (*CommentReply, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.commentreply)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "files/{fileId}/comments/{commentId}/replies/{replyId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *CommentReply
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"fileId":    c.fileId,
 		"commentId": c.commentId,
 		"replyId":   c.replyId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.commentreply,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *CommentReply
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates an existing reply.",
 	//   "httpMethod": "PUT",
@@ -7729,52 +7264,45 @@ func (c *RepliesUpdateCall) Do() (*CommentReply, error) {
 // method id "drive.revisions.delete":
 
 type RevisionsDeleteCall struct {
-	s          *Service
-	fileId     string
-	revisionId string
-	opt_       map[string]interface{}
+	s             *Service
+	fileId        string
+	revisionId    string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Delete: Removes a revision.
-func (r *RevisionsService) Delete(fileId string, revisionId string) *RevisionsDeleteCall {
-	c := &RevisionsDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.fileId = fileId
-	c.revisionId = revisionId
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *RevisionsDeleteCall) Fields(s ...googleapi.Field) *RevisionsDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *RevisionsService) Delete(fileId string, revisionId string) *RevisionsDeleteCall {
+	return &RevisionsDeleteCall{
+		s:             r.s,
+		fileId:        fileId,
+		revisionId:    revisionId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "files/{fileId}/revisions/{revisionId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *RevisionsDeleteCall) Context(ctx context.Context) *RevisionsDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *RevisionsDeleteCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "files/{fileId}/revisions/{revisionId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"fileId":     c.fileId,
 		"revisionId": c.revisionId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Removes a revision.",
 	//   "httpMethod": "DELETE",
@@ -7810,17 +7338,30 @@ func (c *RevisionsDeleteCall) Do() error {
 // method id "drive.revisions.get":
 
 type RevisionsGetCall struct {
-	s          *Service
-	fileId     string
-	revisionId string
-	opt_       map[string]interface{}
+	s             *Service
+	fileId        string
+	revisionId    string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Gets a specific revision.
+
 func (r *RevisionsService) Get(fileId string, revisionId string) *RevisionsGetCall {
-	c := &RevisionsGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.fileId = fileId
-	c.revisionId = revisionId
+	return &RevisionsGetCall{
+		s:             r.s,
+		fileId:        fileId,
+		revisionId:    revisionId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "files/{fileId}/revisions/{revisionId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *RevisionsGetCall) Context(ctx context.Context) *RevisionsGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -7828,38 +7369,24 @@ func (r *RevisionsService) Get(fileId string, revisionId string) *RevisionsGetCa
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *RevisionsGetCall) Fields(s ...googleapi.Field) *RevisionsGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *RevisionsGetCall) Do() (*Revision, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "files/{fileId}/revisions/{revisionId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Revision
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"fileId":     c.fileId,
 		"revisionId": c.revisionId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Revision
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Gets a specific revision.",
 	//   "httpMethod": "GET",
@@ -7900,15 +7427,28 @@ func (c *RevisionsGetCall) Do() (*Revision, error) {
 // method id "drive.revisions.list":
 
 type RevisionsListCall struct {
-	s      *Service
-	fileId string
-	opt_   map[string]interface{}
+	s             *Service
+	fileId        string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Lists a file's revisions.
+
 func (r *RevisionsService) List(fileId string) *RevisionsListCall {
-	c := &RevisionsListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.fileId = fileId
+	return &RevisionsListCall{
+		s:             r.s,
+		fileId:        fileId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "files/{fileId}/revisions",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *RevisionsListCall) Context(ctx context.Context) *RevisionsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -7916,37 +7456,23 @@ func (r *RevisionsService) List(fileId string) *RevisionsListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *RevisionsListCall) Fields(s ...googleapi.Field) *RevisionsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *RevisionsListCall) Do() (*RevisionList, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "files/{fileId}/revisions")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *RevisionList
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"fileId": c.fileId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *RevisionList
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Lists a file's revisions.",
 	//   "httpMethod": "GET",
@@ -7980,19 +7506,32 @@ func (c *RevisionsListCall) Do() (*RevisionList, error) {
 // method id "drive.revisions.patch":
 
 type RevisionsPatchCall struct {
-	s          *Service
-	fileId     string
-	revisionId string
-	revision   *Revision
-	opt_       map[string]interface{}
+	s             *Service
+	fileId        string
+	revisionId    string
+	revision      *Revision
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Patch: Updates a revision. This method supports patch semantics.
+
 func (r *RevisionsService) Patch(fileId string, revisionId string, revision *Revision) *RevisionsPatchCall {
-	c := &RevisionsPatchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.fileId = fileId
-	c.revisionId = revisionId
-	c.revision = revision
+	return &RevisionsPatchCall{
+		s:             r.s,
+		fileId:        fileId,
+		revisionId:    revisionId,
+		revision:      revision,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "files/{fileId}/revisions/{revisionId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *RevisionsPatchCall) Context(ctx context.Context) *RevisionsPatchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -8000,44 +7539,25 @@ func (r *RevisionsService) Patch(fileId string, revisionId string, revision *Rev
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *RevisionsPatchCall) Fields(s ...googleapi.Field) *RevisionsPatchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *RevisionsPatchCall) Do() (*Revision, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.revision)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "files/{fileId}/revisions/{revisionId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PATCH", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Revision
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"fileId":     c.fileId,
 		"revisionId": c.revisionId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PATCH",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.revision,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Revision
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates a revision. This method supports patch semantics.",
 	//   "httpMethod": "PATCH",
@@ -8079,19 +7599,32 @@ func (c *RevisionsPatchCall) Do() (*Revision, error) {
 // method id "drive.revisions.update":
 
 type RevisionsUpdateCall struct {
-	s          *Service
-	fileId     string
-	revisionId string
-	revision   *Revision
-	opt_       map[string]interface{}
+	s             *Service
+	fileId        string
+	revisionId    string
+	revision      *Revision
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Update: Updates a revision.
+
 func (r *RevisionsService) Update(fileId string, revisionId string, revision *Revision) *RevisionsUpdateCall {
-	c := &RevisionsUpdateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.fileId = fileId
-	c.revisionId = revisionId
-	c.revision = revision
+	return &RevisionsUpdateCall{
+		s:             r.s,
+		fileId:        fileId,
+		revisionId:    revisionId,
+		revision:      revision,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "files/{fileId}/revisions/{revisionId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *RevisionsUpdateCall) Context(ctx context.Context) *RevisionsUpdateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -8099,44 +7632,25 @@ func (r *RevisionsService) Update(fileId string, revisionId string, revision *Re
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *RevisionsUpdateCall) Fields(s ...googleapi.Field) *RevisionsUpdateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *RevisionsUpdateCall) Do() (*Revision, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.revision)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "files/{fileId}/revisions/{revisionId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Revision
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"fileId":     c.fileId,
 		"revisionId": c.revisionId,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.revision,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Revision
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates a revision.",
 	//   "httpMethod": "PUT",

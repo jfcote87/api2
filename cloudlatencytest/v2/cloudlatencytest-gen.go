@@ -2,18 +2,16 @@
 //
 // Usage example:
 //
-//   import "google.golang.org/api/cloudlatencytest/v2"
+//   import "github.com/jfcote87/api2/cloudlatencytest/v2"
 //   ...
 //   cloudlatencytestService, err := cloudlatencytest.New(oauthHttpClient)
 package cloudlatencytest
 
 import (
-	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/jfcote87/api2/googleapi"
 	"golang.org/x/net/context"
-	"google.golang.org/api/googleapi"
 	"io"
 	"net/http"
 	"net/url"
@@ -23,10 +21,8 @@ import (
 
 // Always reference these packages, just in case the auto-generated code
 // below doesn't.
-var _ = bytes.NewBuffer
 var _ = strconv.Itoa
 var _ = fmt.Sprintf
-var _ = json.NewDecoder
 var _ = io.Copy
 var _ = url.Parse
 var _ = googleapi.Version
@@ -37,7 +33,8 @@ var _ = context.Background
 const apiId = "cloudlatencytest:v2"
 const apiName = "cloudlatencytest"
 const apiVersion = "v2"
-const basePath = "https://cloudlatencytest-pa.googleapis.com/v2/statscollection/"
+
+var baseURL *url.URL = &url.URL{Scheme: "https", Host: "cloudlatencytest-pa.googleapis.com", Path: "/v2/statscollection/"}
 
 // OAuth2 scopes used by this API.
 const (
@@ -49,24 +46,15 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
+	s := &Service{client: client}
 	s.Statscollection = NewStatscollectionService(s)
 	return s, nil
 }
 
 type Service struct {
-	client    *http.Client
-	BasePath  string // API endpoint base URL
-	UserAgent string // optional additional User-Agent fragment
+	client *http.Client
 
 	Statscollection *StatscollectionService
-}
-
-func (s *Service) userAgent() string {
-	if s.UserAgent == "" {
-		return googleapi.UserAgent
-	}
-	return googleapi.UserAgent + " " + s.UserAgent
 }
 
 func NewStatscollectionService(s *Service) *StatscollectionService {
@@ -123,13 +111,26 @@ type StringValue struct {
 type StatscollectionUpdateaggregatedstatsCall struct {
 	s               *Service
 	aggregatedstats *AggregatedStats
-	opt_            map[string]interface{}
+	caller_         googleapi.Caller
+	params_         url.Values
+	pathTemplate_   string
+	context_        context.Context
 }
 
 // Updateaggregatedstats: RPC to update the new TCP stats.
+
 func (r *StatscollectionService) Updateaggregatedstats(aggregatedstats *AggregatedStats) *StatscollectionUpdateaggregatedstatsCall {
-	c := &StatscollectionUpdateaggregatedstatsCall{s: r.s, opt_: make(map[string]interface{})}
-	c.aggregatedstats = aggregatedstats
+	return &StatscollectionUpdateaggregatedstatsCall{
+		s:               r.s,
+		aggregatedstats: aggregatedstats,
+		caller_:         googleapi.JSONCall{},
+		params_:         make(map[string][]string),
+		pathTemplate_:   "updateaggregatedstats",
+		context_:        googleapi.NoContext,
+	}
+}
+func (c *StatscollectionUpdateaggregatedstatsCall) Context(ctx context.Context) *StatscollectionUpdateaggregatedstatsCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -137,41 +138,22 @@ func (r *StatscollectionService) Updateaggregatedstats(aggregatedstats *Aggregat
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *StatscollectionUpdateaggregatedstatsCall) Fields(s ...googleapi.Field) *StatscollectionUpdateaggregatedstatsCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *StatscollectionUpdateaggregatedstatsCall) Do() (*AggregatedStatsReply, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.aggregatedstats)
-	if err != nil {
-		return nil, err
+	var returnValue *AggregatedStatsReply
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.aggregatedstats,
+		Result:  &returnValue,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "updateaggregatedstats")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *AggregatedStatsReply
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "RPC to update the new TCP stats.",
 	//   "httpMethod": "POST",
@@ -193,15 +175,28 @@ func (c *StatscollectionUpdateaggregatedstatsCall) Do() (*AggregatedStatsReply, 
 // method id "cloudlatencytest.statscollection.updatestats":
 
 type StatscollectionUpdatestatsCall struct {
-	s     *Service
-	stats *Stats
-	opt_  map[string]interface{}
+	s             *Service
+	stats         *Stats
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Updatestats: RPC to update the new TCP stats.
+
 func (r *StatscollectionService) Updatestats(stats *Stats) *StatscollectionUpdatestatsCall {
-	c := &StatscollectionUpdatestatsCall{s: r.s, opt_: make(map[string]interface{})}
-	c.stats = stats
+	return &StatscollectionUpdatestatsCall{
+		s:             r.s,
+		stats:         stats,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "updatestats",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *StatscollectionUpdatestatsCall) Context(ctx context.Context) *StatscollectionUpdatestatsCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -209,41 +204,22 @@ func (r *StatscollectionService) Updatestats(stats *Stats) *StatscollectionUpdat
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *StatscollectionUpdatestatsCall) Fields(s ...googleapi.Field) *StatscollectionUpdatestatsCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *StatscollectionUpdatestatsCall) Do() (*StatsReply, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.stats)
-	if err != nil {
-		return nil, err
+	var returnValue *StatsReply
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.stats,
+		Result:  &returnValue,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "updatestats")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *StatsReply
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "RPC to update the new TCP stats.",
 	//   "httpMethod": "POST",

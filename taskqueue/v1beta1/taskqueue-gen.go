@@ -4,18 +4,16 @@
 //
 // Usage example:
 //
-//   import "google.golang.org/api/taskqueue/v1beta1"
+//   import "github.com/jfcote87/api2/taskqueue/v1beta1"
 //   ...
 //   taskqueueService, err := taskqueue.New(oauthHttpClient)
 package taskqueue
 
 import (
-	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/jfcote87/api2/googleapi"
 	"golang.org/x/net/context"
-	"google.golang.org/api/googleapi"
 	"io"
 	"net/http"
 	"net/url"
@@ -25,10 +23,8 @@ import (
 
 // Always reference these packages, just in case the auto-generated code
 // below doesn't.
-var _ = bytes.NewBuffer
 var _ = strconv.Itoa
 var _ = fmt.Sprintf
-var _ = json.NewDecoder
 var _ = io.Copy
 var _ = url.Parse
 var _ = googleapi.Version
@@ -39,7 +35,8 @@ var _ = context.Background
 const apiId = "taskqueue:v1beta1"
 const apiName = "taskqueue"
 const apiVersion = "v1beta1"
-const basePath = "https://www.googleapis.com/taskqueue/v1beta1/projects/"
+
+var baseURL *url.URL = &url.URL{Scheme: "https", Host: "www.googleapis.com", Path: "/taskqueue/v1beta1/projects/"}
 
 // OAuth2 scopes used by this API.
 const (
@@ -54,27 +51,18 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
+	s := &Service{client: client}
 	s.Taskqueues = NewTaskqueuesService(s)
 	s.Tasks = NewTasksService(s)
 	return s, nil
 }
 
 type Service struct {
-	client    *http.Client
-	BasePath  string // API endpoint base URL
-	UserAgent string // optional additional User-Agent fragment
+	client *http.Client
 
 	Taskqueues *TaskqueuesService
 
 	Tasks *TasksService
-}
-
-func (s *Service) userAgent() string {
-	if s.UserAgent == "" {
-		return googleapi.UserAgent
-	}
-	return googleapi.UserAgent + " " + s.UserAgent
 }
 
 func NewTaskqueuesService(s *Service) *TaskqueuesService {
@@ -189,24 +177,37 @@ type Tasks2 struct {
 // method id "taskqueue.taskqueues.get":
 
 type TaskqueuesGetCall struct {
-	s         *Service
-	project   string
-	taskqueue string
-	opt_      map[string]interface{}
+	s             *Service
+	project       string
+	taskqueue     string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Get detailed information about a TaskQueue.
+
 func (r *TaskqueuesService) Get(project string, taskqueue string) *TaskqueuesGetCall {
-	c := &TaskqueuesGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.project = project
-	c.taskqueue = taskqueue
-	return c
+	return &TaskqueuesGetCall{
+		s:             r.s,
+		project:       project,
+		taskqueue:     taskqueue,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{project}/taskqueues/{taskqueue}",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // GetStats sets the optional parameter "getStats": Whether to get
 // stats.
 func (c *TaskqueuesGetCall) GetStats(getStats bool) *TaskqueuesGetCall {
-	c.opt_["getStats"] = getStats
+	c.params_.Set("getStats", fmt.Sprintf("%v", getStats))
+	return c
+}
+func (c *TaskqueuesGetCall) Context(ctx context.Context) *TaskqueuesGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -214,41 +215,24 @@ func (c *TaskqueuesGetCall) GetStats(getStats bool) *TaskqueuesGetCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *TaskqueuesGetCall) Fields(s ...googleapi.Field) *TaskqueuesGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *TaskqueuesGetCall) Do() (*TaskQueue, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["getStats"]; ok {
-		params.Set("getStats", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{project}/taskqueues/{taskqueue}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *TaskQueue
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"project":   c.project,
 		"taskqueue": c.taskqueue,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *TaskQueue
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Get detailed information about a TaskQueue.",
 	//   "httpMethod": "GET",
@@ -291,55 +275,48 @@ func (c *TaskqueuesGetCall) Do() (*TaskQueue, error) {
 // method id "taskqueue.tasks.delete":
 
 type TasksDeleteCall struct {
-	s         *Service
-	project   string
-	taskqueue string
-	task      string
-	opt_      map[string]interface{}
+	s             *Service
+	project       string
+	taskqueue     string
+	task          string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Delete: Delete a task from a TaskQueue.
-func (r *TasksService) Delete(project string, taskqueue string, task string) *TasksDeleteCall {
-	c := &TasksDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.project = project
-	c.taskqueue = taskqueue
-	c.task = task
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *TasksDeleteCall) Fields(s ...googleapi.Field) *TasksDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *TasksService) Delete(project string, taskqueue string, task string) *TasksDeleteCall {
+	return &TasksDeleteCall{
+		s:             r.s,
+		project:       project,
+		taskqueue:     taskqueue,
+		task:          task,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{project}/taskqueues/{taskqueue}/tasks/{task}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *TasksDeleteCall) Context(ctx context.Context) *TasksDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *TasksDeleteCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{project}/taskqueues/{taskqueue}/tasks/{task}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"project":   c.project,
 		"taskqueue": c.taskqueue,
 		"task":      c.task,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Delete a task from a TaskQueue.",
 	//   "httpMethod": "DELETE",
@@ -381,19 +358,32 @@ func (c *TasksDeleteCall) Do() error {
 // method id "taskqueue.tasks.get":
 
 type TasksGetCall struct {
-	s         *Service
-	project   string
-	taskqueue string
-	task      string
-	opt_      map[string]interface{}
+	s             *Service
+	project       string
+	taskqueue     string
+	task          string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Get a particular task from a TaskQueue.
+
 func (r *TasksService) Get(project string, taskqueue string, task string) *TasksGetCall {
-	c := &TasksGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.project = project
-	c.taskqueue = taskqueue
-	c.task = task
+	return &TasksGetCall{
+		s:             r.s,
+		project:       project,
+		taskqueue:     taskqueue,
+		task:          task,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{project}/taskqueues/{taskqueue}/tasks/{task}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *TasksGetCall) Context(ctx context.Context) *TasksGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -401,39 +391,25 @@ func (r *TasksService) Get(project string, taskqueue string, task string) *Tasks
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *TasksGetCall) Fields(s ...googleapi.Field) *TasksGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *TasksGetCall) Do() (*Task, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{project}/taskqueues/{taskqueue}/tasks/{task}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Task
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"project":   c.project,
 		"taskqueue": c.taskqueue,
 		"task":      c.task,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Task
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Get a particular task from a TaskQueue.",
 	//   "httpMethod": "GET",
@@ -478,21 +454,34 @@ func (c *TasksGetCall) Do() (*Task, error) {
 // method id "taskqueue.tasks.lease":
 
 type TasksLeaseCall struct {
-	s         *Service
-	project   string
-	taskqueue string
-	numTasks  int64
-	leaseSecs int64
-	opt_      map[string]interface{}
+	s             *Service
+	project       string
+	taskqueue     string
+	numTasks      int64
+	leaseSecs     int64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Lease: Lease 1 or more tasks from a TaskQueue.
+
 func (r *TasksService) Lease(project string, taskqueue string, numTasks int64, leaseSecs int64) *TasksLeaseCall {
-	c := &TasksLeaseCall{s: r.s, opt_: make(map[string]interface{})}
-	c.project = project
-	c.taskqueue = taskqueue
-	c.numTasks = numTasks
-	c.leaseSecs = leaseSecs
+	return &TasksLeaseCall{
+		s:             r.s,
+		project:       project,
+		taskqueue:     taskqueue,
+		numTasks:      numTasks,
+		leaseSecs:     leaseSecs,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{project}/taskqueues/{taskqueue}/tasks/lease",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *TasksLeaseCall) Context(ctx context.Context) *TasksLeaseCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -500,40 +489,26 @@ func (r *TasksService) Lease(project string, taskqueue string, numTasks int64, l
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *TasksLeaseCall) Fields(s ...googleapi.Field) *TasksLeaseCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *TasksLeaseCall) Do() (*Tasks, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("leaseSecs", fmt.Sprintf("%v", c.leaseSecs))
-	params.Set("numTasks", fmt.Sprintf("%v", c.numTasks))
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{project}/taskqueues/{taskqueue}/tasks/lease")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Tasks
+	c.params_.Set("leaseSecs", fmt.Sprintf("%v", c.leaseSecs))
+	c.params_.Set("numTasks", fmt.Sprintf("%v", c.numTasks))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"project":   c.project,
 		"taskqueue": c.taskqueue,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "POST",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Tasks
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Lease 1 or more tasks from a TaskQueue.",
 	//   "httpMethod": "POST",
@@ -587,17 +562,30 @@ func (c *TasksLeaseCall) Do() (*Tasks, error) {
 // method id "taskqueue.tasks.list":
 
 type TasksListCall struct {
-	s         *Service
-	project   string
-	taskqueue string
-	opt_      map[string]interface{}
+	s             *Service
+	project       string
+	taskqueue     string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: List Tasks in a TaskQueue
+
 func (r *TasksService) List(project string, taskqueue string) *TasksListCall {
-	c := &TasksListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.project = project
-	c.taskqueue = taskqueue
+	return &TasksListCall{
+		s:             r.s,
+		project:       project,
+		taskqueue:     taskqueue,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{project}/taskqueues/{taskqueue}/tasks",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *TasksListCall) Context(ctx context.Context) *TasksListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -605,38 +593,24 @@ func (r *TasksService) List(project string, taskqueue string) *TasksListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *TasksListCall) Fields(s ...googleapi.Field) *TasksListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *TasksListCall) Do() (*Tasks2, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{project}/taskqueues/{taskqueue}/tasks")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Tasks2
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"project":   c.project,
 		"taskqueue": c.taskqueue,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Tasks2
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "List Tasks in a TaskQueue",
 	//   "httpMethod": "GET",

@@ -4,18 +4,16 @@
 //
 // Usage example:
 //
-//   import "google.golang.org/api/autoscaler/v1beta2"
+//   import "github.com/jfcote87/api2/autoscaler/v1beta2"
 //   ...
 //   autoscalerService, err := autoscaler.New(oauthHttpClient)
 package autoscaler
 
 import (
-	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/jfcote87/api2/googleapi"
 	"golang.org/x/net/context"
-	"google.golang.org/api/googleapi"
 	"io"
 	"net/http"
 	"net/url"
@@ -25,10 +23,8 @@ import (
 
 // Always reference these packages, just in case the auto-generated code
 // below doesn't.
-var _ = bytes.NewBuffer
 var _ = strconv.Itoa
 var _ = fmt.Sprintf
-var _ = json.NewDecoder
 var _ = io.Copy
 var _ = url.Parse
 var _ = googleapi.Version
@@ -39,7 +35,8 @@ var _ = context.Background
 const apiId = "autoscaler:v1beta2"
 const apiName = "autoscaler"
 const apiVersion = "v1beta2"
-const basePath = "https://www.googleapis.com/autoscaler/v1beta2/"
+
+var baseURL *url.URL = &url.URL{Scheme: "https", Host: "www.googleapis.com", Path: "/autoscaler/v1beta2/"}
 
 // OAuth2 scopes used by this API.
 const (
@@ -54,7 +51,7 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
+	s := &Service{client: client}
 	s.Autoscalers = NewAutoscalersService(s)
 	s.ZoneOperations = NewZoneOperationsService(s)
 	s.Zones = NewZonesService(s)
@@ -62,22 +59,13 @@ func New(client *http.Client) (*Service, error) {
 }
 
 type Service struct {
-	client    *http.Client
-	BasePath  string // API endpoint base URL
-	UserAgent string // optional additional User-Agent fragment
+	client *http.Client
 
 	Autoscalers *AutoscalersService
 
 	ZoneOperations *ZoneOperationsService
 
 	Zones *ZonesService
-}
-
-func (s *Service) userAgent() string {
-	if s.UserAgent == "" {
-		return googleapi.UserAgent
-	}
-	return googleapi.UserAgent + " " + s.UserAgent
 }
 
 func NewAutoscalersService(s *Service) *AutoscalersService {
@@ -371,19 +359,32 @@ type ZoneList struct {
 // method id "autoscaler.autoscalers.delete":
 
 type AutoscalersDeleteCall struct {
-	s          *Service
-	project    string
-	zone       string
-	autoscaler string
-	opt_       map[string]interface{}
+	s             *Service
+	project       string
+	zone          string
+	autoscaler    string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Delete: Deletes the specified Autoscaler resource.
+
 func (r *AutoscalersService) Delete(project string, zone string, autoscaler string) *AutoscalersDeleteCall {
-	c := &AutoscalersDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.project = project
-	c.zone = zone
-	c.autoscaler = autoscaler
+	return &AutoscalersDeleteCall{
+		s:             r.s,
+		project:       project,
+		zone:          zone,
+		autoscaler:    autoscaler,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "projects/{project}/zones/{zone}/autoscalers/{autoscaler}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *AutoscalersDeleteCall) Context(ctx context.Context) *AutoscalersDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -391,39 +392,25 @@ func (r *AutoscalersService) Delete(project string, zone string, autoscaler stri
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AutoscalersDeleteCall) Fields(s ...googleapi.Field) *AutoscalersDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AutoscalersDeleteCall) Do() (*Operation, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "projects/{project}/zones/{zone}/autoscalers/{autoscaler}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Operation
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"project":    c.project,
 		"zone":       c.zone,
 		"autoscaler": c.autoscaler,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Operation
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Deletes the specified Autoscaler resource.",
 	//   "httpMethod": "DELETE",
@@ -467,19 +454,32 @@ func (c *AutoscalersDeleteCall) Do() (*Operation, error) {
 // method id "autoscaler.autoscalers.get":
 
 type AutoscalersGetCall struct {
-	s          *Service
-	project    string
-	zone       string
-	autoscaler string
-	opt_       map[string]interface{}
+	s             *Service
+	project       string
+	zone          string
+	autoscaler    string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Gets the specified Autoscaler resource.
+
 func (r *AutoscalersService) Get(project string, zone string, autoscaler string) *AutoscalersGetCall {
-	c := &AutoscalersGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.project = project
-	c.zone = zone
-	c.autoscaler = autoscaler
+	return &AutoscalersGetCall{
+		s:             r.s,
+		project:       project,
+		zone:          zone,
+		autoscaler:    autoscaler,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "projects/{project}/zones/{zone}/autoscalers/{autoscaler}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *AutoscalersGetCall) Context(ctx context.Context) *AutoscalersGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -487,39 +487,25 @@ func (r *AutoscalersService) Get(project string, zone string, autoscaler string)
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AutoscalersGetCall) Fields(s ...googleapi.Field) *AutoscalersGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AutoscalersGetCall) Do() (*Autoscaler, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "projects/{project}/zones/{zone}/autoscalers/{autoscaler}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Autoscaler
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"project":    c.project,
 		"zone":       c.zone,
 		"autoscaler": c.autoscaler,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Autoscaler
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Gets the specified Autoscaler resource.",
 	//   "httpMethod": "GET",
@@ -564,19 +550,32 @@ func (c *AutoscalersGetCall) Do() (*Autoscaler, error) {
 // method id "autoscaler.autoscalers.insert":
 
 type AutoscalersInsertCall struct {
-	s          *Service
-	project    string
-	zone       string
-	autoscaler *Autoscaler
-	opt_       map[string]interface{}
+	s             *Service
+	project       string
+	zone          string
+	autoscaler    *Autoscaler
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Insert: Adds new Autoscaler resource.
+
 func (r *AutoscalersService) Insert(project string, zone string, autoscaler *Autoscaler) *AutoscalersInsertCall {
-	c := &AutoscalersInsertCall{s: r.s, opt_: make(map[string]interface{})}
-	c.project = project
-	c.zone = zone
-	c.autoscaler = autoscaler
+	return &AutoscalersInsertCall{
+		s:             r.s,
+		project:       project,
+		zone:          zone,
+		autoscaler:    autoscaler,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "projects/{project}/zones/{zone}/autoscalers",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *AutoscalersInsertCall) Context(ctx context.Context) *AutoscalersInsertCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -584,44 +583,25 @@ func (r *AutoscalersService) Insert(project string, zone string, autoscaler *Aut
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AutoscalersInsertCall) Fields(s ...googleapi.Field) *AutoscalersInsertCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AutoscalersInsertCall) Do() (*Operation, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.autoscaler)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "projects/{project}/zones/{zone}/autoscalers")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Operation
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"project": c.project,
 		"zone":    c.zone,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.autoscaler,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Operation
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Adds new Autoscaler resource.",
 	//   "httpMethod": "POST",
@@ -661,35 +641,48 @@ func (c *AutoscalersInsertCall) Do() (*Operation, error) {
 // method id "autoscaler.autoscalers.list":
 
 type AutoscalersListCall struct {
-	s       *Service
-	project string
-	zone    string
-	opt_    map[string]interface{}
+	s             *Service
+	project       string
+	zone          string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Lists all Autoscaler resources in this zone.
+
 func (r *AutoscalersService) List(project string, zone string) *AutoscalersListCall {
-	c := &AutoscalersListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.project = project
-	c.zone = zone
-	return c
+	return &AutoscalersListCall{
+		s:             r.s,
+		project:       project,
+		zone:          zone,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "projects/{project}/zones/{zone}/autoscalers",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Filter sets the optional parameter "filter":
 func (c *AutoscalersListCall) Filter(filter string) *AutoscalersListCall {
-	c.opt_["filter"] = filter
+	c.params_.Set("filter", fmt.Sprintf("%v", filter))
 	return c
 }
 
 // MaxResults sets the optional parameter "maxResults":
 func (c *AutoscalersListCall) MaxResults(maxResults int64) *AutoscalersListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
 // PageToken sets the optional parameter "pageToken":
 func (c *AutoscalersListCall) PageToken(pageToken string) *AutoscalersListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
+	return c
+}
+func (c *AutoscalersListCall) Context(ctx context.Context) *AutoscalersListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -697,47 +690,24 @@ func (c *AutoscalersListCall) PageToken(pageToken string) *AutoscalersListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AutoscalersListCall) Fields(s ...googleapi.Field) *AutoscalersListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AutoscalersListCall) Do() (*AutoscalerListResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["filter"]; ok {
-		params.Set("filter", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "projects/{project}/zones/{zone}/autoscalers")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *AutoscalerListResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"project": c.project,
 		"zone":    c.zone,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *AutoscalerListResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Lists all Autoscaler resources in this zone.",
 	//   "httpMethod": "GET",
@@ -791,22 +761,35 @@ func (c *AutoscalersListCall) Do() (*AutoscalerListResponse, error) {
 // method id "autoscaler.autoscalers.patch":
 
 type AutoscalersPatchCall struct {
-	s           *Service
-	project     string
-	zone        string
-	autoscaler  string
-	autoscaler2 *Autoscaler
-	opt_        map[string]interface{}
+	s             *Service
+	project       string
+	zone          string
+	autoscaler    string
+	autoscaler2   *Autoscaler
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Patch: Update the entire content of the Autoscaler resource. This
 // method supports patch semantics.
+
 func (r *AutoscalersService) Patch(project string, zone string, autoscaler string, autoscaler2 *Autoscaler) *AutoscalersPatchCall {
-	c := &AutoscalersPatchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.project = project
-	c.zone = zone
-	c.autoscaler = autoscaler
-	c.autoscaler2 = autoscaler2
+	return &AutoscalersPatchCall{
+		s:             r.s,
+		project:       project,
+		zone:          zone,
+		autoscaler:    autoscaler,
+		autoscaler2:   autoscaler2,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "projects/{project}/zones/{zone}/autoscalers/{autoscaler}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *AutoscalersPatchCall) Context(ctx context.Context) *AutoscalersPatchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -814,45 +797,26 @@ func (r *AutoscalersService) Patch(project string, zone string, autoscaler strin
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AutoscalersPatchCall) Fields(s ...googleapi.Field) *AutoscalersPatchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AutoscalersPatchCall) Do() (*Operation, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.autoscaler2)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "projects/{project}/zones/{zone}/autoscalers/{autoscaler}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PATCH", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Operation
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"project":    c.project,
 		"zone":       c.zone,
 		"autoscaler": c.autoscaler,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PATCH",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.autoscaler2,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Operation
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Update the entire content of the Autoscaler resource. This method supports patch semantics.",
 	//   "httpMethod": "PATCH",
@@ -899,21 +863,34 @@ func (c *AutoscalersPatchCall) Do() (*Operation, error) {
 // method id "autoscaler.autoscalers.update":
 
 type AutoscalersUpdateCall struct {
-	s           *Service
-	project     string
-	zone        string
-	autoscaler  string
-	autoscaler2 *Autoscaler
-	opt_        map[string]interface{}
+	s             *Service
+	project       string
+	zone          string
+	autoscaler    string
+	autoscaler2   *Autoscaler
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Update: Update the entire content of the Autoscaler resource.
+
 func (r *AutoscalersService) Update(project string, zone string, autoscaler string, autoscaler2 *Autoscaler) *AutoscalersUpdateCall {
-	c := &AutoscalersUpdateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.project = project
-	c.zone = zone
-	c.autoscaler = autoscaler
-	c.autoscaler2 = autoscaler2
+	return &AutoscalersUpdateCall{
+		s:             r.s,
+		project:       project,
+		zone:          zone,
+		autoscaler:    autoscaler,
+		autoscaler2:   autoscaler2,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "projects/{project}/zones/{zone}/autoscalers/{autoscaler}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *AutoscalersUpdateCall) Context(ctx context.Context) *AutoscalersUpdateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -921,45 +898,26 @@ func (r *AutoscalersService) Update(project string, zone string, autoscaler stri
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *AutoscalersUpdateCall) Fields(s ...googleapi.Field) *AutoscalersUpdateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *AutoscalersUpdateCall) Do() (*Operation, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.autoscaler2)
-	if err != nil {
-		return nil, err
-	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "projects/{project}/zones/{zone}/autoscalers/{autoscaler}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Operation
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"project":    c.project,
 		"zone":       c.zone,
 		"autoscaler": c.autoscaler,
 	})
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.autoscaler2,
+		Result:  &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Operation
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Update the entire content of the Autoscaler resource.",
 	//   "httpMethod": "PUT",
@@ -1006,55 +964,48 @@ func (c *AutoscalersUpdateCall) Do() (*Operation, error) {
 // method id "autoscaler.zoneOperations.delete":
 
 type ZoneOperationsDeleteCall struct {
-	s         *Service
-	project   string
-	zone      string
-	operation string
-	opt_      map[string]interface{}
+	s             *Service
+	project       string
+	zone          string
+	operation     string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Delete: Deletes the specified zone-specific operation resource.
-func (r *ZoneOperationsService) Delete(project string, zone string, operation string) *ZoneOperationsDeleteCall {
-	c := &ZoneOperationsDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.project = project
-	c.zone = zone
-	c.operation = operation
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *ZoneOperationsDeleteCall) Fields(s ...googleapi.Field) *ZoneOperationsDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *ZoneOperationsService) Delete(project string, zone string, operation string) *ZoneOperationsDeleteCall {
+	return &ZoneOperationsDeleteCall{
+		s:             r.s,
+		project:       project,
+		zone:          zone,
+		operation:     operation,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{project}/zones/{zone}/operations/{operation}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *ZoneOperationsDeleteCall) Context(ctx context.Context) *ZoneOperationsDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *ZoneOperationsDeleteCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{project}/zones/{zone}/operations/{operation}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"project":   c.project,
 		"zone":      c.zone,
 		"operation": c.operation,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Deletes the specified zone-specific operation resource.",
 	//   "httpMethod": "DELETE",
@@ -1095,19 +1046,32 @@ func (c *ZoneOperationsDeleteCall) Do() error {
 // method id "autoscaler.zoneOperations.get":
 
 type ZoneOperationsGetCall struct {
-	s         *Service
-	project   string
-	zone      string
-	operation string
-	opt_      map[string]interface{}
+	s             *Service
+	project       string
+	zone          string
+	operation     string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Retrieves the specified zone-specific operation resource.
+
 func (r *ZoneOperationsService) Get(project string, zone string, operation string) *ZoneOperationsGetCall {
-	c := &ZoneOperationsGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.project = project
-	c.zone = zone
-	c.operation = operation
+	return &ZoneOperationsGetCall{
+		s:             r.s,
+		project:       project,
+		zone:          zone,
+		operation:     operation,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{project}/zones/{zone}/operations/{operation}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *ZoneOperationsGetCall) Context(ctx context.Context) *ZoneOperationsGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1115,39 +1079,25 @@ func (r *ZoneOperationsService) Get(project string, zone string, operation strin
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ZoneOperationsGetCall) Fields(s ...googleapi.Field) *ZoneOperationsGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ZoneOperationsGetCall) Do() (*Operation, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{project}/zones/{zone}/operations/{operation}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Operation
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"project":   c.project,
 		"zone":      c.zone,
 		"operation": c.operation,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Operation
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves the specified zone-specific operation resource.",
 	//   "httpMethod": "GET",
@@ -1192,36 +1142,49 @@ func (c *ZoneOperationsGetCall) Do() (*Operation, error) {
 // method id "autoscaler.zoneOperations.list":
 
 type ZoneOperationsListCall struct {
-	s       *Service
-	project string
-	zone    string
-	opt_    map[string]interface{}
+	s             *Service
+	project       string
+	zone          string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Retrieves the list of operation resources contained within the
 // specified zone.
+
 func (r *ZoneOperationsService) List(project string, zone string) *ZoneOperationsListCall {
-	c := &ZoneOperationsListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.project = project
-	c.zone = zone
-	return c
+	return &ZoneOperationsListCall{
+		s:             r.s,
+		project:       project,
+		zone:          zone,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{project}/zones/{zone}/operations",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Filter sets the optional parameter "filter":
 func (c *ZoneOperationsListCall) Filter(filter string) *ZoneOperationsListCall {
-	c.opt_["filter"] = filter
+	c.params_.Set("filter", fmt.Sprintf("%v", filter))
 	return c
 }
 
 // MaxResults sets the optional parameter "maxResults":
 func (c *ZoneOperationsListCall) MaxResults(maxResults int64) *ZoneOperationsListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
 // PageToken sets the optional parameter "pageToken":
 func (c *ZoneOperationsListCall) PageToken(pageToken string) *ZoneOperationsListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
+	return c
+}
+func (c *ZoneOperationsListCall) Context(ctx context.Context) *ZoneOperationsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1229,47 +1192,24 @@ func (c *ZoneOperationsListCall) PageToken(pageToken string) *ZoneOperationsList
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ZoneOperationsListCall) Fields(s ...googleapi.Field) *ZoneOperationsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ZoneOperationsListCall) Do() (*OperationList, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["filter"]; ok {
-		params.Set("filter", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{project}/zones/{zone}/operations")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *OperationList
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"project": c.project,
 		"zone":    c.zone,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *OperationList
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves the list of operation resources contained within the specified zone.",
 	//   "httpMethod": "GET",
@@ -1323,33 +1263,46 @@ func (c *ZoneOperationsListCall) Do() (*OperationList, error) {
 // method id "autoscaler.zones.list":
 
 type ZonesListCall struct {
-	s       *Service
-	project string
-	opt_    map[string]interface{}
+	s             *Service
+	project       string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List:
+
 func (r *ZonesService) List(project string) *ZonesListCall {
-	c := &ZonesListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.project = project
-	return c
+	return &ZonesListCall{
+		s:             r.s,
+		project:       project,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "{project}/zones",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Filter sets the optional parameter "filter":
 func (c *ZonesListCall) Filter(filter string) *ZonesListCall {
-	c.opt_["filter"] = filter
+	c.params_.Set("filter", fmt.Sprintf("%v", filter))
 	return c
 }
 
 // MaxResults sets the optional parameter "maxResults":
 func (c *ZonesListCall) MaxResults(maxResults int64) *ZonesListCall {
-	c.opt_["maxResults"] = maxResults
+	c.params_.Set("maxResults", fmt.Sprintf("%v", maxResults))
 	return c
 }
 
 // PageToken sets the optional parameter "pageToken":
 func (c *ZonesListCall) PageToken(pageToken string) *ZonesListCall {
-	c.opt_["pageToken"] = pageToken
+	c.params_.Set("pageToken", fmt.Sprintf("%v", pageToken))
+	return c
+}
+func (c *ZonesListCall) Context(ctx context.Context) *ZonesListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1357,46 +1310,23 @@ func (c *ZonesListCall) PageToken(pageToken string) *ZonesListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ZonesListCall) Fields(s ...googleapi.Field) *ZonesListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ZonesListCall) Do() (*ZoneList, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["filter"]; ok {
-		params.Set("filter", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["maxResults"]; ok {
-		params.Set("maxResults", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["pageToken"]; ok {
-		params.Set("pageToken", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "{project}/zones")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *ZoneList
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"project": c.project,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ZoneList
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "",
 	//   "httpMethod": "GET",

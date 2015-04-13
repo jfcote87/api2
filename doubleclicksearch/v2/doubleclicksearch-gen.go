@@ -4,18 +4,16 @@
 //
 // Usage example:
 //
-//   import "google.golang.org/api/doubleclicksearch/v2"
+//   import "github.com/jfcote87/api2/doubleclicksearch/v2"
 //   ...
 //   doubleclicksearchService, err := doubleclicksearch.New(oauthHttpClient)
 package doubleclicksearch
 
 import (
-	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/jfcote87/api2/googleapi"
 	"golang.org/x/net/context"
-	"google.golang.org/api/googleapi"
 	"io"
 	"net/http"
 	"net/url"
@@ -25,10 +23,8 @@ import (
 
 // Always reference these packages, just in case the auto-generated code
 // below doesn't.
-var _ = bytes.NewBuffer
 var _ = strconv.Itoa
 var _ = fmt.Sprintf
-var _ = json.NewDecoder
 var _ = io.Copy
 var _ = url.Parse
 var _ = googleapi.Version
@@ -39,7 +35,8 @@ var _ = context.Background
 const apiId = "doubleclicksearch:v2"
 const apiName = "doubleclicksearch"
 const apiVersion = "v2"
-const basePath = "https://www.googleapis.com/doubleclicksearch/v2/"
+
+var baseURL *url.URL = &url.URL{Scheme: "https", Host: "www.googleapis.com", Path: "/doubleclicksearch/v2/"}
 
 // OAuth2 scopes used by this API.
 const (
@@ -51,7 +48,7 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
+	s := &Service{client: client}
 	s.Conversion = NewConversionService(s)
 	s.Reports = NewReportsService(s)
 	s.SavedColumns = NewSavedColumnsService(s)
@@ -59,22 +56,13 @@ func New(client *http.Client) (*Service, error) {
 }
 
 type Service struct {
-	client    *http.Client
-	BasePath  string // API endpoint base URL
-	UserAgent string // optional additional User-Agent fragment
+	client *http.Client
 
 	Conversion *ConversionService
 
 	Reports *ReportsService
 
 	SavedColumns *SavedColumnsService
-}
-
-func (s *Service) userAgent() string {
-	if s.UserAgent == "" {
-		return googleapi.UserAgent
-	}
-	return googleapi.UserAgent + " " + s.UserAgent
 }
 
 func NewConversionService(s *Service) *ConversionService {
@@ -141,7 +129,7 @@ type Conversion struct {
 	// AgencyId: DS agency ID.
 	AgencyId int64 `json:"agencyId,omitempty,string"`
 
-	// AttributionModel: Attribution model name.
+	// AttributionModel: Attribution model name. This field is ignored.
 	AttributionModel string `json:"attributionModel,omitempty"`
 
 	// CampaignId: DS campaign ID.
@@ -162,7 +150,8 @@ type Conversion struct {
 	// epoch millis UTC.
 	ConversionTimestamp uint64 `json:"conversionTimestamp,omitempty,string"`
 
-	// CountMillis: Conversion count in millis.
+	// CountMillis: The number of conversions, formatted in millis
+	// (conversions multiplied by 1000). This field is ignored.
 	CountMillis int64 `json:"countMillis,omitempty,string"`
 
 	// CriterionId: DS criterion (keyword) ID.
@@ -526,47 +515,60 @@ type ConversionGetCall struct {
 	rowCount        int64
 	startDate       int64
 	startRow        int64
-	opt_            map[string]interface{}
+	caller_         googleapi.Caller
+	params_         url.Values
+	pathTemplate_   string
+	context_        context.Context
 }
 
 // Get: Retrieves a list of conversions from a DoubleClick Search engine
 // account.
+
 func (r *ConversionService) Get(agencyId int64, advertiserId int64, engineAccountId int64, endDate int64, rowCount int64, startDate int64, startRow int64) *ConversionGetCall {
-	c := &ConversionGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.agencyId = agencyId
-	c.advertiserId = advertiserId
-	c.engineAccountId = engineAccountId
-	c.endDate = endDate
-	c.rowCount = rowCount
-	c.startDate = startDate
-	c.startRow = startRow
-	return c
+	return &ConversionGetCall{
+		s:               r.s,
+		agencyId:        agencyId,
+		advertiserId:    advertiserId,
+		engineAccountId: engineAccountId,
+		endDate:         endDate,
+		rowCount:        rowCount,
+		startDate:       startDate,
+		startRow:        startRow,
+		caller_:         googleapi.JSONCall{},
+		params_:         make(map[string][]string),
+		pathTemplate_:   "agency/{agencyId}/advertiser/{advertiserId}/engine/{engineAccountId}/conversion",
+		context_:        googleapi.NoContext,
+	}
 }
 
 // AdGroupId sets the optional parameter "adGroupId": Numeric ID of the
 // ad group.
 func (c *ConversionGetCall) AdGroupId(adGroupId int64) *ConversionGetCall {
-	c.opt_["adGroupId"] = adGroupId
+	c.params_.Set("adGroupId", fmt.Sprintf("%v", adGroupId))
 	return c
 }
 
 // AdId sets the optional parameter "adId": Numeric ID of the ad.
 func (c *ConversionGetCall) AdId(adId int64) *ConversionGetCall {
-	c.opt_["adId"] = adId
+	c.params_.Set("adId", fmt.Sprintf("%v", adId))
 	return c
 }
 
 // CampaignId sets the optional parameter "campaignId": Numeric ID of
 // the campaign.
 func (c *ConversionGetCall) CampaignId(campaignId int64) *ConversionGetCall {
-	c.opt_["campaignId"] = campaignId
+	c.params_.Set("campaignId", fmt.Sprintf("%v", campaignId))
 	return c
 }
 
 // CriterionId sets the optional parameter "criterionId": Numeric ID of
 // the criterion.
 func (c *ConversionGetCall) CriterionId(criterionId int64) *ConversionGetCall {
-	c.opt_["criterionId"] = criterionId
+	c.params_.Set("criterionId", fmt.Sprintf("%v", criterionId))
+	return c
+}
+func (c *ConversionGetCall) Context(ctx context.Context) *ConversionGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -574,55 +576,29 @@ func (c *ConversionGetCall) CriterionId(criterionId int64) *ConversionGetCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ConversionGetCall) Fields(s ...googleapi.Field) *ConversionGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ConversionGetCall) Do() (*ConversionList, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("endDate", fmt.Sprintf("%v", c.endDate))
-	params.Set("rowCount", fmt.Sprintf("%v", c.rowCount))
-	params.Set("startDate", fmt.Sprintf("%v", c.startDate))
-	params.Set("startRow", fmt.Sprintf("%v", c.startRow))
-	if v, ok := c.opt_["adGroupId"]; ok {
-		params.Set("adGroupId", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["adId"]; ok {
-		params.Set("adId", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["campaignId"]; ok {
-		params.Set("campaignId", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["criterionId"]; ok {
-		params.Set("criterionId", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "agency/{agencyId}/advertiser/{advertiserId}/engine/{engineAccountId}/conversion")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *ConversionList
+	c.params_.Set("endDate", fmt.Sprintf("%v", c.endDate))
+	c.params_.Set("rowCount", fmt.Sprintf("%v", c.rowCount))
+	c.params_.Set("startDate", fmt.Sprintf("%v", c.startDate))
+	c.params_.Set("startRow", fmt.Sprintf("%v", c.startRow))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"agencyId":        strconv.FormatInt(c.agencyId, 10),
 		"advertiserId":    strconv.FormatInt(c.advertiserId, 10),
 		"engineAccountId": strconv.FormatInt(c.engineAccountId, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ConversionList
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves a list of conversions from a DoubleClick Search engine account.",
 	//   "httpMethod": "GET",
@@ -733,13 +709,26 @@ func (c *ConversionGetCall) Do() (*ConversionList, error) {
 type ConversionInsertCall struct {
 	s              *Service
 	conversionlist *ConversionList
-	opt_           map[string]interface{}
+	caller_        googleapi.Caller
+	params_        url.Values
+	pathTemplate_  string
+	context_       context.Context
 }
 
 // Insert: Inserts a batch of new conversions into DoubleClick Search.
+
 func (r *ConversionService) Insert(conversionlist *ConversionList) *ConversionInsertCall {
-	c := &ConversionInsertCall{s: r.s, opt_: make(map[string]interface{})}
-	c.conversionlist = conversionlist
+	return &ConversionInsertCall{
+		s:              r.s,
+		conversionlist: conversionlist,
+		caller_:        googleapi.JSONCall{},
+		params_:        make(map[string][]string),
+		pathTemplate_:  "conversion",
+		context_:       googleapi.NoContext,
+	}
+}
+func (c *ConversionInsertCall) Context(ctx context.Context) *ConversionInsertCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -747,41 +736,22 @@ func (r *ConversionService) Insert(conversionlist *ConversionList) *ConversionIn
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ConversionInsertCall) Fields(s ...googleapi.Field) *ConversionInsertCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ConversionInsertCall) Do() (*ConversionList, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.conversionlist)
-	if err != nil {
-		return nil, err
+	var returnValue *ConversionList
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.conversionlist,
+		Result:  &returnValue,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "conversion")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ConversionList
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Inserts a batch of new conversions into DoubleClick Search.",
 	//   "httpMethod": "POST",
@@ -812,21 +782,34 @@ type ConversionPatchCall struct {
 	startDate       int64
 	startRow        int64
 	conversionlist  *ConversionList
-	opt_            map[string]interface{}
+	caller_         googleapi.Caller
+	params_         url.Values
+	pathTemplate_   string
+	context_        context.Context
 }
 
 // Patch: Updates a batch of conversions in DoubleClick Search. This
 // method supports patch semantics.
+
 func (r *ConversionService) Patch(advertiserId int64, agencyId int64, endDate int64, engineAccountId int64, rowCount int64, startDate int64, startRow int64, conversionlist *ConversionList) *ConversionPatchCall {
-	c := &ConversionPatchCall{s: r.s, opt_: make(map[string]interface{})}
-	c.advertiserId = advertiserId
-	c.agencyId = agencyId
-	c.endDate = endDate
-	c.engineAccountId = engineAccountId
-	c.rowCount = rowCount
-	c.startDate = startDate
-	c.startRow = startRow
-	c.conversionlist = conversionlist
+	return &ConversionPatchCall{
+		s:               r.s,
+		advertiserId:    advertiserId,
+		agencyId:        agencyId,
+		endDate:         endDate,
+		engineAccountId: engineAccountId,
+		rowCount:        rowCount,
+		startDate:       startDate,
+		startRow:        startRow,
+		conversionlist:  conversionlist,
+		caller_:         googleapi.JSONCall{},
+		params_:         make(map[string][]string),
+		pathTemplate_:   "conversion",
+		context_:        googleapi.NoContext,
+	}
+}
+func (c *ConversionPatchCall) Context(ctx context.Context) *ConversionPatchCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -834,48 +817,29 @@ func (r *ConversionService) Patch(advertiserId int64, agencyId int64, endDate in
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ConversionPatchCall) Fields(s ...googleapi.Field) *ConversionPatchCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ConversionPatchCall) Do() (*ConversionList, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.conversionlist)
-	if err != nil {
-		return nil, err
+	var returnValue *ConversionList
+	c.params_.Set("advertiserId", fmt.Sprintf("%v", c.advertiserId))
+	c.params_.Set("agencyId", fmt.Sprintf("%v", c.agencyId))
+	c.params_.Set("endDate", fmt.Sprintf("%v", c.endDate))
+	c.params_.Set("engineAccountId", fmt.Sprintf("%v", c.engineAccountId))
+	c.params_.Set("rowCount", fmt.Sprintf("%v", c.rowCount))
+	c.params_.Set("startDate", fmt.Sprintf("%v", c.startDate))
+	c.params_.Set("startRow", fmt.Sprintf("%v", c.startRow))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "PATCH",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.conversionlist,
+		Result:  &returnValue,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("advertiserId", fmt.Sprintf("%v", c.advertiserId))
-	params.Set("agencyId", fmt.Sprintf("%v", c.agencyId))
-	params.Set("endDate", fmt.Sprintf("%v", c.endDate))
-	params.Set("engineAccountId", fmt.Sprintf("%v", c.engineAccountId))
-	params.Set("rowCount", fmt.Sprintf("%v", c.rowCount))
-	params.Set("startDate", fmt.Sprintf("%v", c.startDate))
-	params.Set("startRow", fmt.Sprintf("%v", c.startRow))
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "conversion")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PATCH", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ConversionList
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates a batch of conversions in DoubleClick Search. This method supports patch semantics.",
 	//   "httpMethod": "PATCH",
@@ -965,13 +929,26 @@ func (c *ConversionPatchCall) Do() (*ConversionList, error) {
 type ConversionUpdateCall struct {
 	s              *Service
 	conversionlist *ConversionList
-	opt_           map[string]interface{}
+	caller_        googleapi.Caller
+	params_        url.Values
+	pathTemplate_  string
+	context_       context.Context
 }
 
 // Update: Updates a batch of conversions in DoubleClick Search.
+
 func (r *ConversionService) Update(conversionlist *ConversionList) *ConversionUpdateCall {
-	c := &ConversionUpdateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.conversionlist = conversionlist
+	return &ConversionUpdateCall{
+		s:              r.s,
+		conversionlist: conversionlist,
+		caller_:        googleapi.JSONCall{},
+		params_:        make(map[string][]string),
+		pathTemplate_:  "conversion",
+		context_:       googleapi.NoContext,
+	}
+}
+func (c *ConversionUpdateCall) Context(ctx context.Context) *ConversionUpdateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -979,41 +956,22 @@ func (r *ConversionService) Update(conversionlist *ConversionList) *ConversionUp
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ConversionUpdateCall) Fields(s ...googleapi.Field) *ConversionUpdateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ConversionUpdateCall) Do() (*ConversionList, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.conversionlist)
-	if err != nil {
-		return nil, err
+	var returnValue *ConversionList
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "PUT",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.conversionlist,
+		Result:  &returnValue,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "conversion")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *ConversionList
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates a batch of conversions in DoubleClick Search.",
 	//   "httpMethod": "PUT",
@@ -1037,14 +995,27 @@ func (c *ConversionUpdateCall) Do() (*ConversionList, error) {
 type ConversionUpdateAvailabilityCall struct {
 	s                         *Service
 	updateavailabilityrequest *UpdateAvailabilityRequest
-	opt_                      map[string]interface{}
+	caller_                   googleapi.Caller
+	params_                   url.Values
+	pathTemplate_             string
+	context_                  context.Context
 }
 
 // UpdateAvailability: Updates the availabilities of a batch of
 // floodlight activities in DoubleClick Search.
+
 func (r *ConversionService) UpdateAvailability(updateavailabilityrequest *UpdateAvailabilityRequest) *ConversionUpdateAvailabilityCall {
-	c := &ConversionUpdateAvailabilityCall{s: r.s, opt_: make(map[string]interface{})}
-	c.updateavailabilityrequest = updateavailabilityrequest
+	return &ConversionUpdateAvailabilityCall{
+		s: r.s,
+		updateavailabilityrequest: updateavailabilityrequest,
+		caller_:                   googleapi.JSONCall{},
+		params_:                   make(map[string][]string),
+		pathTemplate_:             "conversion/updateAvailability",
+		context_:                  googleapi.NoContext,
+	}
+}
+func (c *ConversionUpdateAvailabilityCall) Context(ctx context.Context) *ConversionUpdateAvailabilityCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1052,41 +1023,22 @@ func (r *ConversionService) UpdateAvailability(updateavailabilityrequest *Update
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ConversionUpdateAvailabilityCall) Fields(s ...googleapi.Field) *ConversionUpdateAvailabilityCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ConversionUpdateAvailabilityCall) Do() (*UpdateAvailabilityResponse, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.updateavailabilityrequest)
-	if err != nil {
-		return nil, err
+	var returnValue *UpdateAvailabilityResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.updateavailabilityrequest,
+		Result:  &returnValue,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "conversion/updateAvailability")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *UpdateAvailabilityResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Updates the availabilities of a batch of floodlight activities in DoubleClick Search.",
 	//   "httpMethod": "POST",
@@ -1111,13 +1063,26 @@ func (c *ConversionUpdateAvailabilityCall) Do() (*UpdateAvailabilityResponse, er
 type ReportsGenerateCall struct {
 	s             *Service
 	reportrequest *ReportRequest
-	opt_          map[string]interface{}
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Generate: Generates and returns a report immediately.
+
 func (r *ReportsService) Generate(reportrequest *ReportRequest) *ReportsGenerateCall {
-	c := &ReportsGenerateCall{s: r.s, opt_: make(map[string]interface{})}
-	c.reportrequest = reportrequest
+	return &ReportsGenerateCall{
+		s:             r.s,
+		reportrequest: reportrequest,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "reports/generate",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *ReportsGenerateCall) Context(ctx context.Context) *ReportsGenerateCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1125,41 +1090,22 @@ func (r *ReportsService) Generate(reportrequest *ReportRequest) *ReportsGenerate
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ReportsGenerateCall) Fields(s ...googleapi.Field) *ReportsGenerateCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ReportsGenerateCall) Do() (*Report, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.reportrequest)
-	if err != nil {
-		return nil, err
+	var returnValue *Report
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.reportrequest,
+		Result:  &returnValue,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "reports/generate")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Report
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Generates and returns a report immediately.",
 	//   "httpMethod": "POST",
@@ -1182,15 +1128,28 @@ func (c *ReportsGenerateCall) Do() (*Report, error) {
 // method id "doubleclicksearch.reports.get":
 
 type ReportsGetCall struct {
-	s        *Service
-	reportId string
-	opt_     map[string]interface{}
+	s             *Service
+	reportId      string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Polls for the status of a report request.
+
 func (r *ReportsService) Get(reportId string) *ReportsGetCall {
-	c := &ReportsGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.reportId = reportId
+	return &ReportsGetCall{
+		s:             r.s,
+		reportId:      reportId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "reports/{reportId}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *ReportsGetCall) Context(ctx context.Context) *ReportsGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1198,37 +1157,23 @@ func (r *ReportsService) Get(reportId string) *ReportsGetCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ReportsGetCall) Fields(s ...googleapi.Field) *ReportsGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ReportsGetCall) Do() (*Report, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "reports/{reportId}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *Report
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"reportId": c.reportId,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Report
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Polls for the status of a report request.",
 	//   "httpMethod": "GET",
@@ -1261,51 +1206,63 @@ type ReportsGetFileCall struct {
 	s              *Service
 	reportId       string
 	reportFragment int64
-	opt_           map[string]interface{}
+	caller_        googleapi.Caller
+	params_        url.Values
+	pathTemplate_  string
+	context_       context.Context
 }
 
-// GetFile: Downloads a report file.
+// GetFile: Downloads a report file encoded in UTF-8.
+
 func (r *ReportsService) GetFile(reportId string, reportFragment int64) *ReportsGetFileCall {
-	c := &ReportsGetFileCall{s: r.s, opt_: make(map[string]interface{})}
-	c.reportId = reportId
-	c.reportFragment = reportFragment
-	return c
-}
-
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *ReportsGetFileCall) Fields(s ...googleapi.Field) *ReportsGetFileCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
-	return c
-}
-
-func (c *ReportsGetFileCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
+	return &ReportsGetFileCall{
+		s:              r.s,
+		reportId:       reportId,
+		reportFragment: reportFragment,
+		caller_:        googleapi.JSONCall{},
+		params_:        make(map[string][]string),
+		pathTemplate_:  "reports/{reportId}/files/{reportFragment}",
+		context_:       googleapi.NoContext,
 	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "reports/{reportId}/files/{reportFragment}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+}
+func (c *ReportsGetFileCall) Context(ctx context.Context) *ReportsGetFileCall {
+	c.context_ = ctx
+	return c
+}
+
+// GetResponse sets alt=media creating a file download request. The body
+// of the *http.Response contains the media.  You should close the response
+// body when finished reading.
+
+func (c *ReportsGetFileCall) GetResponse() (*http.Response, error) {
+	var res *http.Response
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"reportId":       c.reportId,
 		"reportFragment": strconv.FormatInt(c.reportFragment, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &res,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
+	return res, c.caller_.Do(c.context_, c.s.client, call)
+}
+
+func (c *ReportsGetFileCall) Do() error {
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
+		"reportId":       c.reportId,
+		"reportFragment": strconv.FormatInt(c.reportFragment, 10),
+	})
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
 	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
-	//   "description": "Downloads a report file.",
+	//   "description": "Downloads a report file encoded in UTF-8.",
 	//   "httpMethod": "GET",
 	//   "id": "doubleclicksearch.reports.getFile",
 	//   "parameterOrder": [
@@ -1342,13 +1299,26 @@ func (c *ReportsGetFileCall) Do() error {
 type ReportsRequestCall struct {
 	s             *Service
 	reportrequest *ReportRequest
-	opt_          map[string]interface{}
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Request: Inserts a report request into the reporting system.
+
 func (r *ReportsService) Request(reportrequest *ReportRequest) *ReportsRequestCall {
-	c := &ReportsRequestCall{s: r.s, opt_: make(map[string]interface{})}
-	c.reportrequest = reportrequest
+	return &ReportsRequestCall{
+		s:             r.s,
+		reportrequest: reportrequest,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "reports",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *ReportsRequestCall) Context(ctx context.Context) *ReportsRequestCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1356,41 +1326,22 @@ func (r *ReportsService) Request(reportrequest *ReportRequest) *ReportsRequestCa
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *ReportsRequestCall) Fields(s ...googleapi.Field) *ReportsRequestCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *ReportsRequestCall) Do() (*Report, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.reportrequest)
-	if err != nil {
-		return nil, err
+	var returnValue *Report
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.reportrequest,
+		Result:  &returnValue,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "reports")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Report
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Inserts a report request into the reporting system.",
 	//   "httpMethod": "POST",
@@ -1413,17 +1364,30 @@ func (c *ReportsRequestCall) Do() (*Report, error) {
 // method id "doubleclicksearch.savedColumns.list":
 
 type SavedColumnsListCall struct {
-	s            *Service
-	agencyId     int64
-	advertiserId int64
-	opt_         map[string]interface{}
+	s             *Service
+	agencyId      int64
+	advertiserId  int64
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Retrieve the list of saved columns for a specified advertiser.
+
 func (r *SavedColumnsService) List(agencyId int64, advertiserId int64) *SavedColumnsListCall {
-	c := &SavedColumnsListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.agencyId = agencyId
-	c.advertiserId = advertiserId
+	return &SavedColumnsListCall{
+		s:             r.s,
+		agencyId:      agencyId,
+		advertiserId:  advertiserId,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "agency/{agencyId}/advertiser/{advertiserId}/savedcolumns",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *SavedColumnsListCall) Context(ctx context.Context) *SavedColumnsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1431,38 +1395,24 @@ func (r *SavedColumnsService) List(agencyId int64, advertiserId int64) *SavedCol
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *SavedColumnsListCall) Fields(s ...googleapi.Field) *SavedColumnsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *SavedColumnsListCall) Do() (*SavedColumnList, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "agency/{agencyId}/advertiser/{advertiserId}/savedcolumns")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *SavedColumnList
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"agencyId":     strconv.FormatInt(c.agencyId, 10),
 		"advertiserId": strconv.FormatInt(c.advertiserId, 10),
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *SavedColumnList
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieve the list of saved columns for a specified advertiser.",
 	//   "httpMethod": "GET",

@@ -4,18 +4,16 @@
 //
 // Usage example:
 //
-//   import "google.golang.org/api/urlshortener/v1"
+//   import "github.com/jfcote87/api2/urlshortener/v1"
 //   ...
 //   urlshortenerService, err := urlshortener.New(oauthHttpClient)
 package urlshortener
 
 import (
-	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/jfcote87/api2/googleapi"
 	"golang.org/x/net/context"
-	"google.golang.org/api/googleapi"
 	"io"
 	"net/http"
 	"net/url"
@@ -25,10 +23,8 @@ import (
 
 // Always reference these packages, just in case the auto-generated code
 // below doesn't.
-var _ = bytes.NewBuffer
 var _ = strconv.Itoa
 var _ = fmt.Sprintf
-var _ = json.NewDecoder
 var _ = io.Copy
 var _ = url.Parse
 var _ = googleapi.Version
@@ -39,7 +35,8 @@ var _ = context.Background
 const apiId = "urlshortener:v1"
 const apiName = "urlshortener"
 const apiVersion = "v1"
-const basePath = "https://www.googleapis.com/urlshortener/v1/"
+
+var baseURL *url.URL = &url.URL{Scheme: "https", Host: "www.googleapis.com", Path: "/urlshortener/v1/"}
 
 // OAuth2 scopes used by this API.
 const (
@@ -51,24 +48,15 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
+	s := &Service{client: client}
 	s.Url = NewUrlService(s)
 	return s, nil
 }
 
 type Service struct {
-	client    *http.Client
-	BasePath  string // API endpoint base URL
-	UserAgent string // optional additional User-Agent fragment
+	client *http.Client
 
 	Url *UrlService
-}
-
-func (s *Service) userAgent() string {
-	if s.UserAgent == "" {
-		return googleapi.UserAgent
-	}
-	return googleapi.UserAgent + " " + s.UserAgent
 }
 
 func NewUrlService(s *Service) *UrlService {
@@ -181,22 +169,35 @@ type UrlHistory struct {
 // method id "urlshortener.url.get":
 
 type UrlGetCall struct {
-	s        *Service
-	shortUrl string
-	opt_     map[string]interface{}
+	s             *Service
+	shortUrl      string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Expands a short URL or gets creation time and analytics.
+
 func (r *UrlService) Get(shortUrl string) *UrlGetCall {
-	c := &UrlGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.shortUrl = shortUrl
-	return c
+	return &UrlGetCall{
+		s:             r.s,
+		shortUrl:      shortUrl,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "url",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Projection sets the optional parameter "projection": Additional
 // information to return.
 func (c *UrlGetCall) Projection(projection string) *UrlGetCall {
-	c.opt_["projection"] = projection
+	c.params_.Set("projection", fmt.Sprintf("%v", projection))
+	return c
+}
+func (c *UrlGetCall) Context(ctx context.Context) *UrlGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -204,39 +205,22 @@ func (c *UrlGetCall) Projection(projection string) *UrlGetCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *UrlGetCall) Fields(s ...googleapi.Field) *UrlGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *UrlGetCall) Do() (*Url, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("shortUrl", fmt.Sprintf("%v", c.shortUrl))
-	if v, ok := c.opt_["projection"]; ok {
-		params.Set("projection", fmt.Sprintf("%v", v))
+	var returnValue *Url
+	c.params_.Set("shortUrl", fmt.Sprintf("%v", c.shortUrl))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "url")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Url
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Expands a short URL or gets creation time and analytics.",
 	//   "httpMethod": "GET",
@@ -270,7 +254,10 @@ func (c *UrlGetCall) Do() (*Url, error) {
 	//   "path": "url",
 	//   "response": {
 	//     "$ref": "Url"
-	//   }
+	//   },
+	//   "scopes": [
+	//     "https://www.googleapis.com/auth/urlshortener"
+	//   ]
 	// }
 
 }
@@ -278,15 +265,28 @@ func (c *UrlGetCall) Do() (*Url, error) {
 // method id "urlshortener.url.insert":
 
 type UrlInsertCall struct {
-	s    *Service
-	url  *Url
-	opt_ map[string]interface{}
+	s             *Service
+	url           *Url
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Insert: Creates a new short URL.
+
 func (r *UrlService) Insert(url *Url) *UrlInsertCall {
-	c := &UrlInsertCall{s: r.s, opt_: make(map[string]interface{})}
-	c.url = url
+	return &UrlInsertCall{
+		s:             r.s,
+		url:           url,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "url",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *UrlInsertCall) Context(ctx context.Context) *UrlInsertCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -294,41 +294,22 @@ func (r *UrlService) Insert(url *Url) *UrlInsertCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *UrlInsertCall) Fields(s ...googleapi.Field) *UrlInsertCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *UrlInsertCall) Do() (*Url, error) {
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.url)
-	if err != nil {
-		return nil, err
+	var returnValue *Url
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method:  "POST",
+		URL:     u,
+		Params:  c.params_,
+		Payload: c.url,
+		Result:  &returnValue,
 	}
-	ctype := "application/json"
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "url")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("POST", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("Content-Type", ctype)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *Url
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Creates a new short URL.",
 	//   "httpMethod": "POST",
@@ -350,27 +331,40 @@ func (c *UrlInsertCall) Do() (*Url, error) {
 // method id "urlshortener.url.list":
 
 type UrlListCall struct {
-	s    *Service
-	opt_ map[string]interface{}
+	s             *Service
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Retrieves a list of URLs shortened by a user.
+
 func (r *UrlService) List() *UrlListCall {
-	c := &UrlListCall{s: r.s, opt_: make(map[string]interface{})}
-	return c
+	return &UrlListCall{
+		s:             r.s,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "url/history",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Projection sets the optional parameter "projection": Additional
 // information to return.
 func (c *UrlListCall) Projection(projection string) *UrlListCall {
-	c.opt_["projection"] = projection
+	c.params_.Set("projection", fmt.Sprintf("%v", projection))
 	return c
 }
 
 // StartToken sets the optional parameter "start-token": Token for
 // requesting successive pages of results.
 func (c *UrlListCall) StartToken(startToken string) *UrlListCall {
-	c.opt_["start-token"] = startToken
+	c.params_.Set("start-token", fmt.Sprintf("%v", startToken))
+	return c
+}
+func (c *UrlListCall) Context(ctx context.Context) *UrlListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -378,41 +372,21 @@ func (c *UrlListCall) StartToken(startToken string) *UrlListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *UrlListCall) Fields(s ...googleapi.Field) *UrlListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *UrlListCall) Do() (*UrlHistory, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["projection"]; ok {
-		params.Set("projection", fmt.Sprintf("%v", v))
+	var returnValue *UrlHistory
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	if v, ok := c.opt_["start-token"]; ok {
-		params.Set("start-token", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "url/history")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *UrlHistory
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves a list of URLs shortened by a user.",
 	//   "httpMethod": "GET",

@@ -4,18 +4,16 @@
 //
 // Usage example:
 //
-//   import "google.golang.org/api/webmasters/v3"
+//   import "github.com/jfcote87/api2/webmasters/v3"
 //   ...
 //   webmastersService, err := webmasters.New(oauthHttpClient)
 package webmasters
 
 import (
-	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/jfcote87/api2/googleapi"
 	"golang.org/x/net/context"
-	"google.golang.org/api/googleapi"
 	"io"
 	"net/http"
 	"net/url"
@@ -25,10 +23,8 @@ import (
 
 // Always reference these packages, just in case the auto-generated code
 // below doesn't.
-var _ = bytes.NewBuffer
 var _ = strconv.Itoa
 var _ = fmt.Sprintf
-var _ = json.NewDecoder
 var _ = io.Copy
 var _ = url.Parse
 var _ = googleapi.Version
@@ -39,7 +35,8 @@ var _ = context.Background
 const apiId = "webmasters:v3"
 const apiName = "webmasters"
 const apiVersion = "v3"
-const basePath = "https://www.googleapis.com/webmasters/v3/"
+
+var baseURL *url.URL = &url.URL{Scheme: "https", Host: "www.googleapis.com", Path: "/webmasters/v3/"}
 
 // OAuth2 scopes used by this API.
 const (
@@ -54,7 +51,7 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
+	s := &Service{client: client}
 	s.Sitemaps = NewSitemapsService(s)
 	s.Sites = NewSitesService(s)
 	s.Urlcrawlerrorscounts = NewUrlcrawlerrorscountsService(s)
@@ -63,9 +60,7 @@ func New(client *http.Client) (*Service, error) {
 }
 
 type Service struct {
-	client    *http.Client
-	BasePath  string // API endpoint base URL
-	UserAgent string // optional additional User-Agent fragment
+	client *http.Client
 
 	Sitemaps *SitemapsService
 
@@ -74,13 +69,6 @@ type Service struct {
 	Urlcrawlerrorscounts *UrlcrawlerrorscountsService
 
 	Urlcrawlerrorssamples *UrlcrawlerrorssamplesService
-}
-
-func (s *Service) userAgent() string {
-	if s.UserAgent == "" {
-		return googleapi.UserAgent
-	}
-	return googleapi.UserAgent + " " + s.UserAgent
 }
 
 func NewSitemapsService(s *Service) *SitemapsService {
@@ -246,52 +234,45 @@ type WmxSitemapContent struct {
 // method id "webmasters.sitemaps.delete":
 
 type SitemapsDeleteCall struct {
-	s        *Service
-	siteUrl  string
-	feedpath string
-	opt_     map[string]interface{}
+	s             *Service
+	siteUrl       string
+	feedpath      string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Delete: Deletes a sitemap from this site.
-func (r *SitemapsService) Delete(siteUrl string, feedpath string) *SitemapsDeleteCall {
-	c := &SitemapsDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.siteUrl = siteUrl
-	c.feedpath = feedpath
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *SitemapsDeleteCall) Fields(s ...googleapi.Field) *SitemapsDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *SitemapsService) Delete(siteUrl string, feedpath string) *SitemapsDeleteCall {
+	return &SitemapsDeleteCall{
+		s:             r.s,
+		siteUrl:       siteUrl,
+		feedpath:      feedpath,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "sites/{siteUrl}/sitemaps/{feedpath}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *SitemapsDeleteCall) Context(ctx context.Context) *SitemapsDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *SitemapsDeleteCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "sites/{siteUrl}/sitemaps/{feedpath}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"siteUrl":  c.siteUrl,
 		"feedpath": c.feedpath,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Deletes a sitemap from this site.",
 	//   "httpMethod": "DELETE",
@@ -325,17 +306,30 @@ func (c *SitemapsDeleteCall) Do() error {
 // method id "webmasters.sitemaps.get":
 
 type SitemapsGetCall struct {
-	s        *Service
-	siteUrl  string
-	feedpath string
-	opt_     map[string]interface{}
+	s             *Service
+	siteUrl       string
+	feedpath      string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Retrieves information about a specific sitemap.
+
 func (r *SitemapsService) Get(siteUrl string, feedpath string) *SitemapsGetCall {
-	c := &SitemapsGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.siteUrl = siteUrl
-	c.feedpath = feedpath
+	return &SitemapsGetCall{
+		s:             r.s,
+		siteUrl:       siteUrl,
+		feedpath:      feedpath,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "sites/{siteUrl}/sitemaps/{feedpath}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *SitemapsGetCall) Context(ctx context.Context) *SitemapsGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -343,38 +337,24 @@ func (r *SitemapsService) Get(siteUrl string, feedpath string) *SitemapsGetCall 
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *SitemapsGetCall) Fields(s ...googleapi.Field) *SitemapsGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *SitemapsGetCall) Do() (*WmxSitemap, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "sites/{siteUrl}/sitemaps/{feedpath}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *WmxSitemap
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"siteUrl":  c.siteUrl,
 		"feedpath": c.feedpath,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *WmxSitemap
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves information about a specific sitemap.",
 	//   "httpMethod": "GET",
@@ -412,22 +392,35 @@ func (c *SitemapsGetCall) Do() (*WmxSitemap, error) {
 // method id "webmasters.sitemaps.list":
 
 type SitemapsListCall struct {
-	s       *Service
-	siteUrl string
-	opt_    map[string]interface{}
+	s             *Service
+	siteUrl       string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Lists sitemaps uploaded to the site.
+
 func (r *SitemapsService) List(siteUrl string) *SitemapsListCall {
-	c := &SitemapsListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.siteUrl = siteUrl
-	return c
+	return &SitemapsListCall{
+		s:             r.s,
+		siteUrl:       siteUrl,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "sites/{siteUrl}/sitemaps",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // SitemapIndex sets the optional parameter "sitemapIndex": A URL of a
 // site's sitemap index.
 func (c *SitemapsListCall) SitemapIndex(sitemapIndex string) *SitemapsListCall {
-	c.opt_["sitemapIndex"] = sitemapIndex
+	c.params_.Set("sitemapIndex", fmt.Sprintf("%v", sitemapIndex))
+	return c
+}
+func (c *SitemapsListCall) Context(ctx context.Context) *SitemapsListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -435,40 +428,23 @@ func (c *SitemapsListCall) SitemapIndex(sitemapIndex string) *SitemapsListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *SitemapsListCall) Fields(s ...googleapi.Field) *SitemapsListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *SitemapsListCall) Do() (*SitemapsListResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["sitemapIndex"]; ok {
-		params.Set("sitemapIndex", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "sites/{siteUrl}/sitemaps")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *SitemapsListResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"siteUrl": c.siteUrl,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *SitemapsListResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Lists sitemaps uploaded to the site.",
 	//   "httpMethod": "GET",
@@ -504,52 +480,45 @@ func (c *SitemapsListCall) Do() (*SitemapsListResponse, error) {
 // method id "webmasters.sitemaps.submit":
 
 type SitemapsSubmitCall struct {
-	s        *Service
-	siteUrl  string
-	feedpath string
-	opt_     map[string]interface{}
+	s             *Service
+	siteUrl       string
+	feedpath      string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Submit: Submits a sitemap for a site.
-func (r *SitemapsService) Submit(siteUrl string, feedpath string) *SitemapsSubmitCall {
-	c := &SitemapsSubmitCall{s: r.s, opt_: make(map[string]interface{})}
-	c.siteUrl = siteUrl
-	c.feedpath = feedpath
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *SitemapsSubmitCall) Fields(s ...googleapi.Field) *SitemapsSubmitCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *SitemapsService) Submit(siteUrl string, feedpath string) *SitemapsSubmitCall {
+	return &SitemapsSubmitCall{
+		s:             r.s,
+		siteUrl:       siteUrl,
+		feedpath:      feedpath,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "sites/{siteUrl}/sitemaps/{feedpath}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *SitemapsSubmitCall) Context(ctx context.Context) *SitemapsSubmitCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *SitemapsSubmitCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "sites/{siteUrl}/sitemaps/{feedpath}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"siteUrl":  c.siteUrl,
 		"feedpath": c.feedpath,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "PUT",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Submits a sitemap for a site.",
 	//   "httpMethod": "PUT",
@@ -583,49 +552,42 @@ func (c *SitemapsSubmitCall) Do() error {
 // method id "webmasters.sites.add":
 
 type SitesAddCall struct {
-	s       *Service
-	siteUrl string
-	opt_    map[string]interface{}
+	s             *Service
+	siteUrl       string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Add: Adds a site to the set of the user's sites in Webmaster Tools.
-func (r *SitesService) Add(siteUrl string) *SitesAddCall {
-	c := &SitesAddCall{s: r.s, opt_: make(map[string]interface{})}
-	c.siteUrl = siteUrl
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *SitesAddCall) Fields(s ...googleapi.Field) *SitesAddCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *SitesService) Add(siteUrl string) *SitesAddCall {
+	return &SitesAddCall{
+		s:             r.s,
+		siteUrl:       siteUrl,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "sites/{siteUrl}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *SitesAddCall) Context(ctx context.Context) *SitesAddCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *SitesAddCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "sites/{siteUrl}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("PUT", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"siteUrl": c.siteUrl,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "PUT",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Adds a site to the set of the user's sites in Webmaster Tools.",
 	//   "httpMethod": "PUT",
@@ -652,50 +614,43 @@ func (c *SitesAddCall) Do() error {
 // method id "webmasters.sites.delete":
 
 type SitesDeleteCall struct {
-	s       *Service
-	siteUrl string
-	opt_    map[string]interface{}
+	s             *Service
+	siteUrl       string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Delete: Removes a site from the set of the user's Webmaster Tools
 // sites.
-func (r *SitesService) Delete(siteUrl string) *SitesDeleteCall {
-	c := &SitesDeleteCall{s: r.s, opt_: make(map[string]interface{})}
-	c.siteUrl = siteUrl
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *SitesDeleteCall) Fields(s ...googleapi.Field) *SitesDeleteCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *SitesService) Delete(siteUrl string) *SitesDeleteCall {
+	return &SitesDeleteCall{
+		s:             r.s,
+		siteUrl:       siteUrl,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "sites/{siteUrl}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *SitesDeleteCall) Context(ctx context.Context) *SitesDeleteCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *SitesDeleteCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "sites/{siteUrl}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"siteUrl": c.siteUrl,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Removes a site from the set of the user's Webmaster Tools sites.",
 	//   "httpMethod": "DELETE",
@@ -722,15 +677,28 @@ func (c *SitesDeleteCall) Do() error {
 // method id "webmasters.sites.get":
 
 type SitesGetCall struct {
-	s       *Service
-	siteUrl string
-	opt_    map[string]interface{}
+	s             *Service
+	siteUrl       string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Retrieves information about specific site.
+
 func (r *SitesService) Get(siteUrl string) *SitesGetCall {
-	c := &SitesGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.siteUrl = siteUrl
+	return &SitesGetCall{
+		s:             r.s,
+		siteUrl:       siteUrl,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "sites/{siteUrl}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *SitesGetCall) Context(ctx context.Context) *SitesGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -738,37 +706,23 @@ func (r *SitesService) Get(siteUrl string) *SitesGetCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *SitesGetCall) Fields(s ...googleapi.Field) *SitesGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *SitesGetCall) Do() (*WmxSite, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "sites/{siteUrl}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *WmxSite
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"siteUrl": c.siteUrl,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *WmxSite
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves information about specific site.",
 	//   "httpMethod": "GET",
@@ -799,13 +753,26 @@ func (c *SitesGetCall) Do() (*WmxSite, error) {
 // method id "webmasters.sites.list":
 
 type SitesListCall struct {
-	s    *Service
-	opt_ map[string]interface{}
+	s             *Service
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Lists your Webmaster Tools sites.
+
 func (r *SitesService) List() *SitesListCall {
-	c := &SitesListCall{s: r.s, opt_: make(map[string]interface{})}
+	return &SitesListCall{
+		s:             r.s,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "sites",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *SitesListCall) Context(ctx context.Context) *SitesListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -813,35 +780,21 @@ func (r *SitesService) List() *SitesListCall {
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *SitesListCall) Fields(s ...googleapi.Field) *SitesListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *SitesListCall) Do() (*SitesListResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
+	var returnValue *SitesListResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, nil)
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "sites")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.SetOpaque(req.URL)
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *SitesListResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Lists your Webmaster Tools sites.",
 	//   "httpMethod": "GET",
@@ -861,31 +814,40 @@ func (c *SitesListCall) Do() (*SitesListResponse, error) {
 // method id "webmasters.urlcrawlerrorscounts.query":
 
 type UrlcrawlerrorscountsQueryCall struct {
-	s       *Service
-	siteUrl string
-	opt_    map[string]interface{}
+	s             *Service
+	siteUrl       string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Query: Retrieves a time series of the number of URL crawl errors per
 // error category and platform.
+
 func (r *UrlcrawlerrorscountsService) Query(siteUrl string) *UrlcrawlerrorscountsQueryCall {
-	c := &UrlcrawlerrorscountsQueryCall{s: r.s, opt_: make(map[string]interface{})}
-	c.siteUrl = siteUrl
-	return c
+	return &UrlcrawlerrorscountsQueryCall{
+		s:             r.s,
+		siteUrl:       siteUrl,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "sites/{siteUrl}/urlCrawlErrorsCounts/query",
+		context_:      googleapi.NoContext,
+	}
 }
 
 // Category sets the optional parameter "category": The crawl error
 // category, for example 'serverError'. If not specified, we return
 // results for all categories.
 func (c *UrlcrawlerrorscountsQueryCall) Category(category string) *UrlcrawlerrorscountsQueryCall {
-	c.opt_["category"] = category
+	c.params_.Set("category", fmt.Sprintf("%v", category))
 	return c
 }
 
 // LatestCountsOnly sets the optional parameter "latestCountsOnly": If
 // true, returns only the latest crawl error counts.
 func (c *UrlcrawlerrorscountsQueryCall) LatestCountsOnly(latestCountsOnly bool) *UrlcrawlerrorscountsQueryCall {
-	c.opt_["latestCountsOnly"] = latestCountsOnly
+	c.params_.Set("latestCountsOnly", fmt.Sprintf("%v", latestCountsOnly))
 	return c
 }
 
@@ -893,7 +855,11 @@ func (c *UrlcrawlerrorscountsQueryCall) LatestCountsOnly(latestCountsOnly bool) 
 // (platform) that made the request, for example 'web'. If not
 // specified, we return results for all platforms.
 func (c *UrlcrawlerrorscountsQueryCall) Platform(platform string) *UrlcrawlerrorscountsQueryCall {
-	c.opt_["platform"] = platform
+	c.params_.Set("platform", fmt.Sprintf("%v", platform))
+	return c
+}
+func (c *UrlcrawlerrorscountsQueryCall) Context(ctx context.Context) *UrlcrawlerrorscountsQueryCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -901,46 +867,23 @@ func (c *UrlcrawlerrorscountsQueryCall) Platform(platform string) *Urlcrawlerror
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *UrlcrawlerrorscountsQueryCall) Fields(s ...googleapi.Field) *UrlcrawlerrorscountsQueryCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *UrlcrawlerrorscountsQueryCall) Do() (*UrlCrawlErrorsCountsQueryResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	if v, ok := c.opt_["category"]; ok {
-		params.Set("category", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["latestCountsOnly"]; ok {
-		params.Set("latestCountsOnly", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["platform"]; ok {
-		params.Set("platform", fmt.Sprintf("%v", v))
-	}
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "sites/{siteUrl}/urlCrawlErrorsCounts/query")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *UrlCrawlErrorsCountsQueryResponse
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"siteUrl": c.siteUrl,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *UrlCrawlErrorsCountsQueryResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves a time series of the number of URL crawl errors per error category and platform.",
 	//   "httpMethod": "GET",
@@ -1017,21 +960,34 @@ func (c *UrlcrawlerrorscountsQueryCall) Do() (*UrlCrawlErrorsCountsQueryResponse
 // method id "webmasters.urlcrawlerrorssamples.get":
 
 type UrlcrawlerrorssamplesGetCall struct {
-	s        *Service
-	siteUrl  string
-	url      string
-	category string
-	platform string
-	opt_     map[string]interface{}
+	s             *Service
+	siteUrl       string
+	url           string
+	category      string
+	platform      string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // Get: Retrieves details about crawl errors for a site's sample URL.
+
 func (r *UrlcrawlerrorssamplesService) Get(siteUrl string, url string, category string, platform string) *UrlcrawlerrorssamplesGetCall {
-	c := &UrlcrawlerrorssamplesGetCall{s: r.s, opt_: make(map[string]interface{})}
-	c.siteUrl = siteUrl
-	c.url = url
-	c.category = category
-	c.platform = platform
+	return &UrlcrawlerrorssamplesGetCall{
+		s:             r.s,
+		siteUrl:       siteUrl,
+		url:           url,
+		category:      category,
+		platform:      platform,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "sites/{siteUrl}/urlCrawlErrorsSamples/{url}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *UrlcrawlerrorssamplesGetCall) Context(ctx context.Context) *UrlcrawlerrorssamplesGetCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1039,40 +995,26 @@ func (r *UrlcrawlerrorssamplesService) Get(siteUrl string, url string, category 
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *UrlcrawlerrorssamplesGetCall) Fields(s ...googleapi.Field) *UrlcrawlerrorssamplesGetCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *UrlcrawlerrorssamplesGetCall) Do() (*UrlCrawlErrorsSample, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("category", fmt.Sprintf("%v", c.category))
-	params.Set("platform", fmt.Sprintf("%v", c.platform))
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "sites/{siteUrl}/urlCrawlErrorsSamples/{url}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *UrlCrawlErrorsSample
+	c.params_.Set("category", fmt.Sprintf("%v", c.category))
+	c.params_.Set("platform", fmt.Sprintf("%v", c.platform))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"siteUrl": c.siteUrl,
 		"url":     c.url,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *UrlCrawlErrorsSample
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Retrieves details about crawl errors for a site's sample URL.",
 	//   "httpMethod": "GET",
@@ -1154,20 +1096,33 @@ func (c *UrlcrawlerrorssamplesGetCall) Do() (*UrlCrawlErrorsSample, error) {
 // method id "webmasters.urlcrawlerrorssamples.list":
 
 type UrlcrawlerrorssamplesListCall struct {
-	s        *Service
-	siteUrl  string
-	category string
-	platform string
-	opt_     map[string]interface{}
+	s             *Service
+	siteUrl       string
+	category      string
+	platform      string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // List: Lists a site's sample URLs for the specified crawl error
 // category and platform.
+
 func (r *UrlcrawlerrorssamplesService) List(siteUrl string, category string, platform string) *UrlcrawlerrorssamplesListCall {
-	c := &UrlcrawlerrorssamplesListCall{s: r.s, opt_: make(map[string]interface{})}
-	c.siteUrl = siteUrl
-	c.category = category
-	c.platform = platform
+	return &UrlcrawlerrorssamplesListCall{
+		s:             r.s,
+		siteUrl:       siteUrl,
+		category:      category,
+		platform:      platform,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "sites/{siteUrl}/urlCrawlErrorsSamples",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *UrlcrawlerrorssamplesListCall) Context(ctx context.Context) *UrlcrawlerrorssamplesListCall {
+	c.context_ = ctx
 	return c
 }
 
@@ -1175,39 +1130,25 @@ func (r *UrlcrawlerrorssamplesService) List(siteUrl string, category string, pla
 // See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
 // for more information.
 func (c *UrlcrawlerrorssamplesListCall) Fields(s ...googleapi.Field) *UrlcrawlerrorssamplesListCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+	c.params_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
 func (c *UrlcrawlerrorssamplesListCall) Do() (*UrlCrawlErrorsSamplesListResponse, error) {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("category", fmt.Sprintf("%v", c.category))
-	params.Set("platform", fmt.Sprintf("%v", c.platform))
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "sites/{siteUrl}/urlCrawlErrorsSamples")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("GET", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	var returnValue *UrlCrawlErrorsSamplesListResponse
+	c.params_.Set("category", fmt.Sprintf("%v", c.category))
+	c.params_.Set("platform", fmt.Sprintf("%v", c.platform))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"siteUrl": c.siteUrl,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return nil, err
+	call := &googleapi.Call{
+		Method: "GET",
+		URL:    u,
+		Params: c.params_,
+		Result: &returnValue,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, err
-	}
-	var ret *UrlCrawlErrorsSamplesListResponse
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-	return ret, nil
+
+	return returnValue, c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Lists a site's sample URLs for the specified crawl error category and platform.",
 	//   "httpMethod": "GET",
@@ -1282,59 +1223,52 @@ func (c *UrlcrawlerrorssamplesListCall) Do() (*UrlCrawlErrorsSamplesListResponse
 // method id "webmasters.urlcrawlerrorssamples.markAsFixed":
 
 type UrlcrawlerrorssamplesMarkAsFixedCall struct {
-	s        *Service
-	siteUrl  string
-	url      string
-	category string
-	platform string
-	opt_     map[string]interface{}
+	s             *Service
+	siteUrl       string
+	url           string
+	category      string
+	platform      string
+	caller_       googleapi.Caller
+	params_       url.Values
+	pathTemplate_ string
+	context_      context.Context
 }
 
 // MarkAsFixed: Marks the provided site's sample URL as fixed, and
 // removes it from the samples list.
-func (r *UrlcrawlerrorssamplesService) MarkAsFixed(siteUrl string, url string, category string, platform string) *UrlcrawlerrorssamplesMarkAsFixedCall {
-	c := &UrlcrawlerrorssamplesMarkAsFixedCall{s: r.s, opt_: make(map[string]interface{})}
-	c.siteUrl = siteUrl
-	c.url = url
-	c.category = category
-	c.platform = platform
-	return c
-}
 
-// Fields allows partial responses to be retrieved.
-// See https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
-// for more information.
-func (c *UrlcrawlerrorssamplesMarkAsFixedCall) Fields(s ...googleapi.Field) *UrlcrawlerrorssamplesMarkAsFixedCall {
-	c.opt_["fields"] = googleapi.CombineFields(s)
+func (r *UrlcrawlerrorssamplesService) MarkAsFixed(siteUrl string, url string, category string, platform string) *UrlcrawlerrorssamplesMarkAsFixedCall {
+	return &UrlcrawlerrorssamplesMarkAsFixedCall{
+		s:             r.s,
+		siteUrl:       siteUrl,
+		url:           url,
+		category:      category,
+		platform:      platform,
+		caller_:       googleapi.JSONCall{},
+		params_:       make(map[string][]string),
+		pathTemplate_: "sites/{siteUrl}/urlCrawlErrorsSamples/{url}",
+		context_:      googleapi.NoContext,
+	}
+}
+func (c *UrlcrawlerrorssamplesMarkAsFixedCall) Context(ctx context.Context) *UrlcrawlerrorssamplesMarkAsFixedCall {
+	c.context_ = ctx
 	return c
 }
 
 func (c *UrlcrawlerrorssamplesMarkAsFixedCall) Do() error {
-	var body io.Reader = nil
-	params := make(url.Values)
-	params.Set("alt", "json")
-	params.Set("category", fmt.Sprintf("%v", c.category))
-	params.Set("platform", fmt.Sprintf("%v", c.platform))
-	if v, ok := c.opt_["fields"]; ok {
-		params.Set("fields", fmt.Sprintf("%v", v))
-	}
-	urls := googleapi.ResolveRelative(c.s.BasePath, "sites/{siteUrl}/urlCrawlErrorsSamples/{url}")
-	urls += "?" + params.Encode()
-	req, _ := http.NewRequest("DELETE", urls, body)
-	googleapi.Expand(req.URL, map[string]string{
+	c.params_.Set("category", fmt.Sprintf("%v", c.category))
+	c.params_.Set("platform", fmt.Sprintf("%v", c.platform))
+	u := googleapi.Expand(baseURL, c.pathTemplate_, map[string]string{
 		"siteUrl": c.siteUrl,
 		"url":     c.url,
 	})
-	req.Header.Set("User-Agent", c.s.userAgent())
-	res, err := c.s.client.Do(req)
-	if err != nil {
-		return err
+	call := &googleapi.Call{
+		Method: "DELETE",
+		URL:    u,
+		Params: c.params_,
 	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return err
-	}
-	return nil
+
+	return c.caller_.Do(c.context_, c.s.client, call)
 	// {
 	//   "description": "Marks the provided site's sample URL as fixed, and removes it from the samples list.",
 	//   "httpMethod": "DELETE",
