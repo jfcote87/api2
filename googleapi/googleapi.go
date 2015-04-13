@@ -373,7 +373,7 @@ func (rx *ResumableUpload) Upload(ctx context.Context, client *http.Client, v in
 		}()
 		select { // wait for http request to finish or ctx cancel
 		case <-ctx.Done():
-			if cancel, ok := client.Transport.(canceler); ok {
+			if cancel, ok := client.Transport.(Canceler); ok {
 				cancel.CancelRequest(req)
 			}
 			err = ctx.Err()
@@ -734,10 +734,10 @@ func do(ctx context.Context, cl *http.Client, method string, url *url.URL, param
 
 	select {
 	case <-ctx.Done():
-		err = ctx.Err()
-		if t, ok := cl.Transport.(canceler); ok {
+		if t, ok := cl.Transport.(Canceler); ok {
 			t.CancelRequest(req)
 		}
+		err = ctx.Err()
 	case err = <-ch:
 	}
 	return err
@@ -761,7 +761,7 @@ func do(ctx context.Context, cl *http.Client, method string, url *url.URL, param
 	*/
 }
 
-type canceler interface {
+type Canceler interface {
 	CancelRequest(*http.Request)
 }
 
@@ -771,18 +771,18 @@ type Call struct {
 	// the request body.
 	Payload interface{}
 
-	// http method for request
+	// http method for request.
 	Method string
 
-	// URL for request, not including querystring
+	// URL for request, not including querystring.
 	URL *url.URL
 
-	// Params contain the values for calls querystring
+	// Params contain the values for the call's querystring.
 	Params url.Values
 
 	// Result is used to return data back to the calling function.
-	// It may contain a pointer to a struct for unmarshalling the
-	// response, or an *http.Response which
+	// It may contain a pointer to a struct for unmarshalling json
+	// in the response, or an *http.Response for a MediaDownload call.
 	Result interface{}
 }
 
@@ -800,7 +800,7 @@ func (c Call) Error() string {
 	return "googleapi: batch call"
 }
 
-// JSONBody returns an io reader containing
+// PayloadReader returns an io reader containing
 // the results of a marshaled payload.  If
 // payload is nil then a nil reader is returned.
 func (c Call) PayloadReader() (io.Reader, error) {
