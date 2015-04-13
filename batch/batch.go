@@ -298,9 +298,7 @@ func (s *Service) Do(ctx context.Context) ([]Result, error) {
 
 	select {
 	case <-ctx.Done():
-		if cancel, ok := client.Transport.(googleapi.Canceler); ok {
-			cancel.CancelRequest(req)
-		}
+		googleapi.CancelRequest(req)
 		err = ctx.Err()
 	case err = <-ch:
 	}

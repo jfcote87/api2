@@ -154,6 +154,16 @@ func CheckResponse(res *http.Response) error {
 	}
 }
 
+// CancelRequest attempts to checks whether the client's
+// Transport has a CancelRequest method and attempts to
+// cancel the request.
+func CancelRequest(client *http.Client, req *http.Request) {
+	if c, ok := client.Transport.(canceler); ok {
+		c.CancelRequest(req)
+	}
+	return
+}
+
 // Wrap returns a struct with passed interface
 // as a field named Data.
 func Wrap(d interface{}) interface{} {
@@ -175,11 +185,9 @@ var errAborted = errors.New("googleapi: upload aborted")
 
 // ProgressUpdater is a function that is called upon every progress update of a resumable upload.
 // This is the only part of a resumable upload (from googleapi) that is usable by the developer.
-// The remaining usable pieces of resumable uploads is exposed in each auto-generated API.
 type ProgressUpdater func(current, total int64, err error)
 
 // ResumableUpload is used by the generated APIs to provide resumable uploads.
-// It is not used by developers directly.
 type ResumableUpload struct {
 	// URL is the resumable resource destination provided by the server after specifying "&uploadType=resumable".
 	URL string
@@ -299,6 +307,7 @@ func isValidChunk(n int64) bool {
 	return n > 0 && n%0x40000 == 0
 }
 
+// transferRequest creates the *http.Request and intializes the Content-Range header.
 func (rx *ResumableUpload) transferRequest() (*http.Request, error) {
 	var rangeStr string
 	var body io.Reader
@@ -373,9 +382,7 @@ func (rx *ResumableUpload) Upload(ctx context.Context, client *http.Client, v in
 		}()
 		select { // wait for http request to finish or ctx cancel
 		case <-ctx.Done():
-			if cancel, ok := client.Transport.(Canceler); ok {
-				cancel.CancelRequest(req)
-			}
+			CancelRequest(client, req)
 			err = ctx.Err()
 		case err = <-ch:
 		}
@@ -540,13 +547,18 @@ type Caller interface {
 	Do(context.Context, *http.Client, *Call) error
 }
 
+// UploadCaller is a Caller that can also upload media.
 type UploadCaller interface {
 	Caller
 	getMediaType() (io.Reader, string)
 }
 
+// JSONCall is the default caller used by apis.  The developer does not use
+// it directly.
 type JSONCall struct{}
 
+// Do executes a call with an optional json body and process the optional
+// json response.
 func (p JSONCall) Do(ctx context.Context, cl *http.Client, c *Call) error {
 	// if batchClient just return the call
 	if cl == batchClient {
@@ -591,6 +603,7 @@ func (m *MediaUpload) getMediaType() (io.Reader, string) {
 	return io.MultiReader(bytes.NewBuffer(buf), m.Media), typ
 }
 
+// multipartMedia uploads media and a json payload.
 func multipartMedia(jsonBody, mediaBody io.Reader, ct string) (io.ReadCloser, string) {
 	pr, pw := io.Pipe()
 	mpw := multipart.NewWriter(pw)
@@ -695,6 +708,7 @@ func (rx *ResumableUpload) Do(ctx context.Context, cl *http.Client, c *Call) err
 
 }
 
+// do creates a request and optionally unmarshals the json response into v.  If v is an **http.Response, the raw response is assigned to v.
 func do(ctx context.Context, cl *http.Client, method string, url *url.URL, params url.Values, hdrs http.Header, body io.Reader, v interface{}) error {
 	resPtr, isResponse := v.(**http.Response)
 	if isResponse {
@@ -734,38 +748,20 @@ func do(ctx context.Context, cl *http.Client, method string, url *url.URL, param
 
 	select {
 	case <-ctx.Done():
-		if t, ok := cl.Transport.(Canceler); ok {
-			t.CancelRequest(req)
-		}
+		CancelRequest(cl, req)
 		err = ctx.Err()
 	case err = <-ch:
 	}
 	return err
-	/*
-		res, err := cl.Do(req)
-		if err != nil {
-			return err
-		}
-		if err = CheckResponse(res); err != nil {
-			return err
-		}
-		if isResponse {
-			*resPtr = res
-			return nil
-		}
-		defer CloseBody(res)
-		if v != nil {
-			err = json.NewDecoder(res.Body).Decode(v)
-		}
-		return err
-	*/
 }
 
-type Canceler interface {
+type canceler interface {
 	CancelRequest(*http.Request)
 }
 
-// Call object is
+// Call contains data needed by Caller.  The client api calls create
+// the struct in their Do() commands.  The developer would not use
+// this directly.
 type Call struct {
 	// Payload is the value to be marshalled into
 	// the request body.
