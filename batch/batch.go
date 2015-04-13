@@ -237,27 +237,26 @@ func (s *Service) Do(ctx context.Context) ([]Result, error) {
 	}
 
 	results := make([]Result, 0, len(calls))
-	ch := make(chan error)
-
+	errCh := make(chan error)
 	go func() {
 		res, err := client.Do(req)
-		if err == nil {
-			if err = googleapi.CheckResponse(res); err == nil {
-				defer res.Body.Close()
-				if _, params, err := mime.ParseMediaType(res.Header.Get("Content-Type")); err == nil {
-					boundary = params["boundary"]
-				}
-			}
-		}
-		select {
-		case <-ctx.Done():
-			err = ctx.Err()
-		default:
-		}
+		defer func() {
+			errCh <- err
+			close(errCh)
+		}()
 		if err != nil {
-			ch <- err
 			return
 		}
+		if err = googleapi.CheckResponse(res); err != nil {
+			return
+		}
+		defer res.Body.Close()
+
+		_, params, err := mime.ParseMediaType(res.Header.Get("Content-Type"))
+		if err != nil {
+			return
+		}
+		boundary = params["boundary"]
 
 		mr := multipart.NewReader(res.Body, boundary)
 		var pr *multipart.Part
@@ -266,7 +265,7 @@ func (s *Service) Do(ctx context.Context) ([]Result, error) {
 			select {
 			case <-ctx.Done():
 				err = ctx.Err()
-				return
+				break
 			default:
 			}
 
@@ -277,7 +276,6 @@ func (s *Service) Do(ctx context.Context) ([]Result, error) {
 					Err: fmt.Errorf("batch: Part content-type = %s; want application/http", ct)})
 				continue
 			}
-
 			results = append(results, c.getResult(pr))
 		}
 
@@ -293,19 +291,16 @@ func (s *Service) Do(ctx context.Context) ([]Result, error) {
 		} else {
 			err = nil
 		}
-		ch <- err
+		errCh <- err
 	}()
 
 	select {
 	case <-ctx.Done():
-		googleapi.CancelRequest(req)
+		googleapi.CancelRequest(client, req)
 		err = ctx.Err()
-	case err = <-ch:
+	case err = <-errCh:
 	}
-	if err != nil {
-		results = nil
-	}
-	return results, err
+	return results, nil
 
 }
 
@@ -372,9 +367,8 @@ func createBody(calls []call) (io.ReadCloser, string) {
 	return pr, batchWriter.Boundary()
 }
 
-/*
 // processBody loops through requests and processes each part of multipart response
-func processBody(mr *multipart.Reader, calls []call,) ([]Result, error) {
+func processBody(mr *multipart.Reader, calls []call) ([]Result, error) {
 	var err error
 	var pr *multipart.Part
 	results := make([]Result, 0, len(calls))
@@ -405,4 +399,3 @@ func processBody(mr *multipart.Reader, calls []call,) ([]Result, error) {
 	}
 	return results, err
 }
-*/

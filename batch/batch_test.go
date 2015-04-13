@@ -14,7 +14,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/jfcote87/api/googleapi"
+	"github.com/jfcote87/api2/googleapi"
 )
 
 type Tstr struct {
@@ -158,14 +158,23 @@ func TestProcessBody(t *testing.T) {
 	}
 	_ = mp.Close()
 
+	results := make([]Result, 0, len(calls))
 	mr := multipart.NewReader(buf, boundary)
+	var pr *multipart.Part
+	var err error
+	cnt := 0
+	for pr, err = mr.NextPart(); err == nil && cnt < len(calls); pr, err = mr.NextPart() {
+		c := calls[cnt]
+		cnt++
+		results = append(results, c.getResult(pr))
+	}
 
-	resultSlice, err := processBody(mr, calls)
-	if err != nil {
+	//resultSlice, err := processBody(mr, calls)
+	if err != io.EOF {
 		t.Fatalf("processBody: %v", err)
 		return
 	}
-	for i, r := range resultSlice {
+	for i, r := range results {
 		if tData[i].isError {
 			if r.Err == nil {
 				t.Errorf("processBody: Test#%d "+tData[i].msg, i)
